@@ -1,0 +1,14 @@
+{
+  "name": "beautynow-store",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@beautynow/storefront",
+    "build": "npm run build --workspace=@beautynow/storefront",
+    "start": "npm run start --workspace=@beautynow/storefront",
+    "typecheck": "npm run typecheck --workspace=@beautynow/storefront"
+  }
+}
