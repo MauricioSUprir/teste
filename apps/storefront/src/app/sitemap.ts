@@ -1,4 +1,6 @@
 import type { MetadataRoute } from "next";
+
+export const dynamic = "force-static";
 import { categorias, marcas, necessidades, produtos } from "@/lib/catalogo/consultas";
 
 const BASE = "https://beautynow.com.br";
