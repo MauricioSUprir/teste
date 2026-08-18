@@ -1,0 +1,6 @@
+User-Agent: *
+Allow: /
+Disallow: /checkout
+Disallow: /conta
+
+Sitemap: https://beautynow.com.br/sitemap.xml
