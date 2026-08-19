@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/checkout", "/conta"],
+      disallow: ["/checkout", "/conta", "/admin"],
     },
     sitemap: "https://beautynow.com.br/sitemap.xml",
   };

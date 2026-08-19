@@ -6,7 +6,6 @@
 
 export type CategoriaSlug =
   | "cabelos"
-  | "skincare"
   | "maquiagem"
   | "perfumaria"
   | "corpo-e-banho"

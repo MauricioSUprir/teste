@@ -5,13 +5,16 @@ import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
+import { useConta } from "@/lib/conta/contexto";
 import { Logo } from "./Logo";
 import { BuscaHeader } from "./BuscaHeader";
 
 /** Header + megamenu (categoria/marca/necessidade) — ticket 2.1. */
 export function Header() {
   const { totalItens, abrir } = useCarrinho();
+  const { usuario } = useConta();
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
+  const rotuloConta = usuario ? usuario.nome.split(" ")[0] : copy.conta.entrar;
 
   return (
     <header className="sticky top-0 z-40 border-b border-linha bg-white">
@@ -55,7 +58,7 @@ export function Header() {
               <circle cx="9" cy="6" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
               <path d="M3 15.5 a6 6 0 0 1 12 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            {copy.header.minhaConta}
+            {rotuloConta}
           </Link>
           <button
             type="button"

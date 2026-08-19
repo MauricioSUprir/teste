@@ -7,7 +7,6 @@ import type { Categoria, Marca, Necessidade, Produto } from "./tipos";
 
 export const categorias: Categoria[] = [
   { slug: "cabelos", nome: "Cabelos", descricao: "Shampoo, máscara, leave-in e tratamento profissional para todo tipo de cabelo." },
-  { slug: "skincare", nome: "Skincare", descricao: "Limpeza, tratamento e proteção para a sua rotina de pele." },
   { slug: "maquiagem", nome: "Maquiagem", descricao: "Base, batom e acabamento profissional para o dia a dia." },
   { slug: "perfumaria", nome: "Perfumaria", descricao: "Fragrâncias marcantes para todos os momentos." },
   { slug: "corpo-e-banho", nome: "Corpo e Banho", descricao: "Hidratação e cuidado da pele do corpo, do banho ao pós-sol." },
@@ -17,7 +16,6 @@ export const categorias: Categoria[] = [
 export const marcas: Marca[] = [
   { slug: "keralab", nome: "KeraLab Professional", cor: "#7C3AED", descricao: "Tratamento capilar profissional com tecnologia de reconstrução de queratina. A marca preferida dos salões que atendemos há 15 anos." },
   { slug: "nuvelle", nome: "Nuvelle", cor: "#0EA5A4", descricao: "Finalizadores e leave-ins leves, pensados para o clima brasileiro. Fórmulas veganas e sem sulfato." },
-  { slug: "dermavita", nome: "DermaVita", cor: "#F59E0B", descricao: "Skincare dermatológico com ativos em concentração clínica e preço honesto." },
   { slug: "floratta", nome: "Floratta", cor: "#E8467C", descricao: "Perfumaria e corpo com notas florais brasileiras e fixação de eau de parfum." },
   { slug: "urbanman", nome: "Urban Man", cor: "#2B4C7E", descricao: "Linha masculina completa: cabelo, barba e pele, sem complicação." },
   { slug: "colorpro", nome: "ColorPro Studio", cor: "#DC2626", descricao: "Maquiagem de alta pigmentação com acabamento profissional." },
@@ -29,9 +27,6 @@ export const necessidades: Necessidade[] = [
   { slug: "reconstrucao", nome: "Reconstrução" },
   { slug: "cabelo-com-quimica", nome: "Cabelo com química" },
   { slug: "definicao-de-cachos", nome: "Definição de cachos" },
-  { slug: "pele-oleosa", nome: "Pele oleosa" },
-  { slug: "anti-idade", nome: "Anti-idade" },
-  { slug: "protecao-solar", nome: "Proteção solar" },
 ];
 
 export const produtos: Produto[] = [
@@ -270,119 +265,6 @@ export const produtos: Produto[] = [
     visual: { corA: "#5B21B6", corB: "#A78BFA", forma: "tubo" },
   },
   {
-    slug: "dermavita-serum-vitamina-c-20",
-    titulo: "Sérum Vitamina C 20% + Ácido Ferúlico",
-    marca: "dermavita",
-    linha: "Clinical",
-    categorias: ["skincare"],
-    descricao:
-      "Sérum antioxidante com vitamina C estabilizada a 20% e ácido ferúlico. Uniformiza o tom, trata manchas e previne o envelhecimento causado por radiação solar e poluição.",
-    beneficios: [
-      "Clareia manchas em 8 semanas",
-      "Antioxidante: previne linhas finas",
-      "Textura sérum de rápida absorção",
-      "Testado dermatologicamente",
-    ],
-    modoDeUso: [
-      "Pela manhã, com a pele limpa, aplique 3 a 4 gotas no rosto.",
-      "Espere absorver e finalize com protetor solar — obrigatório.",
-    ],
-    composicao: "Aqua, Ascorbic Acid, Ethoxydiglycol, Propylene Glycol, Ferulic Acid, Tocopherol.",
-    especificacoes: {
-      Volume: "30ml",
-      "Tipo de pele": "Todas, exceto sensível",
-      "Ativo principal": "Vitamina C 20%",
-      Vegano: "Sim",
-    },
-    atributos: {
-      tipoPele: ["oleosa", "mista", "normal", "seca"],
-      necessidade: ["anti-idade"],
-      ativo: ["vitamina-c"],
-      vegano: true,
-      crueltyFree: true,
-    },
-    variantes: [
-      { sku: "DV-SE-VC-30", tituloVariacao: "30ml", precoDe: 14990, precoPor: 9990, estoque: 35, pesoG: 120 },
-    ],
-    avaliacoes: [
-      { nota: 5, titulo: "Manchas de sol clareando", texto: "2 meses de uso e as manchas da testa deram uma sumida real. Textura seca rápido.", autor: "Fernanda D.", data: "2026-07-08", compraVerificada: true },
-      { nota: 4, titulo: "Boa, mas arde um pouco", texto: "Nos primeiros dias arde levemente. Depois a pele acostuma e o glow vem.", autor: "Paula M.", data: "2026-06-15", compraVerificada: true },
-    ],
-    compreJunto: ["dermavita-protetor-solar-fps60", "dermavita-gel-limpeza-salicilico"],
-    maisVendido: true,
-    visual: { corA: "#F59E0B", corB: "#FDE68A", forma: "ampola" },
-  },
-  {
-    slug: "dermavita-protetor-solar-fps60",
-    titulo: "Protetor Solar Facial FPS 60 Toque Seco",
-    marca: "dermavita",
-    linha: "Sun",
-    categorias: ["skincare"],
-    descricao:
-      "Proteção UVA/UVB muito alta com toque seco imediato e controle de oleosidade por 12h. Não craquela, não arde os olhos e funciona como primer de maquiagem.",
-    beneficios: ["FPS 60 / PPD 20", "Efeito matte por 12h", "Resistente à água e ao suor"],
-    modoDeUso: [
-      "Aplique generosamente no rosto 15 minutos antes da exposição.",
-      "Reaplique a cada 2 horas de exposição direta.",
-    ],
-    composicao: "Aqua, Homosalate, Octocrylene, Silica, Ethylhexyl Salicylate, Butyl Methoxydibenzoylmethane.",
-    especificacoes: {
-      Volume: "50g",
-      FPS: "60",
-      "Tipo de pele": "Oleosa e mista",
-      "Registro ANVISA": "2.99999.001",
-    },
-    atributos: {
-      tipoPele: ["oleosa", "mista"],
-      necessidade: ["protecao-solar", "pele-oleosa"],
-      fps: 60,
-      crueltyFree: true,
-    },
-    variantes: [
-      { sku: "DV-PS-60-50", tituloVariacao: "50g", precoDe: null, precoPor: 7490, estoque: 58, pesoG: 90 },
-    ],
-    avaliacoes: [
-      { nota: 5, titulo: "Matte de verdade", texto: "Pele oleosa aprovou. Fico o dia todo sem brilhar e não desce com o suor.", autor: "Aline B.", data: "2026-07-22", compraVerificada: true },
-      { nota: 5, titulo: "Melhor protetor que já usei", texto: "Não arde os olhos na academia. Recompro para sempre.", autor: "Débora C.", data: "2026-07-03", compraVerificada: true },
-      { nota: 4, titulo: "Ótimo, embalagem pequena", texto: "Rende um mês com uso diário. Podia ter versão maior.", autor: "Sofia R.", data: "2026-06-11", compraVerificada: true },
-    ],
-    compreJunto: ["dermavita-serum-vitamina-c-20"],
-    maisVendido: true,
-    visual: { corA: "#D97706", corB: "#FED7AA", forma: "tubo" },
-  },
-  {
-    slug: "dermavita-gel-limpeza-salicilico",
-    titulo: "Gel de Limpeza Ácido Salicílico 2%",
-    marca: "dermavita",
-    linha: "Clinical",
-    categorias: ["skincare"],
-    descricao:
-      "Limpeza profunda para pele oleosa e com tendência a acne. O ácido salicílico desobstrui os poros enquanto o pantenol evita o ressecamento rebote.",
-    beneficios: ["Controla a oleosidade sem ressecar", "Reduz cravos em 2 semanas", "pH fisiológico"],
-    modoDeUso: [
-      "Aplique no rosto úmido, massageie por 30 segundos e enxágue.",
-      "Use de manhã e à noite.",
-    ],
-    composicao: "Aqua, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Salicylic Acid, Panthenol.",
-    especificacoes: { Volume: "150ml", "Tipo de pele": "Oleosa e acneica", "Ativo principal": "Ácido salicílico 2%" },
-    atributos: {
-      tipoPele: ["oleosa", "mista"],
-      necessidade: ["pele-oleosa"],
-      ativo: ["acido-salicilico"],
-      vegano: true,
-      crueltyFree: true,
-    },
-    variantes: [
-      { sku: "DV-GL-AS-150", tituloVariacao: "150ml", precoDe: 6490, precoPor: 4990, estoque: 44, pesoG: 190 },
-    ],
-    avaliacoes: [
-      { nota: 5, titulo: "Adeus cravos", texto: "Uso há um mês e a diferença no nariz é visível. Não resseca.", autor: "Isabela T.", data: "2026-07-18", compraVerificada: true },
-    ],
-    compreJunto: ["dermavita-serum-vitamina-c-20", "dermavita-protetor-solar-fps60"],
-    lancamento: true,
-    visual: { corA: "#EA580C", corB: "#FFEDD5", forma: "frasco" },
-  },
-  {
     slug: "floratta-eau-de-parfum-flor-de-ipe",
     titulo: "Eau de Parfum Flor de Ipê",
     marca: "floratta",
@@ -554,35 +436,6 @@ export const produtos: Produto[] = [
     ],
     compreJunto: ["floratta-hidratante-corporal-karite"],
     visual: { corA: "#C026D3", corB: "#F5D0FE", forma: "frasco" },
-  },
-  {
-    slug: "dermavita-hidratante-acido-hialuronico",
-    titulo: "Hidratante Facial Ácido Hialurônico 3D",
-    marca: "dermavita",
-    linha: "Clinical",
-    categorias: ["skincare"],
-    descricao:
-      "Gel-creme com três pesos moleculares de ácido hialurônico que hidratam da superfície às camadas mais profundas. Preenche linhas de desidratação em 15 dias.",
-    beneficios: ["Hidratação em 3 camadas da pele", "Textura gel: não obstrui poros", "Base perfeita para maquiagem"],
-    modoDeUso: ["Aplique de manhã e à noite na pele limpa, antes do protetor ou do tratamento noturno."],
-    composicao: "Aqua, Glycerin, Sodium Hyaluronate, Hydrolyzed Hyaluronic Acid, Panthenol, Carbomer.",
-    especificacoes: { Volume: "50g", "Tipo de pele": "Todas", "Ativo principal": "Ácido hialurônico" },
-    atributos: {
-      tipoPele: ["oleosa", "mista", "normal", "seca", "sensivel"],
-      necessidade: ["anti-idade"],
-      ativo: ["acido-hialuronico"],
-      vegano: true,
-      crueltyFree: true,
-    },
-    variantes: [
-      { sku: "DV-HF-AH-50", tituloVariacao: "50g", precoDe: 8990, precoPor: 6990, estoque: 48, pesoG: 100 },
-    ],
-    avaliacoes: [
-      { nota: 5, titulo: "Pele de porcelana", texto: "Minha pele mista amou. Hidrata sem brilho e a maquiagem assenta melhor.", autor: "Marina I.", data: "2026-07-16", compraVerificada: true },
-      { nota: 5, titulo: "Uso com retinol", texto: "Acalma a pele nos dias de ácido. Textura maravilhosa.", autor: "Elisa G.", data: "2026-06-22", compraVerificada: true },
-    ],
-    compreJunto: ["dermavita-serum-vitamina-c-20", "dermavita-protetor-solar-fps60"],
-    visual: { corA: "#0891B2", corB: "#A5F3FC", forma: "pote" },
   },
   {
     slug: "keralab-kit-cronograma-capilar",
