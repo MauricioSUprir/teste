@@ -4,16 +4,31 @@
  * Etapa do código de verificação — compartilhada por login e cadastro.
  * Todo e-mail que entra na conta passa por aqui, sem exceção.
  * Na demo o código aparece na tela; com o servidor no ar, chega por e-mail.
+ * Mostra o status do envio (enviado / não enviado) e permite reenviar.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import { useConta } from "@/lib/conta/contexto";
+
+const ESPERA_REENVIO_S = 30;
 
 export function EtapaCodigo({ aoConcluir }: { aoConcluir: () => void }) {
   const conta = useConta();
   const [codigo, setCodigo] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
+  // status do último envio: o fluxo só chega nesta tela após um envio bem-sucedido
+  const [statusEnvio, setStatusEnvio] = useState<"enviado" | "reenviado" | "falha">("enviado");
+  const [erroEnvio, setErroEnvio] = useState("");
+  const [esperaReenvio, setEsperaReenvio] = useState(ESPERA_REENVIO_S);
+
+  // contagem regressiva para liberar o botão de reenviar
+  useEffect(() => {
+    if (esperaReenvio <= 0) return;
+    const timer = setTimeout(() => setEsperaReenvio((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [esperaReenvio]);
 
   async function confirmar(e: React.FormEvent) {
     e.preventDefault();
@@ -29,12 +44,49 @@ export function EtapaCodigo({ aoConcluir }: { aoConcluir: () => void }) {
     }
   }
 
+  async function reenviar() {
+    if (reenviando || esperaReenvio > 0) return;
+    setReenviando(true);
+    setErro("");
+    const r = await conta.reenviarCodigo();
+    setReenviando(false);
+    if (r.ok) {
+      setStatusEnvio("reenviado");
+      setErroEnvio("");
+      setCodigo("");
+      setEsperaReenvio(ESPERA_REENVIO_S);
+    } else {
+      setStatusEnvio("falha");
+      setErroEnvio(r.erro ?? "");
+      setEsperaReenvio(5);
+    }
+  }
+
   return (
     <form onSubmit={confirmar} className="space-y-4">
       <h2 className="font-titulo text-[1.25rem] font-semibold">{copy.conta.codigoTitulo}</h2>
       <p className="text-[0.9375rem] text-grafite">
         {copy.conta.codigoTexto(conta.emailAguardandoCodigo ?? "")}
       </p>
+
+      {/* status do envio — sempre visível: enviado ou não enviado */}
+      {conta.codigoDemo === null &&
+        (statusEnvio === "falha" ? (
+          <p
+            role="status"
+            className="rounded-[10px] border border-erro/40 bg-roxo-claro px-3 py-2.5 text-[0.875rem] font-medium text-erro"
+          >
+            {copy.conta.codigoNaoEnviado}
+            {erroEnvio && <span className="block font-normal text-grafite">{erroEnvio}</span>}
+          </p>
+        ) : (
+          <p
+            role="status"
+            className="rounded-[10px] border border-sucesso/40 bg-[#E7F5EE] px-3 py-2.5 text-[0.875rem] font-medium text-sucesso"
+          >
+            {statusEnvio === "reenviado" ? copy.conta.codigoReenviado : copy.conta.codigoEnviado}
+          </p>
+        ))}
 
       {/* aviso de demonstração — em produção o código chega por e-mail */}
       {conta.codigoDemo && (
@@ -76,6 +128,21 @@ export function EtapaCodigo({ aoConcluir }: { aoConcluir: () => void }) {
       >
         {enviando ? copy.conta.botaoConfirmando : copy.conta.codigoBotao}
       </button>
+
+      <button
+        type="button"
+        onClick={reenviar}
+        disabled={reenviando || esperaReenvio > 0}
+        aria-busy={reenviando}
+        className="block w-full rounded-[999px] border border-linha py-2.5 text-center text-[0.875rem] font-medium text-grafite hover:bg-superficie disabled:opacity-50"
+      >
+        {reenviando
+          ? copy.conta.codigoReenviando
+          : esperaReenvio > 0
+            ? copy.conta.codigoReenviarEm(esperaReenvio)
+            : copy.conta.codigoReenviar}
+      </button>
+
       <button
         type="button"
         onClick={() => {

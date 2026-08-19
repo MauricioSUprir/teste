@@ -70,6 +70,8 @@ interface ContaContexto {
   }) => Promise<{ ok: boolean; erro?: string }>;
   iniciarLogin: (email: string, senha: string) => Promise<{ ok: boolean; erro?: string }>;
   confirmarCodigo: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
+  /** manda um novo código para o mesmo e-mail (botão "Reenviar") */
+  reenviarCodigo: () => Promise<{ ok: boolean; erro?: string }>;
   cancelarVerificacao: () => void;
   /** login demonstrativo (sem Client ID do Google configurado) */
   entrarComGoogle: () => void;
@@ -282,6 +284,24 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     [pendente]
   );
 
+  const reenviarCodigo: ContaContexto["reenviarCodigo"] = useCallback(async () => {
+    if (!pendente) return { ok: false, erro: "Nenhuma verificação em andamento." };
+    if (pendente.codigo === null) {
+      // servidor gera e envia um código novo por e-mail
+      const r = await solicitarCodigoPorEmail(pendente.email);
+      if (!r.ok) return { ok: false, erro: r.erro };
+      setPendente({ ...pendente, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+      return { ok: true };
+    }
+    // demonstração: gera outro código local
+    setPendente({
+      ...pendente,
+      codigo: gerarCodigo(),
+      expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000,
+    });
+    return { ok: true };
+  }, [pendente]);
+
   const cancelarVerificacao = useCallback(() => setPendente(null), []);
 
   const entrarComGoogle = useCallback(() => {
@@ -370,12 +390,13 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       criarConta,
       iniciarLogin,
       confirmarCodigo,
+      reenviarCodigo,
       cancelarVerificacao,
       entrarComGoogle,
       entrarComGoogleCredencial,
       sair,
     }),
-    [usuario, pendente, criarConta, iniciarLogin, confirmarCodigo, cancelarVerificacao, entrarComGoogle, entrarComGoogleCredencial, sair]
+    [usuario, pendente, criarConta, iniciarLogin, confirmarCodigo, reenviarCodigo, cancelarVerificacao, entrarComGoogle, entrarComGoogleCredencial, sair]
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

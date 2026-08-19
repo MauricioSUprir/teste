@@ -240,6 +240,12 @@ export const copy = {
     codigoRotulo: "Código de verificação",
     codigoBotao: "Confirmar código",
     codigoVoltar: "Voltar e tentar outro e-mail",
+    codigoEnviado: "✅ Código enviado! Confira sua caixa de entrada (e o spam).",
+    codigoReenviado: "✅ Novo código enviado! Confira sua caixa de entrada (e o spam).",
+    codigoNaoEnviado: "❌ Não foi possível enviar o código.",
+    codigoReenviar: "Reenviar código",
+    codigoReenviando: "Reenviando…",
+    codigoReenviarEm: (s: number) => `Reenviar código em ${s}s`,
     codigoDemoAviso:
       "Modo demonstração: sem servidor de e-mail, o código aparece aqui. Na versão final ele chega na sua caixa de entrada.",
     codigoDemoRotulo: "Seu código",
