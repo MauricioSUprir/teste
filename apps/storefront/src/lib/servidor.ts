@@ -30,6 +30,29 @@ async function chamar(caminho: string, corpo: unknown): Promise<{ ok: boolean; e
   }
 }
 
+let cacheEmailReal: { valor: boolean; expira: number } | null = null;
+
+/**
+ * O envio de código pelo servidor só é usado quando o e-mail real (Gmail)
+ * está configurado lá — senão o site mantém o modo demonstração local
+ * (código visível na tela). Assim, ligar o Gmail no servidor ativa o
+ * e-mail real automaticamente, sem republicar o site.
+ */
+export async function emailRealAtivo(): Promise<boolean> {
+  if (!servidorConfigurado()) return false;
+  if (cacheEmailReal && Date.now() < cacheEmailReal.expira) return cacheEmailReal.valor;
+  try {
+    const resposta = await fetch(`${SERVIDOR_URL}/saude`);
+    const dados = (await resposta.json()) as { emailModo?: string };
+    const valor = resposta.ok && dados.emailModo === "gmail";
+    cacheEmailReal = { valor, expira: Date.now() + 5 * 60_000 };
+    return valor;
+  } catch {
+    cacheEmailReal = { valor: false, expira: Date.now() + 60_000 };
+    return false;
+  }
+}
+
 /** Pede ao servidor que gere e envie o código de verificação por e-mail. */
 export function solicitarCodigoPorEmail(email: string) {
   return chamar("/codigo", { email });

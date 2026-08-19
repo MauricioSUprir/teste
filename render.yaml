@@ -1,0 +1,29 @@
+# Blueprint do Render — sobe o servidor BeautyNow com 1 clique.
+# No Render: New + → Blueprint → conectar este repositório →
+# escolher a branch claude/beauty-now-ecommerce-fbfxh2 → Apply.
+# Depois, em Environment, preencher HUB_API_KEY e (quando tiver)
+# EMAIL_SENHA_APP + mudar EMAIL_MODO para "gmail".
+services:
+  - type: web
+    name: beautynow-servidor
+    runtime: node
+    plan: free
+    rootDir: apps/servidor
+    buildCommand: npm install
+    startCommand: node index.mjs
+    healthCheckPath: /saude
+    envVars:
+      - key: EMAIL_MODO
+        value: console
+      - key: EMAIL_USUARIO
+        value: lojabeautynow@gmail.com
+      - key: EMAIL_SENHA_APP
+        sync: false
+      - key: ADMIN_NOTIFICACAO_EMAILS
+        value: lojabeautynow@gmail.com
+      - key: ORIGENS_PERMITIDAS
+        value: https://mauriciosuprir.github.io
+      - key: HUB_API_URL
+        value: https://comercial.thebeautyhub.app/api/loja
+      - key: HUB_API_KEY
+        sync: false

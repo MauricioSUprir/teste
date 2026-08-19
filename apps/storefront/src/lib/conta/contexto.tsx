@@ -26,7 +26,7 @@ import {
   CODIGO_VALIDADE_MIN,
 } from "./config";
 import {
-  servidorConfigurado,
+  emailRealAtivo,
   solicitarCodigoPorEmail,
   verificarCodigoNoServidor,
 } from "@/lib/servidor";
@@ -194,7 +194,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     gravarUsuarios([...usuarios, novo]);
 
     // todo e-mail é verificado: o cadastro também exige o código antes de entrar
-    if (servidorConfigurado()) {
+    if (await emailRealAtivo()) {
       const r = await solicitarCodigoPorEmail(email);
       if (!r.ok) return { ok: false, erro: r.erro };
       setPendente({ email, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
@@ -220,7 +220,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     }
 
     // 2ª etapa: código de verificação
-    if (servidorConfigurado()) {
+    if (await emailRealAtivo()) {
       // servidor gera o código e envia por e-mail de verdade
       const r = await solicitarCodigoPorEmail(email);
       if (!r.ok) return { ok: false, erro: r.erro };

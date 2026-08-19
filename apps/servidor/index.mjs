@@ -21,7 +21,13 @@ import cors from "cors";
 import { createTransport } from "nodemailer";
 import { randomInt } from "node:crypto";
 
-const PORTA = Number(process.env.PORTA ?? 4000);
+// Render/Heroku definem PORT; localmente usamos PORTA (padrão 4000)
+const PORTA = Number(process.env.PORTA ?? process.env.PORT ?? 4000);
+/** e-mails de administrador que recebem a notificação de cada venda */
+const EMAILS_NOTIFICACAO = (process.env.ADMIN_NOTIFICACAO_EMAILS ?? "lojabeautynow@gmail.com")
+  .split(",")
+  .map((e) => e.trim())
+  .filter(Boolean);
 const ORIGENS = (process.env.ORIGENS_PERMITIDAS ?? "https://mauriciosuprir.github.io,http://localhost:3000")
   .split(",")
   .map((o) => o.trim())
@@ -71,6 +77,77 @@ async function enviarEmailCodigo(email, codigo) {
         <p style="color:#8A9099;font-size:12px">Se você não tentou entrar, ignore este e-mail.</p>
       </div>`,
   });
+}
+
+const formatarReais = (centavos) =>
+  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * Notificação de venda para o(s) admin(s) — logo BN no topo e tipografia
+ * da marca (serifada nos títulos com fallback Georgia; corpo Arial/Inter,
+ * como e-mail exige). Enviada a cada pedido concluído no site.
+ */
+async function notificarVenda(pedido) {
+  const itens = Array.isArray(pedido.itens) ? pedido.itens : [];
+  const linhasItens = itens
+    .map(
+      (i) => `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #E4E6EA;color:#14161A">${i.quantidade}× ${i.titulo}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #E4E6EA;color:#14161A;text-align:right;white-space:nowrap">${formatarReais((i.precoCentavos ?? 0) * (i.quantidade ?? 1))}</td>
+        </tr>`
+    )
+    .join("");
+  const meio = pedido.meio === "pix" ? "Pix" : pedido.meio === "cartao" ? "Cartão" : "Boleto";
+  const assunto = `🛍 Nova venda ${pedido.numero} — ${formatarReais(pedido.totalCentavos ?? 0)}`;
+  const html = `
+    <div style="background:#F7F8FA;padding:24px 12px;font-family:Inter,Arial,Helvetica,sans-serif">
+      <div style="max-width:520px;margin:auto;background:#FFFFFF;border-radius:16px;padding:28px;border:1px solid #E4E6EA">
+        <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:bold;letter-spacing:-0.5px">
+          <span style="color:#4A2882">BN</span>
+          <span style="font-family:Inter,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:4px;color:#6847C8">&nbsp;BEAUTY&nbsp;NOW</span>
+        </p>
+        <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;color:#14161A;margin:20px 0 4px">Você fez uma venda! 🎉</h1>
+        <p style="color:#4A4F57;font-size:14px;margin:0 0 20px">
+          Pedido <strong style="color:#4A2882">${pedido.numero}</strong> · ${new Date(pedido.data ?? Date.now()).toLocaleString("pt-BR")}
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">${linhasItens}</table>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:12px">
+          <tr>
+            <td style="color:#4A4F57;padding:4px 0">Cliente</td>
+            <td style="text-align:right;color:#14161A">${pedido.clienteNome ?? "—"} · ${pedido.clienteEmail ?? ""}</td>
+          </tr>
+          <tr>
+            <td style="color:#4A4F57;padding:4px 0">Pagamento</td>
+            <td style="text-align:right;color:#14161A">${meio}</td>
+          </tr>
+          <tr>
+            <td style="color:#4A4F57;padding:8px 0;font-size:16px"><strong>Total</strong></td>
+            <td style="text-align:right;color:#4A2882;font-size:20px;font-weight:bold;padding:8px 0">${formatarReais(pedido.totalCentavos ?? 0)}</td>
+          </tr>
+        </table>
+        <a href="https://mauriciosuprir.github.io/teste/admin"
+           style="display:block;text-align:center;background:#4A2882;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;border-radius:999px;padding:14px;margin-top:20px">
+          Abrir painel do administrador
+        </a>
+        <p style="color:#8A9099;font-size:11px;margin:16px 0 0;text-align:center">BeautyNow · notificação automática de venda</p>
+      </div>
+    </div>`;
+
+  if (!transporte) {
+    console.log(`[email-teste] notificacao-venda para=${EMAILS_NOTIFICACAO.join(",")} pedido=${pedido.numero} total=${formatarReais(pedido.totalCentavos ?? 0)}`);
+    return;
+  }
+  await Promise.all(
+    EMAILS_NOTIFICACAO.map((destino) =>
+      transporte.sendMail({
+        from: `"BeautyNow" <${process.env.EMAIL_USUARIO}>`,
+        to: destino,
+        subject: assunto,
+        html,
+      })
+    )
+  );
 }
 
 // códigos pendentes em memória: email → {codigo, expiraEm, tentativas, envios[]}
@@ -133,14 +210,22 @@ aplicacao.post("/codigo/verificar", (req, res) => {
 });
 
 aplicacao.post("/pedidos", async (req, res) => {
+  const pedido = req.body ?? {};
+
+  // notificação de venda para o(s) admin(s) — independe do Hub
+  notificarVenda(pedido).catch((erro) =>
+    console.error("falha ao notificar venda:", erro.message)
+  );
+
   if (!HUB_API_KEY) {
-    return res.status(503).json({ erro: "Integração com o Hub ainda não configurada no servidor." });
+    // sem chave configurada, o pedido fica só no registro do site
+    return res.json({ ok: true, hub: "nao-configurado" });
   }
   try {
     const resposta = await fetch(`${HUB_API_URL}/pedidos`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-Key": HUB_API_KEY },
-      body: JSON.stringify(req.body ?? {}),
+      body: JSON.stringify(pedido),
     });
     const corpo = await resposta.text();
     res.status(resposta.status).type("application/json").send(corpo || "{}");
