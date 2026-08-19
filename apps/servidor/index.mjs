@@ -53,6 +53,9 @@ aplicacao.use(cors({ origin: ORIGENS }));
 // engasgada com o Gmail deixa o /codigo pendurado e o site sem resposta
 const EMAIL_USUARIO = (process.env.EMAIL_USUARIO ?? "").trim();
 const EMAIL_SENHA_APP = (process.env.EMAIL_SENHA_APP ?? "").replace(/\s+/g, "");
+/** chave de API do Brevo (envio via HTTPS — funciona onde SMTP é bloqueado,
+ * como no plano gratuito do Render) */
+const BREVO_API_KEY = (process.env.BREVO_API_KEY ?? "").trim();
 const transporte =
   EMAIL_MODO === "gmail"
     ? createTransport({
@@ -66,6 +69,48 @@ const transporte =
       })
     : null;
 
+const brevoAtivo = EMAIL_MODO === "brevo" && BREVO_API_KEY.length > 0;
+/** o site pergunta em /saude se o e-mail real está ligado */
+const emailRealLigado = () => brevoAtivo || transporte !== null;
+
+async function enviarViaBrevo({ para, assunto, texto, html }) {
+  const resposta = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": BREVO_API_KEY,
+      "Content-Type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "BeautyNow", email: EMAIL_USUARIO },
+      to: [{ email: para }],
+      subject: assunto,
+      textContent: texto,
+      htmlContent: html,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!resposta.ok) {
+    const corpo = await resposta.text().catch(() => "");
+    throw new Error(`Brevo respondeu ${resposta.status}: ${corpo.slice(0, 200)}`);
+  }
+}
+
+/** envia por qualquer modo ativo (brevo → gmail → console) */
+async function enviarEmail({ para, assunto, texto, html }) {
+  if (brevoAtivo) return enviarViaBrevo({ para, assunto, texto, html });
+  if (transporte) {
+    return transporte.sendMail({
+      from: `"BeautyNow" <${EMAIL_USUARIO}>`,
+      to: para,
+      subject: assunto,
+      text: texto,
+      html,
+    });
+  }
+  console.log(`[email-teste] para=${para} assunto="${assunto}"`);
+}
+
 // testa a autenticação no boot — o resultado aparece nos logs do Render
 if (transporte) {
   transporte
@@ -77,19 +122,19 @@ if (transporte) {
       )
     );
 }
+if (brevoAtivo) console.log("[email] modo Brevo ativo — envio via HTTPS");
 
 async function enviarEmailCodigo(email, codigo) {
   const texto = `Seu código de verificação BeautyNow é: ${codigo}\n\nEle vale por 10 minutos. Se você não tentou entrar, ignore este e-mail.`;
-  if (!transporte) {
+  if (!emailRealLigado()) {
     // modo console (teste): o código sai no log do servidor
     console.log(`[email-teste] para=${email} codigo=${codigo}`);
     return;
   }
-  await transporte.sendMail({
-    from: `"BeautyNow" <${EMAIL_USUARIO}>`,
-    to: email,
-    subject: `Seu código BeautyNow: ${codigo}`,
-    text: texto,
+  await enviarEmail({
+    para: email,
+    assunto: `Seu código BeautyNow: ${codigo}`,
+    texto,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px">
         <p style="font-size:22px;font-weight:bold;margin:0">
@@ -159,16 +204,16 @@ async function notificarVenda(pedido) {
       </div>
     </div>`;
 
-  if (!transporte) {
+  if (!emailRealLigado()) {
     console.log(`[email-teste] notificacao-venda para=${EMAILS_NOTIFICACAO.join(",")} pedido=${pedido.numero} total=${formatarReais(pedido.totalCentavos ?? 0)}`);
     return;
   }
   await Promise.all(
     EMAILS_NOTIFICACAO.map((destino) =>
-      transporte.sendMail({
-        from: `"BeautyNow" <${EMAIL_USUARIO}>`,
-        to: destino,
-        subject: assunto,
+      enviarEmail({
+        para: destino,
+        assunto,
+        texto: `Nova venda ${pedido.numero} — total ${formatarReais(pedido.totalCentavos ?? 0)}`,
         html,
       })
     )
@@ -200,12 +245,49 @@ aplicacao.get("/saude/email", async (_req, res) => {
        <p style="font-size:20px;font-weight:bold;margin:0 0 8px;color:${cor}">${titulo}</p>
        <p style="color:#333;font-size:15px;line-height:1.5;margin:0">${detalhe}</p>
      </div>`;
+  // --- modo Brevo (envio via HTTPS — recomendado no Render gratuito) ---
+  if (EMAIL_MODO === "brevo") {
+    if (!BREVO_API_KEY) {
+      return res.send(
+        pagina(
+          "#B91C1C",
+          "❌ Falta a chave do Brevo",
+          `EMAIL_MODO está como "brevo", mas a variável <b>BREVO_API_KEY</b> está vazia. Cole a chave (começa com xkeysib-) nas variáveis do Render e salve.`
+        )
+      );
+    }
+    try {
+      const resposta = await fetch("https://api.brevo.com/v3/account", {
+        headers: { "api-key": BREVO_API_KEY, accept: "application/json" },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!resposta.ok) throw new Error(`Brevo respondeu ${resposta.status}`);
+      const conta = await resposta.json();
+      return res.send(
+        pagina(
+          "#15803D",
+          "✅ Brevo conectado — envio real funcionando",
+          `Conta Brevo: <b>${conta.email ?? "?"}</b> · remetente: <b>${EMAIL_USUARIO}</b>.<br><br>Pode testar o login no site: o código chegará por e-mail.`
+        )
+      );
+    } catch (erro) {
+      return res.send(
+        pagina(
+          "#B91C1C",
+          "❌ Falha no Brevo",
+          `<b>Erro:</b> ${String(erro.message).slice(0, 300)}<br><br>Confira se a BREVO_API_KEY foi colada inteira (começa com xkeysib-). Se respondeu 401, gere outra chave em app.brevo.com/settings/keys/api.`
+        )
+      );
+    }
+  }
+
+  // --- modo Gmail (SMTP — bloqueado no plano gratuito do Render) ---
   if (!transporte) {
     return res.send(
       pagina(
         "#B45309",
         "⚠️ Modo teste (console)",
-        `EMAIL_MODO está como "${EMAIL_MODO}". Troque para "gmail" nas variáveis do Render para enviar e-mail de verdade.`
+        `EMAIL_MODO está como "${EMAIL_MODO}". Troque para "brevo" (com BREVO_API_KEY) ou "gmail" nas variáveis do Render para enviar e-mail de verdade.`
       )
     );
   }
@@ -224,7 +306,7 @@ aplicacao.get("/saude/email", async (_req, res) => {
     const dica =
       codigo === "EAUTH"
         ? "O Gmail recusou usuário/senha. A senha de app precisa ter sido criada LOGADO na conta do remetente acima (myaccount.google.com/apppasswords) e colada inteira no EMAIL_SENHA_APP."
-        : "Não foi possível conectar ao Gmail. Tente de novo em 1 minuto; se persistir, o problema é de rede/porta.";
+        : `Não foi possível conectar ao Gmail — este é o bloqueio de SMTP do plano gratuito do Render. Solução: troque EMAIL_MODO para <b>brevo</b> e preencha BREVO_API_KEY (conta gratuita em brevo.com).`;
     res.send(
       pagina(
         "#B91C1C",

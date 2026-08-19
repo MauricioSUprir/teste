@@ -19,6 +19,10 @@ services:
         value: lojabeautynow@gmail.com
       - key: EMAIL_SENHA_APP
         sync: false
+      # envio via Brevo (HTTPS) — necessário no plano gratuito do Render,
+      # que bloqueia SMTP; com a chave, use EMAIL_MODO=brevo
+      - key: BREVO_API_KEY
+        sync: false
       - key: ADMIN_NOTIFICACAO_EMAILS
         value: lojabeautynow@gmail.com
       - key: ORIGENS_PERMITIDAS

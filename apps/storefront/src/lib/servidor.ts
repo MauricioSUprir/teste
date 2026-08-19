@@ -83,7 +83,8 @@ export function acordarServidor() {
  * automaticamente, sem republicar o site.
  */
 export async function emailRealAtivo(): Promise<boolean> {
-  return (await consultarSaude())?.emailModo === "gmail";
+  const modo = (await consultarSaude())?.emailModo;
+  return modo === "gmail" || modo === "brevo";
 }
 
 /** Mercado Pago ligado no servidor → checkout usa pagamento real. */
