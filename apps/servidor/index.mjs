@@ -49,14 +49,34 @@ const aplicacao = express();
 aplicacao.use(express.json({ limit: "100kb" }));
 aplicacao.use(cors({ origin: ORIGENS }));
 
-// transporte de e-mail
+// transporte de e-mail — timeouts explícitos: sem eles, uma conexão
+// engasgada com o Gmail deixa o /codigo pendurado e o site sem resposta
+const EMAIL_USUARIO = (process.env.EMAIL_USUARIO ?? "").trim();
+const EMAIL_SENHA_APP = (process.env.EMAIL_SENHA_APP ?? "").replace(/\s+/g, "");
 const transporte =
   EMAIL_MODO === "gmail"
     ? createTransport({
-        service: "gmail",
-        auth: { user: process.env.EMAIL_USUARIO, pass: process.env.EMAIL_SENHA_APP },
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: { user: EMAIL_USUARIO, pass: EMAIL_SENHA_APP },
+        connectionTimeout: 15_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 30_000,
       })
     : null;
+
+// testa a autenticação no boot — o resultado aparece nos logs do Render
+if (transporte) {
+  transporte
+    .verify()
+    .then(() => console.log("[email] Gmail autenticado com sucesso — envio real ativo"))
+    .catch((erro) =>
+      console.error(
+        `[email] FALHA na autenticação do Gmail (${erro.code ?? "?"}): ${erro.message} — confira EMAIL_USUARIO e EMAIL_SENHA_APP`
+      )
+    );
+}
 
 async function enviarEmailCodigo(email, codigo) {
   const texto = `Seu código de verificação BeautyNow é: ${codigo}\n\nEle vale por 10 minutos. Se você não tentou entrar, ignore este e-mail.`;
@@ -66,7 +86,7 @@ async function enviarEmailCodigo(email, codigo) {
     return;
   }
   await transporte.sendMail({
-    from: `"BeautyNow" <${process.env.EMAIL_USUARIO}>`,
+    from: `"BeautyNow" <${EMAIL_USUARIO}>`,
     to: email,
     subject: `Seu código BeautyNow: ${codigo}`,
     text: texto,
@@ -146,7 +166,7 @@ async function notificarVenda(pedido) {
   await Promise.all(
     EMAILS_NOTIFICACAO.map((destino) =>
       transporte.sendMail({
-        from: `"BeautyNow" <${process.env.EMAIL_USUARIO}>`,
+        from: `"BeautyNow" <${EMAIL_USUARIO}>`,
         to: destino,
         subject: assunto,
         html,
