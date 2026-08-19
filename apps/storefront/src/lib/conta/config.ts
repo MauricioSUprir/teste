@@ -1,16 +1,21 @@
 /**
  * Configuração da conta de administrador.
  *
- * A senha NUNCA fica em texto puro: guardamos apenas o hash SHA-256.
- * Credencial de demonstração ativa — será substituída pelo hash das
- * credenciais reais que o Mauricio enviar (e, na versão com backend,
- * sai do bundle e vai para variável de ambiente do servidor).
+ * A senha NUNCA fica em texto puro nem em hash simples: guardamos o
+ * derivado PBKDF2-SHA256 com 310.000 iterações e salt — o padrão OWASP
+ * para armazenamento de senha, que torna ataques de força bruta
+ * impraticáveis na prática.
  *
- * Demo: admin@beautynow.com.br / BeautyNow@2026
+ * O login do admin exige sempre a verificação em 2 etapas (código de
+ * 6 dígitos). Na demo o código aparece na tela; com o backend ele passa
+ * a ser enviado por e-mail — e esta credencial sai do bundle público
+ * para variável de ambiente do servidor.
  */
-export const ADMIN_EMAIL = "admin@beautynow.com.br";
-export const ADMIN_SENHA_HASH =
-  "b125d4c1ba904294cc93e8f7bb0ea10a462c2ba5664aa625de002028e801d604";
+export const ADMIN_EMAIL = "lojabeautynow@gmail.com";
+export const ADMIN_SENHA_PBKDF2 =
+  "e5965f5ed7c821dbe195f1dc7d376fea9a8a4eee0579360b9f9eb5463a142e8a";
+export const ADMIN_SALT = "beautynow-admin-v1";
+export const ADMIN_PBKDF2_ITERACOES = 310000;
 
 /** Validade do código de verificação, em minutos. */
 export const CODIGO_VALIDADE_MIN = 10;

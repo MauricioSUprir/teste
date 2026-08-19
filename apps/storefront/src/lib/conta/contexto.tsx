@@ -18,7 +18,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ADMIN_EMAIL, ADMIN_SENHA_HASH, CODIGO_VALIDADE_MIN } from "./config";
+import {
+  ADMIN_EMAIL,
+  ADMIN_PBKDF2_ITERACOES,
+  ADMIN_SALT,
+  ADMIN_SENHA_PBKDF2,
+  CODIGO_VALIDADE_MIN,
+} from "./config";
 
 export interface Usuario {
   nome: string;
@@ -73,6 +79,30 @@ async function sha256(texto: string): Promise<string> {
     .join("");
 }
 
+/** Derivação PBKDF2-SHA256 — usada na verificação da senha do admin. */
+async function pbkdf2(senha: string): Promise<string> {
+  const chave = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(senha),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: new TextEncoder().encode(ADMIN_SALT),
+      iterations: ADMIN_PBKDF2_ITERACOES,
+    },
+    chave,
+    256
+  );
+  return Array.from(new Uint8Array(bits))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function gerarCodigo(): string {
   const aleatorio = crypto.getRandomValues(new Uint32Array(1))[0];
   return String(aleatorio % 1000000).padStart(6, "0");
@@ -110,6 +140,18 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       const salvo = localStorage.getItem(CHAVE_SESSAO);
       if (!salvo) return;
       const email = JSON.parse(salvo) as string;
+      if (email === ADMIN_EMAIL) {
+        setUsuario({
+          nome: "Administrador BeautyNow",
+          email,
+          cep: "",
+          numero: "",
+          complemento: "",
+          viaGoogle: false,
+          admin: true,
+        });
+        return;
+      }
       const u = lerUsuarios().find((x) => x.email === email);
       if (u) setUsuario(publico(u));
     } catch {
@@ -150,16 +192,15 @@ export function ContaProvider({ children }: { children: ReactNode }) {
 
   const iniciarLogin: ContaContexto["iniciarLogin"] = useCallback(async (emailBruto, senha) => {
     const email = emailBruto.trim().toLowerCase();
-    const senhaHash = await sha256(senha);
 
     const ehAdmin = email === ADMIN_EMAIL;
     if (ehAdmin) {
-      if (senhaHash !== ADMIN_SENHA_HASH) {
+      if ((await pbkdf2(senha)) !== ADMIN_SENHA_PBKDF2) {
         return { ok: false, erro: "E-mail ou senha incorretos." };
       }
     } else {
       const u = lerUsuarios().find((x) => x.email === email);
-      if (!u || u.senhaHash !== senhaHash) {
+      if (!u || u.senhaHash !== (await sha256(senha))) {
         return { ok: false, erro: "E-mail ou senha incorretos. Confira os dados ou crie uma conta." };
       }
     }
