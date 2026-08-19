@@ -32,6 +32,14 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
    hospedagem do servidor). Já existe template de e-mail em
    `apps/servidor/index.mjs` para seguir de base.
 
+## Extras já entregues (19/08)
+
+- **Cupons de desconto**: cliente aplica na sacola (seed `BEMVINDA10`,
+  10% acima de R$ 99); gestão na aba **Cupons** do painel /admin
+  (criar percentual ou valor fixo, pedido mínimo, ativar/desativar, excluir).
+- **Favoritos ♡**: coração nos cards + seção "Meus favoritos" em /conta.
+- **Busca no FAQ**: filtro por texto (ignora acentos) em /atendimento.
+
 ## O que depende do Mauricio
 
 1. **Liberar a rede do ambiente Claude**: claude.ai/code → ícone de nuvem
