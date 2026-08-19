@@ -38,7 +38,7 @@ declare global {
   }
 }
 
-export function BotaoGoogle({ aoEntrar }: { aoEntrar: () => void }) {
+export function BotaoGoogle() {
   const conta = useConta();
   const alvo = useRef<HTMLDivElement>(null);
   const [erro, setErro] = useState("");
@@ -51,9 +51,10 @@ export function BotaoGoogle({ aoEntrar }: { aoEntrar: () => void }) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (resposta) => {
-          const r = conta.entrarComGoogleCredencial(resposta.credential);
-          if (r.ok) aoEntrar();
-          else setErro(r.erro ?? "");
+          // após o Google confirmar a conta, a etapa do código assume a tela
+          void conta.entrarComGoogleCredencial(resposta.credential).then((r) => {
+            if (!r.ok) setErro(r.erro ?? "");
+          });
         },
       });
       window.google.accounts.id.renderButton(alvo.current, {
@@ -74,7 +75,7 @@ export function BotaoGoogle({ aoEntrar }: { aoEntrar: () => void }) {
     script.async = true;
     script.onload = renderizar;
     document.head.appendChild(script);
-  }, [conta, aoEntrar]);
+  }, [conta]);
 
   if (GOOGLE_CLIENT_ID) {
     return (
@@ -94,10 +95,7 @@ export function BotaoGoogle({ aoEntrar }: { aoEntrar: () => void }) {
     <div>
       <button
         type="button"
-        onClick={() => {
-          conta.entrarComGoogle();
-          aoEntrar();
-        }}
+        onClick={() => conta.entrarComGoogle()}
         className="flex w-full items-center justify-center gap-2.5 rounded-[999px] border border-linha bg-white py-3 text-[0.9375rem] font-medium text-tinta hover:bg-superficie"
       >
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">

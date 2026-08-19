@@ -75,8 +75,8 @@ interface ContaContexto {
   cancelarVerificacao: () => void;
   /** login demonstrativo (sem Client ID do Google configurado) */
   entrarComGoogle: () => void;
-  /** login real com a credencial JWT devolvida pelo Google Identity Services */
-  entrarComGoogleCredencial: (credencial: string) => { ok: boolean; erro?: string };
+  /** login real com a credencial JWT do Google — dispara a etapa do código */
+  entrarComGoogleCredencial: (credencial: string) => Promise<{ ok: boolean; erro?: string }>;
   sair: () => void;
 }
 
@@ -304,35 +304,46 @@ export function ContaProvider({ children }: { children: ReactNode }) {
 
   const cancelarVerificacao = useCallback(() => setPendente(null), []);
 
+  /** garante o cadastro do usuário vindo do Google e dispara a 2ª etapa (código) */
+  const iniciarVerificacaoGoogle = useCallback(async (nome: string, email: string) => {
+    const usuarios = lerUsuarios();
+    if (!usuarios.some((x) => x.email === email)) {
+      gravarUsuarios([
+        ...usuarios,
+        {
+          nome,
+          email,
+          senhaHash: "",
+          cep: "",
+          numero: "",
+          complemento: "",
+          viaGoogle: true,
+          admin: false,
+        },
+      ]);
+    }
+    // mesmo pelo Google, todo login passa pelo código de verificação
+    if (await emailRealAtivo()) {
+      const r = await solicitarCodigoPorEmail(email);
+      if (!r.ok) return { ok: false, erro: r.erro };
+      setPendente({ email, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    } else {
+      setPendente({ email, codigo: gerarCodigo(), expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    }
+    return { ok: true };
+  }, []);
+
   const entrarComGoogle = useCallback(() => {
     // Demo: simula o retorno do Google Identity Services. Na versão real,
     // o botão oficial do Google devolve um token com nome/e-mail verificados.
-    const email = "cliente.google@demo.beautynow.com.br";
-    const usuarios = lerUsuarios();
-    let u = usuarios.find((x) => x.email === email);
-    if (!u) {
-      u = {
-        nome: "Cliente Google (demonstração)",
-        email,
-        senhaHash: "",
-        cep: "",
-        numero: "",
-        complemento: "",
-        viaGoogle: true,
-        admin: false,
-      };
-      gravarUsuarios([...usuarios, u]);
-    }
-    setUsuario(publico(u));
-    try {
-      localStorage.setItem(CHAVE_SESSAO, JSON.stringify(email));
-    } catch {
-      // segue sem persistir
-    }
-  }, []);
+    void iniciarVerificacaoGoogle(
+      "Cliente Google (demonstração)",
+      "cliente.google@demo.beautynow.com.br"
+    );
+  }, [iniciarVerificacaoGoogle]);
 
   const entrarComGoogleCredencial: ContaContexto["entrarComGoogleCredencial"] = useCallback(
-    (credencial) => {
+    async (credencial) => {
       try {
         // credencial = JWT do Google Identity Services; o payload traz nome e
         // e-mail verificados pelo Google (validação criptográfica completa
@@ -342,33 +353,12 @@ export function ContaProvider({ children }: { children: ReactNode }) {
         ) as { name?: string; email?: string };
         if (!payload.email) return { ok: false, erro: "O Google não devolveu um e-mail válido." };
         const email = payload.email.toLowerCase();
-        const usuarios = lerUsuarios();
-        let u = usuarios.find((x) => x.email === email);
-        if (!u) {
-          u = {
-            nome: payload.name ?? email,
-            email,
-            senhaHash: "",
-            cep: "",
-            numero: "",
-            complemento: "",
-            viaGoogle: true,
-            admin: false,
-          };
-          gravarUsuarios([...usuarios, u]);
-        }
-        setUsuario(publico(u));
-        try {
-          localStorage.setItem(CHAVE_SESSAO, JSON.stringify(email));
-        } catch {
-          // segue sem persistir
-        }
-        return { ok: true };
+        return await iniciarVerificacaoGoogle(payload.name ?? email, email);
       } catch {
         return { ok: false, erro: "Não foi possível ler a resposta do Google. Tente novamente." };
       }
     },
-    []
+    [iniciarVerificacaoGoogle]
   );
 
   const sair = useCallback(() => {

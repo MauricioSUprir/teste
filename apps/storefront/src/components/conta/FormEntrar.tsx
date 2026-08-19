@@ -92,7 +92,7 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
         <span className="h-px grow bg-linha" aria-hidden="true" />
       </div>
 
-      <BotaoGoogle aoEntrar={() => router.push(destino)} />
+      <BotaoGoogle />
 
       <p className="text-center text-[0.875rem] text-grafite">
         {copy.conta.aindaSemConta}{" "}
