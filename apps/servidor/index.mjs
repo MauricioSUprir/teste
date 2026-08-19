@@ -319,18 +319,15 @@ aplicacao.get("/saude/email", async (_req, res) => {
 
 /**
  * Exporta o catálogo bruto do Hub Suprir como arquivo JSON para download.
- * Existe porque o ambiente de desenvolvimento não alcança o Hub diretamente;
- * este servidor alcança. Protegido por EXPORT_CHAVE (variável de ambiente).
+ * A coleta demora mais que o limite de ~100s por requisição do Render, então
+ * roda em SEGUNDO PLANO: o link mostra uma página de progresso que se atualiza
+ * sozinha e, ao terminar, oferece o botão de baixar.
  * Uso no navegador: /exportar-catalogo?chave=SUA_EXPORT_CHAVE
  */
 const EXPORT_CHAVE = (process.env.EXPORT_CHAVE ?? "").trim();
-aplicacao.get("/exportar-catalogo", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
-    return res.status(403).json({ erro: "Chave de exportação inválida." });
-  }
-  if (!HUB_API_KEY) {
-    return res.status(400).json({ erro: "HUB_API_KEY não configurada no servidor." });
-  }
+const exportacao = { estado: "parado", progresso: "", json: null, erro: null };
+
+async function coletarCatalogoHub() {
   const apiHub = async (caminho) => {
     const r = await fetch(`${HUB_API_URL}${caminho}`, {
       headers: { "X-API-Key": HUB_API_KEY },
@@ -346,44 +343,128 @@ aplicacao.get("/exportar-catalogo", async (req, res) => {
     }
     return undefined;
   };
-  try {
-    console.log("[exportar-catalogo] iniciando…");
-    const brutos = [];
-    let pagina = 1;
-    for (;;) {
-      const lote = await apiHub(`/produtos?pagina=${pagina}&por_pagina=100`);
-      const itens = Array.isArray(lote)
-        ? lote
-        : (lote.produtos ?? lote.dados ?? lote.data ?? lote.items ?? []);
-      if (!itens.length) break;
-      brutos.push(...itens);
-      const totalPaginas = valor(lote, "total_paginas", "totalPages", "meta.total_paginas", "meta.last_page");
-      if (totalPaginas && pagina >= Number(totalPaginas)) break;
-      if (itens.length < 100) break;
-      pagina++;
-    }
-    console.log(`[exportar-catalogo] ${brutos.length} produtos listados; buscando fichas…`);
-    const detalhes = [];
-    const skus = brutos.map((b) => valor(b, "sku", "codigo", "id")).filter((s) => s !== undefined);
-    const CONCORRENCIA = 8;
-    for (let i = 0; i < skus.length; i += CONCORRENCIA) {
-      await Promise.all(
-        skus.slice(i, i + CONCORRENCIA).map(async (sku) => {
-          try {
-            detalhes.push([String(sku), await apiHub(`/produtos/${encodeURIComponent(sku)}`)]);
-          } catch {
-            // ficha indisponível — a listagem já traz o essencial
-          }
-        })
-      );
-    }
-    console.log(`[exportar-catalogo] pronto: ${brutos.length} produtos, ${detalhes.length} fichas`);
-    res.setHeader("Content-Disposition", 'attachment; filename="catalogo-hub.json"');
-    res.json({ exportadoEm: new Date().toISOString(), total: brutos.length, brutos, detalhes });
-  } catch (erro) {
-    console.error("[exportar-catalogo] falha:", erro.message);
-    res.status(502).json({ erro: `Falha ao exportar do Hub: ${erro.message}` });
+  exportacao.progresso = "listando produtos…";
+  const brutos = [];
+  let pagina = 1;
+  for (;;) {
+    const lote = await apiHub(`/produtos?pagina=${pagina}&por_pagina=100`);
+    const itens = Array.isArray(lote)
+      ? lote
+      : (lote.produtos ?? lote.dados ?? lote.data ?? lote.items ?? []);
+    if (!itens.length) break;
+    brutos.push(...itens);
+    exportacao.progresso = `listando produtos… ${brutos.length}`;
+    const totalPaginas = valor(lote, "total_paginas", "totalPages", "meta.total_paginas", "meta.last_page");
+    if (totalPaginas && pagina >= Number(totalPaginas)) break;
+    if (itens.length < 100) break;
+    pagina++;
   }
+  const detalhes = [];
+  const skus = brutos.map((b) => valor(b, "sku", "codigo", "id")).filter((s) => s !== undefined);
+  const CONCORRENCIA = 8;
+  for (let i = 0; i < skus.length; i += CONCORRENCIA) {
+    await Promise.all(
+      skus.slice(i, i + CONCORRENCIA).map(async (sku) => {
+        try {
+          detalhes.push([String(sku), await apiHub(`/produtos/${encodeURIComponent(sku)}`)]);
+        } catch {
+          // ficha indisponível — a listagem já traz o essencial
+        }
+      })
+    );
+    exportacao.progresso = `fichas completas: ${Math.min(i + CONCORRENCIA, skus.length)}/${skus.length}`;
+  }
+  return JSON.stringify({
+    exportadoEm: new Date().toISOString(),
+    total: brutos.length,
+    brutos,
+    detalhes,
+  });
+}
+
+const paginaExport = (titulo, corpo, atualizar = false) =>
+  `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+   ${atualizar ? '<meta http-equiv="refresh" content="8">' : ""}
+   <title>Exportar catálogo — BeautyNow</title></head>
+   <body style="font-family:Arial;background:#F7F8FA;margin:0;padding:40px 16px">
+   <div style="max-width:560px;margin:auto;background:#fff;border:1px solid #E4E6EA;border-radius:14px;padding:28px">
+   <p style="font-size:20px;font-weight:bold;margin:0 0 10px;color:#4A2882">${titulo}</p>
+   <div style="color:#333;font-size:15px;line-height:1.6">${corpo}</div></div></body></html>`;
+
+aplicacao.get("/exportar-catalogo", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).send(paginaExport("Chave inválida", "Confira a EXPORT_CHAVE nas variáveis do Render e o parâmetro ?chave= do link."));
+  }
+  if (!HUB_API_KEY) {
+    return res.status(400).send(paginaExport("Falta configurar", "A variável <b>HUB_API_KEY</b> não está preenchida no Render."));
+  }
+  if (exportacao.estado === "pronto") {
+    return res.send(
+      paginaExport(
+        "✅ Catálogo pronto!",
+        `A coleta terminou. <br><br>
+         <a href="/exportar-catalogo/baixar?chave=${encodeURIComponent(EXPORT_CHAVE)}"
+            style="display:inline-block;background:#4A2882;color:#fff;text-decoration:none;font-weight:bold;border-radius:999px;padding:14px 28px">⬇ Baixar catalogo-hub.json</a>
+         <br><br><small>Para coletar de novo do zero: <a href="/exportar-catalogo?chave=${encodeURIComponent(EXPORT_CHAVE)}&refazer=1">refazer exportação</a></small>`
+      )
+    );
+  }
+  if (exportacao.estado === "coletando") {
+    return res.send(
+      paginaExport(
+        "⏳ Coletando o catálogo…",
+        `O servidor está buscando os produtos no Hub Suprir.<br><br>
+         <b>Progresso:</b> ${exportacao.progresso || "iniciando…"}<br><br>
+         Esta página se atualiza sozinha a cada 8 segundos — deixa aberta.`,
+        true
+      )
+    );
+  }
+  if (exportacao.estado === "erro" && !req.query.refazer) {
+    return res.send(
+      paginaExport(
+        "❌ A coleta falhou",
+        `<b>Erro:</b> ${exportacao.erro}<br><br>
+         <a href="/exportar-catalogo?chave=${encodeURIComponent(EXPORT_CHAVE)}&refazer=1">Tentar de novo</a>`
+      )
+    );
+  }
+  // inicia a coleta em segundo plano e mostra a página de progresso
+  exportacao.estado = "coletando";
+  exportacao.progresso = "iniciando…";
+  exportacao.erro = null;
+  exportacao.json = null;
+  console.log("[exportar-catalogo] coleta iniciada");
+  coletarCatalogoHub()
+    .then((json) => {
+      exportacao.json = json;
+      exportacao.estado = "pronto";
+      console.log("[exportar-catalogo] coleta concluída");
+    })
+    .catch((erro) => {
+      exportacao.estado = "erro";
+      exportacao.erro = String(erro.message).slice(0, 300);
+      console.error("[exportar-catalogo] falha:", erro.message);
+    });
+  res.send(
+    paginaExport(
+      "⏳ Coleta iniciada!",
+      "O servidor começou a buscar os produtos no Hub Suprir. Esta página se atualiza sozinha a cada 8 segundos — deixa aberta até aparecer o botão de download.",
+      true
+    )
+  );
+});
+
+aplicacao.get("/exportar-catalogo/baixar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).send(paginaExport("Chave inválida", "Confira o link."));
+  }
+  if (exportacao.estado !== "pronto" || !exportacao.json) {
+    return res.redirect(`/exportar-catalogo?chave=${encodeURIComponent(EXPORT_CHAVE)}`);
+  }
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="catalogo-hub.json"');
+  res.send(exportacao.json);
 });
 
 aplicacao.post("/codigo", async (req, res) => {
