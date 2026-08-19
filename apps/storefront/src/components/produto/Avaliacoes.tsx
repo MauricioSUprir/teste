@@ -36,7 +36,7 @@ export function Avaliacoes({ produto }: { produto: Produto }) {
                 <span aria-hidden="true" style={{ color: "#E8A317" }}>★</span>
                 <span className="h-1.5 grow overflow-hidden rounded-[999px] bg-linha">
                   <span
-                    className="block h-full rounded-[999px] bg-rosa"
+                    className="block h-full rounded-[999px] bg-roxo"
                     style={{ width: `${total ? (d.qtd / total) * 100 : 0}%` }}
                   />
                 </span>
@@ -61,7 +61,7 @@ export function Avaliacoes({ produto }: { produto: Produto }) {
                   {new Date(`${a.data}T12:00:00`).toLocaleDateString("pt-BR")}
                 </time>
                 {a.compraVerificada && (
-                  <span className="rounded-[999px] bg-azul-claro px-2 py-0.5 font-medium text-azul">
+                  <span className="rounded-[999px] bg-violeta-claro px-2 py-0.5 font-medium text-violeta">
                     ✓ {copy.pdp.compraVerificada}
                   </span>
                 )}

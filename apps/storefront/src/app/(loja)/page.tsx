@@ -15,10 +15,10 @@ export default function Home() {
   return (
     <>
       {/* Hero editorial — a única ênfase visual da tela (docs/03 §1) */}
-      <section className="bg-rosa-claro">
+      <section className="bg-roxo-claro">
         <div className="container-bn grid items-center gap-8 py-12 md:grid-cols-2 md:py-16">
           <div>
-            <p className="text-[0.8125rem] font-semibold uppercase tracking-widest text-rosa-escuro">
+            <p className="text-[0.8125rem] font-semibold uppercase tracking-widest text-roxo-escuro">
               {copy.marca.nome}
             </p>
             <h1 className="font-titulo mt-3 text-[clamp(2rem,5vw,3.25rem)] font-semibold leading-[1.1] text-tinta">
@@ -30,7 +30,7 @@ export default function Home() {
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="#mais-vendidos"
-                className="rounded-[999px] bg-rosa px-7 py-3.5 text-[1rem] font-semibold text-white hover:bg-rosa-escuro"
+                className="rounded-[999px] bg-roxo px-7 py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro"
               >
                 {copy.home.heroCta}
               </Link>
@@ -43,12 +43,26 @@ export default function Home() {
             </div>
           </div>
           <div aria-hidden="true" className="hidden justify-center md:flex">
-            {/* composição gráfica com a gota da marca */}
+            {/* composição gráfica com o monograma BN da marca */}
             <svg viewBox="0 0 360 320" className="w-full max-w-md">
-              <path d="M180 20 C240 110 285 170 285 230 a105 105 0 0 1 -210 0 C75 170 120 110 180 20 Z" fill="#E8467C" opacity="0.9" />
-              <circle cx="145" cy="225" r="34" fill="#FFFFFF" opacity="0.85" />
-              <path d="M300 60 c10 16 17 27 17 38 a17 17 0 0 1 -34 0 c0 -11 7 -22 17 -38 Z" fill="#2B4C7E" opacity="0.8" />
-              <path d="M60 90 c7 11 12 19 12 27 a12 12 0 0 1 -24 0 c0 -8 5 -16 12 -27 Z" fill="#C22D5F" opacity="0.6" />
+              <defs>
+                <linearGradient id="hero-bn" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#4A2882" />
+                  <stop offset="100%" stopColor="#6847C8" />
+                </linearGradient>
+              </defs>
+              <circle cx="180" cy="160" r="130" fill="#6847C8" opacity="0.12" />
+              <circle cx="292" cy="70" r="26" fill="#6847C8" opacity="0.35" />
+              <circle cx="66" cy="248" r="16" fill="#4A2882" opacity="0.3" />
+              <text
+                x="180"
+                y="212"
+                textAnchor="middle"
+                fill="url(#hero-bn)"
+                style={{ fontFamily: "var(--fonte-titulo)", fontSize: 170, fontWeight: 600, letterSpacing: "-0.04em" }}
+              >
+                BN
+              </text>
             </svg>
           </div>
         </div>
@@ -64,7 +78,7 @@ export default function Home() {
             [copy.home.seloPix, copy.home.seloPixTexto, "◆"],
           ].map(([titulo, texto, icone]) => (
             <li key={titulo} className="flex items-start gap-2.5">
-              <span aria-hidden="true" className="mt-0.5 text-azul">{icone}</span>
+              <span aria-hidden="true" className="mt-0.5 text-violeta">{icone}</span>
               <span>
                 <span className="block text-[0.875rem] font-semibold text-tinta">{titulo}</span>
                 <span className="block text-[0.75rem] leading-snug text-cinza">{texto}</span>
@@ -80,7 +94,7 @@ export default function Home() {
           <h2 className="font-titulo text-[clamp(1.375rem,2.5vw,1.75rem)] font-semibold">
             {copy.home.maisVendidos}
           </h2>
-          <Link href="/busca?q=mais+vendidos" className="text-[0.875rem] font-medium text-azul hover:underline">
+          <Link href="/busca?q=mais+vendidos" className="text-[0.875rem] font-medium text-violeta hover:underline">
             {copy.home.verTudo} →
           </Link>
         </div>
@@ -101,7 +115,7 @@ export default function Home() {
             <Link
               key={c.slug}
               href={`/categoria/${c.slug}`}
-              className="rounded-[10px] border border-linha bg-superficie p-4 text-center transition-colors hover:border-rosa hover:bg-rosa-claro"
+              className="rounded-[10px] border border-linha bg-superficie p-4 text-center transition-colors hover:border-roxo hover:bg-roxo-claro"
             >
               <span className="block text-[0.9375rem] font-semibold text-tinta">{c.nome}</span>
             </Link>
@@ -119,7 +133,7 @@ export default function Home() {
             <li key={n.slug}>
               <Link
                 href={`/necessidade/${n.slug}`}
-                className="inline-block rounded-[999px] border border-linha px-4 py-2.5 text-[0.9375rem] text-grafite transition-colors hover:border-rosa hover:text-rosa"
+                className="inline-block rounded-[999px] border border-linha px-4 py-2.5 text-[0.9375rem] text-grafite transition-colors hover:border-roxo hover:text-roxo"
               >
                 {n.nome}
               </Link>
@@ -171,7 +185,7 @@ export default function Home() {
 
       {/* Newsletter */}
       <section className="container-bn pt-12">
-        <div className="rounded-[16px] bg-azul-claro px-6 py-10 text-center md:px-12">
+        <div className="rounded-[16px] bg-violeta-claro px-6 py-10 text-center md:px-12">
           <h2 className="font-titulo text-[clamp(1.375rem,2.5vw,1.75rem)] font-semibold text-tinta">
             {copy.home.newsletterTitulo}
           </h2>

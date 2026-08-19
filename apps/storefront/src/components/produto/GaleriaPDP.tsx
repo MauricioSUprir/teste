@@ -25,7 +25,7 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
             aria-label={`Foto ${i + 1} de ${TOTAL_FOTOS}`}
             onClick={() => setAtiva(i)}
             className={`w-16 overflow-hidden rounded-[6px] border-2 transition-colors ${
-              i === ativa ? "border-rosa" : "border-linha hover:border-cinza"
+              i === ativa ? "border-roxo" : "border-linha hover:border-cinza"
             }`}
           >
             <ImagemProduto produto={produto} alt="" variacao={i} />

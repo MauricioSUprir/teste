@@ -35,7 +35,7 @@ export function BarraFreteGratis({ subtotalCentavos }: { subtotalCentavos: numbe
       >
         <div
           className={`h-full rounded-[999px] transition-[width] duration-300 ${
-            atingiuFrete ? "bg-sucesso" : "bg-rosa"
+            atingiuFrete ? "bg-sucesso" : "bg-roxo"
           }`}
           style={{ width: `${pctFrete}%` }}
         />

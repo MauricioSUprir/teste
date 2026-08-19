@@ -111,7 +111,7 @@ export default async function PaginaProduto({
           {marca && (
             <Link
               href={`/marca/${marca.slug}`}
-              className="text-[0.8125rem] font-semibold uppercase tracking-wide text-azul hover:underline"
+              className="text-[0.8125rem] font-semibold uppercase tracking-wide text-violeta hover:underline"
             >
               {marca.nome}
             </Link>
@@ -145,9 +145,9 @@ export default async function PaginaProduto({
             <ul className="mt-3 space-y-1.5">
               {produto.beneficios.map((b) => (
                 <li key={b} className="flex items-start gap-2">
-                  {/* gota da marca como marcador de lista (docs/03 §2) */}
+                  {/* marcador de lista na cor da marca */}
                   <svg width="12" height="14" viewBox="0 0 12 14" aria-hidden="true" className="mt-1 shrink-0">
-                    <path d="M6 1 C8.2 4.4 9.8 6.8 9.8 9 a3.8 3.8 0 0 1 -7.6 0 C2.2 6.8 3.8 4.4 6 1 Z" fill="#E8467C" />
+                    <path d="M6 1 C8.2 4.4 9.8 6.8 9.8 9 a3.8 3.8 0 0 1 -7.6 0 C2.2 6.8 3.8 4.4 6 1 Z" fill="#4A2882" />
                   </svg>
                   {b}
                 </li>

@@ -115,10 +115,10 @@ export function ColunaCompra({ produto }: { produto: Produto }) {
                 }}
                 className={`min-h-[44px] rounded-[999px] border px-4 text-[0.875rem] font-medium transition-colors ${
                   v.sku === skuAtivo
-                    ? "border-rosa bg-rosa-claro text-rosa-escuro"
+                    ? "border-roxo bg-roxo-claro text-roxo-escuro"
                     : v.estoque === 0
                       ? "cursor-not-allowed border-linha text-cinza line-through"
-                      : "border-linha text-grafite hover:border-rosa"
+                      : "border-linha text-grafite hover:border-roxo"
                 }`}
               >
                 {v.tituloVariacao}
@@ -166,7 +166,7 @@ export function ColunaCompra({ produto }: { produto: Produto }) {
               type="button"
               onClick={adicionar}
               className={`h-12 grow rounded-[999px] text-[1rem] font-semibold text-white transition-colors ${
-                feedback ? "bg-sucesso" : "bg-rosa hover:bg-rosa-escuro"
+                feedback ? "bg-sucesso" : "bg-roxo hover:bg-roxo-escuro"
               }`}
             >
               {feedback ? `✓ ${copy.pdp.adicionado}` : copy.pdp.adicionarSacola}
@@ -192,11 +192,11 @@ export function ColunaCompra({ produto }: { produto: Produto }) {
                 onChange={(e) => setCep(e.target.value)}
                 aria-invalid={erroCep}
                 aria-describedby={erroCep ? "cep-erro" : undefined}
-                className="h-11 w-36 rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] num outline-none focus:border-azul"
+                className="h-11 w-36 rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] num outline-none focus:border-violeta"
               />
               <button
                 type="submit"
-                className="h-11 rounded-[6px] bg-azul px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
+                className="h-11 rounded-[6px] bg-violeta px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
               >
                 {copy.pdp.calcular}
               </button>
@@ -252,11 +252,11 @@ export function ColunaCompra({ produto }: { produto: Produto }) {
                   placeholder="seu@email.com"
                   value={aviseMeEmail}
                   onChange={(e) => setAviseMeEmail(e.target.value)}
-                  className="h-11 grow rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-azul"
+                  className="h-11 grow rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
                 />
                 <button
                   type="submit"
-                  className="h-11 shrink-0 rounded-[6px] bg-azul px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
+                  className="h-11 shrink-0 rounded-[6px] bg-violeta px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
                 >
                   Avisar
                 </button>

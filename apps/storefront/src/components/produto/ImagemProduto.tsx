@@ -78,7 +78,7 @@ export function ImagemProduto({
           </g>
         )}
       </g>
-      {/* gota BeautyNow — elemento gráfico recorrente da marca (docs/03 §2) */}
+      {/* detalhe decorativo em forma de gota */}
       <path
         d="M348 336 c6 10 10 17 10 24 a10 10 0 0 1 -20 0 c0 -7 4 -14 10 -24 Z"
         fill={corA}

@@ -15,7 +15,7 @@ export default function PaginaConta() {
       </p>
       <Link
         href="/"
-        className="mt-6 rounded-[999px] bg-rosa px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-rosa-escuro"
+        className="mt-6 rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
       >
         {copy.checkout.voltarLoja}
       </Link>

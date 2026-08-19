@@ -125,7 +125,7 @@ export function CheckoutForm() {
         <p className="text-[1rem] text-grafite">{copy.carrinho.vazio}</p>
         <Link
           href="/"
-          className="rounded-[999px] bg-rosa px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-rosa-escuro"
+          className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           {copy.checkout.voltarLoja}
         </Link>
@@ -277,7 +277,7 @@ export function CheckoutForm() {
                     <label
                       key={f.id}
                       className={`flex cursor-pointer items-center justify-between rounded-[10px] border px-4 py-3 text-[0.875rem] ${
-                        freteEscolhido === f.id ? "border-rosa bg-rosa-claro" : "border-linha bg-white"
+                        freteEscolhido === f.id ? "border-roxo bg-roxo-claro" : "border-linha bg-white"
                       }`}
                     >
                       <span className="flex items-center gap-3">
@@ -287,7 +287,7 @@ export function CheckoutForm() {
                           value={f.id}
                           checked={freteEscolhido === f.id}
                           onChange={() => setFreteEscolhido(f.id)}
-                          className="h-4 w-4 accent-[#E8467C]"
+                          className="h-4 w-4 accent-[#4A2882]"
                         />
                         <span>
                           {f.nome} · Chega até <strong className="num">{f.dataPrevista}</strong>
@@ -316,7 +316,7 @@ export function CheckoutForm() {
                 <label
                   key={id}
                   className={`flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3.5 ${
-                    meio === id ? "border-rosa bg-rosa-claro" : "border-linha bg-white"
+                    meio === id ? "border-roxo bg-roxo-claro" : "border-linha bg-white"
                   }`}
                 >
                   <input
@@ -325,7 +325,7 @@ export function CheckoutForm() {
                     value={id}
                     checked={meio === id}
                     onChange={() => setMeio(id)}
-                    className="h-4 w-4 accent-[#E8467C]"
+                    className="h-4 w-4 accent-[#4A2882]"
                   />
                   <span>
                     <span className="block text-[0.9375rem] font-semibold">
@@ -395,12 +395,12 @@ export function CheckoutForm() {
             </dl>
 
             {erro && (
-              <p role="alert" className="mt-3 rounded-[6px] bg-rosa-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
+              <p role="alert" className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
                 {erro}
               </p>
             )}
             {abaixoDoMinimo && (
-              <p className="mt-3 rounded-[6px] bg-rosa-claro px-3 py-2 text-[0.8125rem] text-rosa-escuro">
+              <p className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
                 {copy.carrinho.pedidoMinimo(formatarPreco(PEDIDO_MINIMO_CENTAVOS))}
               </p>
             )}
@@ -408,7 +408,7 @@ export function CheckoutForm() {
             <button
               type="submit"
               disabled={abaixoDoMinimo}
-              className="mt-4 w-full rounded-[999px] bg-rosa py-3.5 text-[1rem] font-semibold text-white hover:bg-rosa-escuro disabled:cursor-not-allowed disabled:bg-cinza"
+              className="mt-4 w-full rounded-[999px] bg-roxo py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:cursor-not-allowed disabled:bg-cinza"
             >
               {copy.checkout.concluir}
             </button>
@@ -482,7 +482,7 @@ function Campo({
         required={required}
         autoComplete={autoComplete}
         inputMode={inputMode}
-        className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-azul"
+        className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
       />
     </div>
   );

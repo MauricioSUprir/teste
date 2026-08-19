@@ -69,7 +69,7 @@ export function Header() {
             </svg>
             <span className="hidden sm:inline">{copy.header.sacola}</span>
             {totalItens > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[999px] bg-rosa px-1 text-[0.6875rem] font-semibold text-white num">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[999px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white num">
                 {totalItens}
               </span>
             )}
@@ -88,7 +88,7 @@ export function Header() {
           <div className="group relative">
             <button
               type="button"
-              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-rosa"
+              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
               aria-haspopup="true"
             >
               {copy.nav.categorias}
@@ -115,7 +115,7 @@ export function Header() {
           <div className="group relative">
             <button
               type="button"
-              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-rosa"
+              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
               aria-haspopup="true"
             >
               {copy.nav.marcas}
@@ -144,7 +144,7 @@ export function Header() {
           <div className="group relative">
             <button
               type="button"
-              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-rosa"
+              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
               aria-haspopup="true"
             >
               {copy.nav.necessidades}
@@ -169,7 +169,7 @@ export function Header() {
             <Link
               key={c.slug}
               href={`/categoria/${c.slug}`}
-              className="flex h-12 items-center px-3 text-[0.9375rem] text-grafite hover:text-rosa"
+              className="flex h-12 items-center px-3 text-[0.9375rem] text-grafite hover:text-roxo"
             >
               {c.nome}
             </Link>

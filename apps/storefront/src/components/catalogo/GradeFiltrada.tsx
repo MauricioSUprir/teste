@@ -148,7 +148,7 @@ export function GradeFiltrada({ produtos }: { produtos: Produto[] }) {
         <button
           type="button"
           onClick={() => router.replace(pathname, { scroll: false })}
-          className="text-[0.8125rem] font-medium text-rosa underline"
+          className="text-[0.8125rem] font-medium text-roxo underline"
         >
           {copy.plp.limparFiltros}
         </button>
@@ -244,7 +244,7 @@ export function GradeFiltrada({ produtos }: { produtos: Produto[] }) {
               className="rounded-[6px] border border-linha px-3 py-2 text-[0.875rem] font-medium lg:hidden"
             >
               {copy.plp.filtros}
-              {temFiltroAtivo && <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-rosa" />}
+              {temFiltroAtivo && <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-roxo" />}
             </button>
             <label className="flex items-center gap-2 text-[0.875rem] text-grafite">
               <span className="hidden sm:inline">{copy.plp.ordenar}</span>
@@ -311,7 +311,7 @@ function Opcao({
         type="checkbox"
         checked={marcado}
         onChange={aoMudar}
-        className="h-4 w-4 accent-[#E8467C]"
+        className="h-4 w-4 accent-[#4A2882]"
       />
       {rotulo}
     </label>

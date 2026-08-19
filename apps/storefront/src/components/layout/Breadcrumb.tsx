@@ -10,7 +10,7 @@ export function Breadcrumb({ itens }: { itens: ItemBreadcrumb[] }) {
     <nav aria-label="Trilha de navegação" className="text-[0.8125rem] text-cinza">
       <ol className="flex flex-wrap items-center gap-1.5">
         <li>
-          <Link href="/" className="hover:text-rosa">
+          <Link href="/" className="hover:text-roxo">
             Início
           </Link>
         </li>
@@ -18,7 +18,7 @@ export function Breadcrumb({ itens }: { itens: ItemBreadcrumb[] }) {
           <li key={`${item.rotulo}-${i}`} className="flex items-center gap-1.5">
             <span aria-hidden="true">/</span>
             {item.href ? (
-              <Link href={item.href} className="hover:text-rosa">
+              <Link href={item.href} className="hover:text-roxo">
                 {item.rotulo}
               </Link>
             ) : (

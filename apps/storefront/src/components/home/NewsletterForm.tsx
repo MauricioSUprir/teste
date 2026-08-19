@@ -32,11 +32,11 @@ export function NewsletterForm() {
         autoComplete="email"
         inputMode="email"
         placeholder={copy.home.newsletterPlaceholder}
-        className="h-12 grow rounded-[999px] border border-linha bg-white px-5 text-[0.9375rem] outline-none focus:border-azul"
+        className="h-12 grow rounded-[999px] border border-linha bg-white px-5 text-[0.9375rem] outline-none focus:border-violeta"
       />
       <button
         type="submit"
-        className="shrink-0 rounded-[999px] bg-azul px-6 text-[0.9375rem] font-semibold text-white hover:opacity-90"
+        className="shrink-0 rounded-[999px] bg-violeta px-6 text-[0.9375rem] font-semibold text-white hover:opacity-90"
       >
         {copy.home.newsletterCta}
       </button>

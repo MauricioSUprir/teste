@@ -23,11 +23,11 @@ export function Footer() {
             {copy.rodape.institucional}
           </p>
           <ul className="mt-3 space-y-2 text-[0.875rem]">
-            <li><Link className="text-grafite hover:text-rosa" href="/institucional/quem-somos">{copy.rodape.quemSomos}</Link></li>
-            <li><Link className="text-grafite hover:text-rosa" href="/institucional/politica-de-privacidade">{copy.rodape.politicaPrivacidade}</Link></li>
-            <li><Link className="text-grafite hover:text-rosa" href="/institucional/termos-de-uso">{copy.rodape.termosUso}</Link></li>
-            <li><Link className="text-grafite hover:text-rosa" href="/institucional/politica-de-entrega">{copy.rodape.politicaEntrega}</Link></li>
-            <li><Link className="text-grafite hover:text-rosa" href="/institucional/trocas-e-devolucoes">{copy.rodape.trocasDevolucoes}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/institucional/quem-somos">{copy.rodape.quemSomos}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/institucional/politica-de-privacidade">{copy.rodape.politicaPrivacidade}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/institucional/termos-de-uso">{copy.rodape.termosUso}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/institucional/politica-de-entrega">{copy.rodape.politicaEntrega}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/institucional/trocas-e-devolucoes">{copy.rodape.trocasDevolucoes}</Link></li>
           </ul>
         </nav>
 
@@ -36,9 +36,9 @@ export function Footer() {
             {copy.rodape.ajuda}
           </p>
           <ul className="mt-3 space-y-2 text-[0.875rem]">
-            <li><Link className="text-grafite hover:text-rosa" href="/atendimento">{copy.rodape.faq}</Link></li>
-            <li><Link className="text-grafite hover:text-rosa" href="/atendimento#contato">{copy.rodape.contato}</Link></li>
-            <li><Link className="text-grafite hover:text-rosa" href="/conta">{copy.rodape.rastrearPedido}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/atendimento">{copy.rodape.faq}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/atendimento#contato">{copy.rodape.contato}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/conta">{copy.rodape.rastrearPedido}</Link></li>
           </ul>
         </nav>
 

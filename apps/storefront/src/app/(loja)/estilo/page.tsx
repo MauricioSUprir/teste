@@ -6,11 +6,11 @@ export const metadata: Metadata = { title: "Guia de estilo", robots: { index: fa
 
 /** Página /estilo — ticket 0.4: paleta, escala tipográfica e componentes base. */
 const cores = [
-  ["--bn-rosa", "#E8467C", "Ação primária, preço em destaque"],
-  ["--bn-rosa-escuro", "#C22D5F", "Hover/pressed, selo de oferta"],
-  ["--bn-rosa-claro", "#FDEEF3", "Fundo de destaque suave"],
-  ["--bn-azul", "#2B4C7E", "Confiança: selos, informação, links"],
-  ["--bn-azul-claro", "#EDF2F9", "Fundo informativo"],
+  ["--bn-roxo", "#4A2882", "Ação primária, preço em destaque"],
+  ["--bn-roxo-escuro", "#381D65", "Hover/pressed, selo de oferta"],
+  ["--bn-roxo-claro", "#F2EDFA", "Fundo de destaque suave"],
+  ["--bn-violeta", "#6847C8", "Confiança: selos, informação, links"],
+  ["--bn-violeta-claro", "#EFEBFA", "Fundo informativo"],
   ["--bn-tinta", "#14161A", "Texto principal"],
   ["--bn-grafite", "#4A4F57", "Texto secundário"],
   ["--bn-cinza", "#8A9099", "Texto terciário, placeholder"],
@@ -59,13 +59,13 @@ export default function PaginaEstilo() {
 
       <h2 className="font-titulo mt-10 text-[1.375rem] font-semibold">Botões</h2>
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-linha p-5">
-        <button type="button" className="rounded-[999px] bg-rosa px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-rosa-escuro">
+        <button type="button" className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro">
           Ação primária
         </button>
         <button type="button" className="rounded-[999px] border-2 border-tinta px-6 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie">
           Ação secundária
         </button>
-        <button type="button" className="rounded-[6px] bg-azul px-5 py-2.5 text-[0.875rem] font-semibold text-white">
+        <button type="button" className="rounded-[6px] bg-violeta px-5 py-2.5 text-[0.875rem] font-semibold text-white">
           Ação informativa
         </button>
         <button type="button" disabled className="rounded-[999px] bg-cinza px-6 py-3 text-[0.9375rem] font-semibold text-white">

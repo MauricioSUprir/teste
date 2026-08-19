@@ -54,7 +54,7 @@ export function BuscaHeader() {
 
   return (
     <div ref={raiz} className="relative w-full max-w-xl">
-      <div className="flex items-center rounded-[999px] border border-linha bg-superficie px-4 focus-within:border-azul">
+      <div className="flex items-center rounded-[999px] border border-linha bg-superficie px-4 focus-within:border-violeta">
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0 text-cinza">
           <circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
           <path d="M11 11 L15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -118,7 +118,7 @@ export function BuscaHeader() {
           <button
             type="button"
             onClick={irParaBusca}
-            className="block w-full border-t border-linha px-4 py-3 text-left text-[0.875rem] font-medium text-azul hover:bg-superficie"
+            className="block w-full border-t border-linha px-4 py-3 text-left text-[0.875rem] font-medium text-violeta hover:bg-superficie"
           >
             {copy.busca.verTodos} →
           </button>

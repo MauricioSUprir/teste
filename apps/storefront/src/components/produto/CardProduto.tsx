@@ -34,7 +34,7 @@ export function CardProduto({ produto }: { produto: Produto }) {
             </span>
           )}
           {produto.lancamento && (
-            <span className="rounded-[6px] bg-azul px-1.5 py-0.5 text-[0.75rem] font-semibold text-white">
+            <span className="rounded-[6px] bg-violeta px-1.5 py-0.5 text-[0.75rem] font-semibold text-white">
               {copy.card.lancamento}
             </span>
           )}

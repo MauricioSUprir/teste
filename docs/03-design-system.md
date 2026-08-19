@@ -10,18 +10,18 @@ Isso não é escolha estética gratuita: um site limpo e rápido converte melhor
 
 ## 2. Identidade
 
-Logo BeautyNow: símbolo em gota, disponível em três variantes — rosa (principal), cinza (neutro/monocromático) e azul (secundário). A gota é o elo com o mundo de fórmula, sérum, óleo e água — usar como elemento gráfico recorrente (marcador de lista, bullet de benefício, máscara de imagem em blocos editoriais), sempre com contenção.
+Logo BeautyNow: monograma **"BN"** em serifada elegante, roxo profundo, com wordmark **"BEAUTY NOW"** em caixa alta espaçada, violeta. As cores principais da marca são **roxo** (`#4A2882`, do monograma) e **violeta** (`#6847C8`, do wordmark). O monograma é o elemento gráfico recorrente (favicon, composições editoriais, selos), sempre com contenção. *(Identidade atualizada em ago/2026 a partir do logo oficial fornecido pelo Mauricio — substitui a gota rosa da versão inicial deste documento.)*
 
 ## 3. Tokens
 
 ```css
 :root {
   /* Marca */
-  --bn-rosa:          #E8467C;   /* ação primária, preço em destaque */
-  --bn-rosa-escuro:   #C22D5F;   /* hover/pressed */
-  --bn-rosa-claro:    #FDEEF3;   /* fundo de destaque suave */
-  --bn-azul:          #2B4C7E;   /* confiança: selos, informação, links */
-  --bn-azul-claro:    #EDF2F9;
+  --bn-roxo:          #4A2882;   /* ação primária, preço em destaque */
+  --bn-roxo-escuro:   #381D65;   /* hover/pressed */
+  --bn-roxo-claro:    #F2EDFA;   /* fundo de destaque suave */
+  --bn-violeta:       #6847C8;   /* confiança: selos, informação, links */
+  --bn-violeta-claro: #EFEBFA;
 
   /* Neutros */
   --bn-tinta:         #14161A;   /* texto principal */
@@ -35,7 +35,7 @@ Logo BeautyNow: símbolo em gota, disponível em três variantes — rosa (princ
   --bn-sucesso:       #1E8E5A;   /* em estoque, pagamento aprovado, Pix */
   --bn-alerta:        #B8730C;   /* últimas unidades, aviso */
   --bn-erro:          #C6273E;   /* erro de formulário, indisponível */
-  --bn-oferta:        #C22D5F;   /* selo de desconto */
+  --bn-oferta:        #381D65;   /* selo de desconto */
 
   /* Tipografia */
   --fonte-titulo: 'Fraunces', Georgia, serif;
@@ -124,7 +124,7 @@ em até 6x de R$ 14,98 sem juros
 ─────────────────
 Seletor de variação (tamanho/tom) — chips, não select
 Quantidade [− 1 +]
-[  ADICIONAR À SACOLA  ]  ← full width, --bn-rosa, sticky ao rolar
+[  ADICIONAR À SACOLA  ]  ← full width, --bn-roxo, sticky ao rolar
 ─────────────────
 📍 Calcular frete e prazo
    [CEP________] [OK]
@@ -174,7 +174,7 @@ Regras: erro sempre diz **o que houve e o que fazer**. Ação mantém o mesmo no
 
 ## 7. Piso de qualidade
 
-- Foco visível (`outline` de 2px em `--bn-azul`) em todo elemento navegável — nunca `outline: none` sem substituto.
+- Foco visível (`outline` de 2px em `--bn-violeta`) em todo elemento navegável — nunca `outline: none` sem substituto.
 - Contraste AA em texto e AAA em preço e CTA.
 - `prefers-reduced-motion` respeitado; toda transição acima de 200ms tem fallback estático.
 - Toda imagem de produto com `alt` descritivo gerado de `marca + nome + variação`.

@@ -48,7 +48,7 @@ export function CompreJunto({
             )}
             <Link
               href={`/produto/${p.slug}`}
-              className="block w-24 overflow-hidden rounded-[10px] border border-linha hover:border-rosa sm:w-28"
+              className="block w-24 overflow-hidden rounded-[10px] border border-linha hover:border-roxo sm:w-28"
               title={p.titulo}
             >
               <ImagemProduto produto={p} alt={p.titulo} />
@@ -68,7 +68,7 @@ export function CompreJunto({
         <button
           type="button"
           onClick={adicionarCombo}
-          className="rounded-[999px] border-2 border-rosa px-6 py-2.5 text-[0.9375rem] font-semibold text-rosa transition-colors hover:bg-rosa hover:text-white"
+          className="rounded-[999px] border-2 border-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-roxo transition-colors hover:bg-roxo hover:text-white"
         >
           {copy.pdp.adicionarCombo}
         </button>

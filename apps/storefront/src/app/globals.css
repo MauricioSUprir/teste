@@ -2,11 +2,11 @@
 @import "../styles/tokens.css";
 
 @theme {
-  --color-rosa: #E8467C;
-  --color-rosa-escuro: #C22D5F;
-  --color-rosa-claro: #FDEEF3;
-  --color-azul: #2B4C7E;
-  --color-azul-claro: #EDF2F9;
+  --color-roxo: #4A2882;
+  --color-roxo-escuro: #381D65;
+  --color-roxo-claro: #F2EDFA;
+  --color-violeta: #6847C8;
+  --color-violeta-claro: #EFEBFA;
   --color-tinta: #14161A;
   --color-grafite: #4A4F57;
   --color-cinza: #8A9099;
@@ -15,7 +15,7 @@
   --color-sucesso: #1E8E5A;
   --color-alerta: #B8730C;
   --color-erro: #C6273E;
-  --color-oferta: #C22D5F;
+  --color-oferta: #381D65;
   --font-titulo: var(--font-fraunces), Georgia, serif;
   --font-texto: var(--font-inter), -apple-system, sans-serif;
   --radius-sm: 6px;
@@ -38,7 +38,7 @@ body {
 
 /* Foco visível em todo elemento navegável — nunca outline: none sem substituto */
 :focus-visible {
-  outline: 2px solid var(--bn-azul);
+  outline: 2px solid var(--bn-violeta);
   outline-offset: 2px;
   border-radius: 2px;
 }

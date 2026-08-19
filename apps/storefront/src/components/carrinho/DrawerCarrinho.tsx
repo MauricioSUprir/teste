@@ -84,7 +84,7 @@ export function DrawerCarrinho() {
             <Link
               href="/busca?q=mais+vendidos"
               onClick={carrinho.fechar}
-              className="rounded-[999px] bg-rosa px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-rosa-escuro"
+              className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
             >
               {copy.carrinho.verMaisVendidos}
             </Link>
@@ -109,7 +109,7 @@ export function DrawerCarrinho() {
                     <Link
                       href={`/produto/${item.produtoSlug}`}
                       onClick={carrinho.fechar}
-                      className="line-clamp-2 text-[0.875rem] leading-snug text-tinta hover:text-rosa"
+                      className="line-clamp-2 text-[0.875rem] leading-snug text-tinta hover:text-roxo"
                     >
                       {item.produto.titulo}
                     </Link>
@@ -169,7 +169,7 @@ export function DrawerCarrinho() {
               </dl>
 
               {abaixoDoMinimo && (
-                <p className="mt-3 rounded-[6px] bg-rosa-claro px-3 py-2 text-[0.8125rem] text-rosa-escuro">
+                <p className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
                   {copy.carrinho.pedidoMinimo(formatarPreco(PEDIDO_MINIMO_CENTAVOS))}
                 </p>
               )}
@@ -181,7 +181,7 @@ export function DrawerCarrinho() {
                 className={`mt-3 block rounded-[999px] py-3.5 text-center text-[1rem] font-semibold text-white ${
                   abaixoDoMinimo
                     ? "pointer-events-none bg-cinza"
-                    : "bg-rosa hover:bg-rosa-escuro"
+                    : "bg-roxo hover:bg-roxo-escuro"
                 }`}
               >
                 {copy.carrinho.finalizarCompra}
