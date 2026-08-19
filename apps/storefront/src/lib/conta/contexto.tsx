@@ -55,6 +55,8 @@ interface ContaContexto {
   usuario: UsuarioPublico | null;
   /** verificação em 2 etapas aguardando código */
   aguardandoCodigo: boolean;
+  /** e-mail que está aguardando o código (para exibir na tela) */
+  emailAguardandoCodigo: string | null;
   /** código "enviado por e-mail" — exposto apenas no modo demonstração */
   codigoDemo: string | null;
   criarConta: (dados: {
@@ -190,11 +192,14 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       admin: false,
     };
     gravarUsuarios([...usuarios, novo]);
-    setUsuario(publico(novo));
-    try {
-      localStorage.setItem(CHAVE_SESSAO, JSON.stringify(email));
-    } catch {
-      // segue sem persistir
+
+    // todo e-mail é verificado: o cadastro também exige o código antes de entrar
+    if (servidorConfigurado()) {
+      const r = await solicitarCodigoPorEmail(email);
+      if (!r.ok) return { ok: false, erro: r.erro };
+      setPendente({ email, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    } else {
+      setPendente({ email, codigo: gerarCodigo(), expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
     }
     return { ok: true };
   }, []);
@@ -353,6 +358,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     () => ({
       usuario,
       aguardandoCodigo: pendente !== null,
+      emailAguardandoCodigo: pendente?.email ?? null,
       codigoDemo: pendente?.codigo ?? null,
       criarConta,
       iniciarLogin,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { useConta } from "@/lib/conta/contexto";
+import { EtapaCodigo } from "./EtapaCodigo";
 
 export function FormCriarConta() {
   const conta = useConta();
@@ -23,11 +24,13 @@ export function FormCriarConta() {
     setEnviando(true);
     const r = await conta.criarConta({ nome, email, senha, cep, numero, complemento });
     setEnviando(false);
-    if (r.ok) {
-      router.push("/conta");
-    } else {
-      setErro(r.erro ?? "");
-    }
+    // com sucesso, o contexto entra em "aguardando código" — a etapa de
+    // verificação é renderizada abaixo antes de concluir o cadastro
+    if (!r.ok) setErro(r.erro ?? "");
+  }
+
+  if (conta.aguardandoCodigo) {
+    return <EtapaCodigo aoConcluir={() => router.push("/conta")} />;
   }
 
   return (
