@@ -17,8 +17,8 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
    Sem dependências externas.
 4. **Ativar Google real e código por e-mail real** — já implementados e
    testados; só ligam com as credenciais dos itens 3–4 abaixo.
-5. **Hospedar `apps/servidor`** e apontar o site para ele
-   (`NEXT_PUBLIC_SERVIDOR_URL`), tirando o site do modo demonstração.
+5. ~~Hospedar `apps/servidor`~~ — ✅ FEITO em 19/08: servidor no ar em
+   https://beautynow-servidor.onrender.com e site conectado a ele.
 6. **Notificações de venda para o admin** — a cada venda concluída, o
    servidor envia e-mail de notificação para a conta do administrador
    (lojabeautynow@gmail.com e demais e-mails que o Mauricio indicar), com:
