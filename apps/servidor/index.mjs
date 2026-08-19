@@ -327,14 +327,24 @@ aplicacao.get("/saude/email", async (_req, res) => {
 const EXPORT_CHAVE = (process.env.EXPORT_CHAVE ?? "").trim();
 const exportacao = { estado: "parado", progresso: "", json: null, erro: null };
 
-async function coletarCatalogoHub() {
+async function coletarCatalogoHub(modo = "rapido") {
+  // até 3 tentativas por chamada — o Hub às vezes demora/engasga
   const apiHub = async (caminho) => {
-    const r = await fetch(`${HUB_API_URL}${caminho}`, {
-      headers: { "X-API-Key": HUB_API_KEY },
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (!r.ok) throw new Error(`${caminho} → HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    return r.json();
+    let ultimoErro;
+    for (let tentativa = 1; tentativa <= 3; tentativa++) {
+      try {
+        const r = await fetch(`${HUB_API_URL}${caminho}`, {
+          headers: { "X-API-Key": HUB_API_KEY },
+          signal: AbortSignal.timeout(45_000),
+        });
+        if (!r.ok) throw new Error(`${caminho} → HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+        return r.json();
+      } catch (erro) {
+        ultimoErro = erro;
+        if (tentativa < 3) await new Promise((f) => setTimeout(f, 2000 * tentativa));
+      }
+    }
+    throw ultimoErro;
   };
   const valor = (obj, ...nomes) => {
     for (const n of nomes) {
@@ -360,19 +370,21 @@ async function coletarCatalogoHub() {
     pagina++;
   }
   const detalhes = [];
-  const skus = brutos.map((b) => valor(b, "sku", "codigo", "id")).filter((s) => s !== undefined);
-  const CONCORRENCIA = 8;
-  for (let i = 0; i < skus.length; i += CONCORRENCIA) {
-    await Promise.all(
-      skus.slice(i, i + CONCORRENCIA).map(async (sku) => {
-        try {
-          detalhes.push([String(sku), await apiHub(`/produtos/${encodeURIComponent(sku)}`)]);
-        } catch {
-          // ficha indisponível — a listagem já traz o essencial
-        }
-      })
-    );
-    exportacao.progresso = `fichas completas: ${Math.min(i + CONCORRENCIA, skus.length)}/${skus.length}`;
+  if (modo === "completo") {
+    const skus = brutos.map((b) => valor(b, "sku", "codigo", "id")).filter((s) => s !== undefined);
+    const CONCORRENCIA = 8;
+    for (let i = 0; i < skus.length; i += CONCORRENCIA) {
+      await Promise.all(
+        skus.slice(i, i + CONCORRENCIA).map(async (sku) => {
+          try {
+            detalhes.push([String(sku), await apiHub(`/produtos/${encodeURIComponent(sku)}`)]);
+          } catch {
+            // ficha indisponível — a listagem já traz o essencial
+          }
+        })
+      );
+      exportacao.progresso = `fichas completas: ${Math.min(i + CONCORRENCIA, skus.length)}/${skus.length}`;
+    }
   }
   return JSON.stringify({
     exportadoEm: new Date().toISOString(),
@@ -397,46 +409,8 @@ const paginaExport = (titulo, corpo, atualizar = false) =>
  * segundos, bem abaixo do limite de requisição do Render. As fichas
  * completas (descrição longa) ficam para o modo completo.
  */
-aplicacao.get("/exportar-catalogo/rapido", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
-    return res.status(403).send(paginaExport("Chave inválida", "Confira o link."));
-  }
-  if (!HUB_API_KEY) {
-    return res.status(400).send(paginaExport("Falta configurar", "A variável <b>HUB_API_KEY</b> não está preenchida no Render."));
-  }
-  try {
-    console.log("[exportar-rapido] iniciando…");
-    const brutos = [];
-    let pagina = 1;
-    for (;;) {
-      const r = await fetch(`${HUB_API_URL}/produtos?pagina=${pagina}&por_pagina=100`, {
-        headers: { "X-API-Key": HUB_API_KEY },
-        signal: AbortSignal.timeout(30_000),
-      });
-      if (!r.ok) throw new Error(`página ${pagina} → HTTP ${r.status}`);
-      const lote = await r.json();
-      const itens = Array.isArray(lote)
-        ? lote
-        : (lote.produtos ?? lote.dados ?? lote.data ?? lote.items ?? []);
-      if (!itens.length) break;
-      brutos.push(...itens);
-      const tp = lote.total_paginas ?? lote.totalPages ?? lote.meta?.total_paginas ?? lote.meta?.last_page;
-      if (tp && pagina >= Number(tp)) break;
-      if (itens.length < 100) break;
-      pagina++;
-    }
-    console.log(`[exportar-rapido] pronto: ${brutos.length} produtos`);
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.setHeader("Content-Disposition", 'attachment; filename="catalogo-hub.json"');
-    res.send(
-      JSON.stringify({ exportadoEm: new Date().toISOString(), total: brutos.length, brutos, detalhes: [] })
-    );
-  } catch (erro) {
-    console.error("[exportar-rapido] falha:", erro.message);
-    res
-      .status(502)
-      .send(paginaExport("❌ Falha na exportação rápida", `<b>Erro:</b> ${String(erro.message).slice(0, 300)}<br><br><a href="">Tentar de novo</a>`));
-  }
+aplicacao.get("/exportar-catalogo/rapido", (req, res) => {
+  res.redirect(`/exportar-catalogo?chave=${encodeURIComponent(String(req.query.chave ?? ""))}`);
 });
 
 aplicacao.get("/exportar-catalogo", (req, res) => {
@@ -477,13 +451,16 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
       )
     );
   }
-  // inicia a coleta em segundo plano e mostra a página de progresso
+  // inicia a coleta em segundo plano e mostra a página de progresso.
+  // modo padrão "rapido": só a listagem (nome, preço, marca, foto, estoque) —
+  // termina em segundos; "completo" busca também as 1.222 fichas.
+  const modo = String(req.query.modo ?? "") === "completo" ? "completo" : "rapido";
   exportacao.estado = "coletando";
-  exportacao.progresso = "iniciando…";
+  exportacao.progresso = `iniciando (modo ${modo})…`;
   exportacao.erro = null;
   exportacao.json = null;
-  console.log("[exportar-catalogo] coleta iniciada");
-  coletarCatalogoHub()
+  console.log(`[exportar-catalogo] coleta iniciada (${modo})`);
+  coletarCatalogoHub(modo)
     .then((json) => {
       exportacao.json = json;
       exportacao.estado = "pronto";
