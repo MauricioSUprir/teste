@@ -52,13 +52,14 @@ export function Header() {
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <Link
             href="/conta"
-            className="hidden h-11 items-center gap-2 rounded-[6px] px-3 text-[0.875rem] text-grafite hover:bg-superficie sm:flex"
+            className="flex h-11 items-center gap-2 rounded-[6px] px-3 text-[0.875rem] text-grafite hover:bg-superficie"
+            aria-label={rotuloConta}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <circle cx="9" cy="6" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
               <path d="M3 15.5 a6 6 0 0 1 12 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            {rotuloConta}
+            <span className="hidden sm:inline">{rotuloConta}</span>
           </Link>
           <button
             type="button"
@@ -189,6 +190,17 @@ export function Header() {
           className="border-t border-linha bg-white pb-4 lg:hidden"
         >
           <div className="container-bn flex flex-col gap-4 pt-3">
+            <Link
+              href="/conta"
+              onClick={() => setMenuMobileAberto(false)}
+              className="flex items-center gap-2.5 rounded-[10px] bg-roxo-claro px-3 py-3 text-[0.9375rem] font-semibold text-roxo"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+                <circle cx="9" cy="6" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M3 15.5 a6 6 0 0 1 12 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              {usuario ? `${copy.conta.ola(usuario.nome)} Ver minha conta` : `${copy.conta.entrar} ou criar conta`}
+            </Link>
             <div>
               <p className="pb-1 text-[0.75rem] font-semibold uppercase tracking-wide text-cinza">
                 {copy.nav.categorias}
