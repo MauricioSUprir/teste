@@ -82,6 +82,8 @@ export interface Produto {
   lancamento?: boolean;
   /** URLs públicas das fotos reais (catálogo do Hub Suprir) */
   imagens?: string[];
+  /** produto criado manualmente no painel admin (vive no navegador) */
+  local?: boolean;
   /** semente visual do placeholder — usada quando não há foto real */
   visual: { corA: string; corB: string; forma: "frasco" | "pote" | "tubo" | "spray" | "ampola" };
 }

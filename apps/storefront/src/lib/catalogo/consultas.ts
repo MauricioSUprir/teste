@@ -12,6 +12,7 @@ import {
   produtos as produtosDemo,
 } from "./dados";
 import dadosHub from "./dados-hub.json";
+import { aplicarAjustesProduto, lerAjustes, obterProdutoLocal } from "./ajustes";
 import type { Categoria, CategoriaSlug, Marca, Necessidade, Produto } from "./tipos";
 
 interface CatalogoHub {
@@ -33,7 +34,12 @@ const produtos: Produto[] = usaHub ? hub.produtos : produtosDemo;
 const necessidades: Necessidade[] = usaHub ? [] : necessidadesDemo;
 
 export function obterProduto(slug: string): Produto | undefined {
-  return produtos.find((p) => p.slug === slug);
+  const base = produtos.find((p) => p.slug === slug);
+  // no navegador, aplica os ajustes manuais do admin (edição/exclusão/locais);
+  // no build estático (window indefinido), devolve sempre o catálogo base
+  if (typeof window === "undefined") return base;
+  if (base) return aplicarAjustesProduto(base) ?? undefined;
+  return obterProdutoLocal(slug);
 }
 
 export function obterMarca(slug: string): Marca | undefined {
@@ -122,7 +128,17 @@ export function buscar(termo: string): Produto[] {
   if (!t) return [];
   const termos = [t, ...(sinonimos[t] ?? [])];
   const marcaPorSlug = new Map(marcas.map((m) => [m.slug, normalizar(m.nome)]));
-  return produtos
+  // busca roda só no cliente — inclui produtos locais e aplica edições/exclusões
+  const universo =
+    typeof window === "undefined"
+      ? produtos
+      : [
+          ...lerAjustes().adicionados,
+          ...produtos
+            .map((p) => aplicarAjustesProduto(p))
+            .filter((p): p is Produto => p !== null),
+        ];
+  return universo
     .map((p) => {
       const alvos = [
         normalizar(p.titulo),

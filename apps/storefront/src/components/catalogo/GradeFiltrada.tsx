@@ -5,10 +5,11 @@
  * (compartilhável e indexável) — ticket 2.3. Na integração real, as facetas
  * vêm do Meilisearch; a lógica de URL e UI permanece.
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { marcas, menorPreco, notaMedia, temEstoque } from "@/lib/catalogo/consultas";
+import { aplicarAjustesLista, produtosLocais } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
 
@@ -40,11 +41,31 @@ function capitalizar(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function GradeFiltrada({ produtos }: { produtos: Produto[] }) {
+export function GradeFiltrada({
+  produtos,
+  categoria,
+  marca,
+}: {
+  produtos: Produto[];
+  /** slug da categoria da página — inclui produtos criados no admin */
+  categoria?: string;
+  /** slug da marca da página — inclui produtos criados no admin */
+  marca?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [filtrosAbertosMobile, setFiltrosAbertosMobile] = useState(false);
+  const [base, setBase] = useState(produtos);
+
+  // após a hidratação: aplica edições/exclusões do admin e soma os produtos locais
+  useEffect(() => {
+    const ajustada = aplicarAjustesLista(produtos);
+    const locais = produtosLocais().filter((p) =>
+      categoria ? p.categorias.includes(categoria) : marca ? p.marca === marca : false
+    );
+    if (locais.length > 0 || ajustada !== produtos) setBase([...locais, ...ajustada]);
+  }, [produtos, categoria, marca]);
 
   const lerLista = useCallback(
     (chave: string): string[] => params.get(chave)?.split(",").filter(Boolean) ?? [],
@@ -82,7 +103,7 @@ export function GradeFiltrada({ produtos }: { produtos: Produto[] }) {
     filtroMarcas.length + filtroPreco.length + filtroCabelo.length + filtroPele.length + filtroCarac.length > 0 || soDisponiveis;
 
   const filtrados = useMemo(() => {
-    let lista = produtos.filter((p) => {
+    let lista = base.filter((p) => {
       if (filtroMarcas.length && !filtroMarcas.includes(p.marca)) return false;
       if (filtroPreco.length) {
         const preco = menorPreco(p);
@@ -132,12 +153,12 @@ export function GradeFiltrada({ produtos }: { produtos: Produto[] }) {
         );
     }
     return lista;
-  }, [produtos, filtroMarcas, filtroPreco, filtroCabelo, filtroPele, filtroCarac, soDisponiveis, ordenacao]);
+  }, [base, filtroMarcas, filtroPreco, filtroCabelo, filtroPele, filtroCarac, soDisponiveis, ordenacao]);
 
   const marcasPresentes = useMemo(() => {
-    const slugs = new Set(produtos.map((p) => p.marca));
+    const slugs = new Set(base.map((p) => p.marca));
     return marcas.filter((m) => slugs.has(m.slug));
-  }, [produtos]);
+  }, [base]);
 
   const temCabelo = produtos.some((p) => p.atributos.tipoCabelo?.length);
   const temPele = produtos.some((p) => p.atributos.tipoPele?.length);

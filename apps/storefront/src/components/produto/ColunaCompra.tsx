@@ -4,9 +4,10 @@
  * Coluna de compra da PDP — seletor de variação (chips), preço, quantidade,
  * CTA sticky em mobile e cálculo de frete por CEP (tickets 3.1, 3.3, 3.4, 3.8).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import { useCarrinho } from "@/lib/carrinho/contexto";
+import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { calcularFrete, validarCep, type OpcaoFrete } from "@/lib/frete";
 import {
@@ -17,8 +18,17 @@ import {
   precoPix,
 } from "@/lib/preco";
 
-export function ColunaCompra({ produto }: { produto: Produto }) {
+export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
   const carrinho = useCarrinho();
+  const [produto, setProduto] = useState(produtoBase);
+
+  // aplica preço/estoque editados no admin após a hidratação (PDP é estática)
+  useEffect(() => {
+    if (produtoBase.local) return;
+    const ajustado = aplicarAjustesProduto(produtoBase);
+    if (ajustado && ajustado !== produtoBase) setProduto(ajustado);
+  }, [produtoBase]);
+
   const [skuAtivo, setSkuAtivo] = useState(
     () => (produto.variantes.find((v) => v.estoque > 0) ?? produto.variantes[0]).sku
   );

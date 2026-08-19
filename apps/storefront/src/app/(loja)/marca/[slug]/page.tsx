@@ -58,7 +58,7 @@ export default async function PaginaMarca({
         <Breadcrumb itens={[{ rotulo: marca.nome }]} />
         <div className="mt-4">
           <Suspense>
-            <GradeFiltrada produtos={produtos} />
+            <GradeFiltrada produtos={produtos} marca={marca.slug} />
           </Suspense>
         </div>
       </div>

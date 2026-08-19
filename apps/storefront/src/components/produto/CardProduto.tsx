@@ -1,16 +1,36 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { notaMedia, obterMarca, temEstoque } from "@/lib/catalogo/consultas";
+import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { formatarPreco, parcelamento, percentualDesconto, precoPix } from "@/lib/preco";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { ImagemProduto } from "./ImagemProduto";
 
+/** URL da página do produto — locais (criados no admin) usam a rota client /p */
+export function urlProduto(produto: Produto): string {
+  return produto.local ? `/p/?slug=${produto.slug}` : `/produto/${produto.slug}`;
+}
+
 /**
  * CardProduto — anatomia fixa de docs/03 §5.
  * Em mobile o card inteiro é link; não há botão "Adicionar" (menos toque acidental).
+ * Após a hidratação aplica os ajustes manuais do admin (editar/excluir).
  */
-export function CardProduto({ produto }: { produto: Produto }) {
+export function CardProduto({ produto: produtoBase }: { produto: Produto }) {
+  const [produto, setProduto] = useState(produtoBase);
+  const [oculto, setOculto] = useState(false);
+
+  useEffect(() => {
+    if (produtoBase.local) return; // produto local já vem com os dados finais
+    const ajustado = aplicarAjustesProduto(produtoBase);
+    if (ajustado === null) setOculto(true);
+    else if (ajustado !== produtoBase) setProduto(ajustado);
+  }, [produtoBase]);
+
   const marca = obterMarca(produto.marca);
   const variante = produto.variantes[0];
   const { media, total } = notaMedia(produto);
@@ -22,9 +42,11 @@ export function CardProduto({ produto }: { produto: Produto }) {
   const parcela = parcelamento(variante.precoPor);
   const alt = `${marca?.nome ?? ""} ${produto.titulo} ${variante.tituloVariacao}`.trim();
 
+  if (oculto) return null;
+
   return (
     <Link
-      href={`/produto/${produto.slug}`}
+      href={urlProduto(produto)}
       className="group flex flex-col rounded-[10px] border border-linha bg-white p-3 transition-shadow hover:shadow-card"
     >
       <div className="relative">

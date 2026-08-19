@@ -9,6 +9,7 @@ import {
   produtos,
 } from "@/lib/catalogo/consultas";
 import { CardProduto } from "@/components/produto/CardProduto";
+import { ProdutosLocaisDestaque } from "@/components/produto/ProdutosLocaisDestaque";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
 
 /** Home — hero editorial, categorias, mais vendidos, marcas (ticket 2.2). */
@@ -105,6 +106,7 @@ export default function Home() {
           </Link>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+          <ProdutosLocaisDestaque />
           {destaques.slice(0, 5).map((p) => (
             <CardProduto key={p.slug} produto={p} />
           ))}

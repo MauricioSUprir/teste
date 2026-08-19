@@ -43,7 +43,7 @@ export default async function PaginaCategoria({
       <p className="mt-1 max-w-[70ch] text-[0.9375rem] text-grafite">{categoria.descricao}</p>
       <div className="mt-6">
         <Suspense>
-          <GradeFiltrada produtos={produtos} />
+          <GradeFiltrada produtos={produtos} categoria={categoria.slug} />
         </Suspense>
       </div>
     </div>
