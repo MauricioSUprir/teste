@@ -317,6 +317,75 @@ aplicacao.get("/saude/email", async (_req, res) => {
   }
 });
 
+/**
+ * Exporta o catálogo bruto do Hub Suprir como arquivo JSON para download.
+ * Existe porque o ambiente de desenvolvimento não alcança o Hub diretamente;
+ * este servidor alcança. Protegido por EXPORT_CHAVE (variável de ambiente).
+ * Uso no navegador: /exportar-catalogo?chave=SUA_EXPORT_CHAVE
+ */
+const EXPORT_CHAVE = (process.env.EXPORT_CHAVE ?? "").trim();
+aplicacao.get("/exportar-catalogo", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave de exportação inválida." });
+  }
+  if (!HUB_API_KEY) {
+    return res.status(400).json({ erro: "HUB_API_KEY não configurada no servidor." });
+  }
+  const apiHub = async (caminho) => {
+    const r = await fetch(`${HUB_API_URL}${caminho}`, {
+      headers: { "X-API-Key": HUB_API_KEY },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!r.ok) throw new Error(`${caminho} → HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    return r.json();
+  };
+  const valor = (obj, ...nomes) => {
+    for (const n of nomes) {
+      const v = n.split(".").reduce((acc, p) => (acc == null ? acc : acc[p]), obj);
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return undefined;
+  };
+  try {
+    console.log("[exportar-catalogo] iniciando…");
+    const brutos = [];
+    let pagina = 1;
+    for (;;) {
+      const lote = await apiHub(`/produtos?pagina=${pagina}&por_pagina=100`);
+      const itens = Array.isArray(lote)
+        ? lote
+        : (lote.produtos ?? lote.dados ?? lote.data ?? lote.items ?? []);
+      if (!itens.length) break;
+      brutos.push(...itens);
+      const totalPaginas = valor(lote, "total_paginas", "totalPages", "meta.total_paginas", "meta.last_page");
+      if (totalPaginas && pagina >= Number(totalPaginas)) break;
+      if (itens.length < 100) break;
+      pagina++;
+    }
+    console.log(`[exportar-catalogo] ${brutos.length} produtos listados; buscando fichas…`);
+    const detalhes = [];
+    const skus = brutos.map((b) => valor(b, "sku", "codigo", "id")).filter((s) => s !== undefined);
+    const CONCORRENCIA = 8;
+    for (let i = 0; i < skus.length; i += CONCORRENCIA) {
+      await Promise.all(
+        skus.slice(i, i + CONCORRENCIA).map(async (sku) => {
+          try {
+            detalhes.push([String(sku), await apiHub(`/produtos/${encodeURIComponent(sku)}`)]);
+          } catch {
+            // ficha indisponível — a listagem já traz o essencial
+          }
+        })
+      );
+    }
+    console.log(`[exportar-catalogo] pronto: ${brutos.length} produtos, ${detalhes.length} fichas`);
+    res.setHeader("Content-Disposition", 'attachment; filename="catalogo-hub.json"');
+    res.json({ exportadoEm: new Date().toISOString(), total: brutos.length, brutos, detalhes });
+  } catch (erro) {
+    console.error("[exportar-catalogo] falha:", erro.message);
+    res.status(502).json({ erro: `Falha ao exportar do Hub: ${erro.message}` });
+  }
+});
+
 aplicacao.post("/codigo", async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   if (!emailValido(email)) return res.status(400).json({ erro: "E-mail inválido." });

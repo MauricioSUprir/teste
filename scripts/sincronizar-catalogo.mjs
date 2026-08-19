@@ -9,7 +9,7 @@
  * build. As fotos usam as URLs públicas do Hub (nada é baixado).
  * Depois de rodar, refaça o build do storefront para publicar.
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,8 +19,14 @@ const BRUTO = join(RAIZ, "scripts/.cache/catalogo-bruto.json"); // gitignored �
 
 const URL_BASE = process.env.HUB_API_URL ?? "https://comercial.thebeautyhub.app/api/loja";
 const CHAVE = process.env.HUB_API_KEY;
-if (!CHAVE) {
-  console.error("Defina HUB_API_KEY no ambiente (a chave não fica em código).");
+// modo offline: node scripts/sincronizar-catalogo.mjs caminho/catalogo-hub.json
+// (arquivo gerado pelo endpoint /exportar-catalogo do apps/servidor)
+const ARQUIVO_EXPORT = process.argv[2];
+if (!CHAVE && !ARQUIVO_EXPORT) {
+  console.error(
+    "Defina HUB_API_KEY no ambiente (a chave não fica em código)\n" +
+      "ou passe o arquivo exportado: node scripts/sincronizar-catalogo.mjs catalogo-hub.json"
+  );
   process.exit(1);
 }
 
@@ -127,7 +133,7 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
   };
 }
 
-async function principal() {
+async function coletarOnline() {
   console.log(`Sincronizando de ${URL_BASE} …`);
 
   // 1. paginação completa da lista
@@ -164,6 +170,22 @@ async function principal() {
     feitos = Math.min(i + CONCORRENCIA, skus.length);
     if (feitos % 200 < CONCORRENCIA) console.log(`  fichas: ${feitos}/${skus.length}`);
   }
+  return { brutos, detalhes };
+}
+
+function coletarDeArquivo(caminho) {
+  console.log(`Lendo export do servidor: ${caminho}`);
+  const dados = JSON.parse(readFileSync(caminho, "utf8"));
+  const brutos = dados.brutos ?? [];
+  const detalhes = new Map(dados.detalhes ?? []);
+  console.log(`  ${brutos.length} produtos, ${detalhes.size} fichas no arquivo`);
+  return { brutos, detalhes };
+}
+
+async function principal() {
+  const { brutos, detalhes } = ARQUIVO_EXPORT
+    ? coletarDeArquivo(ARQUIVO_EXPORT)
+    : await coletarOnline();
 
   // 3. mapeamento
   const slugsUsados = new Set();
