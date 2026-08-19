@@ -17,6 +17,7 @@ export function EtapaCodigo({ aoConcluir }: { aoConcluir: () => void }) {
 
   async function confirmar(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando) return;
     setEnviando(true);
     const r = await conta.confirmarCodigo(codigo);
     setEnviando(false);
@@ -70,9 +71,10 @@ export function EtapaCodigo({ aoConcluir }: { aoConcluir: () => void }) {
       <button
         type="submit"
         disabled={codigo.length !== 6 || enviando}
+        aria-busy={enviando}
         className="w-full rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
       >
-        {copy.conta.codigoBotao}
+        {enviando ? copy.conta.botaoConfirmando : copy.conta.codigoBotao}
       </button>
       <button
         type="button"

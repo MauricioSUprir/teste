@@ -26,6 +26,7 @@ import {
   CODIGO_VALIDADE_MIN,
 } from "./config";
 import {
+  acordarServidor,
   emailRealAtivo,
   solicitarCodigoPorEmail,
   verificarCodigoNoServidor,
@@ -144,6 +145,12 @@ function publico(u: Usuario): UsuarioPublico {
 export function ContaProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<UsuarioPublico | null>(null);
   const [pendente, setPendente] = useState<VerificacaoPendente | null>(null);
+
+  // acorda o servidor gratuito em segundo plano assim que o site abre —
+  // evita o login/checkout esperarem o "despertar" de até 1 minuto
+  useEffect(() => {
+    acordarServidor();
+  }, []);
 
   // restaura sessão
   useEffect(() => {

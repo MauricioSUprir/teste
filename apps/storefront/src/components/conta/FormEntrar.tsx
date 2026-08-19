@@ -22,7 +22,9 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando) return;
     setEnviando(true);
+    setErro("");
     const r = await conta.iniciarLogin(email, senha);
     setEnviando(false);
     setErro(r.ok ? "" : (r.erro ?? ""));
@@ -73,10 +75,16 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
       <button
         type="submit"
         disabled={enviando}
+        aria-busy={enviando}
         className="w-full rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
       >
-        {copy.conta.botaoEntrar}
+        {enviando ? copy.conta.botaoEntrando : copy.conta.botaoEntrar}
       </button>
+      {enviando && (
+        <p role="status" className="text-center text-[0.8125rem] text-grafite">
+          {copy.conta.aguardeServidor}
+        </p>
+      )}
 
       <div className="flex items-center gap-3 text-[0.75rem] uppercase tracking-wide text-cinza">
         <span className="h-px grow bg-linha" aria-hidden="true" />

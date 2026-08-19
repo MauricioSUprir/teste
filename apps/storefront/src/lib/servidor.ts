@@ -15,9 +15,21 @@ export function servidorConfigurado(): boolean {
   return SERVIDOR_URL.length > 0;
 }
 
+/** fetch com limite de espera — o plano gratuito do Render dorme e pode
+ * demorar até ~1 min para acordar; sem timeout o botão pareceria travado. */
+async function fetchComTimeout(url: string, ms: number, init?: RequestInit): Promise<Response> {
+  const controle = new AbortController();
+  const timer = setTimeout(() => controle.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: controle.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function chamar(caminho: string, corpo: unknown): Promise<{ ok: boolean; erro?: string }> {
   try {
-    const resposta = await fetch(`${SERVIDOR_URL}${caminho}`, {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}${caminho}`, 75_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(corpo),
@@ -26,7 +38,10 @@ async function chamar(caminho: string, corpo: unknown): Promise<{ ok: boolean; e
     if (!resposta.ok) return { ok: false, erro: dados.erro ?? "O servidor não respondeu. Tente novamente." };
     return { ok: true };
   } catch {
-    return { ok: false, erro: "Sem conexão com o servidor. Tente novamente em instantes." };
+    return {
+      ok: false,
+      erro: "O servidor está acordando — aguarde uns 30 segundos e tente de novo.",
+    };
   }
 }
 
@@ -42,13 +57,23 @@ async function consultarSaude(): Promise<Saude | null> {
   if (!servidorConfigurado()) return null;
   if (cacheSaude && Date.now() < cacheSaude.expira) return cacheSaude.valor;
   try {
-    const resposta = await fetch(`${SERVIDOR_URL}/saude`);
+    // 65s: tempo suficiente para o servidor gratuito acordar na 1ª visita
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/saude`, 65_000);
     const dados = (await resposta.json()) as Saude;
     cacheSaude = { valor: resposta.ok ? dados : null, expira: Date.now() + 5 * 60_000 };
   } catch {
-    cacheSaude = { valor: null, expira: Date.now() + 60_000 };
+    cacheSaude = { valor: null, expira: Date.now() + 30_000 };
   }
   return cacheSaude.valor;
+}
+
+/**
+ * Acorda o servidor em segundo plano assim que o site abre. Quando a pessoa
+ * chegar no login ou no checkout, ele já está de pé e a resposta é imediata.
+ */
+export function acordarServidor() {
+  if (!servidorConfigurado()) return;
+  void consultarSaude();
 }
 
 /**

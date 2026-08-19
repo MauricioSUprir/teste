@@ -21,6 +21,8 @@ export function FormCriarConta() {
 
   async function criar(e: React.FormEvent) {
     e.preventDefault();
+    if (enviando) return;
+    setErro("");
     setEnviando(true);
     const r = await conta.criarConta({ nome, email, senha, cep, numero, complemento });
     setEnviando(false);
@@ -56,10 +58,16 @@ export function FormCriarConta() {
       <button
         type="submit"
         disabled={enviando}
+        aria-busy={enviando}
         className="w-full rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
       >
-        {copy.conta.botaoCriar}
+        {enviando ? copy.conta.botaoCriando : copy.conta.botaoCriar}
       </button>
+      {enviando && (
+        <p role="status" className="text-center text-[0.8125rem] text-grafite">
+          {copy.conta.aguardeServidor}
+        </p>
+      )}
 
       <p className="text-center text-[0.875rem] text-grafite">
         {copy.conta.jaTemConta}{" "}
