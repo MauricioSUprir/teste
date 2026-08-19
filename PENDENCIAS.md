@@ -18,6 +18,18 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
    testados; só ligam com as credenciais dos itens 3–4 abaixo.
 5. **Hospedar `apps/servidor`** e apontar o site para ele
    (`NEXT_PUBLIC_SERVIDOR_URL`), tirando o site do modo demonstração.
+6. **Notificações de venda para o admin** — a cada venda concluída, o
+   servidor envia e-mail de notificação para a conta do administrador
+   (lojabeautynow@gmail.com e demais e-mails que o Mauricio indicar), com:
+   - a logo BeautyNow (monograma BN roxo + wordmark violeta) no topo;
+   - tipografia parecida com a do site (títulos serifados estilo Fraunces
+     com fallback Georgia, texto em Inter/Arial — e-mail exige fontes com
+     fallback seguro);
+   - resumo da venda: número do pedido, cliente, itens, total, forma de
+     pagamento e link para o painel /admin.
+   Depende dos mesmos itens 4–5 do Mauricio (senha de app do Gmail +
+   hospedagem do servidor). Já existe template de e-mail em
+   `apps/servidor/index.mjs` para seguir de base.
 
 ## O que depende do Mauricio
 
