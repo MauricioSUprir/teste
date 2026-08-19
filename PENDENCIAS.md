@@ -17,7 +17,8 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
    Sem dependências externas.
 4. **Código por e-mail real** — ✅ FEITO em 19/08 via Brevo (HTTPS, 300/dia
    grátis; SMTP do Gmail é bloqueado no Render gratuito). Notificações de
-   venda saem pelo mesmo canal. Falta só o **Google real** (Client ID).
+   venda saem pelo mesmo canal. **Google real** — ✅ FEITO em 19/08
+   (Client ID ativado; botão oficial do Google no ar).
 5. ~~Hospedar `apps/servidor`~~ — ✅ FEITO em 19/08: servidor no ar em
    https://beautynow-servidor.onrender.com e site conectado a ele.
 6. **Notificações de venda para o admin** — a cada venda concluída, o
