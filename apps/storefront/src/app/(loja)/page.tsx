@@ -6,12 +6,18 @@ import {
   maisVendidos,
   marcas,
   necessidades,
+  produtos,
 } from "@/lib/catalogo/consultas";
 import { CardProduto } from "@/components/produto/CardProduto";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
 
 /** Home — hero editorial, categorias, mais vendidos, marcas (ticket 2.2). */
 export default function Home() {
+  // com o catálogo real, "mais vendidos" pode não ter sinal ainda — cai para os primeiros produtos
+  const destaques = maisVendidos().length > 0 ? maisVendidos() : produtos;
+  const novidades = lancamentos();
+  const ctaSecundarioHref =
+    necessidades.length > 0 ? "/necessidade/hidratacao" : `/categoria/${categorias[0]?.slug ?? ""}`;
   return (
     <>
       {/* Hero editorial — a única ênfase visual da tela (docs/03 §1) */}
@@ -35,7 +41,7 @@ export default function Home() {
                 {copy.home.heroCta}
               </Link>
               <Link
-                href="/necessidade/hidratacao"
+                href={ctaSecundarioHref}
                 className="rounded-[999px] border-2 border-tinta px-7 py-3.5 text-[1rem] font-semibold text-tinta hover:bg-white"
               >
                 {copy.home.heroCtaSecundario}
@@ -99,7 +105,7 @@ export default function Home() {
           </Link>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-          {maisVendidos().slice(0, 5).map((p) => (
+          {destaques.slice(0, 5).map((p) => (
             <CardProduto key={p.slug} produto={p} />
           ))}
         </div>
@@ -124,6 +130,7 @@ export default function Home() {
       </section>
 
       {/* Necessidades */}
+      {necessidades.length > 0 && (
       <section className="container-bn pt-12">
         <h2 className="font-titulo text-[clamp(1.375rem,2.5vw,1.75rem)] font-semibold">
           {copy.home.porNecessidade}
@@ -141,8 +148,10 @@ export default function Home() {
           ))}
         </ul>
       </section>
+      )}
 
       {/* Lançamentos */}
+      {novidades.length > 0 && (
       <section className="container-bn pt-12">
         <div className="flex items-baseline justify-between">
           <h2 className="font-titulo text-[clamp(1.375rem,2.5vw,1.75rem)] font-semibold">
@@ -150,11 +159,12 @@ export default function Home() {
           </h2>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
-          {lancamentos().slice(0, 3).map((p) => (
+          {novidades.slice(0, 3).map((p) => (
             <CardProduto key={p.slug} produto={p} />
           ))}
         </div>
       </section>
+      )}
 
       {/* Marcas */}
       <section className="mt-12 bg-superficie py-12">
@@ -163,7 +173,7 @@ export default function Home() {
             {copy.home.marcasDestaque}
           </h2>
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-            {marcas.map((m) => (
+            {marcas.slice(0, 6).map((m) => (
               <Link
                 key={m.slug}
                 href={`/marca/${m.slug}`}

@@ -13,10 +13,25 @@ export function ImagemProduto({
 }: {
   produto: Produto;
   alt: string;
-  /** índice da "foto" — gera pequenas variações para galeria e hover */
+  /** índice da foto — real (catálogo do Hub) ou variação do placeholder */
   variacao?: number;
   className?: string;
 }) {
+  // foto real do catálogo do Hub Suprir, servida direto da URL pública
+  const fotoReal = produto.imagens?.[variacao] ?? produto.imagens?.[0];
+  if (fotoReal) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- imagem externa do Hub; next/image exige loader configurado
+      <img
+        src={fotoReal}
+        alt={alt}
+        loading="lazy"
+        className={className}
+        style={{ aspectRatio: "1 / 1", display: "block", width: "100%", height: "auto", objectFit: "contain", background: "#FFFFFF" }}
+      />
+    );
+  }
+
   const { corA, corB, forma } = produto.visual;
   const id = `${produto.slug}-${variacao}`;
   const rotacao = variacao === 0 ? 0 : variacao % 2 === 0 ? -8 : 8;

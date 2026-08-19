@@ -4,12 +4,12 @@
  * na integração real, a mesma interface é servida pelo Medusa v2 (réplica do Bling).
  */
 
-export type CategoriaSlug =
-  | "cabelos"
-  | "maquiagem"
-  | "perfumaria"
-  | "corpo-e-banho"
-  | "masculino";
+/**
+ * Slug de categoria. Com o catálogo do Hub Suprir importado, as categorias
+ * são dinâmicas (vêm do sistema); os slugs do seed de demonstração seguem
+ * válidos como fallback.
+ */
+export type CategoriaSlug = string;
 
 export interface Categoria {
   slug: CategoriaSlug;
@@ -80,6 +80,8 @@ export interface Produto {
   compreJunto?: string[];
   maisVendido?: boolean;
   lancamento?: boolean;
-  /** semente visual do placeholder de imagem (sem fotos reais na demo) */
+  /** URLs públicas das fotos reais (catálogo do Hub Suprir) */
+  imagens?: string[];
+  /** semente visual do placeholder — usada quando não há foto real */
   visual: { corA: string; corB: string; forma: "frasco" | "pote" | "tubo" | "spray" | "ampola" };
 }

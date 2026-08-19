@@ -19,3 +19,13 @@ export const ADMIN_PBKDF2_ITERACOES = 310000;
 
 /** Validade do código de verificação, em minutos. */
 export const CODIGO_VALIDADE_MIN = 10;
+
+/**
+ * Client ID do Google Identity Services (público por natureza — aparece no
+ * front-end de qualquer site que usa "Entrar com o Google").
+ * Vazio = botão em modo demonstração. Para ativar o botão oficial do Google:
+ * console.cloud.google.com → APIs e serviços → Credenciais → Criar credencial
+ * → ID do cliente OAuth → Aplicativo da Web, com a origem
+ * https://mauriciosuprir.github.io — e me envie o ID gerado.
+ */
+export const GOOGLE_CLIENT_ID = "";

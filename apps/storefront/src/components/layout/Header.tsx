@@ -126,7 +126,7 @@ export function Header() {
             </button>
             <MegaPainel>
               <div className="grid grid-cols-3 gap-1">
-                {marcas.map((m) => (
+                {marcas.slice(0, 15).map((m) => (
                   <Link
                     key={m.slug}
                     href={`/marca/${m.slug}`}
@@ -144,6 +144,7 @@ export function Header() {
             </MegaPainel>
           </div>
 
+          {necessidades.length > 0 && (
           <div className="group relative">
             <button
               type="button"
@@ -167,6 +168,7 @@ export function Header() {
               </div>
             </MegaPainel>
           </div>
+          )}
 
           {categorias.slice(0, 4).map((c) => (
             <Link
@@ -206,7 +208,7 @@ export function Header() {
               <p className="pb-1 text-[0.75rem] font-semibold uppercase tracking-wide text-cinza">
                 {copy.nav.marcas}
               </p>
-              {marcas.map((m) => (
+              {marcas.slice(0, 15).map((m) => (
                 <Link
                   key={m.slug}
                   href={`/marca/${m.slug}`}
@@ -217,6 +219,7 @@ export function Header() {
                 </Link>
               ))}
             </div>
+            {necessidades.length > 0 && (
             <div>
               <p className="pb-1 text-[0.75rem] font-semibold uppercase tracking-wide text-cinza">
                 {copy.nav.necessidades}
@@ -232,6 +235,7 @@ export function Header() {
                 </Link>
               ))}
             </div>
+            )}
           </div>
         </nav>
       )}

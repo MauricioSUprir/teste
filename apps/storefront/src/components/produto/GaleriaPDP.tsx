@@ -5,16 +5,17 @@ import { useState } from "react";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { ImagemProduto } from "./ImagemProduto";
 
-const TOTAL_FOTOS = 3;
-
 export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) {
   const [ativa, setAtiva] = useState(0);
+  // fotos reais quando existem; senão, 3 variações do placeholder
+  const TOTAL_FOTOS = produto.imagens?.length ? produto.imagens.length : 3;
 
   return (
     <div>
       <div className="overflow-hidden rounded-[16px] border border-linha">
         <ImagemProduto produto={produto} alt={alt} variacao={ativa} />
       </div>
+      {TOTAL_FOTOS > 1 && (
       <div className="mt-3 flex gap-2" role="tablist" aria-label="Fotos do produto">
         {Array.from({ length: TOTAL_FOTOS }, (_, i) => (
           <button
@@ -32,6 +33,7 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }

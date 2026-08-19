@@ -1,9 +1,36 @@
 /**
- * Consultas sobre o catálogo — na integração real viram chamadas
- * ao Medusa (catálogo) e ao Meilisearch (busca facetada).
+ * Consultas sobre o catálogo.
+ *
+ * Fonte dos dados: se `dados-hub.json` estiver preenchido (gerado por
+ * `scripts/sincronizar-catalogo.mjs` a partir da API do Hub Suprir), o site
+ * usa o catálogo real; caso contrário, usa o seed de demonstração.
  */
-import { categorias, marcas, necessidades, produtos } from "./dados";
-import type { CategoriaSlug, Marca, Produto } from "./tipos";
+import {
+  categorias as categoriasDemo,
+  marcas as marcasDemo,
+  necessidades as necessidadesDemo,
+  produtos as produtosDemo,
+} from "./dados";
+import dadosHub from "./dados-hub.json";
+import type { Categoria, CategoriaSlug, Marca, Necessidade, Produto } from "./tipos";
+
+interface CatalogoHub {
+  origem: string;
+  atualizadoEm: string | null;
+  categorias: Categoria[];
+  marcas: Marca[];
+  produtos: Produto[];
+}
+
+const hub = dadosHub as unknown as CatalogoHub;
+const usaHub = hub.produtos.length > 0;
+
+export const catalogoReal = usaHub;
+const categorias: Categoria[] = usaHub ? hub.categorias : categoriasDemo;
+const marcas: Marca[] = usaHub ? hub.marcas : marcasDemo;
+const produtos: Produto[] = usaHub ? hub.produtos : produtosDemo;
+// necessidades são curadoria editorial — o Hub não as fornece
+const necessidades: Necessidade[] = usaHub ? [] : necessidadesDemo;
 
 export function obterProduto(slug: string): Produto | undefined {
   return produtos.find((p) => p.slug === slug);

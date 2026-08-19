@@ -44,6 +44,11 @@ O storefront roda hoje **sem backend**, com uma camada de dados substituível:
 - **Pagamento** — o checkout registra o pedido localmente e mostra um Pix ilustrativo. Substituir pelo SDK do Mercado Pago com tokenização no cliente e webhook assinado (tickets 4.6–4.8 — exigem aprovação prévia, ver CLAUDE.md §4).
 - **Conta do cliente** — placeholder; chega com o backend (Sprint 5).
 
+## Servidor e integração com o Hub Suprir
+
+- **`apps/servidor`** — servidor Node (Express) que envia o código de verificação por e-mail de verdade (Gmail com senha de app) e repassa pedidos ao Hub Suprir com a `X-API-Key` protegida (a chave nunca vai para o navegador nem para o repositório). Rode com as variáveis de `.env.example`; com `NEXT_PUBLIC_SERVIDOR_URL` definida no build do storefront, o site sai do modo demonstração.
+- **`scripts/sincronizar-catalogo.mjs`** — importa o catálogo real (produtos, preços, fotos por URL pública) da API do Hub para `dados-hub.json`. Uso: `HUB_API_KEY=... node scripts/sincronizar-catalogo.mjs` e refaça o build.
+
 ## Estrutura
 
 ```

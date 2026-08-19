@@ -25,6 +25,11 @@ import {
   ADMIN_SENHA_PBKDF2,
   CODIGO_VALIDADE_MIN,
 } from "./config";
+import {
+  servidorConfigurado,
+  solicitarCodigoPorEmail,
+  verificarCodigoNoServidor,
+} from "@/lib/servidor";
 
 export interface Usuario {
   nome: string;
@@ -41,7 +46,8 @@ export type UsuarioPublico = Omit<Usuario, "senhaHash">;
 
 interface VerificacaoPendente {
   email: string;
-  codigo: string;
+  /** null quando o código vive no servidor (enviado por e-mail) */
+  codigo: string | null;
   expiraEm: number; // epoch ms
 }
 
@@ -60,9 +66,12 @@ interface ContaContexto {
     complemento: string;
   }) => Promise<{ ok: boolean; erro?: string }>;
   iniciarLogin: (email: string, senha: string) => Promise<{ ok: boolean; erro?: string }>;
-  confirmarCodigo: (codigo: string) => { ok: boolean; erro?: string };
+  confirmarCodigo: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
   cancelarVerificacao: () => void;
+  /** login demonstrativo (sem Client ID do Google configurado) */
   entrarComGoogle: () => void;
+  /** login real com a credencial JWT devolvida pelo Google Identity Services */
+  entrarComGoogleCredencial: (credencial: string) => { ok: boolean; erro?: string };
   sair: () => void;
 }
 
@@ -205,23 +214,31 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // 2ª etapa: código de verificação "enviado por e-mail" (simulado na demo)
-    setPendente({
-      email,
-      codigo: gerarCodigo(),
-      expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000,
-    });
+    // 2ª etapa: código de verificação
+    if (servidorConfigurado()) {
+      // servidor gera o código e envia por e-mail de verdade
+      const r = await solicitarCodigoPorEmail(email);
+      if (!r.ok) return { ok: false, erro: r.erro };
+      setPendente({ email, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    } else {
+      // demonstração: código local, exibido na tela
+      setPendente({ email, codigo: gerarCodigo(), expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    }
     return { ok: true };
   }, []);
 
   const confirmarCodigo: ContaContexto["confirmarCodigo"] = useCallback(
-    (codigo) => {
+    async (codigo) => {
       if (!pendente) return { ok: false, erro: "Nenhuma verificação em andamento." };
       if (Date.now() > pendente.expiraEm) {
         setPendente(null);
         return { ok: false, erro: "O código expirou. Faça login novamente." };
       }
-      if (codigo.trim() !== pendente.codigo) {
+      if (pendente.codigo === null) {
+        // código guardado no servidor
+        const r = await verificarCodigoNoServidor(pendente.email, codigo.trim());
+        if (!r.ok) return { ok: false, erro: r.erro ?? "Código incorreto. Confira os 6 dígitos." };
+      } else if (codigo.trim() !== pendente.codigo) {
         return { ok: false, erro: "Código incorreto. Confira os 6 dígitos." };
       }
       const email = pendente.email;
@@ -282,6 +299,46 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const entrarComGoogleCredencial: ContaContexto["entrarComGoogleCredencial"] = useCallback(
+    (credencial) => {
+      try {
+        // credencial = JWT do Google Identity Services; o payload traz nome e
+        // e-mail verificados pelo Google (validação criptográfica completa
+        // acontece no servidor quando ele estiver no ar)
+        const payload = JSON.parse(
+          atob(credencial.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+        ) as { name?: string; email?: string };
+        if (!payload.email) return { ok: false, erro: "O Google não devolveu um e-mail válido." };
+        const email = payload.email.toLowerCase();
+        const usuarios = lerUsuarios();
+        let u = usuarios.find((x) => x.email === email);
+        if (!u) {
+          u = {
+            nome: payload.name ?? email,
+            email,
+            senhaHash: "",
+            cep: "",
+            numero: "",
+            complemento: "",
+            viaGoogle: true,
+            admin: false,
+          };
+          gravarUsuarios([...usuarios, u]);
+        }
+        setUsuario(publico(u));
+        try {
+          localStorage.setItem(CHAVE_SESSAO, JSON.stringify(email));
+        } catch {
+          // segue sem persistir
+        }
+        return { ok: true };
+      } catch {
+        return { ok: false, erro: "Não foi possível ler a resposta do Google. Tente novamente." };
+      }
+    },
+    []
+  );
+
   const sair = useCallback(() => {
     setUsuario(null);
     setPendente(null);
@@ -302,9 +359,10 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       confirmarCodigo,
       cancelarVerificacao,
       entrarComGoogle,
+      entrarComGoogleCredencial,
       sair,
     }),
-    [usuario, pendente, criarConta, iniciarLogin, confirmarCodigo, cancelarVerificacao, entrarComGoogle, sair]
+    [usuario, pendente, criarConta, iniciarLogin, confirmarCodigo, cancelarVerificacao, entrarComGoogle, entrarComGoogleCredencial, sair]
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

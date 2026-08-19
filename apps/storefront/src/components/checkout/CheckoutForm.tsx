@@ -20,6 +20,8 @@ import {
 } from "@/lib/preco";
 import { Logo } from "@/components/layout/Logo";
 import { ImagemProduto } from "@/components/produto/ImagemProduto";
+import { gravarPedido, type Pedido } from "@/lib/pedidos";
+import { enviarPedidoAoServidor } from "@/lib/servidor";
 
 type MeioPagamento = "pix" | "cartao" | "boleto";
 
@@ -93,7 +95,7 @@ export function CheckoutForm() {
     }
   }
 
-  function concluir(e: React.FormEvent) {
+  async function concluir(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !nome || !cpf || !telefone || !endereco.cep || !endereco.logradouro || !endereco.numero || !frete) {
       setErro(copy.checkout.camposObrigatorios);
@@ -101,6 +103,24 @@ export function CheckoutForm() {
     }
     setErro("");
     const numeroPedido = `BN-${String(Math.floor(100000 + Math.random() * 900000))}`;
+    const pedido = {
+      numero: numeroPedido,
+      data: new Date().toISOString(),
+      clienteNome: nome,
+      clienteEmail: email,
+      itens: carrinho.itens.map((i) => ({
+        sku: i.sku,
+        titulo: i.produto.titulo,
+        quantidade: i.quantidade,
+        precoCentavos: i.variante.precoPor,
+      })),
+      totalCentavos: totalFinal,
+      meio,
+      freteNome: frete.nome,
+      status: "aguardando_pagamento" as const,
+    };
+    gravarPedido(pedido);
+    await enviarPedidoAoServidor(pedido, { endereco, cpf, telefone });
     try {
       sessionStorage.setItem(
         "beautynow:ultimo-pedido",

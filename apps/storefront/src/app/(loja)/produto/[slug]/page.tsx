@@ -142,6 +142,7 @@ export default async function PaginaProduto({
         <div>
           <Acordeao titulo={copy.pdp.sobre} abertoPorPadrao>
             <p>{produto.descricao}</p>
+            {produto.beneficios.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {produto.beneficios.map((b) => (
                 <li key={b} className="flex items-start gap-2">
@@ -153,8 +154,10 @@ export default async function PaginaProduto({
                 </li>
               ))}
             </ul>
+            )}
           </Acordeao>
 
+          {produto.modoDeUso.length > 0 && (
           <Acordeao titulo={copy.pdp.comoUsar}>
             <ol className="list-decimal space-y-1.5 pl-5">
               {produto.modoDeUso.map((passo) => (
@@ -162,11 +165,15 @@ export default async function PaginaProduto({
               ))}
             </ol>
           </Acordeao>
+          )}
 
+          {produto.composicao && (
           <Acordeao titulo={copy.pdp.composicao}>
             <p className="text-[0.875rem]">{produto.composicao}</p>
           </Acordeao>
+          )}
 
+          {Object.keys(produto.especificacoes).length > 0 && (
           <Acordeao titulo={copy.pdp.especificacoes}>
             <table className="w-full text-[0.875rem]">
               <tbody>
@@ -181,6 +188,7 @@ export default async function PaginaProduto({
               </tbody>
             </table>
           </Acordeao>
+          )}
         </div>
 
         <div>
