@@ -189,6 +189,52 @@ aplicacao.get("/saude", (_req, res) => {
   });
 });
 
+/**
+ * Diagnóstico do e-mail em página legível — abre no navegador e mostra em
+ * português se o Gmail autenticou. Não expõe a senha, só o motivo do erro.
+ */
+aplicacao.get("/saude/email", async (_req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  const pagina = (cor, titulo, detalhe) =>
+    `<div style="font-family:Arial;max-width:560px;margin:40px auto;padding:24px;border:2px solid ${cor};border-radius:14px">
+       <p style="font-size:20px;font-weight:bold;margin:0 0 8px;color:${cor}">${titulo}</p>
+       <p style="color:#333;font-size:15px;line-height:1.5;margin:0">${detalhe}</p>
+     </div>`;
+  if (!transporte) {
+    return res.send(
+      pagina(
+        "#B45309",
+        "⚠️ Modo teste (console)",
+        `EMAIL_MODO está como "${EMAIL_MODO}". Troque para "gmail" nas variáveis do Render para enviar e-mail de verdade.`
+      )
+    );
+  }
+  const resumoConfig = `Remetente: <b>${EMAIL_USUARIO || "(EMAIL_USUARIO vazio!)"}</b> · senha de app com <b>${EMAIL_SENHA_APP.length}</b> caracteres (o certo são 16).`;
+  try {
+    await transporte.verify();
+    res.send(
+      pagina(
+        "#15803D",
+        "✅ Gmail autenticado — envio real funcionando",
+        `${resumoConfig}<br><br>Pode testar o login no site: o código chegará por e-mail.`
+      )
+    );
+  } catch (erro) {
+    const codigo = erro.code ?? erro.responseCode ?? "?";
+    const dica =
+      codigo === "EAUTH"
+        ? "O Gmail recusou usuário/senha. A senha de app precisa ter sido criada LOGADO na conta do remetente acima (myaccount.google.com/apppasswords) e colada inteira no EMAIL_SENHA_APP."
+        : "Não foi possível conectar ao Gmail. Tente de novo em 1 minuto; se persistir, o problema é de rede/porta.";
+    res.send(
+      pagina(
+        "#B91C1C",
+        `❌ Falha no Gmail (código ${codigo})`,
+        `${resumoConfig}<br><br><b>Erro:</b> ${String(erro.message).slice(0, 300)}<br><br>${dica}`
+      )
+    );
+  }
+});
+
 aplicacao.post("/codigo", async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   if (!emailValido(email)) return res.status(400).json({ erro: "E-mail inválido." });
