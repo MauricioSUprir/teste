@@ -391,6 +391,54 @@ const paginaExport = (titulo, corpo, atualizar = false) =>
    <p style="font-size:20px;font-weight:bold;margin:0 0 10px;color:#4A2882">${titulo}</p>
    <div style="color:#333;font-size:15px;line-height:1.6">${corpo}</div></div></body></html>`;
 
+/**
+ * Modo RÁPIDO (padrão da rota /exportar-catalogo/rapido): baixa só a
+ * listagem paginada — nome, preço, marca, foto e estoque vêm nela — em
+ * segundos, bem abaixo do limite de requisição do Render. As fichas
+ * completas (descrição longa) ficam para o modo completo.
+ */
+aplicacao.get("/exportar-catalogo/rapido", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).send(paginaExport("Chave inválida", "Confira o link."));
+  }
+  if (!HUB_API_KEY) {
+    return res.status(400).send(paginaExport("Falta configurar", "A variável <b>HUB_API_KEY</b> não está preenchida no Render."));
+  }
+  try {
+    console.log("[exportar-rapido] iniciando…");
+    const brutos = [];
+    let pagina = 1;
+    for (;;) {
+      const r = await fetch(`${HUB_API_URL}/produtos?pagina=${pagina}&por_pagina=100`, {
+        headers: { "X-API-Key": HUB_API_KEY },
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!r.ok) throw new Error(`página ${pagina} → HTTP ${r.status}`);
+      const lote = await r.json();
+      const itens = Array.isArray(lote)
+        ? lote
+        : (lote.produtos ?? lote.dados ?? lote.data ?? lote.items ?? []);
+      if (!itens.length) break;
+      brutos.push(...itens);
+      const tp = lote.total_paginas ?? lote.totalPages ?? lote.meta?.total_paginas ?? lote.meta?.last_page;
+      if (tp && pagina >= Number(tp)) break;
+      if (itens.length < 100) break;
+      pagina++;
+    }
+    console.log(`[exportar-rapido] pronto: ${brutos.length} produtos`);
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="catalogo-hub.json"');
+    res.send(
+      JSON.stringify({ exportadoEm: new Date().toISOString(), total: brutos.length, brutos, detalhes: [] })
+    );
+  } catch (erro) {
+    console.error("[exportar-rapido] falha:", erro.message);
+    res
+      .status(502)
+      .send(paginaExport("❌ Falha na exportação rápida", `<b>Erro:</b> ${String(erro.message).slice(0, 300)}<br><br><a href="">Tentar de novo</a>`));
+  }
+});
+
 aplicacao.get("/exportar-catalogo", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).send(paginaExport("Chave inválida", "Confira a EXPORT_CHAVE nas variáveis do Render e o parâmetro ?chave= do link."));
