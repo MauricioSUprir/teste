@@ -15,8 +15,9 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
 3. **Gráficos de vendas no painel admin** — visão dia/semana/mês/ano com
    gráficos e resumos escritos (receita, pedidos, ticket médio, comparativos).
    Sem dependências externas.
-4. **Ativar Google real e código por e-mail real** — já implementados e
-   testados; só ligam com as credenciais dos itens 3–4 abaixo.
+4. **Código por e-mail real** — ✅ FEITO em 19/08 via Brevo (HTTPS, 300/dia
+   grátis; SMTP do Gmail é bloqueado no Render gratuito). Notificações de
+   venda saem pelo mesmo canal. Falta só o **Google real** (Client ID).
 5. ~~Hospedar `apps/servidor`~~ — ✅ FEITO em 19/08: servidor no ar em
    https://beautynow-servidor.onrender.com e site conectado a ele.
 6. **Notificações de venda para o admin** — a cada venda concluída, o
