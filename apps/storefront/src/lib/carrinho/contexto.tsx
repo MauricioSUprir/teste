@@ -16,6 +16,7 @@ import {
 } from "react";
 import { obterProduto } from "@/lib/catalogo/consultas";
 import type { Produto, Variante } from "@/lib/catalogo/tipos";
+import { calcularDesconto, validarCupom, type Cupom } from "@/lib/cupons";
 
 export interface ItemCarrinho {
   produtoSlug: string;
@@ -31,6 +32,9 @@ export interface ItemDetalhado extends ItemCarrinho {
 interface CarrinhoContexto {
   itens: ItemDetalhado[];
   subtotalCentavos: number;
+  /** desconto do cupom aplicado (cupom entra depois do desconto de produto, antes do Pix) */
+  descontoCentavos: number;
+  cupomAplicado: string | null;
   totalItens: number;
   aberto: boolean;
   abrir: () => void;
@@ -38,14 +42,18 @@ interface CarrinhoContexto {
   adicionar: (produtoSlug: string, sku: string, quantidade?: number) => void;
   remover: (sku: string) => void;
   alterarQuantidade: (sku: string, quantidade: number) => void;
+  aplicarCupom: (codigo: string) => { ok: boolean; erro?: string };
+  removerCupom: () => void;
   limpar: () => void;
 }
 
 const Contexto = createContext<CarrinhoContexto | null>(null);
 const CHAVE_STORAGE = "beautynow:carrinho:v1";
+const CHAVE_CUPOM = "beautynow:cupom:v1";
 
 export function CarrinhoProvider({ children }: { children: ReactNode }) {
   const [itens, setItens] = useState<ItemCarrinho[]>([]);
+  const [cupomAplicado, setCupomAplicado] = useState<string | null>(null);
   const [aberto, setAberto] = useState(false);
   const [hidratado, setHidratado] = useState(false);
 
@@ -53,6 +61,8 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     try {
       const salvo = localStorage.getItem(CHAVE_STORAGE);
       if (salvo) setItens(JSON.parse(salvo) as ItemCarrinho[]);
+      const cupom = localStorage.getItem(CHAVE_CUPOM);
+      if (cupom) setCupomAplicado(cupom);
     } catch {
       // storage indisponível (modo privado) — segue com carrinho em memória
     }
@@ -63,10 +73,12 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     if (!hidratado) return;
     try {
       localStorage.setItem(CHAVE_STORAGE, JSON.stringify(itens));
+      if (cupomAplicado) localStorage.setItem(CHAVE_CUPOM, cupomAplicado);
+      else localStorage.removeItem(CHAVE_CUPOM);
     } catch {
       // sem persistência — aceitável
     }
-  }, [itens, hidratado]);
+  }, [itens, cupomAplicado, hidratado]);
 
   const adicionar = useCallback((produtoSlug: string, sku: string, quantidade = 1) => {
     setItens((atual) => {
@@ -90,7 +102,10 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     setItens((atual) => atual.map((i) => (i.sku === sku ? { ...i, quantidade } : i)));
   }, []);
 
-  const limpar = useCallback(() => setItens([]), []);
+  const limpar = useCallback(() => {
+    setItens([]);
+    setCupomAplicado(null);
+  }, []);
   const abrir = useCallback(() => setAberto(true), []);
   const fechar = useCallback(() => setAberto(false), []);
 
@@ -106,9 +121,31 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
       0
     );
     const totalItens = detalhados.reduce((acc, i) => acc + i.quantidade, 0);
+
+    // revalida o cupom salvo a cada mudança do carrinho — se deixou de valer
+    // (mínimo não atingido, cupom desativado), o desconto zera sem apagar o código
+    let descontoCentavos = 0;
+    let cupomValido: Cupom | undefined;
+    if (cupomAplicado && hidratado) {
+      const resultado = validarCupom(cupomAplicado, subtotalCentavos);
+      if (resultado.ok && resultado.cupom) {
+        cupomValido = resultado.cupom;
+        descontoCentavos = calcularDesconto(cupomValido, subtotalCentavos);
+      }
+    }
+
+    const aplicarCupom = (codigo: string) => {
+      const resultado = validarCupom(codigo, subtotalCentavos);
+      if (!resultado.ok || !resultado.cupom) return { ok: false, erro: resultado.erro };
+      setCupomAplicado(resultado.cupom.codigo);
+      return { ok: true };
+    };
+
     return {
       itens: detalhados,
       subtotalCentavos,
+      descontoCentavos,
+      cupomAplicado,
       totalItens,
       aberto,
       abrir,
@@ -116,9 +153,11 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
       adicionar,
       remover,
       alterarQuantidade,
+      aplicarCupom,
+      removerCupom: () => setCupomAplicado(null),
       limpar,
     };
-  }, [itens, aberto, abrir, fechar, adicionar, remover, alterarQuantidade, limpar]);
+  }, [itens, cupomAplicado, hidratado, aberto, abrir, fechar, adicionar, remover, alterarQuantidade, limpar]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

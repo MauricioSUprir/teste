@@ -67,8 +67,11 @@ export function CheckoutForm() {
 
   const frete = fretes.find((f) => f.id === freteEscolhido);
   const totalProdutos = carrinho.subtotalCentavos;
-  const totalComFrete = totalProdutos + (frete?.valorCentavos ?? 0);
-  const totalFinal = meio === "pix" ? precoPix(totalProdutos) + (frete?.valorCentavos ?? 0) : totalComFrete;
+  // ordem comercial: desconto de produto → cupom → Pix (sempre por último)
+  const baseComCupom = totalProdutos - carrinho.descontoCentavos;
+  const totalComFrete = baseComCupom + (frete?.valorCentavos ?? 0);
+  const totalFinal =
+    meio === "pix" ? precoPix(baseComCupom) + (frete?.valorCentavos ?? 0) : totalComFrete;
   const parcela = useMemo(() => parcelamento(totalComFrete), [totalComFrete]);
 
   async function aoSairDoCep() {
@@ -122,6 +125,8 @@ export function CheckoutForm() {
       totalCentavos: totalFinal,
       meio,
       freteNome: frete.nome,
+      cupom: carrinho.cupomAplicado ?? undefined,
+      descontoCentavos: carrinho.descontoCentavos || undefined,
       status: "aguardando_pagamento" as const,
     };
     gravarPedido(pedido);
@@ -434,10 +439,21 @@ export function CheckoutForm() {
                   {frete ? (frete.valorCentavos === 0 ? "Grátis" : formatarPreco(frete.valorCentavos)) : "—"}
                 </dd>
               </div>
+              {carrinho.descontoCentavos > 0 && (
+                <div className="flex justify-between text-roxo">
+                  <dt>
+                    {copy.checkout.desconto}
+                    {carrinho.cupomAplicado && (
+                      <span className="num ml-1 text-[0.75rem]">({carrinho.cupomAplicado})</span>
+                    )}
+                  </dt>
+                  <dd className="num">-{formatarPreco(carrinho.descontoCentavos)}</dd>
+                </div>
+              )}
               {meio === "pix" && (
                 <div className="flex justify-between text-sucesso">
                   <dt>{copy.carrinho.descontoPix}</dt>
-                  <dd className="num">-{formatarPreco(totalProdutos - precoPix(totalProdutos))}</dd>
+                  <dd className="num">-{formatarPreco(baseComCupom - precoPix(baseComCupom))}</dd>
                 </div>
               )}
               <div className="flex justify-between border-t border-linha pt-2 text-[1.0625rem] font-bold">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { CarrinhoProvider } from "@/lib/carrinho/contexto";
 import { ContaProvider } from "@/lib/conta/contexto";
+import { FavoritosProvider } from "@/lib/favoritos/contexto";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,7 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
         <ContaProvider>
-          <CarrinhoProvider>{children}</CarrinhoProvider>
+          <FavoritosProvider>
+            <CarrinhoProvider>{children}</CarrinhoProvider>
+          </FavoritosProvider>
         </ContaProvider>
       </body>
     </html>

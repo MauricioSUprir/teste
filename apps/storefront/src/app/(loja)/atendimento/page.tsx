@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Acordeao } from "@/components/produto/Acordeao";
+import { BuscaFaq } from "@/components/atendimento/BuscaFaq";
 
 export const metadata: Metadata = {
   title: "Central de atendimento",
@@ -50,11 +50,7 @@ export default function PaginaAtendimento() {
       </p>
 
       <section aria-label="Perguntas frequentes" className="mt-8">
-        {faq.map((item) => (
-          <Acordeao key={item.pergunta} titulo={item.pergunta}>
-            <p>{item.resposta}</p>
-          </Acordeao>
-        ))}
+        <BuscaFaq itens={faq} />
       </section>
 
       <section id="contato" className="mt-10 rounded-[16px] bg-superficie p-6">

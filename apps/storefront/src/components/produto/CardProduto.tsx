@@ -3,6 +3,7 @@ import { copy } from "@/lib/copy";
 import { notaMedia, obterMarca, temEstoque } from "@/lib/catalogo/consultas";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { formatarPreco, parcelamento, percentualDesconto, precoPix } from "@/lib/preco";
+import { BotaoFavorito } from "./BotaoFavorito";
 import { ImagemProduto } from "./ImagemProduto";
 
 /**
@@ -27,6 +28,9 @@ export function CardProduto({ produto }: { produto: Produto }) {
       className="group flex flex-col rounded-[10px] border border-linha bg-white p-3 transition-shadow hover:shadow-card"
     >
       <div className="relative">
+        <div className="absolute right-0 top-0 z-10">
+          <BotaoFavorito slug={produto.slug} />
+        </div>
         <div className="absolute left-0 top-0 z-10 flex flex-col items-start gap-1">
           {desconto !== null && disponivel && (
             <span className="rounded-[6px] bg-oferta px-1.5 py-0.5 text-[0.75rem] font-semibold text-white num">

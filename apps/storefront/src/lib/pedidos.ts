@@ -23,6 +23,8 @@ export interface Pedido {
   totalCentavos: number;
   meio: "pix" | "cartao" | "boleto";
   freteNome: string;
+  cupom?: string;
+  descontoCentavos?: number;
   status: StatusPedido;
 }
 

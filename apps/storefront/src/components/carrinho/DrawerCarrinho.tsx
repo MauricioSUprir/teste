@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { useCarrinho } from "@/lib/carrinho/contexto";
@@ -12,6 +12,18 @@ import { BarraFreteGratis } from "./BarraFreteGratis";
 export function DrawerCarrinho() {
   const carrinho = useCarrinho();
   const painel = useRef<HTMLDivElement>(null);
+  const [codigoCupom, setCodigoCupom] = useState("");
+  const [erroCupom, setErroCupom] = useState<string | null>(null);
+
+  function aplicarCupom() {
+    const resultado = carrinho.aplicarCupom(codigoCupom);
+    if (resultado.ok) {
+      setCodigoCupom("");
+      setErroCupom(null);
+    } else {
+      setErroCupom(resultado.erro ?? "Não foi possível aplicar o cupom.");
+    }
+  }
 
   // fecha com Esc e move o foco para o painel ao abrir
   useEffect(() => {
@@ -155,15 +167,82 @@ export function DrawerCarrinho() {
             </ul>
 
             <div className="border-t border-linha px-4 py-4">
+              {carrinho.cupomAplicado ? (
+                <div className="mb-3 flex items-center justify-between rounded-[6px] bg-violeta-claro px-3 py-2">
+                  <span className="text-[0.8125rem] font-medium text-roxo-escuro">
+                    {copy.carrinho.cupomAplicado(carrinho.cupomAplicado)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      carrinho.removerCupom();
+                      setErroCupom(null);
+                    }}
+                    className="text-[0.75rem] text-cinza underline hover:text-erro"
+                  >
+                    {copy.carrinho.cupomRemover}
+                  </button>
+                </div>
+              ) : (
+                <details className="mb-3 rounded-[6px] border border-linha">
+                  <summary className="cursor-pointer px-3 py-2 text-[0.8125rem] text-grafite">
+                    {copy.carrinho.cupomTitulo}
+                  </summary>
+                  <div className="px-3 pb-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={codigoCupom}
+                        onChange={(e) => {
+                          setCodigoCupom(e.target.value.toUpperCase());
+                          setErroCupom(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            aplicarCupom();
+                          }
+                        }}
+                        placeholder={copy.carrinho.cupomPlaceholder}
+                        aria-label={copy.carrinho.cupomTitulo}
+                        className="num h-10 min-w-0 grow rounded-[6px] border border-linha px-3 text-[0.875rem] uppercase focus:border-roxo focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={aplicarCupom}
+                        className="h-10 shrink-0 rounded-[6px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+                      >
+                        {copy.carrinho.cupomAplicar}
+                      </button>
+                    </div>
+                    {erroCupom && (
+                      <p role="alert" className="mt-2 text-[0.75rem] text-erro">
+                        {erroCupom}
+                      </p>
+                    )}
+                  </div>
+                </details>
+              )}
+
               <dl className="space-y-1 text-[0.9375rem]">
                 <div className="flex justify-between">
                   <dt className="text-grafite">{copy.carrinho.subtotal}</dt>
                   <dd className="num font-medium">{formatarPreco(carrinho.subtotalCentavos)}</dd>
                 </div>
+                {carrinho.descontoCentavos > 0 && (
+                  <div className="flex justify-between text-roxo">
+                    <dt>{copy.carrinho.cupomDesconto}</dt>
+                    <dd className="num font-medium">
+                      −{formatarPreco(carrinho.descontoCentavos)}
+                    </dd>
+                  </div>
+                )}
                 <div className="flex justify-between text-sucesso">
                   <dt>{copy.carrinho.totalNoPix}</dt>
                   <dd className="num font-semibold">
-                    {formatarPreco(precoPix(carrinho.subtotalCentavos))}
+                    {formatarPreco(
+                      precoPix(carrinho.subtotalCentavos - carrinho.descontoCentavos)
+                    )}
                   </dd>
                 </div>
               </dl>

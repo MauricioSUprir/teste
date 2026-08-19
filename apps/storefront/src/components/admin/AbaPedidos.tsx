@@ -35,7 +35,7 @@ export function AbaPedidos({
 
   function exportarCsv() {
     const linhas = [
-      ["pedido", "data", "cliente", "email", "itens", "pagamento", "total_reais", "status"],
+      ["pedido", "data", "cliente", "email", "itens", "pagamento", "cupom", "total_reais", "status"],
       ...filtrados.map((p) => [
         p.numero,
         new Date(p.data).toLocaleString("pt-BR"),
@@ -43,6 +43,7 @@ export function AbaPedidos({
         p.clienteEmail,
         p.itens.map((i) => `${i.quantidade}x ${i.titulo}`).join(" | "),
         p.meio,
+        p.cupom ?? "",
         (p.totalCentavos / 100).toFixed(2).replace(".", ","),
         rotuloStatus[p.status],
       ]),
@@ -139,6 +140,11 @@ export function AbaPedidos({
                   </td>
                   <td className="px-4 py-3 text-grafite">
                     {p.meio === "pix" ? "Pix" : p.meio === "cartao" ? "Cartão" : "Boleto"}
+                    {p.cupom && (
+                      <span className="num mt-1 block rounded-[6px] bg-violeta-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-violeta">
+                        {p.cupom}
+                      </span>
+                    )}
                   </td>
                   <td className="num px-4 py-3 text-right font-semibold">{formatarPreco(p.totalCentavos)}</td>
                   <td className="px-4 py-3">

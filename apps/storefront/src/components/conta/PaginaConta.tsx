@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
+import { obterProduto } from "@/lib/catalogo/consultas";
 import { useConta } from "@/lib/conta/contexto";
+import { useFavoritos } from "@/lib/favoritos/contexto";
 import { lerPedidos, type Pedido } from "@/lib/pedidos";
 import { formatarPreco } from "@/lib/preco";
+import { CardProduto } from "@/components/produto/CardProduto";
 import { FormEntrar } from "./FormEntrar";
 
 const rotuloStatus = {
@@ -22,7 +25,11 @@ const corStatus = {
 
 export function PaginaConta() {
   const conta = useConta();
+  const favoritos = useFavoritos();
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
+  const produtosFavoritos = favoritos.slugs
+    .map((slug) => obterProduto(slug))
+    .filter((p) => p !== undefined);
 
   useEffect(() => {
     if (!conta.usuario) return;
@@ -134,6 +141,19 @@ export function PaginaConta() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="mt-4 rounded-[16px] border border-linha bg-white p-6">
+        <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.favoritos}</h2>
+        {produtosFavoritos.length === 0 ? (
+          <p className="mt-3 text-[0.9375rem] text-grafite">{copy.conta.favoritosVazio}</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {produtosFavoritos.map((p) => (
+              <CardProduto key={p.slug} produto={p} />
+            ))}
+          </div>
         )}
       </section>
 
