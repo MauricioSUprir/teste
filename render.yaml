@@ -27,3 +27,7 @@ services:
         value: https://comercial.thebeautyhub.app/api/loja
       - key: HUB_API_KEY
         sync: false
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: SITE_URL
+        value: https://mauriciosuprir.github.io/teste

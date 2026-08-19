@@ -21,7 +21,12 @@ import {
 import { Logo } from "@/components/layout/Logo";
 import { ImagemProduto } from "@/components/produto/ImagemProduto";
 import { gravarPedido, type Pedido } from "@/lib/pedidos";
-import { enviarPedidoAoServidor } from "@/lib/servidor";
+import {
+  criarCheckoutPro,
+  criarPagamentoPix,
+  enviarPedidoAoServidor,
+  mercadoPagoAtivo,
+} from "@/lib/servidor";
 
 type MeioPagamento = "pix" | "cartao" | "boleto";
 
@@ -121,6 +126,19 @@ export function CheckoutForm() {
     };
     gravarPedido(pedido);
     await enviarPedidoAoServidor(pedido, { endereco, cpf, telefone });
+
+    // pagamento real via Mercado Pago, quando configurado no servidor
+    const mpAtivo = await mercadoPagoAtivo();
+    let pixReal: { paymentId: number | string; copiaCola: string | null; qrBase64: string | null } | null = null;
+    if (mpAtivo && meio === "pix") {
+      const r = await criarPagamentoPix(pedido, cpf);
+      if (!r.ok || !r.pix) {
+        setErro(r.erro ?? "Não foi possível gerar o Pix. Tente novamente.");
+        return;
+      }
+      pixReal = r.pix;
+    }
+
     try {
       sessionStorage.setItem(
         "beautynow:ultimo-pedido",
@@ -130,11 +148,25 @@ export function CheckoutForm() {
           totalCentavos: totalFinal,
           dataPrevista: frete.dataPrevista,
           email,
+          pixReal,
         })
       );
     } catch {
       // segue sem resumo persistido
     }
+
+    if (mpAtivo && (meio === "cartao" || meio === "boleto")) {
+      // página segura do Mercado Pago — nenhum dado de cartão passa pelo site
+      const r = await criarCheckoutPro(pedido, meio);
+      if (!r.ok || !r.initPoint) {
+        setErro(r.erro ?? "Não foi possível iniciar o pagamento. Tente novamente.");
+        return;
+      }
+      carrinho.limpar();
+      window.location.href = r.initPoint;
+      return;
+    }
+
     carrinho.limpar();
     router.push("/checkout/confirmacao");
   }

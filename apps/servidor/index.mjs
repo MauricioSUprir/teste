@@ -35,6 +35,11 @@ const ORIGENS = (process.env.ORIGENS_PERMITIDAS ?? "https://mauriciosuprir.githu
 const EMAIL_MODO = process.env.EMAIL_MODO ?? "console";
 const HUB_API_URL = (process.env.HUB_API_URL ?? "https://comercial.thebeautyhub.app/api/loja").replace(/\/$/, "");
 const HUB_API_KEY = process.env.HUB_API_KEY ?? "";
+/** Access Token do Mercado Pago (teste ou produção) — liga o pagamento real */
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN ?? "";
+const MP_API = "https://api.mercadopago.com";
+/** URL pública do site, usada nos retornos do Checkout Pro */
+const SITE_URL = (process.env.SITE_URL ?? "https://mauriciosuprir.github.io/teste").replace(/\/$/, "");
 
 const VALIDADE_MS = 10 * 60_000;
 const MAX_TENTATIVAS = 5;
@@ -156,7 +161,12 @@ const pendentes = new Map();
 const emailValido = (e) => typeof e === "string" && /^\S+@\S+\.\S+$/.test(e) && e.length <= 254;
 
 aplicacao.get("/saude", (_req, res) => {
-  res.json({ ok: true, emailModo: EMAIL_MODO, hubConfigurado: HUB_API_KEY.length > 0 });
+  res.json({
+    ok: true,
+    emailModo: EMAIL_MODO,
+    hubConfigurado: HUB_API_KEY.length > 0,
+    mp: MP_ACCESS_TOKEN.length > 0,
+  });
 });
 
 aplicacao.post("/codigo", async (req, res) => {
@@ -212,10 +222,14 @@ aplicacao.post("/codigo/verificar", (req, res) => {
 aplicacao.post("/pedidos", async (req, res) => {
   const pedido = req.body ?? {};
 
-  // notificação de venda para o(s) admin(s) — independe do Hub
-  notificarVenda(pedido).catch((erro) =>
-    console.error("falha ao notificar venda:", erro.message)
-  );
+  // notificação de venda para o(s) admin(s) — independe do Hub.
+  // Com Mercado Pago ativo, a notificação sai no webhook quando o pagamento
+  // é APROVADO (evita avisar venda que nunca foi paga).
+  if (!MP_ACCESS_TOKEN) {
+    notificarVenda(pedido).catch((erro) =>
+      console.error("falha ao notificar venda:", erro.message)
+    );
+  }
 
   if (!HUB_API_KEY) {
     // sem chave configurada, o pedido fica só no registro do site
@@ -232,6 +246,139 @@ aplicacao.post("/pedidos", async (req, res) => {
   } catch (erro) {
     console.error("falha ao gravar pedido no Hub:", erro.message);
     res.status(502).json({ erro: "O Hub não respondeu. O pedido ficou registrado no site." });
+  }
+});
+
+// ===== Mercado Pago =====
+// O dinheiro de cada venda cai direto na conta MP dona do Access Token.
+// Pix: pagamento direto com QR na confirmação. Cartão/boleto: Checkout Pro
+// (página segura do próprio Mercado Pago — nenhum dado de cartão passa aqui).
+
+async function mp(caminho, opcoes = {}) {
+  const resposta = await fetch(`${MP_API}${caminho}`, {
+    ...opcoes,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${MP_ACCESS_TOKEN}`,
+      ...(opcoes.headers ?? {}),
+    },
+  });
+  const corpo = await resposta.json().catch(() => ({}));
+  if (!resposta.ok) {
+    throw new Error(corpo.message ?? `Mercado Pago HTTP ${resposta.status}`);
+  }
+  return corpo;
+}
+
+aplicacao.post("/pagamentos/pix", async (req, res) => {
+  if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
+  const { pedido, cpf } = req.body ?? {};
+  if (!pedido?.numero || !pedido?.totalCentavos || !pedido?.clienteEmail) {
+    return res.status(400).json({ erro: "Pedido incompleto." });
+  }
+  try {
+    const nomes = String(pedido.clienteNome ?? "").trim().split(/\s+/);
+    const pagamento = await mp("/v1/payments", {
+      method: "POST",
+      headers: { "X-Idempotency-Key": `bn-pix-${pedido.numero}` },
+      body: JSON.stringify({
+        transaction_amount: Math.round(pedido.totalCentavos) / 100,
+        description: `BeautyNow — pedido ${pedido.numero}`,
+        payment_method_id: "pix",
+        external_reference: pedido.numero,
+        payer: {
+          email: pedido.clienteEmail,
+          first_name: nomes[0] ?? "Cliente",
+          last_name: nomes.slice(1).join(" ") || "BeautyNow",
+          ...(cpf ? { identification: { type: "CPF", number: String(cpf).replace(/\D/g, "") } } : {}),
+        },
+      }),
+    });
+    const dadosPix = pagamento.point_of_interaction?.transaction_data ?? {};
+    res.json({
+      ok: true,
+      paymentId: pagamento.id,
+      status: pagamento.status,
+      copiaCola: dadosPix.qr_code ?? null,
+      qrBase64: dadosPix.qr_code_base64 ?? null,
+    });
+  } catch (erro) {
+    console.error("falha ao criar Pix:", erro.message);
+    res.status(502).json({ erro: "Não foi possível gerar o Pix agora. Tente novamente." });
+  }
+});
+
+aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
+  if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
+  const { pedido, meio } = req.body ?? {};
+  if (!pedido?.numero || !Array.isArray(pedido.itens)) {
+    return res.status(400).json({ erro: "Pedido incompleto." });
+  }
+  try {
+    const preferencia = await mp("/checkout/preferences", {
+      method: "POST",
+      body: JSON.stringify({
+        external_reference: pedido.numero,
+        items: pedido.itens.map((i) => ({
+          title: i.titulo,
+          quantity: i.quantidade,
+          currency_id: "BRL",
+          unit_price: Math.round(i.precoCentavos) / 100,
+        })),
+        payer: { email: pedido.clienteEmail, name: pedido.clienteNome },
+        payment_methods:
+          meio === "boleto"
+            ? { excluded_payment_types: [{ id: "credit_card" }, { id: "debit_card" }] }
+            : { excluded_payment_types: [{ id: "ticket" }], installments: 6 },
+        back_urls: {
+          success: `${SITE_URL}/checkout/confirmacao/`,
+          pending: `${SITE_URL}/checkout/confirmacao/`,
+          failure: `${SITE_URL}/checkout/`,
+        },
+        auto_return: "approved",
+        statement_descriptor: "BEAUTYNOW",
+      }),
+    });
+    res.json({ ok: true, initPoint: preferencia.init_point });
+  } catch (erro) {
+    console.error("falha ao criar preferência:", erro.message);
+    res.status(502).json({ erro: "Não foi possível iniciar o pagamento agora. Tente novamente." });
+  }
+});
+
+aplicacao.get("/pagamentos/status/:id", async (req, res) => {
+  if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
+  try {
+    const pagamento = await mp(`/v1/payments/${encodeURIComponent(req.params.id)}`);
+    res.json({ ok: true, status: pagamento.status, pedido: pagamento.external_reference ?? null });
+  } catch (erro) {
+    console.error("falha ao consultar pagamento:", erro.message);
+    res.status(502).json({ erro: "Não foi possível consultar o pagamento." });
+  }
+});
+
+// webhook do Mercado Pago (configurar no painel MP apontando para /pagamentos/webhook)
+aplicacao.post("/pagamentos/webhook", async (req, res) => {
+  res.sendStatus(200); // responde rápido; processamento segue abaixo
+  try {
+    const id = req.body?.data?.id ?? req.query?.id;
+    if (!id || !MP_ACCESS_TOKEN) return;
+    const pagamento = await mp(`/v1/payments/${id}`);
+    console.log(`[mp-webhook] pedido=${pagamento.external_reference} status=${pagamento.status}`);
+    // pagamento aprovado → o admin fica sabendo na hora
+    if (pagamento.status === "approved") {
+      await notificarVenda({
+        numero: pagamento.external_reference ?? String(id),
+        data: pagamento.date_approved ?? new Date().toISOString(),
+        clienteNome: [pagamento.payer?.first_name, pagamento.payer?.last_name].filter(Boolean).join(" "),
+        clienteEmail: pagamento.payer?.email ?? "",
+        meio: pagamento.payment_method_id === "pix" ? "pix" : "cartao",
+        totalCentavos: Math.round((pagamento.transaction_amount ?? 0) * 100),
+        itens: [],
+      });
+    }
+  } catch (erro) {
+    console.error("falha no webhook MP:", erro.message);
   }
 });
 

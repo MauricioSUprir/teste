@@ -9,8 +9,9 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
 1. **Importar o catálogo real do Hub Suprir** (1.222 produtos: nomes, preços,
    marcas, fotos) — script pronto em `scripts/sincronizar-catalogo.mjs`.
    Bloqueado só pela rede do ambiente (item 1 do Mauricio abaixo).
-2. **Mercado Pago** — checkout com Pix/cartão/boleto reais; cada venda cai na
-   conta MP da loja. Implementar no `apps/servidor` (token nunca no front).
+2. **Mercado Pago** — ✅ IMPLEMENTADO (Pix direto com QR + cartão/boleto via
+   Checkout Pro + webhook de aprovação). Falta apenas o Access Token no
+   servidor (variável `MP_ACCESS_TOKEN`) para ligar.
 3. **Gráficos de vendas no painel admin** — visão dia/semana/mês/ano com
    gráficos e resumos escritos (receita, pedidos, ticket médio, comparativos).
    Sem dependências externas.
