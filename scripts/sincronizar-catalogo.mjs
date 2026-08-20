@@ -78,6 +78,30 @@ function listaImagens(bruto) {
 
 const paletaFallback = ["#7C3AED", "#0EA5A4", "#E8467C", "#2B4C7E", "#DC2626", "#B8730C", "#0891B2"];
 
+/**
+ * O Hub não envia categoria — classifica pelo nome do produto (com a marca
+ * como desempate). Ordem importa: termos mais específicos primeiro.
+ */
+const REGRAS_CATEGORIA = [
+  ["Maquiagem", /\b(batom|gloss|base |base$|corretivo|blush|iluminador|primer|rimel|rímel|cilios|cílios|delineador|sombra|paleta|contorno|bruma|pó (compacto|solto|facial)|po (compacto|solto|facial)|lip |matte|labial|sobrancelha|maquiagem|makeup|make )/i],
+  ["Perfumaria", /\b(perfume|colônia|colonia|body splash|eau de|desodorante col)/i],
+  ["Unhas", /\b(esmalte|unha|cutícula|cuticula|alicate|manicure)/i],
+  ["Corpo e Banho", /\b(bumbum|corporal|body |sabonete|esfoliante corporal|desodorante|banho|loção corporal|locao corporal|hidratante corporal|óleo corporal|oleo corporal)/i],
+  ["Skincare", /\b(facial|rosto|anti[- ]?idade|sérum facial|serum facial|acne|vitamina c|protetor solar|limpeza de pele|tônico facial|tonico facial|micelar)/i],
+  ["Cabelos", /\b(shampoo|xampu|condicionador|máscara|mascara|leave[- ]?in|cabelo|capilar|finalizador|creme de pentear|gelatina|ampola|queratina|reconstru|hidrata|nutri|cachos|liso|frizz|termoprotetor|tônico capilar|tonico capilar|óleo|oleo|serum|progressiva|botox|matizador|desamarelador)/i],
+];
+const MARCAS_CABELO = /k\.?pro|jacques|arvensis|widi|hidratei|senscience|nina|byem/i;
+const MARCAS_MAKE = /mari maria|oceane|issue|latika/i;
+
+function categorizar(nome, marca) {
+  for (const [categoria, regex] of REGRAS_CATEGORIA) {
+    if (regex.test(nome)) return categoria;
+  }
+  if (MARCAS_CABELO.test(marca)) return "Cabelos";
+  if (MARCAS_MAKE.test(marca)) return "Maquiagem";
+  return "Beleza";
+}
+
 function mapearProduto(bruto, detalhe, slugsUsados) {
   const titulo = campo(bruto, "nome", "titulo", "descricao_curta", "name") ?? "Produto";
   const sku = String(campo(bruto, "sku", "codigo", "id") ?? slugificar(titulo));
@@ -86,7 +110,9 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
   slugsUsados.add(slug);
 
   const marcaNome = String(campo(bruto, "marca.nome", "marca", "brand") ?? "BeautyNow");
-  const categoriaNome = String(campo(bruto, "categoria.nome", "categoria", "category") ?? "Geral");
+  const categoriaNome = String(
+    campo(bruto, "categoria.nome", "categoria", "category") ?? categorizar(String(titulo), marcaNome)
+  );
   const precoPor = centavos(campo(bruto, "preco", "preco_venda", "valor", "price")) ?? 0;
   const precoDe = centavos(campo(bruto, "preco_de", "preco_cheio", "preco_original"));
   const estoque = Number(campo(bruto, "estoque", "quantidade", "stock", "disponivel") ?? 0);

@@ -10,6 +10,10 @@ import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 export function generateStaticParams() {
+  // com o catálogo do Hub as necessidades (curadoria editorial) podem estar
+  // vazias — o export estático exige ao menos 1 rota, então gera um
+  // marcador que cai em notFound()
+  if (necessidades.length === 0) return [{ slug: "nenhuma" }];
   return necessidades.map((n) => ({ slug: n.slug }));
 }
 
