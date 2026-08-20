@@ -452,14 +452,62 @@ aplicacao.get("/exportar-logos", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave de exportação inválida." });
   }
+  const CABECALHOS_NAVEGADOR = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+    Accept: "image/avif,image/webp,image/png,image/*,*/*;q=0.8",
+  };
   const baixar = async (url) => {
-    const r = await fetch(url, { signal: AbortSignal.timeout(15_000), redirect: "follow" });
+    const r = await fetch(url, {
+      signal: AbortSignal.timeout(15_000),
+      redirect: "follow",
+      headers: CABECALHOS_NAVEGADOR,
+    });
     if (!r.ok) return null;
     const tipo = r.headers.get("content-type") ?? "";
     if (!tipo.startsWith("image/")) return null;
     const bytes = Buffer.from(await r.arrayBuffer());
     if (bytes.length < 400) return null; // ícone vazio/degenerado
     return { mime: tipo.split(";")[0], base64: bytes.toString("base64"), bytes };
+  };
+  // lê a home do site e extrai o melhor ícone declarado no HTML
+  const iconeDaHome = async (dominio) => {
+    try {
+      const r = await fetch(`https://${dominio}/`, {
+        signal: AbortSignal.timeout(15_000),
+        redirect: "follow",
+        headers: { ...CABECALHOS_NAVEGADOR, Accept: "text/html" },
+      });
+      if (!r.ok) return null;
+      const html = (await r.text()).slice(0, 200_000);
+      const links = [...html.matchAll(/<link[^>]+rel=["']([^"']*icon[^"']*)["'][^>]*>/gi)].map(
+        (m) => m[0]
+      );
+      // prioriza apple-touch-icon (180px) e ícones grandes
+      links.sort((a, b) => {
+        const nota = (t) =>
+          (/apple-touch/i.test(t) ? 2 : 0) + (/sizes=["'](\d{3,})/i.test(t) ? 1 : 0);
+        return nota(b) - nota(a);
+      });
+      for (const tag of links) {
+        const href = tag.match(/href=["']([^"']+)["']/i)?.[1];
+        if (!href) continue;
+        const url = href.startsWith("http")
+          ? href
+          : href.startsWith("//")
+            ? `https:${href}`
+            : `https://${dominio}${href.startsWith("/") ? "" : "/"}${href}`;
+        const img = await baixar(url).catch(() => null);
+        if (img) return img;
+      }
+      // fallback: apple-touch-icon em caminho padrão
+      return (
+        (await baixar(`https://${dominio}/apple-touch-icon.png`).catch(() => null)) ??
+        (await baixar(`https://${dominio}/favicon.ico`).catch(() => null))
+      );
+    } catch {
+      return null;
+    }
   };
   // favicon "globo" padrão do Google (domínio inexistente) para descartar genéricos
   const padrao = await baixar(
@@ -473,6 +521,7 @@ aplicacao.get("/exportar-logos", async (req, res) => {
     for (const d of dominios) {
       achado =
         (await baixar(`https://logo.clearbit.com/${d}?size=256`).catch(() => null)) ??
+        (await iconeDaHome(d)) ??
         (await (async () => {
           const f = await baixar(`https://www.google.com/s2/favicons?domain=${d}&sz=128`).catch(
             () => null
