@@ -58,4 +58,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add logos-marcas-v2.json logos-extra || true
           git commit -m "chore(logos): resultado do exportador de logos v2" || echo "sem mudanças"
+          # a branch pode ter avançado durante a caçada — traz as novidades antes de entregar
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
           git push
