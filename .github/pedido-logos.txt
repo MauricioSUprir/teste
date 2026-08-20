@@ -2,3 +2,4 @@ exporta-bn-2026
 gatilho 1787266893
 gatilho2 1787266910
 gatilho3 1787267419
+gatilho4 1787267586
