@@ -9,14 +9,21 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const ALVOS = {
-  arvensis: ["arvensis.com.br", "www.arvensis.com.br"],
-  "bruna-tavares": ["lojabrunatavares.com.br", "brunatavares.com.br", "www.lojabrunatavares.com.br"],
-  evoly: ["evoly.com.br", "www.evoly.com.br", "evolyprofessional.com.br"],
-  "jacques-janine": ["jacquesjanine.com.br", "www.jacquesjanine.com.br", "lojajacquesjanine.com.br"],
-  "mari-maria": ["marimariamakeup.com", "www.marimariamakeup.com", "marimariamakeup.com.br"],
-  melu: ["melubyrubyrose.com.br", "www.rubyrose.com.br", "rubyrose.com.br"],
-  rebeel: ["rebeel.com.br", "www.rebeel.com.br"],
-  "papel-para-mechas": ["papelparamechas.com.br", "www.papelparamechas.com.br"],
+  arvensis: ["arvensis.com.br", "www.arvensis.com.br", "loja.arvensis.com.br"],
+  "bruna-tavares": ["lojabrunatavares.com.br", "www.lojabrunatavares.com.br", "btbeauty.com.br"],
+  evoly: ["evoly.com.br", "www.evoly.com.br", "evolyprofessional.com.br", "lojaevoly.com.br"],
+  melu: ["melubyrubyrose.com.br", "www.melubyrubyrose.com.br", "rubyrose.com.br"],
+  rebeel: ["rebeel.com.br", "www.rebeel.com.br", "rebeelprofessional.com.br"],
+};
+
+// candidatos extras que não dependem do site da marca (avatar oficial de rede
+// social via unavatar) — inspecionar visualmente antes de usar, pode vir foto
+const AVATARES = {
+  arvensis: ["https://unavatar.io/instagram/arvensisoficial", "https://unavatar.io/arvensis.com.br"],
+  "bruna-tavares": ["https://unavatar.io/instagram/lojabrunatavares", "https://unavatar.io/lojabrunatavares.com.br"],
+  evoly: ["https://unavatar.io/instagram/evolyprofessional", "https://unavatar.io/evoly.com.br"],
+  melu: ["https://unavatar.io/instagram/melubyrubyrose", "https://unavatar.io/melubyrubyrose.com.br"],
+  rebeel: ["https://unavatar.io/instagram/rebeelprofessional", "https://unavatar.io/rebeel.com.br"],
 };
 
 const UA = {
@@ -114,6 +121,18 @@ for (const [slug, dominios] of Object.entries(ALVOS)) {
       break;
     }
     if (ok) break;
+  }
+  // plano B: avatar oficial (salvo à parte para inspeção visual — pode vir foto)
+  if (!ok) {
+    for (const url of AVATARES[slug] ?? []) {
+      const img = await baixarImagem(url);
+      if (!img) continue;
+      const ext = EXT[img.tipo] ?? "png";
+      writeFileSync(`logos-extra/avatar-${slug}.${ext}`, img.bytes);
+      achados[slug] = { dominio: "unavatar", url, tipo: img.tipo, bytes: img.bytes.length, avatar: true };
+      ok = true;
+      break;
+    }
   }
   if (!ok) falhas.push(slug);
   console.log(`[logos-extra] ${slug}: ${ok ? "ok (" + achados[slug].url + ")" : "FALHOU"}`);
