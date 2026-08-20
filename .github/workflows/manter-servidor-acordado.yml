@@ -1,0 +1,18 @@
+name: manter-servidor-acordado
+
+# Cutuca o servidor gratuito (Render) a cada 10 minutos para ele nunca
+# hibernar — assim login, pagamento e pedidos respondem na hora para o
+# cliente. Roda na branch padrão porque o agendador do GitHub exige isso.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  cutucar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping no servidor
+        run: |
+          curl -fsS --max-time 90 "https://beautynow-servidor.onrender.com/saude" -o /dev/null \
+            && echo "servidor acordado" || echo "ping falhou (segue a vida)"
