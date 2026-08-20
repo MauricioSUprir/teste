@@ -6181,7 +6181,7 @@
 <priority>0.7</priority>
 </url>
 <url>
-<loc>https://beautynow.com.br/marca/beautynow</loc>
+<loc>https://beautynow.com.br/marca/melu</loc>
 <changefreq>weekly</changefreq>
 <priority>0.7</priority>
 </url>
@@ -6246,6 +6246,11 @@
 <priority>0.7</priority>
 </url>
 <url>
+<loc>https://beautynow.com.br/marca/soffie</loc>
+<changefreq>weekly</changefreq>
+<priority>0.7</priority>
+</url>
+<url>
 <loc>https://beautynow.com.br/marca/noue</loc>
 <changefreq>weekly</changefreq>
 <priority>0.7</priority>
@@ -6272,6 +6277,11 @@
 </url>
 <url>
 <loc>https://beautynow.com.br/marca/joico</loc>
+<changefreq>weekly</changefreq>
+<priority>0.7</priority>
+</url>
+<url>
+<loc>https://beautynow.com.br/marca/outros</loc>
 <changefreq>weekly</changefreq>
 <priority>0.7</priority>
 </url>
