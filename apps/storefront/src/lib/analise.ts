@@ -82,8 +82,10 @@ export function faixasDoPeriodo(periodo: Periodo, agora = new Date()): Faixa[] {
   return faixas;
 }
 
+// receita e KPIs contam SÓ pedido pago — aguardando pagamento aparece na
+// aba Pedidos, mas não entra no saldo até o pagamento cair
 function pedidosValidos(pedidos: Pedido[]): Pedido[] {
-  return pedidos.filter((p) => p.status !== "cancelado");
+  return pedidos.filter((p) => p.status === "pago");
 }
 
 export function agregarPorFaixa(pedidos: Pedido[], periodo: Periodo, agora = new Date()): Faixa[] {

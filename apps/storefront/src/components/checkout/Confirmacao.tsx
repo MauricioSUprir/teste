@@ -41,6 +41,19 @@ export function Confirmacao() {
     } catch {
       // sem pedido salvo
     }
+    // retorno do Checkout Pro (cartão/boleto): o Mercado Pago volta com o
+    // resultado na URL — aprovado vira "pago" na hora
+    try {
+      const qs = new URLSearchParams(window.location.search);
+      const status = qs.get("collection_status") ?? qs.get("status");
+      const referencia = qs.get("external_reference");
+      if (status === "approved") {
+        setAprovado(true);
+        if (referencia) atualizarStatus(referencia, "pago");
+      }
+    } catch {
+      // sem query string — segue o fluxo normal
+    }
   }, []);
 
   // Pix real: verifica a aprovação a cada 5s até aprovar (máx. 5 min)
@@ -75,20 +88,30 @@ export function Confirmacao() {
   }
 
   const pixReal = pedido?.pixReal ?? null;
+  // Pix ainda não pago = pedido em espera, não concluído
+  const aguardando = !aprovado && (!pedido || pedido.meio === "pix");
 
   return (
     <div className="container-bn flex flex-col items-center py-16 text-center">
       <span
         aria-hidden="true"
-        className="flex h-16 w-16 items-center justify-center rounded-full bg-sucesso text-[1.75rem] text-white"
+        className={`flex h-16 w-16 items-center justify-center rounded-full text-[1.75rem] text-white ${
+          aguardando ? "animate-pulse bg-alerta" : "bg-sucesso"
+        }`}
       >
-        ✓
+        {aguardando ? "⏳" : "✓"}
       </span>
       <h1 className="font-titulo mt-5 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
-        {aprovado ? "Pagamento aprovado!" : copy.confirmacao.titulo}
+        {aprovado
+          ? "Pagamento aprovado!"
+          : aguardando
+            ? copy.confirmacao.tituloAguardando
+            : copy.confirmacao.titulo}
       </h1>
       <p className="mt-2 max-w-[52ch] text-[0.9375rem] text-grafite">
-        {copy.confirmacao.subtitulo(pedido?.numero ?? "—")}
+        {aguardando
+          ? copy.confirmacao.subtituloAguardando(pedido?.numero ?? "—")
+          : copy.confirmacao.subtitulo(pedido?.numero ?? "—")}
       </p>
 
       {pedido && (

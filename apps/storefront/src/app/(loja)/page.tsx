@@ -18,8 +18,6 @@ export default function Home() {
   // com o catálogo real, "mais vendidos" pode não ter sinal ainda — cai para os primeiros produtos
   const destaques = maisVendidos().length > 0 ? maisVendidos() : produtos;
   const novidades = lancamentos();
-  const ctaSecundarioHref =
-    necessidades.length > 0 ? "/necessidade/hidratacao" : `/categoria/${categorias[0]?.slug ?? ""}`;
   return (
     <>
       {/* Hero editorial — a única ênfase visual da tela (docs/03 §1) */}
@@ -35,19 +33,22 @@ export default function Home() {
             <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-grafite">
               {copy.home.heroTexto}
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href="#mais-vendidos"
                 className="rounded-[999px] bg-roxo px-7 py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro"
               >
                 {copy.home.heroCta}
               </Link>
-              <Link
-                href={ctaSecundarioHref}
-                className="rounded-[999px] border-2 border-tinta px-7 py-3.5 text-[1rem] font-semibold text-tinta hover:bg-white"
-              >
-                {copy.home.heroCtaSecundario}
-              </Link>
+              {categorias.slice(0, 3).map((c) => (
+                <Link
+                  key={c.slug}
+                  href={`/categoria/${c.slug}`}
+                  className="rounded-[999px] border-2 border-tinta px-5 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-white"
+                >
+                  {c.nome}
+                </Link>
+              ))}
             </div>
           </div>
           <div aria-hidden="true" className="hidden justify-center md:flex">

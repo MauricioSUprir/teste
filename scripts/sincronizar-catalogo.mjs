@@ -83,12 +83,15 @@ const paletaFallback = ["#7C3AED", "#0EA5A4", "#E8467C", "#2B4C7E", "#DC2626", "
  * como desempate). Ordem importa: termos mais específicos primeiro.
  */
 const REGRAS_CATEGORIA = [
+  // termos inequívocos de cabelo vêm PRIMEIRO — coloração/tonalizante/descolorante
+  // caíam em Maquiagem/Beleza e "shampoo micelar" caía em Skincare (auditoria 20/08)
+  ["Cabelos", /\b(shampoo|xampu|condicionador|colora[çc][aã]o|tonalizante|descolorante|oxidante|oxi \d|bruma capilar|hair|capilar|juba|mechas|matizador|desamarelador|progressiva|queratina|cachos)/i],
+  ["Skincare", /\b(skincare|facial|rosto|anti[- ]?idade|antimanchas|niacinamida|hialur[oô]nico|sérum facial|serum facial|acne|vitamina c|protetor solar|limpeza de pele|tônico facial|tonico facial|micelar)/i],
   ["Maquiagem", /\b(batom|gloss|base |base$|corretivo|blush|iluminador|primer|rimel|rímel|cilios|cílios|delineador|sombra|paleta|contorno|bruma|pó (compacto|solto|facial)|po (compacto|solto|facial)|lip |matte|labial|sobrancelha|maquiagem|makeup|make )/i],
   ["Perfumaria", /\b(perfume|colônia|colonia|body splash|eau de|desodorante col)/i],
   ["Unhas", /\b(esmalte|unha|cutícula|cuticula|alicate|manicure)/i],
   ["Corpo e Banho", /\b(bumbum|corporal|body |sabonete|esfoliante corporal|desodorante|banho|loção corporal|locao corporal|hidratante corporal|óleo corporal|oleo corporal)/i],
-  ["Skincare", /\b(facial|rosto|anti[- ]?idade|sérum facial|serum facial|acne|vitamina c|protetor solar|limpeza de pele|tônico facial|tonico facial|micelar)/i],
-  ["Cabelos", /\b(shampoo|xampu|condicionador|máscara|mascara|leave[- ]?in|cabelo|capilar|finalizador|creme de pentear|gelatina|ampola|queratina|reconstru|hidrata|nutri|cachos|liso|frizz|termoprotetor|tônico capilar|tonico capilar|óleo|oleo|serum|progressiva|botox|matizador|desamarelador)/i],
+  ["Cabelos", /\b(máscara|mascara|leave[- ]?in|cabelo|finalizador|creme de pentear|gelatina|ampola|reconstru|hidrata|nutri|liso|frizz|termoprotetor|tônico capilar|tonico capilar|óleo|oleo|serum|botox)/i],
 ];
 const MARCAS_CABELO = /k\.?pro|jacques|arvensis|widi|hidratei|senscience|nina|byem/i;
 const MARCAS_MAKE = /mari maria|oceane|issue|latika/i;

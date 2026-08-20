@@ -172,8 +172,11 @@ export const copy = {
   },
   confirmacao: {
     titulo: "Pedido recebido!",
+    tituloAguardando: "Esperando pagamento…",
     subtitulo: (numero: string) =>
       `Seu pedido ${numero} foi registrado. Enviamos a confirmação para o seu e-mail.`,
+    subtituloAguardando: (numero: string) =>
+      `Seu pedido ${numero} foi registrado e será confirmado assim que o pagamento cair.`,
     pixTitulo: "Pague com Pix para aprovar na hora",
     pixCopiar: "Copiar código Pix",
     pixCopiado: "Código copiado!",
