@@ -19,7 +19,7 @@ jobs:
 
       - name: Baixar logos pelo exportador do servidor
         run: |
-          chave="$(tr -d '[:space:]' < .github/pedido-logos.txt)"
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
           ok=""
           for i in 1 2 3 4; do
             if curl -fsS --max-time 280 \
