@@ -231,6 +231,7 @@ aplicacao.get("/saude", (_req, res) => {
     emailModo: EMAIL_MODO,
     hubConfigurado: HUB_API_KEY.length > 0,
     mp: MP_ACCESS_TOKEN.length > 0,
+    bling: Boolean(process.env.BLING_CLIENT_ID && process.env.BLING_CLIENT_SECRET),
   });
 });
 
@@ -672,6 +673,7 @@ aplicacao.post("/codigo/verificar", (req, res) => {
 
 aplicacao.post("/pedidos", async (req, res) => {
   const pedido = req.body ?? {};
+  guardarPedidoRecente(pedido); // o webhook do MP usa isso para faturar no Bling
 
   // notificação de venda para o(s) admin(s) — independe do Hub.
   // Com Mercado Pago ativo, a notificação sai no webhook quando o pagamento
@@ -849,6 +851,13 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
     console.log(`[mp-webhook] pedido=${pagamento.external_reference} status=${pagamento.status}`);
     // pagamento aprovado → o admin fica sabendo na hora
     if (pagamento.status === "approved") {
+      // fatura no Bling com os dados completos do pedido (guardados no /pedidos)
+      const completo = pedidosRecentes.get(pagamento.external_reference);
+      if (completo) {
+        criarPedidoNoBling(completo).catch(() => undefined);
+      } else if (pagamento.external_reference) {
+        console.warn(`[bling] pedido ${pagamento.external_reference} aprovado mas sem dados completos na memória`);
+      }
       await notificarVenda({
         numero: pagamento.external_reference ?? String(id),
         data: pagamento.date_approved ?? new Date().toISOString(),
@@ -862,6 +871,216 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
   } catch (erro) {
     console.error("falha no webhook MP:", erro.message);
   }
+});
+
+// ===== Bling (ERP) =====
+// Toda venda APROVADA vira pedido no Bling, junto com os dos marketplaces.
+// Fluxo: /bling/conectar (autorizar logado no Bling) → /bling/callback guarda
+// os tokens → o webhook do Mercado Pago cria o pedido ao aprovar o pagamento.
+const BLING_CLIENT_ID = (process.env.BLING_CLIENT_ID ?? "").trim();
+const BLING_CLIENT_SECRET = (process.env.BLING_CLIENT_SECRET ?? "").trim();
+const BLING_OAUTH = "https://www.bling.com.br/Api/v3/oauth";
+const BLING_API = "https://api.bling.com.br/Api/v3";
+const BLING_ARQ_TOKENS = "/tmp/bling-tokens.json";
+
+let blingTokens = null; // { access, refresh, expiraEm }
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(BLING_ARQ_TOKENS)) {
+    blingTokens = JSON.parse(fs.readFileSync(BLING_ARQ_TOKENS, "utf8"));
+  } else if (process.env.BLING_REFRESH_TOKEN) {
+    blingTokens = { access: "", refresh: process.env.BLING_REFRESH_TOKEN.trim(), expiraEm: 0 };
+  }
+} catch {
+  /* sem tokens salvos */
+}
+
+async function blingSalvarTokens() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(BLING_ARQ_TOKENS, JSON.stringify(blingTokens));
+  } catch {
+    /* disco indisponível — segue só em memória */
+  }
+}
+
+async function blingTrocarToken(params) {
+  const basic = Buffer.from(`${BLING_CLIENT_ID}:${BLING_CLIENT_SECRET}`).toString("base64");
+  const resposta = await fetch(`${BLING_OAUTH}/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basic}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams(params).toString(),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const corpo = await resposta.json().catch(() => ({}));
+  if (!resposta.ok || !corpo.access_token) {
+    throw new Error(corpo.error_description ?? corpo.error ?? `Bling OAuth HTTP ${resposta.status}`);
+  }
+  blingTokens = {
+    access: corpo.access_token,
+    refresh: corpo.refresh_token ?? blingTokens?.refresh ?? "",
+    expiraEm: Date.now() + (Number(corpo.expires_in ?? 21600) - 300) * 1000,
+  };
+  await blingSalvarTokens();
+  return blingTokens;
+}
+
+async function blingAccessToken() {
+  if (!BLING_CLIENT_ID || !BLING_CLIENT_SECRET) throw new Error("Bling não configurado (client id/secret).");
+  if (!blingTokens?.refresh && !blingTokens?.access) throw new Error("Bling não conectado. Abra /bling/conectar.");
+  if (blingTokens.access && Date.now() < blingTokens.expiraEm) return blingTokens.access;
+  await blingTrocarToken({ grant_type: "refresh_token", refresh_token: blingTokens.refresh });
+  return blingTokens.access;
+}
+
+async function bling(caminho, opcoes = {}) {
+  const token = await blingAccessToken();
+  const resposta = await fetch(`${BLING_API}${caminho}`, {
+    ...opcoes,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...(opcoes.headers ?? {}),
+    },
+    signal: AbortSignal.timeout(25_000),
+  });
+  const corpo = await resposta.json().catch(() => ({}));
+  if (!resposta.ok) {
+    const detalhe = corpo?.error?.description ?? corpo?.error?.message ?? JSON.stringify(corpo).slice(0, 300);
+    throw new Error(`Bling HTTP ${resposta.status}: ${detalhe}`);
+  }
+  return corpo;
+}
+
+/** Acha (por CPF) ou cria o contato do cliente no Bling; devolve o id. */
+async function blingContato(pedido) {
+  const cpf = String(pedido.cpf ?? "").replace(/\D/g, "");
+  if (cpf) {
+    const busca = await bling(`/contatos?numeroDocumento=${cpf}`).catch(() => null);
+    const existente = busca?.data?.[0]?.id;
+    if (existente) return existente;
+  }
+  const e = pedido.endereco ?? {};
+  const criado = await bling("/contatos", {
+    method: "POST",
+    body: JSON.stringify({
+      nome: pedido.clienteNome || "Cliente BeautyNow",
+      tipo: "F",
+      numeroDocumento: cpf || undefined,
+      celular: pedido.telefone || undefined,
+      email: pedido.clienteEmail || undefined,
+      endereco: {
+        geral: {
+          endereco: e.logradouro || undefined,
+          numero: e.numero || undefined,
+          complemento: e.complemento || undefined,
+          bairro: e.bairro || undefined,
+          cep: e.cep || undefined,
+          municipio: e.cidade || undefined,
+          uf: e.uf || undefined,
+        },
+      },
+    }),
+  });
+  return criado?.data?.id;
+}
+
+const blingEnviados = new Set(); // números de pedido já criados (evita duplicar)
+let blingUltimoErro = null;
+
+async function criarPedidoNoBling(pedido) {
+  if (!pedido?.numero || blingEnviados.has(pedido.numero)) return;
+  try {
+    const contatoId = await blingContato(pedido);
+    if (!contatoId) throw new Error("não consegui criar o contato do cliente");
+    const corpo = await bling("/pedidos/vendas", {
+      method: "POST",
+      body: JSON.stringify({
+        numeroLoja: pedido.numero,
+        data: String(pedido.data ?? new Date().toISOString()).slice(0, 10),
+        contato: { id: contatoId },
+        itens: (pedido.itens ?? []).map((i) => ({
+          codigo: i.sku || undefined,
+          descricao: i.titulo || "Item do site",
+          quantidade: i.quantidade || 1,
+          valor: Math.round(i.precoCentavos ?? 0) / 100,
+        })),
+        observacoes: `Pedido do site BeautyNow (${pedido.meio ?? "pagamento"} aprovado). Total R$ ${(Math.round(pedido.totalCentavos ?? 0) / 100).toFixed(2)}${pedido.cupom ? ` · cupom ${pedido.cupom}` : ""} · frete ${pedido.freteNome ?? "-"}`,
+      }),
+    });
+    blingEnviados.add(pedido.numero);
+    blingUltimoErro = null;
+    console.log(`[bling] pedido ${pedido.numero} criado (id Bling ${corpo?.data?.id ?? "?"})`);
+  } catch (erro) {
+    blingUltimoErro = `${pedido.numero}: ${erro.message}`;
+    console.error(`[bling] falha no pedido ${pedido.numero}:`, erro.message);
+  }
+}
+
+// memória dos pedidos recebidos do site (o webhook do MP só traz o número)
+const pedidosRecentes = new Map();
+function guardarPedidoRecente(pedido) {
+  if (!pedido?.numero) return;
+  pedidosRecentes.set(pedido.numero, pedido);
+  if (pedidosRecentes.size > 300) {
+    pedidosRecentes.delete(pedidosRecentes.keys().next().value);
+  }
+}
+
+aplicacao.get("/bling/conectar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
+  }
+  if (!BLING_CLIENT_ID) {
+    return res.status(400).send(paginaExport("Falta configurar", "Preencha <b>BLING_CLIENT_ID</b> e <b>BLING_CLIENT_SECRET</b> no Render."));
+  }
+  const url = `${BLING_OAUTH}/authorize?response_type=code&client_id=${encodeURIComponent(BLING_CLIENT_ID)}&state=${encodeURIComponent(EXPORT_CHAVE)}`;
+  res.redirect(url);
+});
+
+aplicacao.get("/bling/callback", async (req, res) => {
+  const { code, state } = req.query ?? {};
+  if (!code || String(state ?? "") !== EXPORT_CHAVE) {
+    return res.status(400).send(paginaExport("Autorização inválida", "Recomece em /bling/conectar."));
+  }
+  try {
+    await blingTrocarToken({ grant_type: "authorization_code", code: String(code) });
+    res.send(
+      paginaExport(
+        "✅ Bling conectado!",
+        "O site já pode criar pedidos no Bling automaticamente a cada venda aprovada.<br><br>Pode fechar esta página."
+      )
+    );
+  } catch (erro) {
+    console.error("[bling] falha no callback:", erro.message);
+    res.status(502).send(paginaExport("Falha ao conectar", `O Bling recusou: <b>${erro.message}</b><br><br>Confira o Client ID/Secret no Render e tente de novo.`));
+  }
+});
+
+aplicacao.get("/bling/status", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  let conexao = "desconectado";
+  if (blingTokens?.refresh || blingTokens?.access) {
+    conexao = "conectado";
+    try {
+      await blingAccessToken();
+    } catch (erro) {
+      conexao = `com problema: ${erro.message}`;
+    }
+  }
+  res.json({
+    configurado: Boolean(BLING_CLIENT_ID && BLING_CLIENT_SECRET),
+    conexao,
+    pedidosEnviados: [...blingEnviados],
+    ultimoErro: blingUltimoErro,
+  });
 });
 
 aplicacao.listen(PORTA, () => {
