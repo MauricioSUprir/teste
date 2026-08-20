@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
+import { comBase } from "@/lib/caminho";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import { useConta } from "@/lib/conta/contexto";
@@ -133,11 +134,22 @@ export function Header() {
                     href={`/marca/${m.slug}`}
                     className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[0.9375rem] text-tinta hover:bg-superficie"
                   >
-                    <span
-                      aria-hidden="true"
-                      className="inline-block h-2.5 w-2.5 rounded-full"
-                      style={{ background: m.cor }}
-                    />
+                    {m.logo ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={comBase(m.logo)}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                        className="h-5 w-5 shrink-0 rounded-[4px] object-contain"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ background: m.cor }}
+                      />
+                    )}
                     {m.nome}
                   </Link>
                 ))}

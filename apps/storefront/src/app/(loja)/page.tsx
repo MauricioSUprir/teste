@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { copy } from "@/lib/copy";
+import { comBase } from "@/lib/caminho";
 import {
   categorias,
   lancamentos,
@@ -186,14 +187,14 @@ export default function Home() {
                 href={`/marca/${m.slug}`}
                 className="flex flex-col items-center gap-2 rounded-[10px] border border-linha bg-white p-4 text-center transition-shadow hover:shadow-card"
               >
-                {m.imagem ? (
-                  <span className="flex h-20 w-full items-center justify-center overflow-hidden rounded-[6px] bg-superficie">
+                {m.logo ? (
+                  <span className="flex h-20 w-full items-center justify-center overflow-hidden rounded-[6px] bg-white">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={m.imagem}
-                      alt={`Produto ${m.nome}`}
+                      src={comBase(m.logo)}
+                      alt={`Logo ${m.nome}`}
                       loading="lazy"
-                      className="h-full w-full object-contain p-1"
+                      className="max-h-16 max-w-[85%] object-contain"
                     />
                   </span>
                 ) : (

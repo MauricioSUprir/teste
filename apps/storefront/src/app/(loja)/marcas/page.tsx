@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
+import { comBase } from "@/lib/caminho";
 import { marcas, produtosPorMarca } from "@/lib/catalogo/consultas";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
@@ -33,14 +34,14 @@ export default function PaginaMarcas() {
               href={`/marca/${m.slug}`}
               className="group flex flex-col items-center rounded-[16px] border border-linha bg-white p-4 text-center transition-shadow hover:shadow-card"
             >
-              <span className="flex h-32 w-full items-center justify-center overflow-hidden rounded-[10px] bg-superficie">
-                {m.imagem ? (
+              <span className="flex h-32 w-full items-center justify-center overflow-hidden rounded-[10px] bg-white">
+                {m.logo ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
-                    src={m.imagem}
-                    alt={`Produto ${m.nome}`}
+                    src={comBase(m.logo)}
+                    alt={`Logo ${m.nome}`}
                     loading="lazy"
-                    className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105"
+                    className="max-h-24 max-w-[85%] object-contain transition-transform group-hover:scale-105"
                   />
                 ) : (
                   <span

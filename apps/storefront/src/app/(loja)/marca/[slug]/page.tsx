@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { comBase } from "@/lib/caminho";
 import { marcas, obterMarca, produtosPorMarca } from "@/lib/catalogo/consultas";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -36,13 +37,13 @@ export default async function PaginaMarca({
       {/* hero de marca */}
       <section className="border-b border-linha" style={{ background: `${marca.cor}14` }}>
         <div className="container-bn flex items-center gap-5 py-10">
-          {marca.imagem ? (
-            <span className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-linha bg-white">
+          {marca.logo ? (
+            <span className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-linha bg-white px-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={marca.imagem}
-                alt={`Produto ${marca.nome}`}
-                className="h-full w-full object-contain p-1.5"
+                src={comBase(marca.logo)}
+                alt={`Logo ${marca.nome}`}
+                className="max-h-20 max-w-full object-contain"
               />
             </span>
           ) : (

@@ -25,6 +25,8 @@ export interface Marca {
   cor: string;
   /** foto real que representa a marca (produto dela no Hub ou logo oficial) */
   imagem?: string;
+  /** logo oficial da marca, versionado em public/logos-marcas */
+  logo?: string;
 }
 
 export interface Necessidade {

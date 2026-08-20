@@ -9,7 +9,7 @@
  * build. As fotos usam as URLs públicas do Hub (nada é baixado).
  * Depois de rodar, refaça o build do storefront para publicar.
  */
-import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -240,6 +240,14 @@ async function principal() {
     // foto real da marca: primeira foto de produto dela no catálogo
     const marcaAtual = marcasMapa.get(p.marca);
     if (!marcaAtual.imagem && p.imagens?.[0]) marcaAtual.imagem = p.imagens[0];
+    // logo oficial versionado em public/logos-marcas/{slug}.{ext}
+    if (!marcaAtual.logo) {
+      const dirLogos = join(RAIZ, "apps/storefront/public/logos-marcas");
+      if (existsSync(dirLogos)) {
+        const arquivo = readdirSync(dirLogos).find((f) => f.startsWith(`${p.marca}.`));
+        if (arquivo) marcaAtual.logo = `/logos-marcas/${arquivo}`;
+      }
+    }
     const catSlug = p.categorias[0];
     if (!categoriasMapa.has(catSlug)) {
       categoriasMapa.set(catSlug, {
