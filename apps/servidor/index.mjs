@@ -413,6 +413,85 @@ aplicacao.get("/exportar-catalogo/rapido", (req, res) => {
   res.redirect(`/exportar-catalogo?chave=${encodeURIComponent(String(req.query.chave ?? ""))}`);
 });
 
+/**
+ * Baixa o logo oficial de cada marca (a partir do site oficial pesquisado)
+ * e devolve um JSON com as imagens em base64 para versionar no repositório.
+ * Fontes: Clearbit Logo (valida o domínio) e favicon em alta do Google.
+ */
+const LOGOS_DOMINIOS = {
+  arvensis: ["arvensis.com.br"],
+  batiste: ["batistehair.com", "batiste.com.br"],
+  bioderma: ["bioderma.com.br", "bioderma.com"],
+  "beleza-brasileira": ["belezabrasileira.com.br"],
+  "bruna-tavares": ["lojabrunatavares.com.br", "brunatavares.com.br"],
+  byem: ["byem.com.br"],
+  "d-vence": ["dvence.com.br"],
+  dentalclean: ["dentalclean.com.br"],
+  evoly: ["evoly.com.br", "evolyprofissional.com.br"],
+  hidratei: ["hidratei.com.br"],
+  issue: ["issueprofessional.com"],
+  "jacques-janine": ["jacquesjanine.com.br"],
+  joico: ["joico.com", "joico.com.br"],
+  "k-pro": ["kpro.com.br", "lojakpro.com.br"],
+  latika: ["latika.com.br"],
+  "mari-maria": ["marimariamakeup.com"],
+  mawwal: ["mawwal.com.br"],
+  melu: ["melubyrubyrose.com.br", "rubyrose.com.br"],
+  nina: ["ninamakeup.com.br", "loja.ninamakeup.com.br"],
+  noue: ["nouecosmeticos.com.br"],
+  oceane: ["oceane.com.br"],
+  rebeel: ["rebeel.com.br"],
+  reyou: ["reyou.com.br"],
+  sallve: ["sallve.com.br"],
+  senscience: ["senscience.com"],
+  soffie: ["soffie.com.br"],
+  "widi-care": ["widicare.com.br"],
+};
+
+aplicacao.get("/exportar-logos", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave de exportação inválida." });
+  }
+  const baixar = async (url) => {
+    const r = await fetch(url, { signal: AbortSignal.timeout(15_000), redirect: "follow" });
+    if (!r.ok) return null;
+    const tipo = r.headers.get("content-type") ?? "";
+    if (!tipo.startsWith("image/")) return null;
+    const bytes = Buffer.from(await r.arrayBuffer());
+    if (bytes.length < 400) return null; // ícone vazio/degenerado
+    return { mime: tipo.split(";")[0], base64: bytes.toString("base64"), bytes };
+  };
+  // favicon "globo" padrão do Google (domínio inexistente) para descartar genéricos
+  const padrao = await baixar(
+    "https://www.google.com/s2/favicons?domain=dominio-inexistente-bn123.com.br&sz=128"
+  ).catch(() => null);
+
+  const logos = {};
+  const falhas = [];
+  for (const [slug, dominios] of Object.entries(LOGOS_DOMINIOS)) {
+    let achado = null;
+    for (const d of dominios) {
+      achado =
+        (await baixar(`https://logo.clearbit.com/${d}?size=256`).catch(() => null)) ??
+        (await (async () => {
+          const f = await baixar(`https://www.google.com/s2/favicons?domain=${d}&sz=128`).catch(
+            () => null
+          );
+          if (f && padrao && f.bytes.equals(padrao.bytes)) return null; // globo genérico
+          return f;
+        })());
+      if (achado) {
+        logos[slug] = { dominio: d, mime: achado.mime, base64: achado.base64 };
+        break;
+      }
+    }
+    if (!achado) falhas.push(slug);
+    console.log(`[exportar-logos] ${slug}: ${achado ? "ok (" + logos[slug].dominio + ")" : "FALHOU"}`);
+  }
+  res.setHeader("Content-Disposition", 'attachment; filename="logos-marcas.json"');
+  res.json({ geradoEm: new Date().toISOString(), total: Object.keys(logos).length, falhas, logos });
+});
+
 aplicacao.get("/exportar-catalogo", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).send(paginaExport("Chave inválida", "Confira a EXPORT_CHAVE nas variáveis do Render e o parâmetro ?chave= do link."));
