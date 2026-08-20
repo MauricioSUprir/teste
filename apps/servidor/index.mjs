@@ -766,16 +766,43 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
     return res.status(400).json({ erro: "Pedido incompleto." });
   }
   try {
+    // itens do MP precisam somar o total real do pedido (frete e cupom incluídos)
+    const produtosCentavos = pedido.itens.reduce(
+      (soma, i) => soma + Math.round(i.precoCentavos) * (i.quantidade || 1),
+      0
+    );
+    const totalCentavos = Math.round(pedido.totalCentavos ?? produtosCentavos);
+    let itens = pedido.itens.map((i) => ({
+      title: i.titulo,
+      quantity: i.quantidade,
+      currency_id: "BRL",
+      unit_price: Math.round(i.precoCentavos) / 100,
+    }));
+    const diferenca = totalCentavos - produtosCentavos;
+    if (diferenca > 0) {
+      itens.push({
+        title: pedido.freteNome ? `Frete — ${pedido.freteNome}` : "Frete",
+        quantity: 1,
+        currency_id: "BRL",
+        unit_price: diferenca / 100,
+      });
+    } else if (diferenca < 0) {
+      // desconto maior que o frete: o MP não aceita item negativo,
+      // então a cobrança vira uma linha única com o total já com desconto
+      itens = [
+        {
+          title: `Pedido ${pedido.numero} — BeautyNow`,
+          quantity: 1,
+          currency_id: "BRL",
+          unit_price: totalCentavos / 100,
+        },
+      ];
+    }
     const preferencia = await mp("/checkout/preferences", {
       method: "POST",
       body: JSON.stringify({
         external_reference: pedido.numero,
-        items: pedido.itens.map((i) => ({
-          title: i.titulo,
-          quantity: i.quantidade,
-          currency_id: "BRL",
-          unit_price: Math.round(i.precoCentavos) / 100,
-        })),
+        items: itens,
         payer: { email: pedido.clienteEmail, name: pedido.clienteNome },
         payment_methods:
           meio === "boleto"
@@ -790,7 +817,15 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
         statement_descriptor: "BEAUTYNOW",
       }),
     });
-    res.json({ ok: true, initPoint: preferencia.init_point });
+    // token de teste (TEST-...) exige o link sandbox — o link normal abre
+    // um checkout "sacola vazia" que volta para o Mercado Livre
+    const emTeste = MP_ACCESS_TOKEN.startsWith("TEST-");
+    res.json({
+      ok: true,
+      initPoint:
+        (emTeste ? preferencia.sandbox_init_point : preferencia.init_point) ??
+        preferencia.init_point,
+    });
   } catch (erro) {
     console.error("falha ao criar preferência:", erro.message);
     res.status(502).json({ erro: "Não foi possível iniciar o pagamento agora. Tente novamente." });
