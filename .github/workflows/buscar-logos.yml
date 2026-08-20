@@ -41,6 +41,10 @@ jobs:
         run: node scripts/cacar-logos-arquivo.mjs
         continue-on-error: true
 
+      - name: Caçada no índice CDX do Web Archive (arquivos de logo diretos)
+        run: node scripts/cacar-logos-cdx.mjs
+        continue-on-error: true
+
       - name: Caçada com navegador de verdade (sites com anti-robô)
         run: |
           npm i --no-save playwright >/dev/null 2>&1
