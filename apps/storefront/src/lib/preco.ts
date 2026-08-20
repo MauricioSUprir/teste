@@ -7,7 +7,8 @@ export const DESCONTO_PIX_PCT = 5;
 export const MAX_PARCELAS = 6;
 export const PARCELA_MINIMA_CENTAVOS = 3000; // R$ 30,00
 export const FRETE_GRATIS_MINIMO_CENTAVOS = 19900; // R$ 199,00
-export const PEDIDO_MINIMO_CENTAVOS = 9900; // R$ 99,00
+// pedido mínimo desligado a pedido do Mauricio (20/08) — qualquer valor finaliza
+export const PEDIDO_MINIMO_CENTAVOS = 0;
 export const FAIXA_BRINDE_CENTAVOS = 25000; // R$ 250,00
 
 export function formatarPreco(centavos: number): string {
