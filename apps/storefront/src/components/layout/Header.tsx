@@ -90,6 +90,12 @@ export function Header() {
       {/* megamenu desktop */}
       <nav aria-label="Navegação principal" className="hidden border-t border-linha lg:block">
         <div className="container-bn flex items-center gap-1">
+          <Link
+            href="/"
+            className="flex h-12 items-center px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
+          >
+            {copy.nav.inicio}
+          </Link>
           <div className="group relative">
             <button
               type="button"
@@ -218,6 +224,13 @@ export function Header() {
                 <path d="M3 15.5 a6 6 0 0 1 12 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
               {usuario ? `${copy.conta.ola(usuario.nome)} Ver minha conta` : `${copy.conta.entrar} ou criar conta`}
+            </Link>
+            <Link
+              href="/"
+              onClick={() => setMenuMobileAberto(false)}
+              className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
+            >
+              {copy.nav.inicio}
             </Link>
             <div>
               <p className="pb-1 text-[0.75rem] font-semibold uppercase tracking-wide text-cinza">

@@ -16,6 +16,7 @@ export const copy = {
     anuncio: "Frete grátis a partir de R$ 199 · Pix com 5% de desconto · Envio em até 24h",
   },
   nav: {
+    inicio: "Início",
     categorias: "Categorias",
     marcas: "Marcas",
     necessidades: "Por necessidade",
@@ -26,7 +27,6 @@ export const copy = {
     heroTexto:
       "Selecionamos o melhor do haircare profissional, da perfumaria e do cuidado pessoal para você usar em casa, com orientação de quem distribui essas marcas há 15 anos.",
     heroCta: "Ver mais vendidos",
-    heroCtaSecundario: "Montar minha rotina",
     maisVendidos: "Mais vendidos",
     lancamentos: "Lançamentos",
     porCategoria: "Compre por categoria",
@@ -41,7 +41,7 @@ export const copy = {
     seloTrocaTexto: "Sem burocracia, conforme o CDC.",
     seloPix: "5% off no Pix",
     seloPixTexto: "Desconto aplicado no total do pedido.",
-    newsletterTitulo: "Receba ofertas e rotinas por e-mail",
+    newsletterTitulo: "Receba ofertas e novidades por e-mail",
     newsletterTexto: "Sem spam. Só lançamento, reposição e conteúdo que ajuda.",
     newsletterPlaceholder: "seu@email.com",
     newsletterCta: "Quero receber",
