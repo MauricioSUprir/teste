@@ -171,23 +171,40 @@ export default function Home() {
       {/* Marcas */}
       <section className="mt-12 bg-superficie py-12">
         <div className="container-bn">
-          <h2 className="font-titulo text-[clamp(1.375rem,2.5vw,1.75rem)] font-semibold">
-            {copy.home.marcasDestaque}
-          </h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-titulo text-[clamp(1.375rem,2.5vw,1.75rem)] font-semibold">
+              {copy.home.marcasDestaque}
+            </h2>
+            <Link href="/marcas" className="text-[0.875rem] font-medium text-violeta hover:underline">
+              {copy.nav.todasMarcas} →
+            </Link>
+          </div>
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
             {marcas.slice(0, 6).map((m) => (
               <Link
                 key={m.slug}
                 href={`/marca/${m.slug}`}
-                className="flex flex-col items-center gap-2 rounded-[10px] border border-linha bg-white p-5 text-center transition-shadow hover:shadow-card"
+                className="flex flex-col items-center gap-2 rounded-[10px] border border-linha bg-white p-4 text-center transition-shadow hover:shadow-card"
               >
-                <span
-                  aria-hidden="true"
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-[1.125rem] font-bold text-white"
-                  style={{ background: m.cor }}
-                >
-                  {m.nome.charAt(0)}
-                </span>
+                {m.imagem ? (
+                  <span className="flex h-20 w-full items-center justify-center overflow-hidden rounded-[6px] bg-superficie">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={m.imagem}
+                      alt={`Produto ${m.nome}`}
+                      loading="lazy"
+                      className="h-full w-full object-contain p-1"
+                    />
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-[1.125rem] font-bold text-white"
+                    style={{ background: m.cor }}
+                  >
+                    {m.nome.charAt(0)}
+                  </span>
+                )}
                 <span className="text-[0.875rem] font-medium text-tinta">{m.nome}</span>
               </Link>
             ))}

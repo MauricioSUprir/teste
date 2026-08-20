@@ -42,6 +42,19 @@ importação prontos no repositório, aguardando credenciais/liberações abaixo
 - **Favoritos ♡**: coração nos cards + seção "Meus favoritos" em /conta.
 - **Busca no FAQ**: filtro por texto (ignora acentos) em /atendimento.
 
+## Tarefas de amanhã (pedidas em 20/08)
+
+- **Integração com o Bling (ERP)**: todos os marketplaces da empresa
+  (Mercado Livre etc.) faturam os pedidos no Bling — o site BeautyNow
+  precisa entrar lá também. Plano: o servidor (apps/servidor) cria o
+  pedido no Bling via API v3 a cada venda confirmada, ao lado dos canais
+  existentes (Mercado Livre e demais). Precisa: credencial de API do
+  Bling (Mauricio) e mapeamento SKU site ↔ Bling.
+- Auditoria de marcas (20/08): ✅ CONCLUÍDA — 1.220 produtos × 27 marcas
+  conferidos um a um; nenhum produto em marca errada; 14 itens sem marca
+  no Hub reclassificados no site (Melu ×9, Soffie ×4, 1 provador em
+  "Outros"). Recomendação: cadastrar as marcas Melu e Soffie no Hub.
+
 ## O que depende do Mauricio
 
 1. **Liberar a rede do ambiente Claude**: claude.ai/code → ícone de nuvem

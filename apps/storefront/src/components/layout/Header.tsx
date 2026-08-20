@@ -142,6 +142,12 @@ export function Header() {
                   </Link>
                 ))}
               </div>
+              <Link
+                href="/marcas"
+                className="mt-2 block rounded-[6px] px-3 py-2 text-[0.9375rem] font-semibold text-violeta hover:bg-superficie"
+              >
+                {copy.nav.todasMarcas} →
+              </Link>
             </MegaPainel>
           </div>
 
@@ -230,6 +236,13 @@ export function Header() {
                   {m.nome}
                 </Link>
               ))}
+              <Link
+                href="/marcas"
+                onClick={() => setMenuMobileAberto(false)}
+                className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] font-semibold text-violeta hover:bg-superficie"
+              >
+                {copy.nav.todasMarcas} →
+              </Link>
             </div>
             {necessidades.length > 0 && (
             <div>

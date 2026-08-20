@@ -36,13 +36,24 @@ export default async function PaginaMarca({
       {/* hero de marca */}
       <section className="border-b border-linha" style={{ background: `${marca.cor}14` }}>
         <div className="container-bn flex items-center gap-5 py-10">
-          <span
-            aria-hidden="true"
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-[1.75rem] font-bold text-white"
-            style={{ background: marca.cor }}
-          >
-            {marca.nome.charAt(0)}
-          </span>
+          {marca.imagem ? (
+            <span className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-linha bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={marca.imagem}
+                alt={`Produto ${marca.nome}`}
+                className="h-full w-full object-contain p-1.5"
+              />
+            </span>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-[1.75rem] font-bold text-white"
+              style={{ background: marca.cor }}
+            >
+              {marca.nome.charAt(0)}
+            </span>
+          )}
           <div>
             <h1 className="font-titulo text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
               {marca.nome}

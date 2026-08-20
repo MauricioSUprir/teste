@@ -23,6 +23,8 @@ export interface Marca {
   descricao: string;
   /** cor de identidade usada nos placeholders de imagem */
   cor: string;
+  /** foto real que representa a marca (produto dela no Hub ou logo oficial) */
+  imagem?: string;
 }
 
 export interface Necessidade {

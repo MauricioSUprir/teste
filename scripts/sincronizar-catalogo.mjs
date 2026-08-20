@@ -109,7 +109,13 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
   while (slugsUsados.has(slug)) slug = `${slug}-${sku.toLowerCase()}`;
   slugsUsados.add(slug);
 
-  const marcaNome = String(campo(bruto, "marca.nome", "marca", "brand") ?? "BeautyNow");
+  // 14 itens vêm sem marca do Hub — o nome revela a marca real (auditoria 20/08)
+  const marcaDoNome = /melu/i.test(String(titulo))
+    ? "Melu"
+    : /soffie/i.test(String(titulo))
+      ? "Soffie"
+      : "Outros";
+  const marcaNome = String(campo(bruto, "marca.nome", "marca", "brand") ?? marcaDoNome);
   const categoriaNome = String(
     campo(bruto, "categoria.nome", "categoria", "category") ?? categorizar(String(titulo), marcaNome)
   );
@@ -231,6 +237,9 @@ async function principal() {
         descricao: `Produtos ${p._marcaNome} com garantia de originalidade BeautyNow.`,
       });
     }
+    // foto real da marca: primeira foto de produto dela no catálogo
+    const marcaAtual = marcasMapa.get(p.marca);
+    if (!marcaAtual.imagem && p.imagens?.[0]) marcaAtual.imagem = p.imagens[0];
     const catSlug = p.categorias[0];
     if (!categoriasMapa.has(catSlug)) {
       categoriasMapa.set(catSlug, {
