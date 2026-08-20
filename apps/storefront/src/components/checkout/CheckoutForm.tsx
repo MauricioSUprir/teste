@@ -6,7 +6,7 @@
  * Pagamento é simulado na demo; na integração real entra o SDK do Mercado
  * Pago com tokenização no cliente (nenhum dado de cartão toca o servidor).
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
@@ -22,6 +22,7 @@ import { Logo } from "@/components/layout/Logo";
 import { ImagemProduto } from "@/components/produto/ImagemProduto";
 import { gravarPedido, type Pedido } from "@/lib/pedidos";
 import {
+  acordarServidor,
   criarCheckoutPro,
   criarPagamentoPix,
   enviarPedidoAoServidor,
@@ -64,6 +65,14 @@ export function CheckoutForm() {
   const [meio, setMeio] = useState<MeioPagamento>("pix");
   const [erro, setErro] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [etapa, setEtapa] = useState("");
+
+  // acorda o servidor de pagamento assim que o checkout abre — quando a
+  // pessoa terminar de preencher, ele já está de pé e a conclusão é rápida
+  useEffect(() => {
+    acordarServidor();
+  }, []);
 
   const frete = fretes.find((f) => f.id === freteEscolhido);
   const totalProdutos = carrinho.subtotalCentavos;
@@ -73,6 +82,21 @@ export function CheckoutForm() {
   const totalFinal =
     meio === "pix" ? precoPix(baseComCupom) + (frete?.valorCentavos ?? 0) : totalComFrete;
   const parcela = useMemo(() => parcelamento(totalComFrete), [totalComFrete]);
+
+  // o frete aparece assim que o CEP fica completo — não depende da busca
+  // de endereço (ViaCEP), que pode falhar ou demorar
+  useEffect(() => {
+    if (validarCep(endereco.cep)) {
+      const opcoes = calcularFrete(endereco.cep, totalProdutos);
+      setFretes(opcoes);
+      setFreteEscolhido((atual) =>
+        opcoes.some((o) => o.id === atual) ? atual : (opcoes[0]?.id ?? "")
+      );
+    } else {
+      setFretes([]);
+      setFreteEscolhido("");
+    }
+  }, [endereco.cep, totalProdutos]);
 
   async function aoSairDoCep() {
     const cepLimpo = endereco.cep.replace(/\D/g, "");
@@ -96,84 +120,96 @@ export function CheckoutForm() {
     } finally {
       setBuscandoCep(false);
     }
-    if (validarCep(endereco.cep)) {
-      const opcoes = calcularFrete(endereco.cep, totalProdutos);
-      setFretes(opcoes);
-      setFreteEscolhido(opcoes[0]?.id ?? "");
-    }
   }
 
   async function concluir(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !nome || !cpf || !telefone || !endereco.cep || !endereco.logradouro || !endereco.numero || !frete) {
+    if (enviando) return; // evita clique duplo enquanto processa
+    if (!email || !nome || !cpf || !telefone || !endereco.cep || !endereco.logradouro || !endereco.numero) {
       setErro(copy.checkout.camposObrigatorios);
       return;
     }
-    setErro("");
-    const numeroPedido = `BN-${String(Math.floor(100000 + Math.random() * 900000))}`;
-    const pedido = {
-      numero: numeroPedido,
-      data: new Date().toISOString(),
-      clienteNome: nome,
-      clienteEmail: email,
-      itens: carrinho.itens.map((i) => ({
-        sku: i.sku,
-        titulo: i.produto.titulo,
-        quantidade: i.quantidade,
-        precoCentavos: i.variante.precoPor,
-      })),
-      totalCentavos: totalFinal,
-      meio,
-      freteNome: frete.nome,
-      cupom: carrinho.cupomAplicado ?? undefined,
-      descontoCentavos: carrinho.descontoCentavos || undefined,
-      status: "aguardando_pagamento" as const,
-    };
-    gravarPedido(pedido);
-    await enviarPedidoAoServidor(pedido, { endereco, cpf, telefone });
-
-    // pagamento real via Mercado Pago, quando configurado no servidor
-    const mpAtivo = await mercadoPagoAtivo();
-    let pixReal: { paymentId: number | string; copiaCola: string | null; qrBase64: string | null } | null = null;
-    if (mpAtivo && meio === "pix") {
-      const r = await criarPagamentoPix(pedido, cpf);
-      if (!r.ok || !r.pix) {
-        setErro(r.erro ?? "Não foi possível gerar o Pix. Tente novamente.");
-        return;
-      }
-      pixReal = r.pix;
-    }
-
-    try {
-      sessionStorage.setItem(
-        "beautynow:ultimo-pedido",
-        JSON.stringify({
-          numero: numeroPedido,
-          meio,
-          totalCentavos: totalFinal,
-          dataPrevista: frete.dataPrevista,
-          email,
-          pixReal,
-        })
-      );
-    } catch {
-      // segue sem resumo persistido
-    }
-
-    if (mpAtivo && (meio === "cartao" || meio === "boleto")) {
-      // página segura do Mercado Pago — nenhum dado de cartão passa pelo site
-      const r = await criarCheckoutPro(pedido, meio);
-      if (!r.ok || !r.initPoint) {
-        setErro(r.erro ?? "Não foi possível iniciar o pagamento. Tente novamente.");
-        return;
-      }
-      carrinho.limpar();
-      window.location.href = r.initPoint;
+    if (!frete) {
+      setErro("Confira o CEP (8 números): o frete aparece na etapa 2 assim que ele estiver completo.");
       return;
     }
+    setErro("");
+    setEnviando(true);
+    try {
+      const numeroPedido = `BN-${String(Math.floor(100000 + Math.random() * 900000))}`;
+      const pedido = {
+        numero: numeroPedido,
+        data: new Date().toISOString(),
+        clienteNome: nome,
+        clienteEmail: email,
+        itens: carrinho.itens.map((i) => ({
+          sku: i.sku,
+          titulo: i.produto.titulo,
+          quantidade: i.quantidade,
+          precoCentavos: i.variante.precoPor,
+        })),
+        totalCentavos: totalFinal,
+        meio,
+        freteNome: frete.nome,
+        cupom: carrinho.cupomAplicado ?? undefined,
+        descontoCentavos: carrinho.descontoCentavos || undefined,
+        status: "aguardando_pagamento" as const,
+      };
+      gravarPedido(pedido);
+      setEtapa("Registrando o pedido…");
+      await enviarPedidoAoServidor(pedido, { endereco, cpf, telefone });
 
-    carrinho.limpar();
-    router.push("/checkout/confirmacao");
+      // pagamento real via Mercado Pago, quando configurado no servidor
+      setEtapa("Conectando ao pagamento… na 1ª compra pode levar até 1 minuto.");
+      const mpAtivo = await mercadoPagoAtivo();
+      let pixReal: { paymentId: number | string; copiaCola: string | null; qrBase64: string | null } | null = null;
+      if (mpAtivo && meio === "pix") {
+        setEtapa("Gerando o Pix…");
+        const r = await criarPagamentoPix(pedido, cpf);
+        if (!r.ok || !r.pix) {
+          setErro(r.erro ?? "Não foi possível gerar o Pix. Tente novamente.");
+          return;
+        }
+        pixReal = r.pix;
+      }
+
+      try {
+        sessionStorage.setItem(
+          "beautynow:ultimo-pedido",
+          JSON.stringify({
+            numero: numeroPedido,
+            meio,
+            totalCentavos: totalFinal,
+            dataPrevista: frete.dataPrevista,
+            email,
+            pixReal,
+          })
+        );
+      } catch {
+        // segue sem resumo persistido
+      }
+
+      if (mpAtivo && (meio === "cartao" || meio === "boleto")) {
+        // página segura do Mercado Pago — nenhum dado de cartão passa pelo site
+        setEtapa("Abrindo a página segura do Mercado Pago…");
+        const r = await criarCheckoutPro(pedido, meio);
+        if (!r.ok || !r.initPoint) {
+          setErro(r.erro ?? "Não foi possível iniciar o pagamento. Tente novamente.");
+          return;
+        }
+        carrinho.limpar();
+        window.location.href = r.initPoint;
+        return; // o navegador troca para a página do MP em seguida
+      }
+
+      carrinho.limpar();
+      router.push("/checkout/confirmacao");
+    } catch {
+      setErro("Não foi possível concluir agora. Confira a internet e tente de novo.");
+    } finally {
+      setEnviando(false);
+      setEtapa("");
+    }
   }
 
   if (carrinho.itens.length === 0) {
@@ -475,11 +511,16 @@ export function CheckoutForm() {
 
             <button
               type="submit"
-              disabled={abaixoDoMinimo}
+              disabled={abaixoDoMinimo || enviando}
               className="mt-4 w-full rounded-[999px] bg-roxo py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:cursor-not-allowed disabled:bg-cinza"
             >
-              {copy.checkout.concluir}
+              {enviando ? "Processando…" : copy.checkout.concluir}
             </button>
+            {enviando && (
+              <p role="status" className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-center text-[0.8125rem] font-medium text-roxo-escuro">
+                ⏳ {etapa || "Processando…"} Não feche esta página.
+              </p>
+            )}
             <p className="mt-3 text-center text-[0.75rem] text-cinza">
               🔒 {copy.checkout.seguro} · {copy.checkout.atendimento}
             </p>

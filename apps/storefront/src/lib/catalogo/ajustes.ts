@@ -18,6 +18,8 @@ export interface EdicaoProduto {
   estoque?: number;
   /** URL de foto que substitui/da imagem principal */
   imagem?: string;
+  /** true = todas as variações ficam sem estoque (produto some da venda) */
+  esgotado?: boolean;
 }
 
 export interface AjustesCatalogo {
@@ -62,8 +64,8 @@ export function aplicarAjustesProduto(produto: Produto): Produto | null {
   return aplicarEdicao(produto, edicao);
 }
 
-function aplicarEdicao(produto: Produto, e: EdicaoProduto): Produto {
-  const variantes = produto.variantes.map((v, i) =>
+export function aplicarEdicao(produto: Produto, e: EdicaoProduto): Produto {
+  let variantes = produto.variantes.map((v, i) =>
     i === 0
       ? {
           ...v,
@@ -73,6 +75,9 @@ function aplicarEdicao(produto: Produto, e: EdicaoProduto): Produto {
         }
       : v
   );
+  if (e.esgotado) {
+    variantes = variantes.map((v) => ({ ...v, estoque: 0 }));
+  }
   return {
     ...produto,
     titulo: e.titulo ?? produto.titulo,
@@ -197,6 +202,41 @@ export function excluirProduto(slug: string) {
   if (!ajustes.excluidos.includes(slug)) {
     gravarAjustes({ ...ajustes, excluidos: [...ajustes.excluidos, slug] });
   }
+}
+
+/**
+ * Marca/desmarca o produto como esgotado (acabou o estoque físico).
+ * Esgotado: some o botão de compra e o card mostra "Esgotado", sem excluir
+ * o produto da loja. Repor volta ao estoque anterior (base) ou padrão (local).
+ */
+export function marcarEsgotado(slug: string, esgotado: boolean) {
+  const ajustes = lerAjustes();
+  const local = ajustes.adicionados.find((p) => p.slug === slug);
+  if (local) {
+    gravarAjustes({
+      ...ajustes,
+      adicionados: ajustes.adicionados.map((p) =>
+        p.slug === slug
+          ? {
+              ...p,
+              variantes: p.variantes.map((v) => ({
+                ...v,
+                estoque: esgotado ? 0 : Math.max(v.estoque, 10),
+              })),
+            }
+          : p
+      ),
+    });
+    return;
+  }
+  const edicao: EdicaoProduto = { ...ajustes.editados[slug], esgotado };
+  if (!esgotado) {
+    // repor: além de tirar a marcação, zera um estoque editado manualmente
+    // para o valor original do catálogo voltar a valer
+    if (edicao.estoque === 0) delete edicao.estoque;
+    delete edicao.esgotado;
+  }
+  gravarAjustes({ ...ajustes, editados: { ...ajustes.editados, [slug]: edicao } });
 }
 
 export function restaurarProduto(slug: string) {

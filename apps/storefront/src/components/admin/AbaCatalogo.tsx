@@ -17,10 +17,12 @@ import {
   temEstoque,
 } from "@/lib/catalogo/consultas";
 import {
+  aplicarEdicao,
   criarProdutoLocal,
   editarProduto,
   excluirProduto,
   lerAjustes,
+  marcarEsgotado,
   produtosLocais,
   restaurarProduto,
   type EdicaoProduto,
@@ -64,20 +66,8 @@ export function AbaCatalogo() {
     const base: LinhaCatalogo[] = produtos.map((p) => {
       const edicao = ajustes.editados[p.slug];
       const excluido = ajustes.excluidos.includes(p.slug);
-      const variantes = edicao
-        ? p.variantes.map((v, i) =>
-            i === 0
-              ? {
-                  ...v,
-                  precoPor: edicao.precoPor ?? v.precoPor,
-                  precoDe: edicao.precoDe !== undefined ? edicao.precoDe : v.precoDe,
-                  estoque: edicao.estoque ?? v.estoque,
-                }
-              : v
-          )
-        : p.variantes;
       return {
-        produto: edicao ? { ...p, titulo: edicao.titulo ?? p.titulo, variantes } : p,
+        produto: edicao ? aplicarEdicao(p, edicao) : p,
         marca: obterMarca(p.marca)?.nome ?? p.marca,
         excluido,
         editado: Boolean(edicao),
@@ -227,6 +217,17 @@ export function AbaCatalogo() {
                     restaurarProduto(l.produto.slug);
                     recarregar();
                   }}
+                  aoEsgotar={(esgotado) => {
+                    marcarEsgotado(l.produto.slug, esgotado);
+                    if (!esgotado) {
+                      // catálogo base já sem estoque: repõe com 10 unidades
+                      const original = produtos.find((p) => p.slug === l.produto.slug);
+                      if (original && !temEstoque(original)) {
+                        editarProduto(l.produto.slug, { estoque: 10 });
+                      }
+                    }
+                    recarregar();
+                  }}
                 />
               );
             })}
@@ -264,6 +265,7 @@ function FragmentoLinha({
   aoSalvar,
   aoExcluir,
   aoRestaurar,
+  aoEsgotar,
 }: {
   linha: LinhaCatalogo;
   variante: Produto["variantes"][number];
@@ -272,8 +274,10 @@ function FragmentoLinha({
   aoSalvar: (edicao: EdicaoProduto) => void;
   aoExcluir: () => void;
   aoRestaurar: () => void;
+  aoEsgotar: (esgotado: boolean) => void;
 }) {
   const p = linha.produto;
+  const disponivel = temEstoque(p);
   return (
     <>
       <tr className={`border-t border-linha ${linha.excluido ? "opacity-45" : ""}`}>
@@ -295,6 +299,11 @@ function FragmentoLinha({
           {linha.excluido && (
             <span className="ml-2 rounded-[6px] bg-superficie px-1.5 py-0.5 text-[0.6875rem] font-semibold text-cinza">
               excluído da loja
+            </span>
+          )}
+          {!disponivel && !linha.excluido && (
+            <span className="ml-2 rounded-[6px] bg-erro/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-erro">
+              esgotado
             </span>
           )}
         </td>
@@ -319,6 +328,25 @@ function FragmentoLinha({
                 <button type="button" onClick={aoEditar} className="text-roxo underline">
                   {emEdicao ? "Fechar" : "Editar"}
                 </button>
+                {disponivel ? (
+                  <button
+                    type="button"
+                    onClick={() => aoEsgotar(true)}
+                    title="Marca o produto como sem estoque: o card mostra 'Esgotado' e a compra fica travada"
+                    className="text-alerta underline"
+                  >
+                    Esgotar
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => aoEsgotar(false)}
+                    title="Devolve o produto à venda com o estoque anterior"
+                    className="text-sucesso underline"
+                  >
+                    Repor
+                  </button>
+                )}
                 {linha.editado && !p.local && (
                   <button type="button" onClick={aoRestaurar} className="text-cinza underline">
                     Desfazer
