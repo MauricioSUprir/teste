@@ -817,15 +817,11 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
         statement_descriptor: "BEAUTYNOW",
       }),
     });
-    // token de teste (TEST-...) exige o link sandbox — o link normal abre
-    // um checkout "sacola vazia" que volta para o Mercado Livre
-    const emTeste = MP_ACCESS_TOKEN.startsWith("TEST-");
-    res.json({
-      ok: true,
-      initPoint:
-        (emTeste ? preferencia.sandbox_init_point : preferencia.init_point) ??
-        preferencia.init_point,
-    });
+    // sempre o init_point oficial. Em modo teste (token TEST-), o pagamento
+    // deve ser feito logado com a CONTA DE TESTE de comprador do painel MP —
+    // logado com conta real, o checkout de teste recusa ("sacola vazia" /
+    // "não é possível pagar com esses dados")
+    res.json({ ok: true, initPoint: preferencia.init_point });
   } catch (erro) {
     console.error("falha ao criar preferência:", erro.message);
     res.status(502).json({ erro: "Não foi possível iniciar o pagamento agora. Tente novamente." });
