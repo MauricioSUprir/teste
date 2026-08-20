@@ -33,10 +33,14 @@ jobs:
           test -n "$ok" && test -s logos-marcas-v2.json
           node -e "const j=require('./logos-marcas-v2.json'); console.log('logos ok:', j.total, '| falhas:', JSON.stringify(j.falhas))"
 
+      - name: Caçada extra nas marcas que faltam (direto do runner)
+        run: node scripts/buscar-logos-extra.mjs
+        continue-on-error: true
+
       - name: Commitar resultado
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add logos-marcas-v2.json
+          git add logos-marcas-v2.json logos-extra || true
           git commit -m "chore(logos): resultado do exportador de logos v2" || echo "sem mudanças"
           git push
