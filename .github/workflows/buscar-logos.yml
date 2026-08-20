@@ -1,14 +1,12 @@
 name: buscar-logos
 
 # Ponte de logos: o runner do GitHub tem internet aberta, então ele chama o
-# exportador de logos do servidor (Render) e grava o resultado no repositório
-# para o desenvolvimento consumir. Disparo manual apenas.
+# exportador de logos do servidor (Render) e grava o resultado no repositório.
+# Gatilho: qualquer push que altere .github/pedido-logos.txt (a chave vai nele).
 on:
-  workflow_dispatch:
-    inputs:
-      chave:
-        description: "Chave de exportação do servidor"
-        required: true
+  push:
+    paths:
+      - ".github/pedido-logos.txt"
 
 permissions:
   contents: write
@@ -21,10 +19,11 @@ jobs:
 
       - name: Baixar logos pelo exportador do servidor
         run: |
+          chave="$(tr -d '[:space:]' < .github/pedido-logos.txt)"
           ok=""
           for i in 1 2 3 4; do
             if curl -fsS --max-time 280 \
-              "https://beautynow-servidor.onrender.com/exportar-logos?chave=${{ inputs.chave }}" \
+              "https://beautynow-servidor.onrender.com/exportar-logos?chave=${chave}" \
               -o logos-marcas-v2.json; then
               ok=1; break
             fi
