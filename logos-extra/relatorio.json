@@ -1,29 +1,40 @@
 {
   "achados": {
-    "jacques-janine": {
-      "dominio": "jacquesjanine.com.br",
-      "url": "https://jacquesjanine.com.br/wp-content/uploads/2023/07/pic-jacques-janine-2.png",
+    "arvensis": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/arvensis.com.br",
       "tipo": "image/png",
-      "bytes": 156269
+      "bytes": 1506,
+      "avatar": true
     },
-    "mari-maria": {
-      "dominio": "www.marimariamakeup.com",
-      "url": "https://marimaria.vtexassets.com/assets/vtex/assets-builder/marimaria.store-theme/4.0.31/icons/logo___881c8a6d761545ca2f26c7e281375480.svg",
-      "tipo": "image/svg+xml",
-      "bytes": 4389
+    "bruna-tavares": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/lojabrunatavares.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
     },
-    "papel-para-mechas": {
-      "dominio": "papelparamechas.com.br",
-      "url": "https://papelparamechas.com.br/images/logo-new-2.webp",
-      "tipo": "image/webp",
-      "bytes": 2176
+    "evoly": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/evoly.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    },
+    "melu": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/melubyrubyrose.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    },
+    "rebeel": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/rebeel.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
     }
   },
-  "falhas": [
-    "arvensis",
-    "bruna-tavares",
-    "evoly",
-    "melu",
-    "rebeel"
-  ]
+  "falhas": []
 }
