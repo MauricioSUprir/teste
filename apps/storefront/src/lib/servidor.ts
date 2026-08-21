@@ -211,3 +211,58 @@ export function enviarAvaliacao(dados: {
 }) {
   return chamar("/avaliacoes", dados);
 }
+
+// ===== Banners do carrossel (gerenciados no painel admin) =====
+
+/** Chave administrativa das rotas de banner (mesma do exportador). */
+export const CHAVE_ADMIN_SERVIDOR = "exporta-bn-2026";
+
+/** Lista os banners ativos, na ordem (URLs absolutas prontas para <img>). */
+export async function listarBanners(): Promise<{ slot: string; url: string }[]> {
+  if (!servidorConfigurado()) return [];
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/banners`, 65_000, {});
+    if (!resposta.ok) return [];
+    const dados = (await resposta.json()) as { banners?: { slot: string; url: string }[] };
+    return (dados.banners ?? []).map((b) => ({ ...b, url: `${SERVIDOR_URL}${b.url}` }));
+  } catch {
+    return [];
+  }
+}
+
+/** Envia/substitui um banner (admin). */
+export async function enviarBanner(slot: string, mime: string, base64: string) {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/enviar-banners/salvar?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      75_000,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot, mime, base64 }),
+      }
+    );
+    const dados = (await resposta.json().catch(() => ({}))) as { erro?: string };
+    return { ok: resposta.ok, erro: dados.erro };
+  } catch {
+    return { ok: false, erro: "Sem conexão com o servidor. Tente de novo em instantes." };
+  }
+}
+
+/** Remove um banner (admin). */
+export async function excluirBanner(slot: string) {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/enviar-banners/excluir?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      30_000,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slot }),
+      }
+    );
+    return { ok: resposta.ok };
+  } catch {
+    return { ok: false };
+  }
+}

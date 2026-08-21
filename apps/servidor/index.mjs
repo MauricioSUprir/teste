@@ -883,16 +883,62 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
 const BANNERS_SLOTS = ["banner-1", "banner-2", "banner-3", "banner-4", "banner-5"];
 const bannersEnviados = new Map(); // slot → { mime, base64 }
 const ARQ_BANNERS = "/tmp/banners-enviados.json";
+const BANNERS_BACKUP_URL =
+  "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/banners-enviados.json";
 try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_BANNERS)) {
     for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(ARQ_BANNERS, "utf8")))) {
       bannersEnviados.set(k, v);
     }
+  } else {
+    // deploy novo apaga o /tmp — recarrega do backup versionado no GitHub
+    const r = await fetch(BANNERS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    if (r?.ok) {
+      const backup = (await r.json())?.banners ?? {};
+      for (const [k, v] of Object.entries(backup)) bannersEnviados.set(k, v);
+    }
   }
 } catch {
   /* sem banners salvos */
 }
+
+async function salvarBanners() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_BANNERS, JSON.stringify(Object.fromEntries(bannersEnviados)));
+  } catch {
+    /* segue em memória */
+  }
+}
+
+// ---- endpoints públicos do carrossel (o site busca daqui em tempo real) ----
+aplicacao.get("/banners", (req, res) => {
+  const lista = BANNERS_SLOTS.filter((s) => bannersEnviados.has(s)).map((slot) => ({
+    slot,
+    url: `/banners/imagem/${slot}`,
+  }));
+  res.json({ ok: true, banners: lista });
+});
+
+aplicacao.get("/banners/imagem/:slot", (req, res) => {
+  const b = bannersEnviados.get(String(req.params.slot));
+  if (!b) return res.status(404).end();
+  res.setHeader("Content-Type", b.mime);
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res.end(Buffer.from(b.base64, "base64"));
+});
+
+aplicacao.post("/enviar-banners/excluir", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const { slot } = req.body ?? {};
+  if (!BANNERS_SLOTS.includes(slot)) return res.status(400).json({ erro: "Banner inválido." });
+  bannersEnviados.delete(slot);
+  await salvarBanners();
+  res.json({ ok: true, total: bannersEnviados.size });
+});
 
 aplicacao.get("/enviar-banners", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
@@ -964,12 +1010,7 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
     return res.status(400).json({ erro: "Imagem vazia ou grande demais (máx. 7MB)." });
   }
   bannersEnviados.set(slot, { mime: String(mime), base64: String(base64) });
-  try {
-    const fs = await import("node:fs");
-    fs.writeFileSync(ARQ_BANNERS, JSON.stringify(Object.fromEntries(bannersEnviados)));
-  } catch {
-    /* segue em memória */
-  }
+  await salvarBanners();
   console.log(`[enviar-banners] recebido: ${slot} (${bytes.length} bytes)`);
   res.json({ ok: true, total: bannersEnviados.size });
 });
