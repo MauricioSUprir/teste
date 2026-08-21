@@ -63,7 +63,10 @@ jobs:
             echo '{'
             echo "\"apexA\": \"$(dig +short A beautynowstore.com.br | tr '\n' ' ')\","
             echo "\"wwwCname\": \"$(dig +short CNAME www.beautynowstore.com.br | tr '\n' ' ')\","
-            echo "\"wwwA\": \"$(dig +short A www.beautynowstore.com.br | tr '\n' ' ')\""
+            echo "\"wwwA\": \"$(dig +short A www.beautynowstore.com.br | tr '\n' ' ')\","
+            echo "\"httpsWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://www.beautynowstore.com.br/ || echo erro)\","
+            echo "\"httpWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 http://www.beautynowstore.com.br/ || echo erro)\","
+            echo "\"httpsApex\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L https://beautynowstore.com.br/ || echo erro)\""
             echo '}'
           } > dns-check.json
           cat dns-check.json
