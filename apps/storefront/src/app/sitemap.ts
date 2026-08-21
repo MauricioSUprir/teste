@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export const dynamic = "force-static";
 import { categorias, marcas, necessidades, produtos } from "@/lib/catalogo/consultas";
 
-const BASE = "https://beautynow.com.br";
+const BASE = "https://www.beautynowstore.com.br";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

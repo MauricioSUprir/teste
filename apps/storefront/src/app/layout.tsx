@@ -18,7 +18,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mauriciosuprir.github.io/teste/"),
+  metadataBase: new URL("https://www.beautynowstore.com.br/"),
   title: {
     default: "BeautyNow — Cosméticos profissionais com curadoria",
     template: "%s | BeautyNow",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    url: "https://mauriciosuprir.github.io/teste/",
+    url: "https://www.beautynowstore.com.br/",
     siteName: "BeautyNow",
     title: "BeautyNow — Cosméticos profissionais com curadoria",
     description: "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais.",
