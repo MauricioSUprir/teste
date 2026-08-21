@@ -48,7 +48,7 @@
   },
   "reyou": "FALHOU",
   "oceane": {
-    "url": "https://oceane.com.br/",
+    "url": "https://www.oceane.com.br/",
     "metodo": "arquivo",
     "tipo": "image/png",
     "bytes": 9222,
@@ -78,16 +78,10 @@
   "papel-para-mechas": {
     "url": "https://papelparamechas.com.br/",
     "metodo": "screenshot",
-    "bytes": 24553,
+    "bytes": 26157,
     "screenshot": true
   },
-  "jacques-janine": {
-    "url": "https://jacquesjanine.com.br/",
-    "metodo": "arquivo",
-    "tipo": "image/svg+xml",
-    "bytes": 6292,
-    "screenshot": true
-  },
+  "jacques-janine": "FALHOU",
   "hidratei": {
     "url": "https://hidratei.com.br/",
     "metodo": "arquivo",
@@ -121,13 +115,7 @@
     "bytes": 9970,
     "screenshot": true
   },
-  "byem": {
-    "url": "https://byem.com.br/",
-    "metodo": "arquivo",
-    "tipo": "image/svg+xml",
-    "bytes": 6603,
-    "screenshot": true
-  },
+  "byem": "FALHOU",
   "dentalclean": {
     "url": "https://dentalclean.com.br/",
     "metodo": "arquivo",
