@@ -7,3 +7,4 @@ gatilho5 1787267804
 gatilho6 1787268124
 gatilho7 1787268719
 gatilho-coleta 1787270614
+gatilho-pagamentos 1787271949
