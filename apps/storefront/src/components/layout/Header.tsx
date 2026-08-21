@@ -211,7 +211,7 @@ export function Header() {
       {menuMobileAberto && (
         <nav
           aria-label="Navegação principal"
-          className="border-t border-linha bg-white pb-4 lg:hidden"
+          className="max-h-[calc(100dvh-9rem)] overflow-y-auto overscroll-contain border-t border-linha bg-white pb-4 lg:hidden"
         >
           <div className="container-bn flex flex-col gap-4 pt-3">
             <Link
