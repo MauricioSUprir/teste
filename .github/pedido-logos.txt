@@ -9,3 +9,4 @@ gatilho7 1787268719
 gatilho-coleta 1787270614
 gatilho-pagamentos 1787271949
 gatilho-hd 1787272444
+gatilho-coleta-jj 1787272947
