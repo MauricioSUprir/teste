@@ -37,19 +37,11 @@ jobs:
         run: node scripts/buscar-logos-extra.mjs
         continue-on-error: true
 
-      - name: Caçada no Web Archive (cópias históricas sem bloqueio)
-        run: node scripts/cacar-logos-arquivo.mjs
-        continue-on-error: true
-
-      - name: Caçada no índice CDX do Web Archive (arquivos de logo diretos)
-        run: node scripts/cacar-logos-cdx.mjs
-        continue-on-error: true
-
       - name: Caçada com navegador de verdade (sites com anti-robô)
         run: |
           npm i --no-save playwright >/dev/null 2>&1
           npx playwright install --with-deps chromium >/dev/null 2>&1
-          node scripts/cacar-logos-navegador.mjs
+          node scripts/cacar-logos-hd.mjs
         continue-on-error: true
 
       - name: Testar meios de pagamento (Pix, cartão, boleto)
@@ -69,7 +61,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add logos-marcas-v2.json logos-enviadas.json logos-extra teste-pagamentos.json || true
+          git add logos-marcas-v2.json logos-enviadas.json logos-extra logos-hd teste-pagamentos.json || true
           git commit -m "chore(logos): resultado do exportador de logos v2" || echo "sem mudanças"
           # a branch pode ter avançado durante a caçada — traz as novidades antes de entregar
           git pull --rebase origin "${GITHUB_REF_NAME}" || true
