@@ -11,3 +11,4 @@ gatilho-pagamentos 1787271949
 gatilho-hd 1787272444
 gatilho-coleta-jj 1787272947
 gatilho-dns 1787306802
+gatilho-dns2 1787307636
