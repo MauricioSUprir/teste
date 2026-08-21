@@ -1,5 +1,5 @@
 {
-  "quando": "2026-08-21T10:12:08.859Z",
+  "quando": "2026-08-21T10:26:50.136Z",
   "testes": {
     "saude": {
       "ok": true,
@@ -12,7 +12,7 @@
       "status": 200,
       "temQr": true,
       "temCopiaCola": true,
-      "paymentId": 173966696089,
+      "paymentId": 173969913039,
       "erro": null
     },
     "cartao": {
