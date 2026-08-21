@@ -218,7 +218,7 @@ export const copy = {
     avaliacoes: "Avaliações da loja",
     contato: "Fale com a gente",
     rastrearPedido: "Rastrear pedido",
-    cnpj: "BeautyNow Cosméticos LTDA · CNPJ 00.000.000/0001-00",
+    cnpj: "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
     endereco: "Rio de Janeiro, RJ",
     direitos: `© ${new Date().getFullYear()} BeautyNow. Todos os direitos reservados.`,
   },
