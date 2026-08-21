@@ -224,9 +224,10 @@ async function principal() {
 
   // 3. mapeamento
   const slugsUsados = new Set();
-  const produtos = brutos.map((b) =>
-    mapearProduto(b, detalhes.get(String(campo(b, "sku", "codigo", "id"))), slugsUsados)
-  );
+  const produtos = brutos
+    .map((b) => mapearProduto(b, detalhes.get(String(campo(b, "sku", "codigo", "id"))), slugsUsados))
+    // itens sem marca identificável ficam fora da loja (pedido do Mauricio, 21/08)
+    .filter((p) => p.marca !== "outros");
 
   // marcas e categorias derivadas dos produtos
   const marcasMapa = new Map();
