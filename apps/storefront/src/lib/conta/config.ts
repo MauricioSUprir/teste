@@ -29,4 +29,4 @@ export const CODIGO_VALIDADE_MIN = 10;
  * https://mauriciosuprir.github.io — e me envie o ID gerado.
  */
 export const GOOGLE_CLIENT_ID =
-  "314576278373-252922i53ihnk48r0cbll08aiea9tacc.apps.googleusercontent.com";
+  "500782475320-59aarsugep172asaohrvvvqpec0hpluj.apps.googleusercontent.com";
