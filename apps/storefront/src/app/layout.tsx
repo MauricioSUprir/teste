@@ -18,12 +18,32 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mauriciosuprir.github.io/teste/"),
   title: {
     default: "BeautyNow — Cosméticos profissionais com curadoria",
     template: "%s | BeautyNow",
   },
   description:
-    "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Frete grátis a partir de R$ 199, Pix com 5% de desconto e envio em até 24h.",
+    "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Pix com 5% de desconto e envio em até 24h.",
+  // ícone para favoritos e "adicionar à tela de início" no celular
+  icons: {
+    icon: [
+      { url: "icone-192.png", sizes: "192x192", type: "image/png" },
+      { url: "icone-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "apple-touch-icon.png",
+  },
+  manifest: "manifest.webmanifest",
+  // prévia com imagem ao compartilhar o link (WhatsApp, Instagram, etc.)
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "https://mauriciosuprir.github.io/teste/",
+    siteName: "BeautyNow",
+    title: "BeautyNow — Cosméticos profissionais com curadoria",
+    description: "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais.",
+    images: [{ url: "og-imagem.png", width: 1200, height: 630, alt: "BeautyNow" }],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

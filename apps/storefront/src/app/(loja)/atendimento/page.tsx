@@ -17,12 +17,7 @@ const faq: Array<{ pergunta: string; resposta: string }> = [
     resposta:
       "Pedidos com pagamento aprovado até 15h (dias úteis) são despachados no mesmo dia. Após o envio, você recebe o código de rastreio por e-mail e WhatsApp.",
   },
-  {
-    pergunta: "Como funciona o frete grátis?",
-    resposta:
-      "Compras a partir de R$ 199 têm frete grátis na entrega padrão para todo o Brasil. O valor restante para atingir o frete grátis aparece na barra da sua sacola.",
-  },
-  {
+    {
     pergunta: "Posso trocar ou devolver um produto?",
     resposta:
       "Sim. Você tem 7 dias corridos após o recebimento para desistir da compra (CDC, art. 49), com reembolso integral. Produtos com defeito têm prazo de 30 dias. Fale com a gente pelo WhatsApp para iniciar a troca.",

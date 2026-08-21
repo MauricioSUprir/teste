@@ -13,7 +13,7 @@ export const copy = {
     sacola: "Sacola",
     menu: "Menu",
     fecharMenu: "Fechar menu",
-    anuncio: "Frete grátis a partir de R$ 199 · Pix com 5% de desconto · Envio em até 24h",
+    anuncio: "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais",
   },
   nav: {
     inicio: "Início",
@@ -123,8 +123,6 @@ export const copy = {
     finalizarCompra: "Finalizar compra",
     continuarComprando: "Continuar comprando",
     remover: "Remover",
-    freteGratisAtingido: "Você ganhou frete grátis!",
-    freteGratisFaltam: (valor: string) => `Faltam ${valor} para frete grátis`,
     brindeAtingido: "Brinde garantido: Nécessaire BeautyNow",
     brindeFaltam: (valor: string) => `Faltam ${valor} para ganhar um brinde`,
     pedidoMinimo: (valor: string) => `Pedido mínimo de ${valor} para finalizar a compra`,

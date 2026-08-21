@@ -80,7 +80,7 @@ export function AbaConfiguracoes() {
       <section className="mt-4 rounded-[16px] border border-linha bg-white p-5">
         <h3 className="text-[0.9375rem] font-semibold text-tinta">Referências rápidas</h3>
         <ul className="mt-2 space-y-1.5 text-[0.8125rem] text-grafite">
-          <li>• Regras comerciais: pedido mínimo R$ 99 · Pix -5% · até 6x sem juros · frete grátis ≥ R$ 199 · brinde ≥ R$ 250</li>
+          <li>• Regras comerciais: Pix -5% · até 6x sem juros · brinde ≥ R$ 250</li>
           <li>• Pendências e plano do projeto: arquivo <code className="rounded bg-superficie px-1">PENDENCIAS.md</code> no repositório</li>
           <li>• Dados desta demonstração ficam no navegador; com o servidor no ar, tudo passa a ser centralizado</li>
         </ul>

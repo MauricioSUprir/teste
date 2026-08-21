@@ -40,7 +40,6 @@ const paginas: Record<string, { titulo: string; paragrafos: string[] }> = {
     paragrafos: [
       "Pedidos aprovados até 15h em dias úteis são despachados no mesmo dia. Os prazos exibidos no checkout contam a partir do despacho.",
       "No Rio de Janeiro (capital), oferecemos entrega expressa por motoboy no dia útil seguinte. Para o restante do Brasil, a entrega é feita por transportadoras parceiras com rastreio ponta a ponta.",
-      "Compras a partir de R$ 199 têm frete grátis na modalidade padrão.",
       "Se a entrega falhar por endereço incorreto ou ausência de recebedor após duas tentativas, o pedido retorna ao nosso centro de distribuição e nossa equipe entra em contato.",
     ],
   },
