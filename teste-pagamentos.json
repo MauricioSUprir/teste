@@ -1,18 +1,18 @@
 {
-  "quando": "2026-08-21T00:31:59.891Z",
+  "quando": "2026-08-21T00:40:15.178Z",
   "testes": {
     "saude": {
       "ok": true,
       "mp": true,
       "bling": true,
-      "emailModo": "console"
+      "emailModo": "brevo"
     },
     "pix": {
       "ok": true,
       "status": 200,
       "temQr": true,
       "temCopiaCola": true,
-      "paymentId": 174865587902,
+      "paymentId": 173935918759,
       "erro": null
     },
     "cartao": {
