@@ -1035,6 +1035,83 @@ function guardarPedidoRecente(pedido) {
   }
 }
 
+// ===== Avaliações da loja (estrelas + comentário) =====
+// Ficam no servidor para todo mundo ver. Persistem em /tmp (sobrevivem ao
+// sono do Render) e, no boot, recarregam do backup versionado no GitHub —
+// assim um deploy não apaga as avaliações já feitas.
+const ARQ_AVALIACOES = "/tmp/avaliacoes.json";
+const AVALIACOES_BACKUP_URL =
+  "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/avaliacoes-backup.json";
+let avaliacoes = [];
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_AVALIACOES)) {
+    avaliacoes = JSON.parse(fs.readFileSync(ARQ_AVALIACOES, "utf8"));
+  } else {
+    const r = await fetch(AVALIACOES_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    if (r?.ok) avaliacoes = (await r.json())?.avaliacoes ?? [];
+  }
+} catch {
+  avaliacoes = [];
+}
+
+async function salvarAvaliacoes() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_AVALIACOES, JSON.stringify(avaliacoes));
+  } catch {
+    /* segue em memória */
+  }
+}
+
+const ultimoEnvioAvaliacao = new Map(); // IP → timestamp (freio anti-spam)
+
+aplicacao.get("/avaliacoes", (req, res) => {
+  const lista = [...avaliacoes].sort((a, b) => (a.data < b.data ? 1 : -1)).slice(0, 200);
+  const media = lista.length
+    ? Math.round((lista.reduce((s, a) => s + (a.nota ?? 0), 0) / lista.length) * 10) / 10
+    : null;
+  res.json({ ok: true, total: avaliacoes.length, media, avaliacoes: lista });
+});
+
+aplicacao.post("/avaliacoes", async (req, res) => {
+  const ip = String(req.headers["x-forwarded-for"] ?? req.ip ?? "").split(",")[0];
+  const ultimo = ultimoEnvioAvaliacao.get(ip) ?? 0;
+  if (Date.now() - ultimo < 60_000) {
+    return res.status(429).json({ erro: "Calma! Espere um minutinho para enviar outra avaliação." });
+  }
+  const { nome, nota, notaProduto, notaExperiencia, texto, pedido } = req.body ?? {};
+  const n = Number(nota);
+  if (!Number.isInteger(n) || n < 1 || n > 5) {
+    return res.status(400).json({ erro: "Escolha de 1 a 5 estrelas." });
+  }
+  const limpo = (v, max) => String(v ?? "").trim().slice(0, max);
+  const avaliacao = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    data: new Date().toISOString(),
+    nome: limpo(nome, 80) || "Cliente BeautyNow",
+    nota: n,
+    notaProduto: Number.isInteger(Number(notaProduto)) ? Math.min(5, Math.max(1, Number(notaProduto))) : undefined,
+    notaExperiencia: Number.isInteger(Number(notaExperiencia)) ? Math.min(5, Math.max(1, Number(notaExperiencia))) : undefined,
+    texto: limpo(texto, 1000),
+    pedido: limpo(pedido, 20) || undefined,
+  };
+  avaliacoes.push(avaliacao);
+  if (avaliacoes.length > 2000) avaliacoes = avaliacoes.slice(-2000);
+  ultimoEnvioAvaliacao.set(ip, Date.now());
+  await salvarAvaliacoes();
+  console.log(`[avaliacoes] nova: ${avaliacao.nota}★ de ${avaliacao.nome}`);
+  res.json({ ok: true });
+});
+
+// backup para o robô do GitHub versionar (não perde avaliação em deploy)
+aplicacao.get("/avaliacoes/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ geradoEm: new Date().toISOString(), avaliacoes });
+});
+
 // ===== Envio de logos pelo navegador (sem depender de anexo no chat) =====
 // O Mauricio arrasta as imagens na página; ficam guardadas aqui e o robô do
 // GitHub coleta em /enviar-logos/exportar para versionar no repositório.

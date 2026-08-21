@@ -166,3 +166,48 @@ export async function enviarPedidoAoServidor(
   // falha aqui não pode travar a confirmação da compra — o registro local fica
   await chamar("/pedidos", { ...pedido, ...extras }).catch(() => undefined);
 }
+
+// ===== Avaliações da loja =====
+
+export interface AvaliacaoLoja {
+  id: string;
+  data: string;
+  nome: string;
+  nota: number;
+  notaProduto?: number;
+  notaExperiencia?: number;
+  texto: string;
+  pedido?: string;
+}
+
+/** Lista as avaliações públicas da loja (mais recentes primeiro). */
+export async function listarAvaliacoes(): Promise<{
+  ok: boolean;
+  media: number | null;
+  total: number;
+  avaliacoes: AvaliacaoLoja[];
+}> {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/avaliacoes`, 65_000, {});
+    const dados = (await resposta.json()) as {
+      media: number | null;
+      total: number;
+      avaliacoes: AvaliacaoLoja[];
+    };
+    return { ok: resposta.ok, media: dados.media ?? null, total: dados.total ?? 0, avaliacoes: dados.avaliacoes ?? [] };
+  } catch {
+    return { ok: false, media: null, total: 0, avaliacoes: [] };
+  }
+}
+
+/** Envia uma avaliação (estrelas + comentário). */
+export function enviarAvaliacao(dados: {
+  nome: string;
+  nota: number;
+  notaProduto?: number;
+  notaExperiencia?: number;
+  texto: string;
+  pedido?: string;
+}) {
+  return chamar("/avaliacoes", dados);
+}

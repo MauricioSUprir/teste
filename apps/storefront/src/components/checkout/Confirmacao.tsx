@@ -11,6 +11,7 @@ import { copy } from "@/lib/copy";
 import { atualizarStatus } from "@/lib/pedidos";
 import { formatarPreco } from "@/lib/preco";
 import { statusPagamento } from "@/lib/servidor";
+import { AvaliacaoPosCompra } from "@/components/avaliacoes/AvaliacaoPosCompra";
 
 interface UltimoPedido {
   numero: string;
@@ -186,6 +187,8 @@ export function Confirmacao() {
           ✓ Pix recebido! Seu pedido já entrou na fila de separação.
         </p>
       )}
+
+      <AvaliacaoPosCompra pedido={pedido?.numero} />
 
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link

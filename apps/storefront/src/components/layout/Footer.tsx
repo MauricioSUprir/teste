@@ -37,6 +37,7 @@ export function Footer() {
           </p>
           <ul className="mt-3 space-y-2 text-[0.875rem]">
             <li><Link className="text-grafite hover:text-roxo" href="/atendimento">{copy.rodape.faq}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/avaliacoes">{copy.rodape.avaliacoes}</Link></li>
             <li><Link className="text-grafite hover:text-roxo" href="/atendimento#contato">{copy.rodape.contato}</Link></li>
             <li><Link className="text-grafite hover:text-roxo" href="/conta">{copy.rodape.rastrearPedido}</Link></li>
           </ul>
