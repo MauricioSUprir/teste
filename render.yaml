@@ -14,7 +14,7 @@ services:
     healthCheckPath: /saude
     envVars:
       - key: EMAIL_MODO
-        value: console
+        value: brevo
       - key: EMAIL_USUARIO
         value: lojabeautynow@gmail.com
       - key: EMAIL_SENHA_APP
