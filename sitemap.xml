@@ -6131,11 +6131,6 @@
 <priority>0.8</priority>
 </url>
 <url>
-<loc>https://beautynow.com.br/produto/provador-lip-balm-pen-hidratante-labial-clear-transparente</loc>
-<changefreq>daily</changefreq>
-<priority>0.8</priority>
-</url>
-<url>
 <loc>https://beautynow.com.br/produto/senscience-snc-balance-conditioner-1-l</loc>
 <changefreq>daily</changefreq>
 <priority>0.8</priority>
@@ -6277,11 +6272,6 @@
 </url>
 <url>
 <loc>https://beautynow.com.br/marca/joico</loc>
-<changefreq>weekly</changefreq>
-<priority>0.7</priority>
-</url>
-<url>
-<loc>https://beautynow.com.br/marca/outros</loc>
 <changefreq>weekly</changefreq>
 <priority>0.7</priority>
 </url>
