@@ -229,6 +229,25 @@ async function principal() {
     // itens sem marca identificável ficam fora da loja (pedido do Mauricio, 21/08)
     .filter((p) => p.marca !== "outros");
 
+  // fotos cadastradas errado no Hub (revisão visual 21/08): melhor o cartão
+  // estilizado do que a foto de OUTRO produto — corrigir na origem e remover
+  // o SKU de scripts/fotos-ocultas.json para a foto voltar
+  try {
+    const ocultas = new Set(
+      JSON.parse(readFileSync(join(RAIZ, "scripts/fotos-ocultas.json"), "utf8")).map((f) => f.sku)
+    );
+    let escondidas = 0;
+    for (const p of produtos) {
+      if (ocultas.has(p.variantes[0]?.sku)) {
+        p.imagens = undefined;
+        escondidas += 1;
+      }
+    }
+    console.log(`  fotos escondidas por cadastro errado no Hub: ${escondidas}`);
+  } catch {
+    /* sem lista de fotos ocultas */
+  }
+
   // marcas e categorias derivadas dos produtos
   const marcasMapa = new Map();
   const categoriasMapa = new Map();
