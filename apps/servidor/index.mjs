@@ -1038,12 +1038,9 @@ function guardarPedidoRecente(pedido) {
 // ===== Envio de logos pelo navegador (sem depender de anexo no chat) =====
 // O Mauricio arrasta as imagens na página; ficam guardadas aqui e o robô do
 // GitHub coleta em /enviar-logos/exportar para versionar no repositório.
-const LOGOS_FALTANTES = ["bruna-tavares", "evoly", "melu", "rebeel"];
+const LOGOS_FALTANTES = ["jacques-janine"];
 const NOMES_FALTANTES = {
-  "bruna-tavares": "Bruna Tavares",
-  evoly: "Évoly",
-  melu: "Melu",
-  rebeel: "Rebeel",
+  "jacques-janine": "Jacques Janine",
 };
 const logosEnviadas = new Map(); // slug → { mime, base64 }
 const ARQ_LOGOS_ENVIADAS = "/tmp/logos-enviadas.json";
