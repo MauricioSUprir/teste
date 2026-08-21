@@ -57,6 +57,18 @@ jobs:
           node -e "const j=require('./logos-enviadas.json'); console.log('enviadas pelo navegador:', j.total ?? 0)"
         continue-on-error: true
 
+      - name: Verificar DNS do domínio novo
+        run: |
+          {
+            echo '{'
+            echo "\"apexA\": \"$(dig +short A beautynowstore.com.br | tr '\n' ' ')\","
+            echo "\"wwwCname\": \"$(dig +short CNAME www.beautynowstore.com.br | tr '\n' ' ')\","
+            echo "\"wwwA\": \"$(dig +short A www.beautynowstore.com.br | tr '\n' ' ')\""
+            echo '}'
+          } > dns-check.json
+          cat dns-check.json
+        continue-on-error: true
+
       - name: Backup das avaliações da loja
         run: |
           chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
@@ -69,7 +81,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add logos-marcas-v2.json logos-enviadas.json logos-extra logos-hd teste-pagamentos.json avaliacoes-backup.json || true
+          git add logos-marcas-v2.json logos-enviadas.json logos-extra logos-hd teste-pagamentos.json avaliacoes-backup.json dns-check.json || true
           git commit -m "chore(logos): resultado do exportador de logos v2" || echo "sem mudanças"
           # a branch pode ter avançado durante a caçada — traz as novidades antes de entregar
           git pull --rebase origin "${GITHUB_REF_NAME}" || true
