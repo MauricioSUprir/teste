@@ -1,0 +1,18 @@
+exporta-bn-2026
+gatilho 1787266893
+gatilho2 1787266910
+gatilho3 1787267419
+gatilho4 1787267586
+gatilho5 1787267804
+gatilho6 1787268124
+gatilho7 1787268719
+gatilho-coleta 1787270614
+gatilho-pagamentos 1787271949
+gatilho-hd 1787272444
+gatilho-coleta-jj 1787272947
+gatilho-dns 1787306802
+gatilho-dns2 1787307636
+gatilho-dns3 1787308357
+gatilho-imagens 1787315035
+gatilho-fotos-todas 1787315660
+gatilho-bling-status 1787354460

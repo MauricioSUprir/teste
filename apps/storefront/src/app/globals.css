@@ -1,0 +1,88 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+@theme {
+  --color-roxo: #4A2882;
+  --color-roxo-escuro: #381D65;
+  --color-roxo-claro: #F2EDFA;
+  --color-violeta: #6847C8;
+  --color-violeta-claro: #EFEBFA;
+  --color-tinta: #14161A;
+  --color-grafite: #4A4F57;
+  --color-cinza: #8A9099;
+  --color-linha: #E4E6EA;
+  --color-superficie: #F7F8FA;
+  --color-sucesso: #1E8E5A;
+  --color-alerta: #B8730C;
+  --color-erro: #C6273E;
+  --color-oferta: #381D65;
+  --font-titulo: var(--font-fraunces), Georgia, serif;
+  --font-texto: var(--font-inter), -apple-system, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(20, 22, 26, 0.06), 0 4px 12px rgba(20, 22, 26, 0.04);
+  --shadow-drawer: 0 0 0 1px rgba(20, 22, 26, 0.05), -8px 0 32px rgba(20, 22, 26, 0.12);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--fonte-texto);
+  color: var(--bn-tinta);
+  background: var(--bn-branco);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visível em todo elemento navegável — nunca outline: none sem substituto */
+:focus-visible {
+  outline: 2px solid var(--bn-violeta);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Preço nunca dança entre estados */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-titulo {
+  font-family: var(--fonte-titulo);
+}
+
+.container-bn {
+  max-width: var(--max-conteudo);
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+@media (min-width: 768px) {
+  .container-bn {
+    padding-inline: 24px;
+  }
+}
+
+/* Movimento contido — docs/03 §8 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.drawer-slide {
+  transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Esconde scrollbar em carrosséis horizontais mantendo o scroll */
+.scroll-sem-barra {
+  scrollbar-width: none;
+}
+.scroll-sem-barra::-webkit-scrollbar {
+  display: none;
+}

@@ -1,0 +1,35 @@
+{
+  "quando": "2026-08-21T23:27:19.133Z",
+  "testes": {
+    "saude": {
+      "ok": true,
+      "mp": true,
+      "bling": true,
+      "emailModo": "brevo"
+    },
+    "pix": {
+      "ok": true,
+      "status": 200,
+      "temQr": true,
+      "temCopiaCola": true,
+      "paymentId": 175031729384,
+      "erro": null
+    },
+    "cartao": {
+      "ok": true,
+      "status": 200,
+      "temLink": true,
+      "erro": null
+    },
+    "boleto": {
+      "ok": true,
+      "status": 200,
+      "temLink": true,
+      "erro": null
+    },
+    "statusPix": {
+      "ok": true,
+      "statusPagamento": "pending"
+    }
+  }
+}

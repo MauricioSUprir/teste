@@ -1,0 +1,16 @@
+{
+  "achados": {
+    "melu": {
+      "url": "https://www.rubyrose.com.br/assets/images/LOGO%20ROSA.png",
+      "tipo": "image/png",
+      "bytes": 162732,
+      "metodo": "arquivo"
+    }
+  },
+  "falhas": [
+    "arvensis",
+    "bruna-tavares",
+    "evoly",
+    "rebeel"
+  ]
+}
