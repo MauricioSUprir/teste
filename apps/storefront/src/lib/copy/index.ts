@@ -163,7 +163,7 @@ export const copy = {
     total: "Total",
     concluir: "Concluir pedido",
     seguro: "Ambiente seguro",
-    atendimento: "Atendimento: (21) 99999-0000",
+    atendimento: "Atendimento: (21) 99732-2464",
     continuar: "Continuar",
     voltarLoja: "Voltar para a loja",
     camposObrigatorios: "Preencha os campos destacados para continuar.",
@@ -219,7 +219,7 @@ export const copy = {
     contato: "Fale com a gente",
     rastrearPedido: "Rastrear pedido",
     cnpj: "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
-    endereco: "Rio de Janeiro, RJ",
+    endereco: "Rio de Janeiro, RJ · Atendimento: (21) 99732-2464",
     direitos: `© ${new Date().getFullYear()} BeautyNow. Todos os direitos reservados.`,
   },
   atendimento: {

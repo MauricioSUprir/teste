@@ -52,7 +52,7 @@ export default function PaginaAtendimento() {
         <h2 className="font-titulo text-[1.25rem] font-semibold">Fale com a gente</h2>
         <ul className="mt-3 space-y-2 text-[0.9375rem] text-grafite">
           <li>
-            <strong>WhatsApp:</strong> <span className="num">(21) 99999-0000</span> — seg. a sex., 9h às 18h
+            <strong>WhatsApp:</strong> <span className="num">(21) 99732-2464</span> — seg. a sex., 9h às 18h
           </li>
           <li>
             <strong>E-mail:</strong> atendimento@beautynow.com.br

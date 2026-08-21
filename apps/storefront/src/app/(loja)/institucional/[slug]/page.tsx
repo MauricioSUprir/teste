@@ -48,7 +48,7 @@ const paginas: Record<string, { titulo: string; paragrafos: string[] }> = {
     paragrafos: [
       "Direito de arrependimento: você pode desistir da compra em até 7 dias corridos após o recebimento (CDC, art. 49), com reembolso integral, inclusive do frete. O produto deve estar sem uso e na embalagem original.",
       "Produto com defeito ou avaria de transporte: comunique em até 30 dias e faremos a troca ou o reembolso, com frete de retorno por nossa conta.",
-      "Para iniciar qualquer troca, fale com nosso atendimento pelo WhatsApp (21) 99999-0000 ou por atendimento@beautynow.com.br informando o número do pedido.",
+      "Para iniciar qualquer troca, fale com nosso atendimento pelo WhatsApp (21) 99732-2464 ou por atendimento@beautynow.com.br informando o número do pedido.",
     ],
   },
 };
