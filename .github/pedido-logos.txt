@@ -14,3 +14,4 @@ gatilho-dns 1787306802
 gatilho-dns2 1787307636
 gatilho-dns3 1787308357
 gatilho-imagens 1787315035
+gatilho-fotos-todas 1787315660
