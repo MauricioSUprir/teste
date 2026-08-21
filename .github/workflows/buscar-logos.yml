@@ -52,11 +52,20 @@ jobs:
           node scripts/cacar-logos-navegador.mjs
         continue-on-error: true
 
+      - name: Coletar logos enviadas pelo navegador
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/enviar-logos/exportar?chave=${chave}" \
+            -o logos-enviadas.json || echo '{}' > logos-enviadas.json
+          node -e "const j=require('./logos-enviadas.json'); console.log('enviadas pelo navegador:', j.total ?? 0)"
+        continue-on-error: true
+
       - name: Commitar resultado
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add logos-marcas-v2.json logos-extra || true
+          git add logos-marcas-v2.json logos-enviadas.json logos-extra || true
           git commit -m "chore(logos): resultado do exportador de logos v2" || echo "sem mudanças"
           # a branch pode ter avançado durante a caçada — traz as novidades antes de entregar
           git pull --rebase origin "${GITHUB_REF_NAME}" || true

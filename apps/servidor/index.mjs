@@ -46,6 +46,9 @@ const MAX_TENTATIVAS = 5;
 const MAX_ENVIOS_POR_JANELA = 3;
 
 const aplicacao = express();
+// upload de logos precisa de corpo maior (imagem em base64) — antes do parser
+// geral, senão o limite de 100kb derruba o envio primeiro
+aplicacao.use("/enviar-logos", express.json({ limit: "8mb" }));
 aplicacao.use(express.json({ limit: "100kb" }));
 aplicacao.use(cors({ origin: ORIGENS }));
 
@@ -1031,6 +1034,116 @@ function guardarPedidoRecente(pedido) {
     pedidosRecentes.delete(pedidosRecentes.keys().next().value);
   }
 }
+
+// ===== Envio de logos pelo navegador (sem depender de anexo no chat) =====
+// O Mauricio arrasta as imagens na página; ficam guardadas aqui e o robô do
+// GitHub coleta em /enviar-logos/exportar para versionar no repositório.
+const LOGOS_FALTANTES = ["bruna-tavares", "evoly", "melu", "rebeel"];
+const NOMES_FALTANTES = {
+  "bruna-tavares": "Bruna Tavares",
+  evoly: "Évoly",
+  melu: "Melu",
+  rebeel: "Rebeel",
+};
+const logosEnviadas = new Map(); // slug → { mime, base64 }
+const ARQ_LOGOS_ENVIADAS = "/tmp/logos-enviadas.json";
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_LOGOS_ENVIADAS)) {
+    for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(ARQ_LOGOS_ENVIADAS, "utf8")))) {
+      logosEnviadas.set(k, v);
+    }
+  }
+} catch {
+  /* sem logos salvas */
+}
+
+aplicacao.get("/enviar-logos", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
+  }
+  const blocos = LOGOS_FALTANTES.map((slug) => {
+    const ok = logosEnviadas.has(slug);
+    return `<div style="border:2px dashed ${ok ? "#1E8E5A" : "#c9c2dd"};border-radius:12px;padding:16px;margin:10px 0;background:#fff">
+      <b>${NOMES_FALTANTES[slug]}</b> — <span id="st-${slug}" style="color:${ok ? "#1E8E5A" : "#777"}">${ok ? "✅ recebida" : "aguardando imagem"}</span><br>
+      <input type="file" accept="image/*" style="margin-top:8px" onchange="enviar('${slug}', this)">
+      <div id="pv-${slug}" style="margin-top:8px">${ok ? "" : ""}</div>
+    </div>`;
+  }).join("");
+  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Enviar logos — BeautyNow</title></head>
+  <body style="font-family:system-ui,sans-serif;background:#f4f2fa;margin:0;padding:24px">
+  <div style="max-width:560px;margin:0 auto">
+  <h1 style="color:#4A2882">Logos das marcas</h1>
+  <p>Para cada marca abaixo, clique em <b>Escolher arquivo</b> e selecione a imagem da logo
+  (aquela que você salvou no computador). O envio é automático ao escolher.</p>
+  ${blocos}
+  <p id="geral" style="font-weight:bold"></p>
+  <script>
+  const CHAVE = ${JSON.stringify(EXPORT_CHAVE)};
+  async function enviar(slug, input) {
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+    const st = document.getElementById("st-" + slug);
+    st.textContent = "enviando…"; st.style.color = "#B8730C";
+    const leitor = new FileReader();
+    leitor.onload = async () => {
+      const base64 = String(leitor.result).split(",")[1];
+      try {
+        const r = await fetch("/enviar-logos/salvar?chave=" + encodeURIComponent(CHAVE), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, mime: arquivo.type || "image/png", base64 }),
+        });
+        const dados = await r.json();
+        if (dados.ok) {
+          st.textContent = "✅ recebida"; st.style.color = "#1E8E5A";
+          document.getElementById("pv-" + slug).innerHTML =
+            '<img src="data:' + (arquivo.type || "image/png") + ';base64,' + base64 + '" style="max-height:60px;max-width:220px;background:#fff;border:1px solid #eee;border-radius:8px;padding:4px">';
+          document.getElementById("geral").textContent = dados.total + " de ${LOGOS_FALTANTES.length} logos recebidas. Pode avisar o Claude!";
+        } else {
+          st.textContent = "❌ " + (dados.erro || "falhou — tente de novo"); st.style.color = "#c0392b";
+        }
+      } catch (e) {
+        st.textContent = "❌ sem conexão — tente de novo"; st.style.color = "#c0392b";
+      }
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+  </script>
+  </div></body></html>`);
+});
+
+aplicacao.post("/enviar-logos/salvar", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const { slug, mime, base64 } = req.body ?? {};
+  if (!LOGOS_FALTANTES.includes(slug) || !base64 || !String(mime ?? "").startsWith("image/")) {
+    return res.status(400).json({ erro: "Envio inválido." });
+  }
+  const bytes = Buffer.from(String(base64), "base64");
+  if (bytes.length < 400 || bytes.length > 5_000_000) {
+    return res.status(400).json({ erro: "Imagem vazia ou grande demais (máx. 5MB)." });
+  }
+  logosEnviadas.set(slug, { mime: String(mime), base64: String(base64) });
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_LOGOS_ENVIADAS, JSON.stringify(Object.fromEntries(logosEnviadas)));
+  } catch {
+    /* segue em memória */
+  }
+  console.log(`[enviar-logos] recebida: ${slug} (${bytes.length} bytes)`);
+  res.json({ ok: true, total: logosEnviadas.size });
+});
+
+aplicacao.get("/enviar-logos/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ total: logosEnviadas.size, logos: Object.fromEntries(logosEnviadas) });
+});
 
 aplicacao.get("/bling/conectar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
