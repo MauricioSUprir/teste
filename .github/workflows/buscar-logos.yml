@@ -87,6 +87,15 @@ jobs:
           node scripts/baixar-todas-fotos.mjs
         continue-on-error: true
 
+      - name: Status da conexão com o Bling
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/bling/status?chave=${chave}" \
+            -o bling-status.json || echo '{}' > bling-status.json
+          cat bling-status.json
+        continue-on-error: true
+
       - name: Backup das avaliações da loja
         run: |
           chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
