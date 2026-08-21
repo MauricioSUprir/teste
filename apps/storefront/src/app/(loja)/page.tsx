@@ -12,6 +12,7 @@ import {
 import { CardProduto } from "@/components/produto/CardProduto";
 import { ProdutosLocaisDestaque } from "@/components/produto/ProdutosLocaisDestaque";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
+import { CarrosselBanners } from "@/components/home/CarrosselBanners";
 
 /** Home — hero editorial, categorias, mais vendidos, marcas (ticket 2.2). */
 export default function Home() {
@@ -20,60 +21,27 @@ export default function Home() {
   const novidades = lancamentos();
   return (
     <>
-      {/* Hero editorial — a única ênfase visual da tela (docs/03 §1) */}
-      <section className="bg-roxo-claro">
-        <div className="container-bn grid items-center gap-8 py-12 md:grid-cols-2 md:py-16">
-          <div>
-            <p className="text-[0.8125rem] font-semibold uppercase tracking-widest text-roxo-escuro">
-              {copy.marca.nome}
-            </p>
-            <h1 className="font-titulo mt-3 text-[clamp(2rem,5vw,3.25rem)] font-semibold leading-[1.1] text-tinta">
-              {copy.home.heroTitulo}
-            </h1>
-            <p className="mt-4 max-w-[46ch] text-[1.0625rem] leading-relaxed text-grafite">
-              {copy.home.heroTexto}
-            </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link
-                href="#mais-vendidos"
-                className="rounded-[999px] bg-roxo px-7 py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro"
-              >
-                {copy.home.heroCta}
-              </Link>
-              {categorias.slice(0, 3).map((c) => (
-                <Link
-                  key={c.slug}
-                  href={`/categoria/${c.slug}`}
-                  className="rounded-[999px] border-2 border-tinta px-5 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-white"
-                >
-                  {c.nome}
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div aria-hidden="true" className="hidden justify-center md:flex">
-            {/* composição gráfica com o monograma BN da marca */}
-            <svg viewBox="0 0 360 320" className="w-full max-w-md">
-              <defs>
-                <linearGradient id="hero-bn" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#4A2882" />
-                  <stop offset="100%" stopColor="#6847C8" />
-                </linearGradient>
-              </defs>
-              <circle cx="180" cy="160" r="130" fill="#6847C8" opacity="0.12" />
-              <circle cx="292" cy="70" r="26" fill="#6847C8" opacity="0.35" />
-              <circle cx="66" cy="248" r="16" fill="#4A2882" opacity="0.3" />
-              <text
-                x="180"
-                y="212"
-                textAnchor="middle"
-                fill="url(#hero-bn)"
-                style={{ fontFamily: "var(--fonte-titulo)", fontSize: 170, fontWeight: 600, letterSpacing: "-0.04em" }}
-              >
-                BN
-              </text>
-            </svg>
-          </div>
+      {/* Carrossel de banners do lojista (troca a cada 20s) */}
+      <CarrosselBanners />
+
+      {/* atalhos rápidos no lugar do antigo hero roxo */}
+      <section className="border-b border-linha bg-white">
+        <div className="container-bn flex flex-wrap items-center gap-3 py-4">
+          <Link
+            href="#mais-vendidos"
+            className="rounded-[999px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          >
+            {copy.home.heroCta}
+          </Link>
+          {categorias.slice(0, 3).map((c) => (
+            <Link
+              key={c.slug}
+              href={`/categoria/${c.slug}`}
+              className="rounded-[999px] border border-linha px-5 py-2.5 text-[0.9375rem] font-medium text-grafite hover:border-roxo hover:text-roxo"
+            >
+              {c.nome}
+            </Link>
+          ))}
         </div>
       </section>
 

@@ -49,6 +49,7 @@ const aplicacao = express();
 // upload de logos precisa de corpo maior (imagem em base64) — antes do parser
 // geral, senão o limite de 100kb derruba o envio primeiro
 aplicacao.use("/enviar-logos", express.json({ limit: "8mb" }));
+aplicacao.use("/enviar-banners", express.json({ limit: "10mb" }));
 aplicacao.use(express.json({ limit: "100kb" }));
 aplicacao.use(cors({ origin: ORIGENS }));
 
@@ -874,6 +875,110 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
   } catch (erro) {
     console.error("falha no webhook MP:", erro.message);
   }
+});
+
+// ===== Envio de banners da home pelo navegador =====
+// O Mauricio sobe as artes aqui; o robô do GitHub coleta em
+// /enviar-banners/exportar e o site ganha o carrossel.
+const BANNERS_SLOTS = ["banner-1", "banner-2", "banner-3", "banner-4", "banner-5"];
+const bannersEnviados = new Map(); // slot → { mime, base64 }
+const ARQ_BANNERS = "/tmp/banners-enviados.json";
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_BANNERS)) {
+    for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(ARQ_BANNERS, "utf8")))) {
+      bannersEnviados.set(k, v);
+    }
+  }
+} catch {
+  /* sem banners salvos */
+}
+
+aplicacao.get("/enviar-banners", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
+  }
+  const blocos = BANNERS_SLOTS.map((slot, i) => {
+    const ok = bannersEnviados.has(slot);
+    return `<div style="border:2px dashed ${ok ? "#1E8E5A" : "#c9c2dd"};border-radius:12px;padding:16px;margin:10px 0;background:#fff">
+      <b>Banner ${i + 1}</b>${i > 0 ? " (opcional)" : ""} — <span id="st-${slot}" style="color:${ok ? "#1E8E5A" : "#777"}">${ok ? "✅ recebido" : "aguardando imagem"}</span><br>
+      <input type="file" accept="image/*" style="margin-top:8px" onchange="enviar('${slot}', this)">
+      <div id="pv-${slot}" style="margin-top:8px"></div>
+    </div>`;
+  }).join("");
+  res.send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Enviar banners — BeautyNow</title></head>
+  <body style="font-family:system-ui,sans-serif;background:#f4f2fa;margin:0;padding:24px">
+  <div style="max-width:560px;margin:0 auto">
+  <h1 style="color:#4A2882">Banners da home</h1>
+  <p>Envie de 1 a 5 artes. <b>Formato ideal: deitado (paisagem), pelo menos 1200 de largura</b>
+  — ex.: 1600×600. O carrossel troca sozinho a cada 20 segundos, na ordem dos números.</p>
+  ${blocos}
+  <p id="geral" style="font-weight:bold"></p>
+  <script>
+  const CHAVE = ${JSON.stringify(EXPORT_CHAVE)};
+  async function enviar(slot, input) {
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+    const st = document.getElementById("st-" + slot);
+    st.textContent = "enviando…"; st.style.color = "#B8730C";
+    const leitor = new FileReader();
+    leitor.onload = async () => {
+      const base64 = String(leitor.result).split(",")[1];
+      try {
+        const r = await fetch("/enviar-banners/salvar?chave=" + encodeURIComponent(CHAVE), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slot, mime: arquivo.type || "image/png", base64 }),
+        });
+        const dados = await r.json();
+        if (dados.ok) {
+          st.textContent = "✅ recebido"; st.style.color = "#1E8E5A";
+          document.getElementById("pv-" + slot).innerHTML =
+            '<img src="data:' + (arquivo.type || "image/png") + ';base64,' + base64 + '" style="max-width:100%;border-radius:8px;border:1px solid #eee">';
+          document.getElementById("geral").textContent = dados.total + " banner(s) recebido(s). Pode avisar o Claude!";
+        } else {
+          st.textContent = "❌ " + (dados.erro || "falhou — tente de novo"); st.style.color = "#c0392b";
+        }
+      } catch (e) {
+        st.textContent = "❌ sem conexão — tente de novo"; st.style.color = "#c0392b";
+      }
+    };
+    leitor.readAsDataURL(arquivo);
+  }
+  </script>
+  </div></body></html>`);
+});
+
+aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const { slot, mime, base64 } = req.body ?? {};
+  if (!BANNERS_SLOTS.includes(slot) || !base64 || !String(mime ?? "").startsWith("image/")) {
+    return res.status(400).json({ erro: "Envio inválido." });
+  }
+  const bytes = Buffer.from(String(base64), "base64");
+  if (bytes.length < 1000 || bytes.length > 7_000_000) {
+    return res.status(400).json({ erro: "Imagem vazia ou grande demais (máx. 7MB)." });
+  }
+  bannersEnviados.set(slot, { mime: String(mime), base64: String(base64) });
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_BANNERS, JSON.stringify(Object.fromEntries(bannersEnviados)));
+  } catch {
+    /* segue em memória */
+  }
+  console.log(`[enviar-banners] recebido: ${slot} (${bytes.length} bytes)`);
+  res.json({ ok: true, total: bannersEnviados.size });
+});
+
+aplicacao.get("/enviar-banners/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ total: bannersEnviados.size, banners: Object.fromEntries(bannersEnviados) });
 });
 
 // ===== Bling (ERP) =====
