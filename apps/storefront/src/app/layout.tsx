@@ -34,15 +34,24 @@ export const metadata: Metadata = {
     template: `%s | ${LOJA.nome}`,
   },
   description: descricaoLoja,
-  // ícone para favoritos e "adicionar à tela de início" no celular
-  icons: {
-    icon: [
-      { url: "icone-192.png", sizes: "192x192", type: "image/png" },
-      { url: "icone-512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: "apple-touch-icon.png",
-  },
-  manifest: "manifest.webmanifest",
+  // ícone para favoritos e "adicionar à tela de início" no celular — cada
+  // loja com a própria logo (os arquivos -b2b são a identidade Be2Beauty)
+  icons: LOJA.b2b
+    ? {
+        icon: [
+          { url: "icone-b2b-192.png", sizes: "192x192", type: "image/png" },
+          { url: "icone-b2b-512.png", sizes: "512x512", type: "image/png" },
+        ],
+        apple: "apple-touch-icon-b2b.png",
+      }
+    : {
+        icon: [
+          { url: "icone-192.png", sizes: "192x192", type: "image/png" },
+          { url: "icone-512.png", sizes: "512x512", type: "image/png" },
+        ],
+        apple: "apple-touch-icon.png",
+      },
+  manifest: LOJA.b2b ? "manifest-b2b.webmanifest" : "manifest.webmanifest",
   // prévia com imagem ao compartilhar o link (WhatsApp, Instagram, etc.)
   openGraph: {
     type: "website",
@@ -53,7 +62,14 @@ export const metadata: Metadata = {
     description: LOJA.b2b
       ? "Venda exclusiva para profissionais — cadastre seu CNPJ e veja os preços."
       : "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais.",
-    images: [{ url: "og-imagem.png", width: 1200, height: 630, alt: LOJA.nome }],
+    images: [
+      {
+        url: LOJA.b2b ? "og-imagem-b2b.png" : "og-imagem.png",
+        width: 1200,
+        height: 630,
+        alt: LOJA.nome,
+      },
+    ],
   },
 };
 
