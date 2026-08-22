@@ -48,7 +48,7 @@
   },
   "reyou": "FALHOU",
   "oceane": {
-    "url": "https://www.oceane.com.br/",
+    "url": "https://oceane.com.br/",
     "metodo": "arquivo",
     "tipo": "image/png",
     "bytes": 9222,
@@ -78,10 +78,16 @@
   "papel-para-mechas": {
     "url": "https://papelparamechas.com.br/",
     "metodo": "screenshot",
-    "bytes": 26157,
+    "bytes": 26064,
     "screenshot": true
   },
-  "jacques-janine": "FALHOU",
+  "jacques-janine": {
+    "url": "https://jacquesjanine.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 6292,
+    "screenshot": true
+  },
   "hidratei": {
     "url": "https://hidratei.com.br/",
     "metodo": "arquivo",
