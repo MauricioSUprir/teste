@@ -678,6 +678,7 @@ aplicacao.post("/codigo/verificar", (req, res) => {
 aplicacao.post("/pedidos", async (req, res) => {
   const pedido = req.body ?? {};
   guardarPedidoRecente(pedido); // o webhook do MP usa isso para faturar no Bling
+  anotarPedidoAfiliado(pedido); // se veio de link de afiliado, fica anotado até pagar
 
   // notificação de venda para o(s) admin(s) — independe do Hub.
   // Com Mercado Pago ativo, a notificação sai no webhook quando o pagamento
@@ -861,6 +862,13 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
         criarPedidoNoBling(completo).catch(() => undefined);
       } else if (pagamento.external_reference) {
         console.warn(`[bling] pedido ${pagamento.external_reference} aprovado mas sem dados completos na memória`);
+      }
+      // venda veio de link de afiliado? credita a comissão (uma vez só)
+      if (pagamento.external_reference) {
+        creditarVendaAfiliado(
+          pagamento.external_reference,
+          Math.round((pagamento.transaction_amount ?? 0) * 100)
+        ).catch((erro) => console.error(`[afiliados] falha ao creditar: ${erro.message}`));
       }
       await notificarVenda({
         numero: pagamento.external_reference ?? String(id),
@@ -1398,6 +1406,337 @@ aplicacao.get("/b2b/exportar", (req, res) => {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ geradoEm: new Date().toISOString(), cadastros: cadastrosB2B });
+});
+
+// ===== Afiliados Be2Beauty =====
+// O profissional aprovado gera um link do BeautyNow com o código dele
+// (?af=codigo). O site guarda o código no navegador do cliente por 30 dias e
+// manda junto no pedido; quando o Mercado Pago APROVA o pagamento, a venda
+// entra para o afiliado com a comissão da época. Persistência: /tmp + backup
+// versionado no GitHub (afiliados-backup.json).
+const ARQ_AFILIADOS_VENDAS = "/tmp/afiliados-vendas.json";
+const ARQ_AFILIADOS_PENDENTES = "/tmp/afiliados-pendentes.json";
+const ARQ_AFILIADOS_SAQUES = "/tmp/afiliados-saques.json";
+const AFILIADOS_BACKUP_URL =
+  "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/afiliados-backup.json";
+const COMISSAO_PADRAO_PCT = 10;
+let vendasAfiliados = [];
+// pedidos com afiliado ainda não pagos: numero → { codigo, totalCentavos, data }
+// (persistido porque um boleto pode compensar dias depois, após deploy/sono)
+let pendentesAfiliados = {};
+// pedidos de resgate da comissão (o admin paga o Pix e marca como pago)
+let saquesAfiliados = [];
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_AFILIADOS_VENDAS)) {
+    vendasAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_VENDAS, "utf8"));
+  } else {
+    const r = await fetch(AFILIADOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    if (r?.ok) {
+      const dados = await r.json();
+      vendasAfiliados = dados?.vendas ?? [];
+      pendentesAfiliados = dados?.pendentes ?? {};
+      saquesAfiliados = dados?.saques ?? [];
+    }
+  }
+  if (fs.existsSync(ARQ_AFILIADOS_PENDENTES)) {
+    pendentesAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_PENDENTES, "utf8"));
+  }
+  if (fs.existsSync(ARQ_AFILIADOS_SAQUES)) {
+    saquesAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_SAQUES, "utf8"));
+  }
+} catch {
+  vendasAfiliados = [];
+  pendentesAfiliados = {};
+  saquesAfiliados = [];
+}
+
+async function salvarAfiliados() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_AFILIADOS_VENDAS, JSON.stringify(vendasAfiliados));
+    fs.writeFileSync(ARQ_AFILIADOS_PENDENTES, JSON.stringify(pendentesAfiliados));
+    fs.writeFileSync(ARQ_AFILIADOS_SAQUES, JSON.stringify(saquesAfiliados));
+  } catch {
+    /* segue em memória */
+  }
+}
+
+/** saldo disponível para saque: comissão ganha − saques pedidos/pagos */
+function saldoAfiliado(cnpj) {
+  const ganho = vendasAfiliados
+    .filter((v) => v.cnpj === cnpj)
+    .reduce((s, v) => s + v.comissaoCentavos, 0);
+  const retido = saquesAfiliados
+    .filter((s) => s.cnpj === cnpj && s.status !== "recusado")
+    .reduce((s, x) => s + x.valorCentavos, 0);
+  return Math.max(0, ganho - retido);
+}
+
+const slugAfiliado = (texto) =>
+  String(texto)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 16) || "afiliado";
+
+/** anota o pedido como indicado pelo afiliado; a comissão só conta quando pagar */
+function anotarPedidoAfiliado(pedido) {
+  const codigo = String(pedido?.afiliado ?? "").trim().toLowerCase();
+  const numero = String(pedido?.numero ?? "");
+  if (!codigo || !numero) return;
+  if (!cadastrosB2B.some((c) => c.codigoAfiliado === codigo)) return;
+  pendentesAfiliados[numero] = {
+    codigo,
+    totalCentavos: Number(pedido.totalCentavos ?? 0),
+    data: new Date().toISOString(),
+  };
+  // não cresce sem limite: mantém os 500 mais recentes
+  const chaves = Object.keys(pendentesAfiliados);
+  if (chaves.length > 500) delete pendentesAfiliados[chaves[0]];
+  salvarAfiliados();
+  console.log(`[afiliados] pedido ${numero} indicado por ${codigo}`);
+}
+
+/** pagamento aprovado → credita a venda ao afiliado (uma vez só por pedido) */
+async function creditarVendaAfiliado(numero, totalCentavosPagos) {
+  const pendente = pendentesAfiliados[String(numero)];
+  if (!pendente) return;
+  if (vendasAfiliados.some((v) => v.pedido === String(numero))) return; // webhook repete
+  const cadastro = cadastrosB2B.find((c) => c.codigoAfiliado === pendente.codigo);
+  if (!cadastro) return;
+  const pct = Number(cadastro.comissaoPct ?? COMISSAO_PADRAO_PCT);
+  const total = totalCentavosPagos || pendente.totalCentavos || 0;
+  const venda = {
+    pedido: String(numero),
+    codigo: pendente.codigo,
+    cnpj: cadastro.cnpj,
+    data: new Date().toISOString(),
+    totalCentavos: total,
+    pct,
+    comissaoCentavos: Math.round((total * pct) / 100),
+  };
+  vendasAfiliados.push(venda);
+  if (vendasAfiliados.length > 10_000) vendasAfiliados = vendasAfiliados.slice(-10_000);
+  delete pendentesAfiliados[String(numero)];
+  await salvarAfiliados();
+  console.log(
+    `[afiliados] venda ${numero} creditada a ${pendente.codigo}: ${total} centavos, ${pct}% = ${venda.comissaoCentavos}`
+  );
+}
+
+// gera (ou devolve) o link de afiliado — só para cadastro aprovado
+aplicacao.post("/afiliados/link", async (req, res) => {
+  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
+  if (cadastro.status !== "aprovado") {
+    return res.status(403).json({ erro: "O cadastro precisa estar aprovado para gerar o link." });
+  }
+  if (!cadastro.codigoAfiliado) {
+    const base = slugAfiliado(cadastro.razao || cadastro.nome);
+    let codigo = base;
+    while (cadastrosB2B.some((c) => c.codigoAfiliado === codigo)) {
+      codigo = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+    cadastro.codigoAfiliado = codigo;
+    if (cadastro.comissaoPct === undefined) cadastro.comissaoPct = COMISSAO_PADRAO_PCT;
+    await salvarB2B();
+    console.log(`[afiliados] código criado: ${codigo} (${cnpj})`);
+  }
+  res.json({
+    ok: true,
+    codigo: cadastro.codigoAfiliado,
+    url: `${SITE_URL}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`,
+    pct: Number(cadastro.comissaoPct ?? COMISSAO_PADRAO_PCT),
+  });
+});
+
+// painel do próprio afiliado: vendas, comissão e código
+aplicacao.get("/afiliados/painel", (req, res) => {
+  const cnpj = String(req.query.cnpj ?? "").replace(/\D/g, "");
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (!cadastro || cadastro.status !== "aprovado") {
+    return res.status(403).json({ erro: "Cadastro não aprovado." });
+  }
+  const minhas = vendasAfiliados.filter((v) => v.cnpj === cnpj);
+  const meusSaques = saquesAfiliados.filter((s) => s.cnpj === cnpj);
+  res.json({
+    ok: true,
+    codigo: cadastro.codigoAfiliado ?? null,
+    url: cadastro.codigoAfiliado
+      ? `${SITE_URL}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`
+      : null,
+    pct: Number(cadastro.comissaoPct ?? COMISSAO_PADRAO_PCT),
+    totais: {
+      vendas: minhas.length,
+      vendidoCentavos: minhas.reduce((s, v) => s + v.totalCentavos, 0),
+      comissaoCentavos: minhas.reduce((s, v) => s + v.comissaoCentavos, 0),
+      disponivelCentavos: saldoAfiliado(cnpj),
+      aguardandoSaqueCentavos: meusSaques
+        .filter((s) => s.status === "pendente")
+        .reduce((s, x) => s + x.valorCentavos, 0),
+      sacadoCentavos: meusSaques
+        .filter((s) => s.status === "pago")
+        .reduce((s, x) => s + x.valorCentavos, 0),
+    },
+    vendas: minhas.slice(-200).reverse(),
+    saques: meusSaques.slice(-50).reverse(),
+  });
+});
+
+// afiliado pede o resgate da comissão (Pix manual: o admin paga e marca)
+aplicacao.post("/afiliados/saque", async (req, res) => {
+  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (!cadastro || cadastro.status !== "aprovado") {
+    return res.status(403).json({ erro: "Cadastro não aprovado." });
+  }
+  const chavePix = String(req.body?.chavePix ?? "").trim().slice(0, 120);
+  if (!chavePix) return res.status(400).json({ erro: "Informe a chave Pix para receber." });
+  const disponivel = saldoAfiliado(cnpj);
+  const valor = req.body?.valorCentavos != null ? Number(req.body.valorCentavos) : disponivel;
+  if (!Number.isInteger(valor) || valor <= 0) {
+    return res.status(400).json({ erro: "Valor de saque inválido." });
+  }
+  if (valor > disponivel) {
+    return res.status(400).json({ erro: "Valor maior que o saldo disponível." });
+  }
+  const saque = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    cnpj,
+    codigo: cadastro.codigoAfiliado ?? null,
+    razao: cadastro.razao,
+    nome: cadastro.nome,
+    data: new Date().toISOString(),
+    valorCentavos: valor,
+    chavePix,
+    status: "pendente",
+  };
+  saquesAfiliados.push(saque);
+  if (saquesAfiliados.length > 5000) saquesAfiliados = saquesAfiliados.slice(-5000);
+  await salvarAfiliados();
+  console.log(`[afiliados] saque pedido: ${cnpj} ${valor} centavos (pix ${chavePix})`);
+  for (const destino of EMAILS_NOTIFICACAO) {
+    enviarEmail({
+      para: destino,
+      assunto: `💸 Pedido de saque de afiliado — ${cadastro.razao || cadastro.nome} (${formatarReais(valor)})`,
+      texto:
+        `O afiliado ${cadastro.razao || cadastro.nome} pediu o resgate da comissão:\n\n` +
+        `Valor: ${formatarReais(valor)}\nChave Pix: ${chavePix}\nCNPJ: ${cnpj}\n\n` +
+        `Faça o Pix e marque como pago no painel do admin (aba Afiliados).`,
+    }).catch((erro) => console.error(`[afiliados] falha ao avisar saque: ${erro.message}`));
+  }
+  res.json({ ok: true, saque });
+});
+
+// admin marca o saque como pago (depois de fazer o Pix) ou recusa (devolve o saldo)
+aplicacao.post("/afiliados/saque-decidir", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const id = String(req.body?.id ?? "");
+  const status = String(req.body?.status ?? "");
+  if (!["pago", "recusado"].includes(status)) {
+    return res.status(400).json({ erro: "Status deve ser pago ou recusado." });
+  }
+  const saque = saquesAfiliados.find((s) => s.id === id);
+  if (!saque) return res.status(404).json({ erro: "Saque não encontrado." });
+  if (saque.status !== "pendente") {
+    return res.status(400).json({ erro: "Este saque já foi decidido." });
+  }
+  saque.status = status;
+  saque.decididoEm = new Date().toISOString();
+  await salvarAfiliados();
+  console.log(`[afiliados] saque ${id} → ${status}`);
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === saque.cnpj);
+  if (cadastro?.email) {
+    enviarEmail({
+      para: cadastro.email,
+      assunto:
+        status === "pago"
+          ? `✅ Seu saque de ${formatarReais(saque.valorCentavos)} foi pago!`
+          : "Sobre o seu pedido de saque Be2Beauty",
+      texto:
+        status === "pago"
+          ? `Olá, ${cadastro.nome || "afiliado"}!\n\nSeu resgate de ${formatarReais(saque.valorCentavos)} foi enviado para a chave Pix ${saque.chavePix}.\n\nObrigado por divulgar a BeautyNow!\nEquipe Be2Beauty`
+          : `Olá, ${cadastro.nome || "afiliado"}.\n\nSeu pedido de saque de ${formatarReais(saque.valorCentavos)} não foi aprovado e o valor voltou para o seu saldo. Em caso de dúvida: (21) 99732-2464.\n\nEquipe Be2Beauty`,
+    }).catch((erro) => console.error(`[afiliados] falha ao avisar afiliado: ${erro.message}`));
+  }
+  res.json({ ok: true, status });
+});
+
+// visão do admin: todos os afiliados, vendas de cada um e totais gerais
+aplicacao.get("/afiliados/admin", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const afiliados = cadastrosB2B
+    .filter((c) => c.status === "aprovado")
+    .map((c) => {
+      const minhas = vendasAfiliados.filter((v) => v.cnpj === c.cnpj);
+      return {
+        cnpj: c.cnpj,
+        razao: c.razao,
+        nome: c.nome,
+        email: c.email,
+        whatsapp: c.whatsapp,
+        codigo: c.codigoAfiliado ?? null,
+        pct: Number(c.comissaoPct ?? COMISSAO_PADRAO_PCT),
+        vendas: minhas.length,
+        vendidoCentavos: minhas.reduce((s, v) => s + v.totalCentavos, 0),
+        comissaoCentavos: minhas.reduce((s, v) => s + v.comissaoCentavos, 0),
+        disponivelCentavos: saldoAfiliado(c.cnpj),
+      };
+    });
+  res.json({
+    ok: true,
+    afiliados,
+    geral: {
+      vendas: vendasAfiliados.length,
+      vendidoCentavos: vendasAfiliados.reduce((s, v) => s + v.totalCentavos, 0),
+      comissaoCentavos: vendasAfiliados.reduce((s, v) => s + v.comissaoCentavos, 0),
+      saquesPendentes: saquesAfiliados.filter((s) => s.status === "pendente").length,
+      aPagarCentavos: saquesAfiliados
+        .filter((s) => s.status === "pendente")
+        .reduce((s, x) => s + x.valorCentavos, 0),
+    },
+    ultimas: vendasAfiliados.slice(-100).reverse(),
+    saques: saquesAfiliados.slice(-100).reverse(),
+  });
+});
+
+// admin define a comissão (%) de um afiliado — vale para as PRÓXIMAS vendas
+aplicacao.post("/afiliados/comissao", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  const pct = Number(req.body?.pct);
+  if (!Number.isFinite(pct) || pct < 0 || pct > 90) {
+    return res.status(400).json({ erro: "Comissão deve ser um número entre 0 e 90 (%)." });
+  }
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
+  cadastro.comissaoPct = pct;
+  await salvarB2B();
+  console.log(`[afiliados] comissão de ${cnpj} → ${pct}%`);
+  res.json({ ok: true, pct });
+});
+
+// backup para o robô do GitHub versionar (vendas de afiliado não se perdem)
+aplicacao.get("/afiliados/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({
+    geradoEm: new Date().toISOString(),
+    vendas: vendasAfiliados,
+    pendentes: pendentesAfiliados,
+    saques: saquesAfiliados,
+  });
 });
 
 // ===== Envio de logos pelo navegador (sem depender de anexo no chat) =====

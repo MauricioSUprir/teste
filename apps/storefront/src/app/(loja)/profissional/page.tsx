@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { copy } from "@/lib/copy";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { CadastroProfissional } from "@/components/b2b/CadastroProfissional";
+import { PainelAfiliado } from "@/components/b2b/PainelAfiliado";
 
 export const metadata: Metadata = {
   title: copy.b2b.paginaTitulo,
@@ -20,6 +21,9 @@ export default function PaginaProfissional() {
       <div className="mt-6">
         <CadastroProfissional />
       </div>
+      {/* aparece só com o CNPJ aprovado neste navegador */}
+      <PainelAfiliado />
+
     </div>
   );
 }

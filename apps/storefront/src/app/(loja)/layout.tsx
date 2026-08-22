@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { CapturaAfiliado } from "@/components/layout/CapturaAfiliado";
 import { DrawerCarrinho } from "@/components/carrinho/DrawerCarrinho";
 
 /**
@@ -10,6 +11,7 @@ import { DrawerCarrinho } from "@/components/carrinho/DrawerCarrinho";
 export default function LayoutLoja({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <CapturaAfiliado />
       <Header />
       <main id="conteudo">{children}</main>
       <Footer />
