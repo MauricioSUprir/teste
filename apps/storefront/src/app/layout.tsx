@@ -21,7 +21,7 @@ const fraunces = Fraunces({
 
 const tituloLoja =
   LOJA.b2b
-    ? "Be2Beauty — Cosméticos para profissionais (venda B2B)"
+    ? "Be2Beauty — O e-commerce do cabeleireiro"
     : "BeautyNow — Cosméticos profissionais com curadoria";
 const descricaoLoja = LOJA.b2b
   ? "Distribuidora de cosméticos para profissionais e revenda. Cadastre o CNPJ do seu salão ou loja e acesse a tabela de preços exclusiva."

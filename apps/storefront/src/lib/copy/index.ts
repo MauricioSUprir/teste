@@ -9,7 +9,7 @@ export const copy = {
   marca: {
     nome: LOJA.nome,
     slogan: LOJA.b2b
-      ? "Cosméticos para profissionais, direto da distribuidora."
+      ? "O e-commerce do cabeleireiro."
       : "Cosméticos profissionais, curadoria de verdade.",
   },
   header: {
@@ -19,7 +19,7 @@ export const copy = {
     menu: "Menu",
     fecharMenu: "Fechar menu",
     anuncio: LOJA.b2b
-      ? "Venda exclusiva para profissionais · Cadastre seu CNPJ e libere os preços"
+      ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
       : "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais",
   },
   nav: {
@@ -226,7 +226,7 @@ export const copy = {
     contato: "Fale com a gente",
     rastrearPedido: "Rastrear pedido",
     cnpj: LOJA.b2b
-      ? "Be2Beauty · Distribuidora de cosméticos para profissionais"
+      ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
       : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
     endereco: "Rio de Janeiro, RJ · Atendimento: (21) 99732-2464",
     direitos: `© ${new Date().getFullYear()} ${LOJA.nome}. Todos os direitos reservados.`,

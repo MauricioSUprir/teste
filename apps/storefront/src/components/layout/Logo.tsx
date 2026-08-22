@@ -1,14 +1,38 @@
 import { LOJA } from "@/lib/loja";
 
 /**
- * Logo da loja — monograma + wordmark vetoriais, recriação da identidade
- * oficial. BeautyNow: "BN BEAUTY NOW". Be2Beauty: "B2B BE2BEAUTY"
- * (placeholder vetorial até o Mauricio enviar a logo oficial pela página
- * de envio). As cores vêm das variáveis do tema, então cada pele pinta
- * a logo com a própria paleta (roxo ou azul-marinho).
+ * Logo da loja — recriação vetorial da identidade oficial de cada marca.
+ * BeautyNow: monograma "BN" + wordmark "BEAUTY NOW".
+ * Be2Beauty: wordmark "BE2BEAUTY" ("BE2" em peso forte) com a assinatura
+ * "O E-COMMERCE DO CABELEIREIRO." — como no site oficial da marca.
+ * As cores vêm das variáveis do tema, então cada pele pinta com a própria
+ * paleta (roxo ou azul-marinho).
  */
 export function Logo({ altura = 28 }: { altura?: number }) {
-  const b2b = LOJA.id === "be2beauty";
+  if (LOJA.id === "be2beauty") {
+    return (
+      <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
+        <span
+          className="leading-none"
+          style={{ fontSize: altura * 0.72, color: "var(--bn-roxo)", letterSpacing: "0.04em" }}
+        >
+          <strong className="font-extrabold">BE2</strong>
+          <span className="font-light">BEAUTY</span>
+        </span>
+        <span
+          className="font-semibold leading-none"
+          style={{
+            fontSize: altura * 0.22,
+            color: "var(--bn-roxo)",
+            letterSpacing: "0.14em",
+            marginTop: altura * 0.12,
+          }}
+        >
+          O E-COMMERCE DO CABELEIREIRO.
+        </span>
+      </span>
+    );
+  }
   return (
     <span
       className="inline-flex items-baseline"
@@ -19,7 +43,7 @@ export function Logo({ altura = 28 }: { altura?: number }) {
         className="font-titulo font-semibold leading-none"
         style={{ fontSize: altura, color: "var(--bn-roxo)", letterSpacing: "-0.03em" }}
       >
-        {b2b ? "B2B" : "BN"}
+        BN
       </span>
       <span
         className="font-medium leading-none"
@@ -29,7 +53,7 @@ export function Logo({ altura = 28 }: { altura?: number }) {
           letterSpacing: "0.3em",
         }}
       >
-        {b2b ? <>BE2BEAUTY</> : <>BEAUTY&nbsp;NOW</>}
+        BEAUTY&nbsp;NOW
       </span>
     </span>
   );

@@ -26,7 +26,7 @@ services:
       - key: ADMIN_NOTIFICACAO_EMAILS
         value: lojabeautynow@gmail.com
       - key: ORIGENS_PERMITIDAS
-        value: https://www.beautynowstore.com.br,https://beautynowstore.com.br,https://mauriciosuprir.github.io
+        value: https://www.beautynowstore.com.br,https://beautynowstore.com.br,https://www.be2beauty.com.br,https://be2beauty.com.br,https://mauriciosuprir.github.io
       - key: HUB_API_URL
         value: https://comercial.thebeautyhub.app/api/loja
       - key: HUB_API_KEY
