@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
+import { LOJA } from "@/lib/loja";
 import { comBase } from "@/lib/caminho";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
@@ -19,10 +20,19 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-linha bg-white">
-      {/* barra de anúncio */}
-      <p className="bg-tinta px-4 py-1.5 text-center text-[0.75rem] font-medium text-white">
-        {copy.header.anuncio}
-      </p>
+      {/* barra de anúncio — na Be2Beauty leva ao cadastro profissional */}
+      {LOJA.b2b ? (
+        <Link
+          href="/profissional"
+          className="block bg-tinta px-4 py-1.5 text-center text-[0.75rem] font-medium text-white hover:underline"
+        >
+          {copy.header.anuncio}
+        </Link>
+      ) : (
+        <p className="bg-tinta px-4 py-1.5 text-center text-[0.75rem] font-medium text-white">
+          {copy.header.anuncio}
+        </p>
+      )}
 
       <div className="container-bn flex h-16 items-center gap-4">
         {/* menu mobile */}
@@ -42,7 +52,7 @@ export function Header() {
           </svg>
         </button>
 
-        <Link href="/" aria-label="BeautyNow — página inicial" className="shrink-0">
+        <Link href="/" aria-label={`${copy.marca.nome} — página inicial`} className="shrink-0">
           <Logo />
         </Link>
 

@@ -25,6 +25,26 @@
   --shadow-drawer: 0 0 0 1px rgba(20, 22, 26, 0.05), -8px 0 32px rgba(20, 22, 26, 0.12);
 }
 
+/*
+ * Pele Be2Beauty (venda profissional) — mesmo motor, paleta azul-marinho.
+ * As utilities do Tailwind 4 compilam para var(--color-*), então basta
+ * redefinir as variáveis quando o layout marca html[data-loja="be2beauty"].
+ */
+html[data-loja="be2beauty"] {
+  --color-roxo: #13315c;
+  --color-roxo-escuro: #0b2545;
+  --color-roxo-claro: #e9eff6;
+  --color-violeta: #1f5fa8;
+  --color-violeta-claro: #e4edf7;
+  --color-oferta: #0b2545;
+  --bn-roxo: #13315c;
+  --bn-roxo-escuro: #0b2545;
+  --bn-roxo-claro: #e9eff6;
+  --bn-violeta: #1f5fa8;
+  --bn-violeta-claro: #e4edf7;
+  --bn-oferta: #0b2545;
+}
+
 html {
   scroll-behavior: smooth;
 }

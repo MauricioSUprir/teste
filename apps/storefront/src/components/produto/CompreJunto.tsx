@@ -3,6 +3,7 @@
 /** "Compre junto" — bundle com 10% de desconto, adiciona tudo de uma vez (ticket 3.6). */
 import Link from "next/link";
 import { copy } from "@/lib/copy";
+import { useB2B } from "@/lib/b2b/contexto";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { formatarPreco } from "@/lib/preco";
@@ -18,10 +19,12 @@ export function CompreJunto({
   companheiros: Produto[];
 }) {
   const carrinho = useCarrinho();
+  const { liberado } = useB2B();
   const itens = [principal, ...companheiros].filter((p) =>
     p.variantes.some((v) => v.estoque > 0)
   );
-  if (itens.length < 2) return null;
+  // combo é atalho de compra — sem preço liberado (Be2Beauty) não aparece
+  if (!liberado || itens.length < 2) return null;
 
   const variantes = itens.map((p) => p.variantes.find((v) => v.estoque > 0)!);
   const totalCheio = variantes.reduce((acc, v) => acc + v.precoPor, 0);

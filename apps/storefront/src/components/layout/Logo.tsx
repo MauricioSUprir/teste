@@ -1,8 +1,14 @@
+import { LOJA } from "@/lib/loja";
+
 /**
- * Logo BeautyNow — monograma "BN" em roxo profundo com wordmark
- * "BEAUTY NOW" em violeta, recriação vetorial da identidade oficial.
+ * Logo da loja — monograma + wordmark vetoriais, recriação da identidade
+ * oficial. BeautyNow: "BN BEAUTY NOW". Be2Beauty: "B2B BE2BEAUTY"
+ * (placeholder vetorial até o Mauricio enviar a logo oficial pela página
+ * de envio). As cores vêm das variáveis do tema, então cada pele pinta
+ * a logo com a própria paleta (roxo ou azul-marinho).
  */
 export function Logo({ altura = 28 }: { altura?: number }) {
+  const b2b = LOJA.id === "be2beauty";
   return (
     <span
       className="inline-flex items-baseline"
@@ -11,19 +17,19 @@ export function Logo({ altura = 28 }: { altura?: number }) {
       <span
         aria-hidden="true"
         className="font-titulo font-semibold leading-none"
-        style={{ fontSize: altura, color: "#4A2882", letterSpacing: "-0.03em" }}
+        style={{ fontSize: altura, color: "var(--bn-roxo)", letterSpacing: "-0.03em" }}
       >
-        BN
+        {b2b ? "B2B" : "BN"}
       </span>
       <span
         className="font-medium leading-none"
         style={{
           fontSize: altura * 0.4,
-          color: "#6847C8",
+          color: "var(--bn-violeta)",
           letterSpacing: "0.3em",
         }}
       >
-        BEAUTY&nbsp;NOW
+        {b2b ? <>BE2BEAUTY</> : <>BEAUTY&nbsp;NOW</>}
       </span>
     </span>
   );

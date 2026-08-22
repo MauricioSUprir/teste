@@ -19,16 +19,26 @@ import { AbaCatalogo } from "@/components/admin/AbaCatalogo";
 import { AbaClientes, type ClienteResumo } from "@/components/admin/AbaClientes";
 import { AbaCupons } from "@/components/admin/AbaCupons";
 import { AbaBanners } from "@/components/admin/AbaBanners";
+import { AbaProfissionais } from "@/components/admin/AbaProfissionais";
 import { AbaConfiguracoes } from "@/components/admin/AbaConfiguracoes";
 import { FormEntrar } from "./FormEntrar";
 
-type Aba = "visao" | "pedidos" | "catalogo" | "banners" | "cupons" | "clientes" | "config";
+type Aba =
+  | "visao"
+  | "pedidos"
+  | "catalogo"
+  | "banners"
+  | "profissionais"
+  | "cupons"
+  | "clientes"
+  | "config";
 
 const abas: { id: Aba; rotulo: string }[] = [
   { id: "visao", rotulo: "Visão geral" },
   { id: "pedidos", rotulo: "Pedidos" },
   { id: "catalogo", rotulo: "Catálogo" },
   { id: "banners", rotulo: "Banners" },
+  { id: "profissionais", rotulo: "Profissionais" },
   { id: "cupons", rotulo: "Cupons" },
   { id: "clientes", rotulo: "Clientes" },
   { id: "config", rotulo: "Configurações" },
@@ -114,6 +124,7 @@ export function PainelAdmin() {
         {aba === "pedidos" && <AbaPedidos pedidos={pedidos} aoMudarStatus={mudarStatus} />}
         {aba === "catalogo" && <AbaCatalogo />}
         {aba === "banners" && <AbaBanners />}
+        {aba === "profissionais" && <AbaProfissionais />}
         {aba === "cupons" && <AbaCupons />}
         {aba === "clientes" && <AbaClientes clientes={clientes} pedidos={pedidos} />}
         {aba === "config" && <AbaConfiguracoes />}

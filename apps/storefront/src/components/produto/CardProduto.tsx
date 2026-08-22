@@ -7,6 +7,7 @@ import { notaMedia, obterMarca, temEstoque } from "@/lib/catalogo/consultas";
 import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { formatarPreco, parcelamento, percentualDesconto, precoPix } from "@/lib/preco";
+import { PrecoProtegido } from "@/components/b2b/PrecoProtegido";
 import { BotaoFavorito } from "./BotaoFavorito";
 import { ImagemProduto } from "./ImagemProduto";
 
@@ -98,20 +99,22 @@ export function CardProduto({ produto: produtoBase }: { produto: Produto }) {
 
         {disponivel ? (
           <div className="mt-1">
-            <p className="flex items-baseline gap-2">
-              <span className="num text-[1.0625rem] font-semibold text-tinta">
-                {formatarPreco(variante.precoPor)}
-              </span>
-              {variante.precoDe && variante.precoDe > variante.precoPor && (
-                <s className="num text-[0.8125rem] text-cinza">{formatarPreco(variante.precoDe)}</s>
-              )}
-            </p>
-            <p className="num text-[0.875rem] font-medium text-sucesso">
-              {formatarPreco(precoPix(variante.precoPor))} {copy.card.noPix}
-            </p>
-            <p className="num text-[0.75rem] text-cinza">
-              ou {parcela.vezes}x de {formatarPreco(parcela.valor)} {copy.card.semJuros}
-            </p>
+            <PrecoProtegido comLink={false} compacto>
+              <p className="flex items-baseline gap-2">
+                <span className="num text-[1.0625rem] font-semibold text-tinta">
+                  {formatarPreco(variante.precoPor)}
+                </span>
+                {variante.precoDe && variante.precoDe > variante.precoPor && (
+                  <s className="num text-[0.8125rem] text-cinza">{formatarPreco(variante.precoDe)}</s>
+                )}
+              </p>
+              <p className="num text-[0.875rem] font-medium text-sucesso">
+                {formatarPreco(precoPix(variante.precoPor))} {copy.card.noPix}
+              </p>
+              <p className="num text-[0.75rem] text-cinza">
+                ou {parcela.vezes}x de {formatarPreco(parcela.valor)} {copy.card.semJuros}
+              </p>
+            </PrecoProtegido>
           </div>
         ) : (
           <p className="mt-1 text-[0.875rem] text-cinza">{copy.pdp.aviseMe}</p>

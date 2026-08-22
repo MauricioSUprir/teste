@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useB2B } from "@/lib/b2b/contexto";
 import { buscar, obterMarca } from "@/lib/catalogo/consultas";
 import { formatarPreco, precoPix } from "@/lib/preco";
 import { copy } from "@/lib/copy";
@@ -10,6 +11,7 @@ import { ImagemProduto } from "@/components/produto/ImagemProduto";
 
 /** Busca com autocomplete (produto, marca, preço) — ticket 2.5. */
 export function BuscaHeader() {
+  const { liberado } = useB2B();
   const [termo, setTermo] = useState("");
   const [focado, setFocado] = useState(false);
   const [indiceAtivo, setIndiceAtivo] = useState(-1);
@@ -104,10 +106,15 @@ export function BuscaHeader() {
                     <span className="min-w-0">
                       <span className="block truncate text-[0.875rem] text-tinta">{p.titulo}</span>
                       <span className="block text-[0.75rem] text-cinza">
-                        {marca?.nome} ·{" "}
-                        <span className="num font-medium text-sucesso">
-                          {formatarPreco(precoPix(p.variantes[0].precoPor))} no Pix
-                        </span>
+                        {marca?.nome}
+                        {liberado && (
+                          <>
+                            {" · "}
+                            <span className="num font-medium text-sucesso">
+                              {formatarPreco(precoPix(p.variantes[0].precoPor))} no Pix
+                            </span>
+                          </>
+                        )}
                       </span>
                     </span>
                   </Link>

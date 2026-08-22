@@ -1,11 +1,16 @@
+import { LOJA } from "@/lib/loja";
+
 /**
  * Todos os textos de interface em pt-BR — CLAUDE.md §4.
  * Nada de string solta em JSX. Voz: direta, informativa, sem infantilizar (docs/03 §6).
+ * Textos que mudam entre BeautyNow e Be2Beauty usam LOJA.b2b.
  */
 export const copy = {
   marca: {
-    nome: "BeautyNow",
-    slogan: "Cosméticos profissionais, curadoria de verdade.",
+    nome: LOJA.nome,
+    slogan: LOJA.b2b
+      ? "Cosméticos para profissionais, direto da distribuidora."
+      : "Cosméticos profissionais, curadoria de verdade.",
   },
   header: {
     busca: "Buscar produto, marca ou necessidade",
@@ -13,7 +18,9 @@ export const copy = {
     sacola: "Sacola",
     menu: "Menu",
     fecharMenu: "Fechar menu",
-    anuncio: "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais",
+    anuncio: LOJA.b2b
+      ? "Venda exclusiva para profissionais · Cadastre seu CNPJ e libere os preços"
+      : "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais",
   },
   nav: {
     inicio: "Início",
@@ -218,9 +225,46 @@ export const copy = {
     avaliacoes: "Avaliações da loja",
     contato: "Fale com a gente",
     rastrearPedido: "Rastrear pedido",
-    cnpj: "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
+    cnpj: LOJA.b2b
+      ? "Be2Beauty · Distribuidora de cosméticos para profissionais"
+      : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
     endereco: "Rio de Janeiro, RJ · Atendimento: (21) 99732-2464",
-    direitos: `© ${new Date().getFullYear()} BeautyNow. Todos os direitos reservados.`,
+    direitos: `© ${new Date().getFullYear()} ${LOJA.nome}. Todos os direitos reservados.`,
+  },
+  b2b: {
+    precoFechado: "Preço para profissionais",
+    liberarPrecos: "Cadastre seu CNPJ para ver os preços",
+    aguardandoAprovacao: "Cadastro em análise — avisamos por e-mail quando for aprovado",
+    recusado: "Cadastro não aprovado. Fale com a gente: (21) 99732-2464",
+    paginaTitulo: "Cadastro profissional",
+    paginaTexto:
+      "A Be2Beauty vende exclusivamente para profissionais e lojistas. Cadastre o CNPJ do seu salão, clínica ou loja: após a aprovação, os preços e a compra ficam liberados neste navegador.",
+    cnpj: "CNPJ",
+    razaoSocial: "Razão social",
+    nomeResponsavel: "Nome do responsável",
+    email: "E-mail",
+    whatsapp: "WhatsApp",
+    enviar: "Enviar cadastro",
+    enviando: "Enviando…",
+    enviadoOk: "✅ Cadastro recebido! Vamos analisar e avisar por e-mail.",
+    cnpjInvalido: "CNPJ inválido — confira os 14 dígitos.",
+    falha: "Não foi possível enviar agora. Tente novamente em instantes.",
+    statusTitulo: "Situação do seu cadastro",
+    statusPendente: "⏳ Em análise",
+    statusAprovado: "✅ Aprovado — preços liberados!",
+    statusRecusado: "❌ Não aprovado",
+    verificarNovamente: "Verificar novamente",
+    trocarCnpj: "Cadastrar outro CNPJ",
+    admin: {
+      titulo: "Profissionais (B2B)",
+      texto: "Cadastros com CNPJ do site Be2Beauty. Aprovar libera os preços para o cliente.",
+      vazio: "Nenhum cadastro ainda.",
+      aprovar: "Aprovar",
+      recusar: "Recusar",
+      pendente: "Pendente",
+      aprovado: "Aprovado",
+      recusadoRotulo: "Recusado",
+    },
   },
   atendimento: {
     buscaRotulo: "Buscar nas perguntas frequentes",

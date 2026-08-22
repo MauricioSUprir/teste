@@ -6,6 +6,8 @@
  */
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
+import { useB2B } from "@/lib/b2b/contexto";
+import { PrecoProtegido } from "@/components/b2b/PrecoProtegido";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
@@ -20,6 +22,7 @@ import {
 
 export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
   const carrinho = useCarrinho();
+  const { liberado } = useB2B();
   const [produto, setProduto] = useState(produtoBase);
 
   // aplica preço/estoque editados no admin após a hidratação (PDP é estática)
@@ -67,8 +70,9 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
 
   return (
     <div>
-      {/* preço */}
+      {/* preço — na Be2Beauty fica fechado até o CNPJ ser aprovado */}
       <div className="mt-4 border-y border-linha py-4">
+        <PrecoProtegido>
         {disponivel ? (
           <>
             <p className="flex items-center gap-2.5">
@@ -105,6 +109,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
         ) : (
           <p className="text-[1.125rem] font-semibold text-erro">{copy.pdp.esgotado}</p>
         )}
+        </PrecoProtegido>
       </div>
 
       {/* variação — chips, não select (docs/03) */}
@@ -138,7 +143,8 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
         </fieldset>
       )}
 
-      {disponivel ? (
+      {/* sem preço liberado não há compra — o convite ao cadastro está acima */}
+      {!liberado ? null : disponivel ? (
         <>
           {/* quantidade + CTA — fixo no rodapé em mobile: preço e CTA sempre
               visíveis sem rolagem em 360×640 (regra crítica de docs/03 §5) */}

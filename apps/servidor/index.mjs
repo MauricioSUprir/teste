@@ -1258,6 +1258,148 @@ aplicacao.get("/avaliacoes/exportar", (req, res) => {
   res.json({ geradoEm: new Date().toISOString(), avaliacoes });
 });
 
+// ===== Cadastro profissional Be2Beauty (B2B) =====
+// O site profissional mostra o catálogo aberto mas esconde os preços até o
+// CNPJ ser aprovado no painel do admin. Mesmo esquema de persistência das
+// avaliações: /tmp (sobrevive ao sono) + backup versionado no GitHub
+// recarregado no boot (deploy não apaga cadastros).
+const ARQ_B2B = "/tmp/b2b-cadastros.json";
+const B2B_BACKUP_URL =
+  "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/b2b-backup.json";
+let cadastrosB2B = [];
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_B2B)) {
+    cadastrosB2B = JSON.parse(fs.readFileSync(ARQ_B2B, "utf8"));
+  } else {
+    const r = await fetch(B2B_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    if (r?.ok) cadastrosB2B = (await r.json())?.cadastros ?? [];
+  }
+} catch {
+  cadastrosB2B = [];
+}
+
+async function salvarB2B() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_B2B, JSON.stringify(cadastrosB2B));
+  } catch {
+    /* segue em memória */
+  }
+}
+
+/** validação oficial de CNPJ (dígitos verificadores) */
+function cnpjValido(cnpj) {
+  const d = String(cnpj).replace(/\D/g, "");
+  if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+  const calc = (tamanho) => {
+    const pesos = tamanho === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const soma = pesos.reduce((s, p, i) => s + p * Number(d[i]), 0);
+    const resto = soma % 11;
+    return resto < 2 ? 0 : 11 - resto;
+  };
+  return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
+}
+
+const ultimoCadastroB2B = new Map(); // IP → timestamp (freio anti-spam)
+
+aplicacao.post("/b2b/cadastro", async (req, res) => {
+  const ip = String(req.headers["x-forwarded-for"] ?? req.ip ?? "").split(",")[0];
+  if (Date.now() - (ultimoCadastroB2B.get(ip) ?? 0) < 60_000) {
+    return res.status(429).json({ erro: "Espere um minutinho antes de enviar outro cadastro." });
+  }
+  const limpo = (v, max) => String(v ?? "").trim().slice(0, max);
+  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  if (!cnpjValido(cnpj)) {
+    return res.status(400).json({ erro: "CNPJ inválido — confira os 14 dígitos." });
+  }
+  const existente = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (existente) {
+    return res.json({ ok: true, status: existente.status });
+  }
+  const cadastro = {
+    cnpj,
+    razao: limpo(req.body?.razao, 120),
+    nome: limpo(req.body?.nome, 80),
+    email: limpo(req.body?.email, 120).toLowerCase(),
+    whatsapp: limpo(req.body?.whatsapp, 20),
+    criadoEm: new Date().toISOString(),
+    status: "pendente",
+  };
+  cadastrosB2B.push(cadastro);
+  if (cadastrosB2B.length > 5000) cadastrosB2B = cadastrosB2B.slice(-5000);
+  ultimoCadastroB2B.set(ip, Date.now());
+  await salvarB2B();
+  console.log(`[b2b] novo cadastro: ${cadastro.razao || cadastro.nome} (${cnpj})`);
+  for (const destino of EMAILS_NOTIFICACAO) {
+    enviarEmail({
+      para: destino,
+      assunto: `💼 Novo cadastro profissional Be2Beauty — ${cadastro.razao || cadastro.nome}`,
+      texto:
+        `Novo cadastro B2B aguardando aprovação:\n\n` +
+        `CNPJ: ${cnpj}\nRazão social: ${cadastro.razao}\nResponsável: ${cadastro.nome}\n` +
+        `E-mail: ${cadastro.email}\nWhatsApp: ${cadastro.whatsapp}\n\n` +
+        `Aprove no painel do admin (aba Profissionais).`,
+    }).catch((erro) => console.error(`[b2b] falha ao notificar: ${erro.message}`));
+  }
+  res.json({ ok: true, status: "pendente" });
+});
+
+// consulta pública de situação (o navegador do profissional pergunta por aqui)
+aplicacao.get("/b2b/status", (req, res) => {
+  const cnpj = String(req.query.cnpj ?? "").replace(/\D/g, "");
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  res.json({ ok: true, status: cadastro?.status ?? "nao_cadastrado" });
+});
+
+// lista completa para o painel do admin
+aplicacao.get("/b2b/lista", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ ok: true, total: cadastrosB2B.length, cadastros: [...cadastrosB2B].reverse() });
+});
+
+// aprovação/recusa pelo painel do admin
+aplicacao.post("/b2b/decidir", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  const status = String(req.body?.status ?? "");
+  if (!["aprovado", "recusado", "pendente"].includes(status)) {
+    return res.status(400).json({ erro: "Status deve ser aprovado, recusado ou pendente." });
+  }
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
+  cadastro.status = status;
+  cadastro.decididoEm = new Date().toISOString();
+  await salvarB2B();
+  console.log(`[b2b] ${cnpj} → ${status}`);
+  if (cadastro.email && status !== "pendente") {
+    enviarEmail({
+      para: cadastro.email,
+      assunto:
+        status === "aprovado"
+          ? "✅ Seu cadastro Be2Beauty foi aprovado!"
+          : "Sobre o seu cadastro Be2Beauty",
+      texto:
+        status === "aprovado"
+          ? `Olá, ${cadastro.nome || "profissional"}!\n\nSeu cadastro profissional foi aprovado. Acesse o site, informe o CNPJ ${cnpj} na página "Cadastro profissional" e os preços ficam liberados.\n\nBoas compras!\nEquipe Be2Beauty`
+          : `Olá, ${cadastro.nome || "profissional"}.\n\nSeu cadastro não foi aprovado neste momento. Em caso de dúvida, fale com a gente: (21) 99732-2464.\n\nEquipe Be2Beauty`,
+    }).catch((erro) => console.error(`[b2b] falha ao avisar cliente: ${erro.message}`));
+  }
+  res.json({ ok: true, status });
+});
+
+// backup para o robô do GitHub versionar (não perde cadastro em deploy)
+aplicacao.get("/b2b/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ geradoEm: new Date().toISOString(), cadastros: cadastrosB2B });
+});
+
 // ===== Envio de logos pelo navegador (sem depender de anexo no chat) =====
 // O Mauricio arrasta as imagens na página; ficam guardadas aqui e o robô do
 // GitHub coleta em /enviar-logos/exportar para versionar no repositório.

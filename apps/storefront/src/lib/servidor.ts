@@ -266,3 +266,84 @@ export async function excluirBanner(slot: string) {
     return { ok: false };
   }
 }
+
+// ===== Cadastro profissional Be2Beauty (B2B) =====
+
+export type StatusB2B = "nao_cadastrado" | "pendente" | "aprovado" | "recusado";
+
+export interface CadastroB2B {
+  cnpj: string;
+  razao: string;
+  nome: string;
+  email: string;
+  whatsapp: string;
+  criadoEm: string;
+  status: StatusB2B;
+}
+
+/** Envia o cadastro profissional (CNPJ) para análise. */
+export async function cadastrarB2B(dados: {
+  cnpj: string;
+  razao: string;
+  nome: string;
+  email: string;
+  whatsapp: string;
+}): Promise<{ ok: boolean; status?: StatusB2B; erro?: string }> {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/b2b/cadastro`, 75_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados),
+    });
+    const corpo = (await resposta.json().catch(() => ({}))) as { status?: StatusB2B; erro?: string };
+    return { ok: resposta.ok, status: corpo.status, erro: corpo.erro };
+  } catch {
+    return { ok: false, erro: "Sem conexão com o servidor. Tente de novo em instantes." };
+  }
+}
+
+/** Consulta a situação de um CNPJ cadastrado. */
+export async function consultarStatusB2B(cnpj: string): Promise<StatusB2B | null> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/b2b/status?cnpj=${encodeURIComponent(cnpj)}`,
+      65_000,
+      {}
+    );
+    if (!resposta.ok) return null;
+    const dados = (await resposta.json()) as { status?: StatusB2B };
+    return dados.status ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Lista os cadastros B2B (admin). */
+export async function listarCadastrosB2B(): Promise<{ ok: boolean; cadastros: CadastroB2B[] }> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/b2b/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      65_000,
+      {}
+    );
+    if (!resposta.ok) return { ok: false, cadastros: [] };
+    const dados = (await resposta.json()) as { cadastros?: CadastroB2B[] };
+    return { ok: true, cadastros: dados.cadastros ?? [] };
+  } catch {
+    return { ok: false, cadastros: [] };
+  }
+}
+
+/** Aprova/recusa um cadastro B2B (admin). */
+export async function decidirCadastroB2B(cnpj: string, status: "aprovado" | "recusado" | "pendente") {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/b2b/decidir`, 30_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cnpj, status, chave: CHAVE_ADMIN_SERVIDOR }),
+    });
+    return { ok: resposta.ok };
+  } catch {
+    return { ok: false };
+  }
+}

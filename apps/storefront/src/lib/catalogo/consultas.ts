@@ -13,6 +13,7 @@ import {
 } from "./dados";
 import dadosHub from "./dados-hub.json";
 import { aplicarAjustesProduto, lerAjustes, obterProdutoLocal } from "./ajustes";
+import { LOJA, ajustarPrecoLoja } from "@/lib/loja";
 import type { Categoria, CategoriaSlug, Marca, Necessidade, Produto } from "./tipos";
 
 interface CatalogoHub {
@@ -25,6 +26,19 @@ interface CatalogoHub {
 
 const hub = dadosHub as unknown as CatalogoHub;
 const usaHub = hub.produtos.length > 0;
+
+// dados-hub.json guarda o preço do Hub (tabela profissional). A política de
+// preço de cada loja entra AQUI, num ponto único: BeautyNow ×1,7 e
+// Be2Beauty ×1 (regra do Mauricio, 22/08). Tudo rio abaixo (PLP, PDP,
+// carrinho, checkout, Mercado Pago) já enxerga o valor ajustado.
+if (LOJA.multiplicadorPreco !== 1) {
+  for (const p of hub.produtos) {
+    for (const v of p.variantes) {
+      v.precoPor = ajustarPrecoLoja(v.precoPor);
+      if (v.precoDe != null) v.precoDe = ajustarPrecoLoja(v.precoDe);
+    }
+  }
+}
 
 export const catalogoReal = usaHub;
 const categorias: Categoria[] = usaHub ? hub.categorias : categoriasDemo;
