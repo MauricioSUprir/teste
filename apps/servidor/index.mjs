@@ -680,6 +680,12 @@ aplicacao.post("/pedidos", async (req, res) => {
   guardarPedidoRecente(pedido); // o webhook do MP usa isso para faturar no Bling
   anotarPedidoAfiliado(pedido); // se veio de link de afiliado, fica anotado até pagar
 
+  // pedido de TESTE (só com a chave do admin): registra a atribuição de
+  // afiliado mas NÃO vai ao Hub nem dispara aviso de venda
+  if (pedido.testeChave && EXPORT_CHAVE && pedido.testeChave === EXPORT_CHAVE) {
+    return res.json({ ok: true, teste: true });
+  }
+
   // notificação de venda para o(s) admin(s) — independe do Hub.
   // Com Mercado Pago ativo, a notificação sai no webhook quando o pagamento
   // é APROVADO (evita avisar venda que nunca foi paga).
@@ -1724,6 +1730,43 @@ aplicacao.post("/afiliados/comissao", async (req, res) => {
   await salvarB2B();
   console.log(`[afiliados] comissão de ${cnpj} → ${pct}%`);
   res.json({ ok: true, pct });
+});
+
+// credita manualmente um pedido anotado (venda paga fora do MP, ou teste do
+// admin) — mesmo caminho que o webhook usa, então prova o fluxo inteiro
+aplicacao.post("/afiliados/creditar-manual", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const numero = String(req.body?.numero ?? "");
+  if (!pendentesAfiliados[numero]) {
+    return res.status(404).json({ erro: "Pedido não está anotado como indicação de afiliado." });
+  }
+  await creditarVendaAfiliado(numero, 0);
+  const venda = vendasAfiliados.find((v) => v.pedido === numero);
+  if (!venda) return res.status(500).json({ erro: "Não foi possível creditar." });
+  res.json({ ok: true, venda });
+});
+
+// exclui um cadastro B2B e TUDO dele (vendas, saques, pendências) — usado
+// para limpar cadastros de teste ou remover um profissional de vez
+aplicacao.post("/b2b/excluir", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
+  cadastrosB2B = cadastrosB2B.filter((c) => c.cnpj !== cnpj);
+  vendasAfiliados = vendasAfiliados.filter((v) => v.cnpj !== cnpj);
+  saquesAfiliados = saquesAfiliados.filter((s) => s.cnpj !== cnpj);
+  for (const [numero, p] of Object.entries(pendentesAfiliados)) {
+    if (p.codigo === cadastro.codigoAfiliado) delete pendentesAfiliados[numero];
+  }
+  await salvarB2B();
+  await salvarAfiliados();
+  console.log(`[b2b] cadastro ${cnpj} excluído com vendas e saques`);
+  res.json({ ok: true });
 });
 
 // backup para o robô do GitHub versionar (vendas de afiliado não se perdem)
