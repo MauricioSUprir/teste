@@ -389,7 +389,7 @@ export const copy = {
     sair: "Sair da conta",
     painelAdmin: "Painel do administrador",
     admin: {
-      titulo: "Painel BeautyNow",
+      titulo: `Painel ${LOJA.nome}`,
       subtitulo: "Área restrita do administrador.",
       catalogo: "Catálogo",
       produtos: "produtos ativos",
