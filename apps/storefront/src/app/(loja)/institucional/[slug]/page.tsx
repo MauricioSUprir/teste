@@ -30,7 +30,7 @@ const paginas: Record<string, { titulo: string; paragrafos: string[] }> = {
     titulo: "Termos de uso",
     paragrafos: [
       "Ao utilizar o site da BeautyNow você concorda com estes termos, com a legislação brasileira aplicável ao comércio eletrônico (Decreto nº 7.962/2013) e com o Código de Defesa do Consumidor.",
-      "Os preços e condições promocionais são válidos enquanto exibidos no site. O pedido mínimo é de R$ 99. Boleto somente à vista; cartão em até 6x sem juros; Pix com 5% de desconto.",
+      "Os preços e condições promocionais são válidos enquanto exibidos no site. Boleto somente à vista; cartão em até 6x sem juros; Pix com 5% de desconto.",
       "Em caso de divergência de estoque, o pedido pode ser cancelado com reembolso integral e comunicação imediata.",
       "Texto de demonstração — versão final conforme docs/08-juridico-fiscal-lgpd.md antes do lançamento.",
     ],

@@ -239,6 +239,8 @@ export const copy = {
     paginaTitulo: "Cadastro profissional",
     paginaTexto:
       "A Be2Beauty vende exclusivamente para profissionais e lojistas. Cadastre o CNPJ do seu salão, clínica ou loja: após a aprovação, os preços e a compra ficam liberados neste navegador.",
+    semCnpj: "Não tem CNPJ? Compre no varejo pela BeautyNow →",
+    semCnpjUrl: "https://www.beautynowstore.com.br",
     cnpj: "CNPJ",
     razaoSocial: "Razão social",
     nomeResponsavel: "Nome do responsável",

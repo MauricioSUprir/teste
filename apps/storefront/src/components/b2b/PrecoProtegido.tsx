@@ -52,12 +52,20 @@ export function PrecoProtegido({
       </p>
       <p className="mt-1 text-[0.875rem] text-grafite">{texto}</p>
       {status !== "pendente" && (
-        <Link
-          href="/profissional"
-          className="mt-3 inline-flex h-11 items-center rounded-[999px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
-        >
-          {copy.b2b.paginaTitulo} →
-        </Link>
+        <>
+          <Link
+            href="/profissional"
+            className="mt-3 inline-flex h-11 items-center rounded-[999px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
+          >
+            {copy.b2b.paginaTitulo} →
+          </Link>
+          <a
+            href={copy.b2b.semCnpjUrl}
+            className="mt-2 block text-[0.8125rem] text-grafite underline hover:text-roxo"
+          >
+            {copy.b2b.semCnpj}
+          </a>
+        </>
       )}
       {status === "pendente" && (
         <Link
