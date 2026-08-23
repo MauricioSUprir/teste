@@ -23,7 +23,8 @@
     "url": "https://mawwal.com.br/",
     "metodo": "arquivo",
     "tipo": "image/svg+xml",
-    "bytes": 20029
+    "bytes": 20029,
+    "screenshot": true
   },
   "nina": {
     "url": "https://ninamakeup.com.br/",
@@ -42,7 +43,7 @@
   "sallve": {
     "url": "https://sallve.com.br/",
     "metodo": "screenshot",
-    "bytes": 4839,
+    "bytes": 8190,
     "screenshot": true
   },
   "reyou": "FALHOU",
@@ -77,7 +78,7 @@
   "papel-para-mechas": {
     "url": "https://papelparamechas.com.br/",
     "metodo": "screenshot",
-    "bytes": 24737,
+    "bytes": 26434,
     "screenshot": true
   },
   "jacques-janine": {
