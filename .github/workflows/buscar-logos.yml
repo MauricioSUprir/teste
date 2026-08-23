@@ -71,7 +71,9 @@ jobs:
             echo "\"b2bApexA\": \"$(dig +short A be2beauty.com.br | tr '\n' ' ')\","
             echo "\"b2bHttpWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L http://www.be2beauty.com.br/ || echo erro)\","
             echo "\"b2bHttpsWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://www.be2beauty.com.br/ || echo erro)\","
-            echo "\"b2bMarca\": \"$(curl -sL --max-time 30 http://www.be2beauty.com.br/ | grep -c Be2Beauty || echo 0)\""
+            echo "\"b2bMarca\": \"$(curl -sL --max-time 30 http://www.be2beauty.com.br/ | grep -c Be2Beauty || echo 0)\","
+            echo "\"b2bCaa\": \"$(dig +short CAA be2beauty.com.br | tr '\n' ' ')\","
+            echo "\"b2bAcme\": \"$(dig +short CNAME _acme-challenge.www.be2beauty.com.br | tr '\n' ' ')\""
             echo '}'
           } > dns-check.json
           cat dns-check.json
