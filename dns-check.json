@@ -1,8 +1,14 @@
 {
 "apexA": "185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153 ",
 "wwwCname": "mauriciosuprir.github.io. ",
-"wwwA": "mauriciosuprir.github.io. 185.199.108.153 185.199.110.153 185.199.111.153 185.199.109.153 ",
+"wwwA": "mauriciosuprir.github.io. 185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153 ",
 "httpsWww": "200",
 "httpWww": "200",
-"httpsApex": "200"
+"httpsApex": "200",
+"b2bWwwCname": "mauriciosuprir.github.io. ",
+"b2bApexA": "185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153 ",
+"b2bHttpWww": "200",
+"b2bHttpsWww": "000erro",
+"b2bMarca": "0
+0"
 }
