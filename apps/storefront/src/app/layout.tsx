@@ -27,8 +27,13 @@ const descricaoLoja = LOJA.b2b
   ? "Distribuidora de cosméticos para profissionais e revenda. Cadastre o CNPJ do seu salão ou loja e acesse a tabela de preços exclusiva."
   : "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Pix com 5% de desconto e envio em até 24h.";
 
+// cada loja tem o próprio domínio (o /pro do beautynowstore vira só um espelho)
+const dominioLoja = LOJA.b2b
+  ? "https://www.be2beauty.com.br/"
+  : "https://www.beautynowstore.com.br/";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.beautynowstore.com.br/"),
+  metadataBase: new URL(dominioLoja),
   title: {
     default: tituloLoja,
     template: `%s | ${LOJA.nome}`,
@@ -56,7 +61,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    url: "https://www.beautynowstore.com.br/",
+    url: dominioLoja,
     siteName: LOJA.nome,
     title: tituloLoja,
     description: LOJA.b2b
