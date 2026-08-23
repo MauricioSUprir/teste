@@ -16,7 +16,7 @@
   "latika": {
     "url": "https://latika.com.br/",
     "metodo": "screenshot",
-    "bytes": 50110,
+    "bytes": 51162,
     "screenshot": true
   },
   "mawwal": {
@@ -78,7 +78,7 @@
   "papel-para-mechas": {
     "url": "https://papelparamechas.com.br/",
     "metodo": "screenshot",
-    "bytes": 30202,
+    "bytes": 26178,
     "screenshot": true
   },
   "jacques-janine": {
@@ -96,10 +96,9 @@
     "screenshot": true
   },
   "senscience": {
-    "url": "https://senscience.com/",
-    "metodo": "arquivo",
-    "tipo": "image/svg+xml",
-    "bytes": 81331,
+    "url": "https://www.senscience.com.br/",
+    "metodo": "screenshot",
+    "bytes": 75414,
     "screenshot": true
   },
   "widi-care": {
