@@ -1954,6 +1954,20 @@ aplicacao.get("/bling/status", async (req, res) => {
   });
 });
 
+// devolve o refresh token atual pra colar em BLING_REFRESH_TOKEN no Render —
+// assim a conexão sobrevive a um deploy do servidor (sem isso, /tmp some a
+// cada deploy e é preciso clicar em /bling/conectar de novo). NUNCA commitar
+// esse valor em lugar nenhum do repositório — só copiar pro painel do Render.
+aplicacao.get("/bling/refresh-token", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  if (!blingTokens?.refresh) {
+    return res.status(404).json({ erro: "Bling não conectado. Abra /bling/conectar primeiro." });
+  }
+  res.json({ refreshToken: blingTokens.refresh });
+});
+
 aplicacao.listen(PORTA, () => {
   console.log(`Servidor BeautyNow na porta ${PORTA} · e-mail=${EMAIL_MODO} · origens=${ORIGENS.join(", ")}`);
 });
