@@ -16,7 +16,7 @@
   "latika": {
     "url": "https://latika.com.br/",
     "metodo": "screenshot",
-    "bytes": 51162,
+    "bytes": 50110,
     "screenshot": true
   },
   "mawwal": {
@@ -43,7 +43,7 @@
   "sallve": {
     "url": "https://sallve.com.br/",
     "metodo": "screenshot",
-    "bytes": 8190,
+    "bytes": 4315,
     "screenshot": true
   },
   "reyou": "FALHOU",
