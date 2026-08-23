@@ -1424,18 +1424,21 @@ aplicacao.get("/b2b/exportar", (req, res) => {
   res.json({ geradoEm: new Date().toISOString(), cadastros: cadastrosB2B });
 });
 
-// ===== Afiliados Be2Beauty =====
-// O profissional aprovado gera um link do BeautyNow com o código dele
-// (?af=codigo). O site guarda o código no navegador do cliente por 30 dias e
-// manda junto no pedido; quando o Mercado Pago APROVA o pagamento, a venda
-// entra para o afiliado com a comissão da época. Persistência: /tmp + backup
-// versionado no GitHub (afiliados-backup.json).
+// ===== Afiliados — programa independente do B2B =====
+// O afiliado é uma entidade própria (não precisa ter cadastro B2B/CNPJ):
+// cadastra nome + e-mail + WhatsApp (CNPJ opcional), o admin aprova, e ele
+// entra no painel de QUALQUER aparelho fazendo login com e-mail + código
+// (mesmo mecanismo de /codigo usado no site todo — sem senha por afiliado).
+// A identidade em todo o sistema é o e-mail (minúsculo, sem espaço).
+// Persistência: /tmp + backup versionado no GitHub (afiliados-backup.json).
+const ARQ_AFILIADOS_CADASTRO = "/tmp/afiliados-cadastro.json";
 const ARQ_AFILIADOS_VENDAS = "/tmp/afiliados-vendas.json";
 const ARQ_AFILIADOS_PENDENTES = "/tmp/afiliados-pendentes.json";
 const ARQ_AFILIADOS_SAQUES = "/tmp/afiliados-saques.json";
 const AFILIADOS_BACKUP_URL =
   "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/afiliados-backup.json";
 const COMISSAO_PADRAO_PCT = 10;
+let afiliadosCadastro = [];
 let vendasAfiliados = [];
 // pedidos com afiliado ainda não pagos: numero → { codigo, totalCentavos, data }
 // (persistido porque um boleto pode compensar dias depois, após deploy/sono)
@@ -1444,16 +1447,22 @@ let pendentesAfiliados = {};
 let saquesAfiliados = [];
 try {
   const fs = await import("node:fs");
-  if (fs.existsSync(ARQ_AFILIADOS_VENDAS)) {
+  if (fs.existsSync(ARQ_AFILIADOS_CADASTRO)) {
+    afiliadosCadastro = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_CADASTRO, "utf8"));
+  } else if (fs.existsSync(ARQ_AFILIADOS_VENDAS)) {
     vendasAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_VENDAS, "utf8"));
   } else {
     const r = await fetch(AFILIADOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
       const dados = await r.json();
+      afiliadosCadastro = dados?.cadastro ?? [];
       vendasAfiliados = dados?.vendas ?? [];
       pendentesAfiliados = dados?.pendentes ?? {};
       saquesAfiliados = dados?.saques ?? [];
     }
+  }
+  if (fs.existsSync(ARQ_AFILIADOS_VENDAS)) {
+    vendasAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_VENDAS, "utf8"));
   }
   if (fs.existsSync(ARQ_AFILIADOS_PENDENTES)) {
     pendentesAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_PENDENTES, "utf8"));
@@ -1462,6 +1471,7 @@ try {
     saquesAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_SAQUES, "utf8"));
   }
 } catch {
+  afiliadosCadastro = [];
   vendasAfiliados = [];
   pendentesAfiliados = {};
   saquesAfiliados = [];
@@ -1470,6 +1480,7 @@ try {
 async function salvarAfiliados() {
   try {
     const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_AFILIADOS_CADASTRO, JSON.stringify(afiliadosCadastro));
     fs.writeFileSync(ARQ_AFILIADOS_VENDAS, JSON.stringify(vendasAfiliados));
     fs.writeFileSync(ARQ_AFILIADOS_PENDENTES, JSON.stringify(pendentesAfiliados));
     fs.writeFileSync(ARQ_AFILIADOS_SAQUES, JSON.stringify(saquesAfiliados));
@@ -1479,12 +1490,12 @@ async function salvarAfiliados() {
 }
 
 /** saldo disponível para saque: comissão ganha − saques pedidos/pagos */
-function saldoAfiliado(cnpj) {
+function saldoAfiliado(id) {
   const ganho = vendasAfiliados
-    .filter((v) => v.cnpj === cnpj)
+    .filter((v) => v.afiliadoId === id)
     .reduce((s, v) => s + v.comissaoCentavos, 0);
   const retido = saquesAfiliados
-    .filter((s) => s.cnpj === cnpj && s.status !== "recusado")
+    .filter((s) => s.afiliadoId === id && s.status !== "recusado")
     .reduce((s, x) => s + x.valorCentavos, 0);
   return Math.max(0, ganho - retido);
 }
@@ -1498,69 +1509,117 @@ const slugAfiliado = (texto) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 16) || "afiliado";
 
-/** anota o pedido como indicado pelo afiliado; a comissão só conta quando pagar */
-function anotarPedidoAfiliado(pedido) {
-  const codigo = String(pedido?.afiliado ?? "").trim().toLowerCase();
-  const numero = String(pedido?.numero ?? "");
-  if (!codigo || !numero) return;
-  if (!cadastrosB2B.some((c) => c.codigoAfiliado === codigo)) return;
-  pendentesAfiliados[numero] = {
-    codigo,
-    totalCentavos: Number(pedido.totalCentavos ?? 0),
-    data: new Date().toISOString(),
-  };
-  // não cresce sem limite: mantém os 500 mais recentes
-  const chaves = Object.keys(pendentesAfiliados);
-  if (chaves.length > 500) delete pendentesAfiliados[chaves[0]];
-  salvarAfiliados();
-  console.log(`[afiliados] pedido ${numero} indicado por ${codigo}`);
+/** cadastro do afiliado pelo e-mail (identidade única em todo o sistema) */
+function afiliadoPorEmail(emailBruto) {
+  const email = String(emailBruto ?? "").trim().toLowerCase();
+  return afiliadosCadastro.find((a) => a.email === email);
 }
 
-/** pagamento aprovado → credita a venda ao afiliado (uma vez só por pedido) */
-async function creditarVendaAfiliado(numero, totalCentavosPagos) {
-  const pendente = pendentesAfiliados[String(numero)];
-  if (!pendente) return;
-  if (vendasAfiliados.some((v) => v.pedido === String(numero))) return; // webhook repete
-  const cadastro = cadastrosB2B.find((c) => c.codigoAfiliado === pendente.codigo);
-  if (!cadastro) return;
-  const pct = Number(cadastro.comissaoPct ?? COMISSAO_PADRAO_PCT);
-  const total = totalCentavosPagos || pendente.totalCentavos || 0;
-  const venda = {
-    pedido: String(numero),
-    codigo: pendente.codigo,
-    cnpj: cadastro.cnpj,
-    data: new Date().toISOString(),
-    totalCentavos: total,
-    pct,
-    comissaoCentavos: Math.round((total * pct) / 100),
+// pedido de entrada no programa de afiliados — CNPJ é OPCIONAL
+aplicacao.post("/afiliados/cadastro", async (req, res) => {
+  const email = String(req.body?.email ?? "").trim().toLowerCase();
+  if (!emailValido(email)) return res.status(400).json({ erro: "E-mail inválido." });
+  const nome = String(req.body?.nome ?? "").trim().slice(0, 80);
+  if (!nome) return res.status(400).json({ erro: "Informe seu nome." });
+  const whatsapp = String(req.body?.whatsapp ?? "").trim().slice(0, 20);
+  const cnpjBruto = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  if (cnpjBruto && !cnpjValido(cnpjBruto)) {
+    return res.status(400).json({ erro: "CNPJ inválido — confira os 14 dígitos (ou deixe em branco)." });
+  }
+
+  const existente = afiliadoPorEmail(email);
+  if (existente) return res.json({ ok: true, status: existente.status });
+
+  const cadastro = {
+    id: email,
+    email,
+    nome,
+    whatsapp,
+    cnpj: cnpjBruto || null,
+    criadoEm: new Date().toISOString(),
+    status: "pendente",
+    codigoAfiliado: null,
+    comissaoPct: COMISSAO_PADRAO_PCT,
   };
-  vendasAfiliados.push(venda);
-  if (vendasAfiliados.length > 10_000) vendasAfiliados = vendasAfiliados.slice(-10_000);
-  delete pendentesAfiliados[String(numero)];
+  afiliadosCadastro.push(cadastro);
+  if (afiliadosCadastro.length > 5000) afiliadosCadastro = afiliadosCadastro.slice(-5000);
   await salvarAfiliados();
-  console.log(
-    `[afiliados] venda ${numero} creditada a ${pendente.codigo}: ${total} centavos, ${pct}% = ${venda.comissaoCentavos}`
-  );
-}
+  console.log(`[afiliados] novo cadastro: ${nome} (${email})${cnpjBruto ? ` CNPJ ${cnpjBruto}` : ""}`);
+  for (const destino of EMAILS_NOTIFICACAO) {
+    enviarEmail({
+      para: destino,
+      assunto: `🤝 Novo pedido de afiliado — ${nome}`,
+      texto:
+        `Novo pedido de entrada no programa de afiliados:\n\n` +
+        `Nome: ${nome}\nE-mail: ${email}\nWhatsApp: ${whatsapp}\n` +
+        `CNPJ: ${cnpjBruto || "não informado"}\n\n` +
+        `Aprove no painel do admin (aba Afiliados).`,
+    }).catch((erro) => console.error(`[afiliados] falha ao notificar: ${erro.message}`));
+  }
+  res.json({ ok: true, status: "pendente" });
+});
+
+// consulta pública de situação (o afiliado pergunta pelo próprio e-mail)
+aplicacao.get("/afiliados/cadastro/status", (req, res) => {
+  const cadastro = afiliadoPorEmail(req.query.email);
+  res.json({ ok: true, status: cadastro?.status ?? "nao_cadastrado" });
+});
+
+// lista completa para o painel do admin aprovar/recusar
+aplicacao.get("/afiliados/lista", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ ok: true, total: afiliadosCadastro.length, cadastros: [...afiliadosCadastro].reverse() });
+});
+
+// admin aprova/recusa o pedido de entrada no programa
+aplicacao.post("/afiliados/decidir", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const status = String(req.body?.status ?? "");
+  if (!["aprovado", "recusado", "pendente"].includes(status)) {
+    return res.status(400).json({ erro: "Status deve ser aprovado, recusado ou pendente." });
+  }
+  const cadastro = afiliadoPorEmail(req.body?.email);
+  if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
+  cadastro.status = status;
+  cadastro.decididoEm = new Date().toISOString();
+  await salvarAfiliados();
+  console.log(`[afiliados] ${cadastro.email} → ${status}`);
+  if (status !== "pendente") {
+    enviarEmail({
+      para: cadastro.email,
+      assunto:
+        status === "aprovado"
+          ? "✅ Seu cadastro de afiliado foi aprovado!"
+          : "Sobre o seu cadastro de afiliado",
+      texto:
+        status === "aprovado"
+          ? `Olá, ${cadastro.nome}!\n\nSeu cadastro de afiliado foi aprovado. Acesse a página de afiliados, entre com o e-mail ${cadastro.email} e um código chega na sua caixa de entrada para você ver o seu link e acompanhar suas vendas.\n\nBoas vendas!`
+          : `Olá, ${cadastro.nome}.\n\nSeu cadastro de afiliado não foi aprovado neste momento. Em caso de dúvida, fale com a gente: (21) 99732-2464.`,
+    }).catch((erro) => console.error(`[afiliados] falha ao avisar cadastro: ${erro.message}`));
+  }
+  res.json({ ok: true, status });
+});
 
 // gera (ou devolve) o link de afiliado — só para cadastro aprovado
 aplicacao.post("/afiliados/link", async (req, res) => {
-  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
-  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  const cadastro = afiliadoPorEmail(req.body?.email);
   if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
   if (cadastro.status !== "aprovado") {
     return res.status(403).json({ erro: "O cadastro precisa estar aprovado para gerar o link." });
   }
   if (!cadastro.codigoAfiliado) {
-    const base = slugAfiliado(cadastro.razao || cadastro.nome);
+    const base = slugAfiliado(cadastro.nome);
     let codigo = base;
-    while (cadastrosB2B.some((c) => c.codigoAfiliado === codigo)) {
+    while (afiliadosCadastro.some((a) => a.codigoAfiliado === codigo)) {
       codigo = `${base}-${Math.random().toString(36).slice(2, 6)}`;
     }
     cadastro.codigoAfiliado = codigo;
-    if (cadastro.comissaoPct === undefined) cadastro.comissaoPct = COMISSAO_PADRAO_PCT;
-    await salvarB2B();
-    console.log(`[afiliados] código criado: ${codigo} (${cnpj})`);
+    await salvarAfiliados();
+    console.log(`[afiliados] código criado: ${codigo} (${cadastro.email})`);
   }
   res.json({
     ok: true,
@@ -1570,17 +1629,18 @@ aplicacao.post("/afiliados/link", async (req, res) => {
   });
 });
 
-// painel do próprio afiliado: vendas, comissão e código
+// painel do próprio afiliado: vendas, comissão e código — login por e-mail
 aplicacao.get("/afiliados/painel", (req, res) => {
-  const cnpj = String(req.query.cnpj ?? "").replace(/\D/g, "");
-  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  const cadastro = afiliadoPorEmail(req.query.email);
   if (!cadastro || cadastro.status !== "aprovado") {
     return res.status(403).json({ erro: "Cadastro não aprovado." });
   }
-  const minhas = vendasAfiliados.filter((v) => v.cnpj === cnpj);
-  const meusSaques = saquesAfiliados.filter((s) => s.cnpj === cnpj);
+  const id = cadastro.id;
+  const minhas = vendasAfiliados.filter((v) => v.afiliadoId === id);
+  const meusSaques = saquesAfiliados.filter((s) => s.afiliadoId === id);
   res.json({
     ok: true,
+    nome: cadastro.nome,
     codigo: cadastro.codigoAfiliado ?? null,
     url: cadastro.codigoAfiliado
       ? `${SITE_URL}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`
@@ -1590,7 +1650,7 @@ aplicacao.get("/afiliados/painel", (req, res) => {
       vendas: minhas.length,
       vendidoCentavos: minhas.reduce((s, v) => s + v.totalCentavos, 0),
       comissaoCentavos: minhas.reduce((s, v) => s + v.comissaoCentavos, 0),
-      disponivelCentavos: saldoAfiliado(cnpj),
+      disponivelCentavos: saldoAfiliado(id),
       aguardandoSaqueCentavos: meusSaques
         .filter((s) => s.status === "pendente")
         .reduce((s, x) => s + x.valorCentavos, 0),
@@ -1605,14 +1665,13 @@ aplicacao.get("/afiliados/painel", (req, res) => {
 
 // afiliado pede o resgate da comissão (Pix manual: o admin paga e marca)
 aplicacao.post("/afiliados/saque", async (req, res) => {
-  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
-  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  const cadastro = afiliadoPorEmail(req.body?.email);
   if (!cadastro || cadastro.status !== "aprovado") {
     return res.status(403).json({ erro: "Cadastro não aprovado." });
   }
   const chavePix = String(req.body?.chavePix ?? "").trim().slice(0, 120);
   if (!chavePix) return res.status(400).json({ erro: "Informe a chave Pix para receber." });
-  const disponivel = saldoAfiliado(cnpj);
+  const disponivel = saldoAfiliado(cadastro.id);
   const valor = req.body?.valorCentavos != null ? Number(req.body.valorCentavos) : disponivel;
   if (!Number.isInteger(valor) || valor <= 0) {
     return res.status(400).json({ erro: "Valor de saque inválido." });
@@ -1622,10 +1681,10 @@ aplicacao.post("/afiliados/saque", async (req, res) => {
   }
   const saque = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    cnpj,
+    afiliadoId: cadastro.id,
     codigo: cadastro.codigoAfiliado ?? null,
-    razao: cadastro.razao,
     nome: cadastro.nome,
+    email: cadastro.email,
     data: new Date().toISOString(),
     valorCentavos: valor,
     chavePix,
@@ -1634,14 +1693,14 @@ aplicacao.post("/afiliados/saque", async (req, res) => {
   saquesAfiliados.push(saque);
   if (saquesAfiliados.length > 5000) saquesAfiliados = saquesAfiliados.slice(-5000);
   await salvarAfiliados();
-  console.log(`[afiliados] saque pedido: ${cnpj} ${valor} centavos (pix ${chavePix})`);
+  console.log(`[afiliados] saque pedido: ${cadastro.email} ${valor} centavos (pix ${chavePix})`);
   for (const destino of EMAILS_NOTIFICACAO) {
     enviarEmail({
       para: destino,
-      assunto: `💸 Pedido de saque de afiliado — ${cadastro.razao || cadastro.nome} (${formatarReais(valor)})`,
+      assunto: `💸 Pedido de saque de afiliado — ${cadastro.nome} (${formatarReais(valor)})`,
       texto:
-        `O afiliado ${cadastro.razao || cadastro.nome} pediu o resgate da comissão:\n\n` +
-        `Valor: ${formatarReais(valor)}\nChave Pix: ${chavePix}\nCNPJ: ${cnpj}\n\n` +
+        `O afiliado ${cadastro.nome} pediu o resgate da comissão:\n\n` +
+        `Valor: ${formatarReais(valor)}\nChave Pix: ${chavePix}\nE-mail: ${cadastro.email}\n\n` +
         `Faça o Pix e marque como pago no painel do admin (aba Afiliados).`,
     }).catch((erro) => console.error(`[afiliados] falha ao avisar saque: ${erro.message}`));
   }
@@ -1667,44 +1726,43 @@ aplicacao.post("/afiliados/saque-decidir", async (req, res) => {
   saque.decididoEm = new Date().toISOString();
   await salvarAfiliados();
   console.log(`[afiliados] saque ${id} → ${status}`);
-  const cadastro = cadastrosB2B.find((c) => c.cnpj === saque.cnpj);
-  if (cadastro?.email) {
+  if (saque.email) {
     enviarEmail({
-      para: cadastro.email,
+      para: saque.email,
       assunto:
         status === "pago"
           ? `✅ Seu saque de ${formatarReais(saque.valorCentavos)} foi pago!`
-          : "Sobre o seu pedido de saque Be2Beauty",
+          : "Sobre o seu pedido de saque",
       texto:
         status === "pago"
-          ? `Olá, ${cadastro.nome || "afiliado"}!\n\nSeu resgate de ${formatarReais(saque.valorCentavos)} foi enviado para a chave Pix ${saque.chavePix}.\n\nObrigado por divulgar a BeautyNow!\nEquipe Be2Beauty`
-          : `Olá, ${cadastro.nome || "afiliado"}.\n\nSeu pedido de saque de ${formatarReais(saque.valorCentavos)} não foi aprovado e o valor voltou para o seu saldo. Em caso de dúvida: (21) 99732-2464.\n\nEquipe Be2Beauty`,
+          ? `Olá, ${saque.nome || "afiliado"}!\n\nSeu resgate de ${formatarReais(saque.valorCentavos)} foi enviado para a chave Pix ${saque.chavePix}.\n\nObrigado por divulgar a BeautyNow!`
+          : `Olá, ${saque.nome || "afiliado"}.\n\nSeu pedido de saque de ${formatarReais(saque.valorCentavos)} não foi aprovado e o valor voltou para o seu saldo. Em caso de dúvida: (21) 99732-2464.`,
     }).catch((erro) => console.error(`[afiliados] falha ao avisar afiliado: ${erro.message}`));
   }
   res.json({ ok: true, status });
 });
 
-// visão do admin: todos os afiliados, vendas de cada um e totais gerais
+// visão do admin: todos os afiliados aprovados, vendas de cada um e totais gerais
 aplicacao.get("/afiliados/admin", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  const afiliados = cadastrosB2B
+  const afiliados = afiliadosCadastro
     .filter((c) => c.status === "aprovado")
     .map((c) => {
-      const minhas = vendasAfiliados.filter((v) => v.cnpj === c.cnpj);
+      const minhas = vendasAfiliados.filter((v) => v.afiliadoId === c.id);
       return {
-        cnpj: c.cnpj,
-        razao: c.razao,
-        nome: c.nome,
+        id: c.id,
         email: c.email,
+        nome: c.nome,
         whatsapp: c.whatsapp,
+        cnpj: c.cnpj,
         codigo: c.codigoAfiliado ?? null,
         pct: Number(c.comissaoPct ?? COMISSAO_PADRAO_PCT),
         vendas: minhas.length,
         vendidoCentavos: minhas.reduce((s, v) => s + v.totalCentavos, 0),
         comissaoCentavos: minhas.reduce((s, v) => s + v.comissaoCentavos, 0),
-        disponivelCentavos: saldoAfiliado(c.cnpj),
+        disponivelCentavos: saldoAfiliado(c.id),
       };
     });
   res.json({
@@ -1729,18 +1787,62 @@ aplicacao.post("/afiliados/comissao", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
   const pct = Number(req.body?.pct);
   if (!Number.isFinite(pct) || pct < 0 || pct > 90) {
     return res.status(400).json({ erro: "Comissão deve ser um número entre 0 e 90 (%)." });
   }
-  const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
+  const cadastro = afiliadoPorEmail(req.body?.email);
   if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
   cadastro.comissaoPct = pct;
-  await salvarB2B();
-  console.log(`[afiliados] comissão de ${cnpj} → ${pct}%`);
+  await salvarAfiliados();
+  console.log(`[afiliados] comissão de ${cadastro.email} → ${pct}%`);
   res.json({ ok: true, pct });
 });
+
+/** anota o pedido como indicado pelo afiliado; a comissão só conta quando pagar */
+function anotarPedidoAfiliado(pedido) {
+  const codigo = String(pedido?.afiliado ?? "").trim().toLowerCase();
+  const numero = String(pedido?.numero ?? "");
+  if (!codigo || !numero) return;
+  if (!afiliadosCadastro.some((a) => a.codigoAfiliado === codigo)) return;
+  pendentesAfiliados[numero] = {
+    codigo,
+    totalCentavos: Number(pedido.totalCentavos ?? 0),
+    data: new Date().toISOString(),
+  };
+  // não cresce sem limite: mantém os 500 mais recentes
+  const chaves = Object.keys(pendentesAfiliados);
+  if (chaves.length > 500) delete pendentesAfiliados[chaves[0]];
+  salvarAfiliados();
+  console.log(`[afiliados] pedido ${numero} indicado por ${codigo}`);
+}
+
+/** pagamento aprovado → credita a venda ao afiliado (uma vez só por pedido) */
+async function creditarVendaAfiliado(numero, totalCentavosPagos) {
+  const pendente = pendentesAfiliados[String(numero)];
+  if (!pendente) return;
+  if (vendasAfiliados.some((v) => v.pedido === String(numero))) return; // webhook repete
+  const cadastro = afiliadosCadastro.find((a) => a.codigoAfiliado === pendente.codigo);
+  if (!cadastro) return;
+  const pct = Number(cadastro.comissaoPct ?? COMISSAO_PADRAO_PCT);
+  const total = totalCentavosPagos || pendente.totalCentavos || 0;
+  const venda = {
+    pedido: String(numero),
+    codigo: pendente.codigo,
+    afiliadoId: cadastro.id,
+    data: new Date().toISOString(),
+    totalCentavos: total,
+    pct,
+    comissaoCentavos: Math.round((total * pct) / 100),
+  };
+  vendasAfiliados.push(venda);
+  if (vendasAfiliados.length > 10_000) vendasAfiliados = vendasAfiliados.slice(-10_000);
+  delete pendentesAfiliados[String(numero)];
+  await salvarAfiliados();
+  console.log(
+    `[afiliados] venda ${numero} creditada a ${pendente.codigo}: ${total} centavos, ${pct}% = ${venda.comissaoCentavos}`
+  );
+}
 
 // credita manualmente um pedido anotado (venda paga fora do MP, ou teste do
 // admin) — mesmo caminho que o webhook usa, então prova o fluxo inteiro
@@ -1758,8 +1860,26 @@ aplicacao.post("/afiliados/creditar-manual", async (req, res) => {
   res.json({ ok: true, venda });
 });
 
-// exclui um cadastro B2B e TUDO dele (vendas, saques, pendências) — usado
-// para limpar cadastros de teste ou remover um profissional de vez
+// exclui um cadastro de afiliado e tudo dele (vendas, saques, pendências) —
+// usado para limpar cadastros de teste ou remover um afiliado de vez
+aplicacao.post("/afiliados/excluir", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const cadastro = afiliadoPorEmail(req.body?.email);
+  if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
+  afiliadosCadastro = afiliadosCadastro.filter((a) => a.id !== cadastro.id);
+  vendasAfiliados = vendasAfiliados.filter((v) => v.afiliadoId !== cadastro.id);
+  saquesAfiliados = saquesAfiliados.filter((s) => s.afiliadoId !== cadastro.id);
+  for (const [numero, p] of Object.entries(pendentesAfiliados)) {
+    if (p.codigo === cadastro.codigoAfiliado) delete pendentesAfiliados[numero];
+  }
+  await salvarAfiliados();
+  console.log(`[afiliados] cadastro ${cadastro.email} excluído com vendas e saques`);
+  res.json({ ok: true });
+});
+
+// exclui um cadastro B2B (profissional/CNPJ) — programa independente do de afiliados
 aplicacao.post("/b2b/excluir", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
@@ -1768,24 +1888,19 @@ aplicacao.post("/b2b/excluir", async (req, res) => {
   const cadastro = cadastrosB2B.find((c) => c.cnpj === cnpj);
   if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
   cadastrosB2B = cadastrosB2B.filter((c) => c.cnpj !== cnpj);
-  vendasAfiliados = vendasAfiliados.filter((v) => v.cnpj !== cnpj);
-  saquesAfiliados = saquesAfiliados.filter((s) => s.cnpj !== cnpj);
-  for (const [numero, p] of Object.entries(pendentesAfiliados)) {
-    if (p.codigo === cadastro.codigoAfiliado) delete pendentesAfiliados[numero];
-  }
   await salvarB2B();
-  await salvarAfiliados();
-  console.log(`[b2b] cadastro ${cnpj} excluído com vendas e saques`);
+  console.log(`[b2b] cadastro ${cnpj} excluído`);
   res.json({ ok: true });
 });
 
-// backup para o robô do GitHub versionar (vendas de afiliado não se perdem)
+// backup para o robô do GitHub versionar (afiliados não se perdem em deploy)
 aplicacao.get("/afiliados/exportar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({
     geradoEm: new Date().toISOString(),
+    cadastro: afiliadosCadastro,
     vendas: vendasAfiliados,
     pendentes: pendentesAfiliados,
     saques: saquesAfiliados,

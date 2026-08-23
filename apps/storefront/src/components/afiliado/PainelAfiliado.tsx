@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * Painel do afiliado na Be2Beauty — aparece na página /profissional quando o
- * CNPJ está aprovado: gera o link do BeautyNow, mostra vendas, comissão e o
- * gráfico por mês. Os dados vêm do servidor (/afiliados/painel).
+ * Painel do afiliado — link, vendas, comissão e gráfico por mês. Aparece
+ * quando o cadastro (por e-mail) está aprovado. Os dados vêm do servidor
+ * (/afiliados/painel).
  */
 import { useCallback, useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
-import { useB2B } from "@/lib/b2b/contexto";
+import { useAfiliado } from "@/lib/afiliado/contexto";
 import { formatarPreco } from "@/lib/preco";
 import {
   consultarPainelAfiliado,
@@ -41,7 +41,7 @@ function porMes(vendas: DadosPainel["vendas"]) {
 }
 
 export function PainelAfiliado() {
-  const { status, cnpj } = useB2B();
+  const { email, sair } = useAfiliado();
   const [dados, setDados] = useState<DadosPainel | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [gerando, setGerando] = useState(false);
@@ -53,24 +53,24 @@ export function PainelAfiliado() {
   const [saqueMsg, setSaqueMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const carregar = useCallback(async () => {
-    if (!cnpj) return;
+    if (!email) return;
     setCarregando(true);
-    const r = await consultarPainelAfiliado(cnpj);
+    const r = await consultarPainelAfiliado(email);
     setFalha(r === null);
     if (r) setDados(r);
     setCarregando(false);
-  }, [cnpj]);
+  }, [email]);
 
   useEffect(() => {
-    if (status === "aprovado") void carregar();
-  }, [status, carregar]);
+    void carregar();
+  }, [carregar]);
 
-  if (status !== "aprovado" || !cnpj) return null;
+  if (!email) return null;
 
   async function gerar() {
-    if (!cnpj) return;
+    if (!email) return;
     setGerando(true);
-    const r = await gerarLinkAfiliado(cnpj);
+    const r = await gerarLinkAfiliado(email);
     setGerando(false);
     if (r.ok) void carregar();
   }
@@ -88,7 +88,7 @@ export function PainelAfiliado() {
 
   async function pedirSaque(e: React.FormEvent) {
     e.preventDefault();
-    if (!cnpj || !dados) return;
+    if (!email || !dados) return;
     setSaqueMsg(null);
     const disponivel = dados.totais.disponivelCentavos;
     // campo vazio = sacar tudo; senão converte "12,34" → centavos
@@ -100,7 +100,7 @@ export function PainelAfiliado() {
       return;
     }
     setPedindoSaque(true);
-    const r = await pedirSaqueAfiliado(cnpj, chavePix.trim(), valor);
+    const r = await pedirSaqueAfiliado(email, chavePix.trim(), valor);
     setPedindoSaque(false);
     if (r.ok) {
       setSaqueMsg({ ok: true, texto: copy.b2b.afiliado.saqueOk });
@@ -115,11 +115,22 @@ export function PainelAfiliado() {
   const maiorMes = Math.max(1, ...meses.map((m) => m.qtd));
 
   return (
-    <section aria-labelledby="afiliado-titulo" className="mt-8 rounded-[16px] border border-linha p-6">
-      <h2 id="afiliado-titulo" className="font-titulo text-[1.25rem] font-semibold text-tinta">
-        {copy.b2b.afiliado.titulo}
-      </h2>
-      <p className="mt-1 max-w-[70ch] text-[0.9375rem] text-grafite">{copy.b2b.afiliado.texto}</p>
+    <section aria-labelledby="afiliado-titulo" className="rounded-[16px] border border-linha p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 id="afiliado-titulo" className="font-titulo text-[1.25rem] font-semibold text-tinta">
+            {dados?.nome ? `Olá, ${dados.nome.split(" ")[0]}!` : copy.b2b.afiliado.titulo}
+          </h2>
+          <p className="mt-1 max-w-[70ch] text-[0.9375rem] text-grafite">{copy.b2b.afiliado.texto}</p>
+        </div>
+        <button
+          type="button"
+          onClick={sair}
+          className="shrink-0 text-[0.8125rem] font-medium text-grafite underline"
+        >
+          {copy.afiliado.sair}
+        </button>
+      </div>
 
       {falha && (
         <p className="mt-4 text-[0.875rem] font-medium text-erro">

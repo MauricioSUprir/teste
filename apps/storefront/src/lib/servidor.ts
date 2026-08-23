@@ -352,12 +352,12 @@ export async function decidirCadastroB2B(cnpj: string, status: "aprovado" | "rec
   }
 }
 
-// ===== Afiliados Be2Beauty =====
+// ===== Afiliados — programa independente do B2B (login por e-mail + código) =====
 
 export interface VendaAfiliado {
   pedido: string;
   codigo: string;
-  cnpj: string;
+  afiliadoId: string;
   data: string;
   totalCentavos: number;
   pct: number;
@@ -366,10 +366,10 @@ export interface VendaAfiliado {
 
 export interface SaqueAfiliado {
   id: string;
-  cnpj: string;
+  afiliadoId: string;
   codigo: string | null;
-  razao: string;
   nome: string;
+  email: string;
   data: string;
   valorCentavos: number;
   chavePix: string;
@@ -377,6 +377,7 @@ export interface SaqueAfiliado {
 }
 
 export interface PainelAfiliado {
+  nome: string;
   codigo: string | null;
   url: string | null;
   pct: number;
@@ -393,11 +394,11 @@ export interface PainelAfiliado {
 }
 
 export interface AfiliadoAdmin {
-  cnpj: string;
-  razao: string;
-  nome: string;
+  id: string;
   email: string;
+  nome: string;
   whatsapp: string;
+  cnpj: string | null;
   codigo: string | null;
   pct: number;
   vendas: number;
@@ -406,15 +407,108 @@ export interface AfiliadoAdmin {
   disponivelCentavos: number;
 }
 
-/** Gera (ou devolve) o link de afiliado do CNPJ aprovado. */
+export interface CadastroAfiliado {
+  id: string;
+  email: string;
+  nome: string;
+  whatsapp: string;
+  cnpj: string | null;
+  criadoEm: string;
+  status: "pendente" | "aprovado" | "recusado";
+  codigoAfiliado: string | null;
+  comissaoPct: number;
+}
+
+/** Pede entrada no programa de afiliados. CNPJ é opcional. */
+export async function cadastrarAfiliado(dados: {
+  email: string;
+  nome: string;
+  whatsapp: string;
+  cnpj?: string;
+}): Promise<{ ok: boolean; status?: string; erro?: string }> {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/cadastro`, 30_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados),
+    });
+    const corpo = (await resposta.json().catch(() => ({}))) as { status?: string; erro?: string };
+    return { ok: resposta.ok, ...corpo };
+  } catch {
+    return { ok: false, erro: "Sem conexão com o servidor. Tente de novo em instantes." };
+  }
+}
+
+/** Consulta pública da situação do cadastro pelo e-mail. */
+export async function consultarStatusAfiliado(
+  email: string
+): Promise<{ ok: boolean; status: string }> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/afiliados/cadastro/status?email=${encodeURIComponent(email)}`,
+      30_000,
+      {}
+    );
+    if (!resposta.ok) return { ok: false, status: "nao_cadastrado" };
+    return (await resposta.json()) as { ok: boolean; status: string };
+  } catch {
+    return { ok: false, status: "nao_cadastrado" };
+  }
+}
+
+/** Admin: lista completa de cadastros de afiliado (para aprovar/recusar). */
+export async function listarCadastrosAfiliado(): Promise<{ ok: boolean; cadastros: CadastroAfiliado[] }> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/afiliados/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      30_000,
+      {}
+    );
+    if (!resposta.ok) return { ok: false, cadastros: [] };
+    const dados = (await resposta.json()) as { cadastros?: CadastroAfiliado[] };
+    return { ok: true, cadastros: dados.cadastros ?? [] };
+  } catch {
+    return { ok: false, cadastros: [] };
+  }
+}
+
+/** Admin aprova/recusa um pedido de entrada no programa de afiliados. */
+export async function decidirCadastroAfiliado(email: string, status: "aprovado" | "recusado") {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/decidir`, 30_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, status, chave: CHAVE_ADMIN_SERVIDOR }),
+    });
+    return { ok: resposta.ok };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Admin exclui um cadastro de afiliado e tudo dele (vendas, saques). */
+export async function excluirAfiliado(email: string) {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/excluir`, 30_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, chave: CHAVE_ADMIN_SERVIDOR }),
+    });
+    return { ok: resposta.ok };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Gera (ou devolve) o link do afiliado aprovado. */
 export async function gerarLinkAfiliado(
-  cnpj: string
+  email: string
 ): Promise<{ ok: boolean; codigo?: string; url?: string; pct?: number; erro?: string }> {
   try {
     const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/link`, 75_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cnpj }),
+      body: JSON.stringify({ email }),
     });
     const corpo = (await resposta.json().catch(() => ({}))) as {
       codigo?: string;
@@ -429,10 +523,10 @@ export async function gerarLinkAfiliado(
 }
 
 /** Painel do próprio afiliado: link, vendas e comissão. */
-export async function consultarPainelAfiliado(cnpj: string): Promise<PainelAfiliado | null> {
+export async function consultarPainelAfiliado(email: string): Promise<PainelAfiliado | null> {
   try {
     const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/afiliados/painel?cnpj=${encodeURIComponent(cnpj)}`,
+      `${SERVIDOR_URL}/afiliados/painel?email=${encodeURIComponent(email)}`,
       75_000,
       {}
     );
@@ -493,7 +587,7 @@ export async function listarAfiliadosAdmin(): Promise<{
 
 /** Afiliado pede o resgate da comissão via Pix. */
 export async function pedirSaqueAfiliado(
-  cnpj: string,
+  email: string,
   chavePix: string,
   valorCentavos?: number
 ): Promise<{ ok: boolean; erro?: string }> {
@@ -501,7 +595,7 @@ export async function pedirSaqueAfiliado(
     const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/saque`, 75_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cnpj, chavePix, valorCentavos }),
+      body: JSON.stringify({ email, chavePix, valorCentavos }),
     });
     const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string };
     return { ok: resposta.ok, erro: corpo.erro };
@@ -525,12 +619,12 @@ export async function decidirSaqueAfiliado(id: string, status: "pago" | "recusad
 }
 
 /** Admin define a comissão (%) de um afiliado. */
-export async function definirComissaoAfiliado(cnpj: string, pct: number) {
+export async function definirComissaoAfiliado(email: string, pct: number) {
   try {
     const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/comissao`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cnpj, pct, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ email, pct, chave: CHAVE_ADMIN_SERVIDOR }),
     });
     return { ok: resposta.ok };
   } catch {

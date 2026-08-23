@@ -1,18 +1,22 @@
 "use client";
 
 /**
- * Aba Afiliados — o admin vê todos os afiliados (profissionais aprovados da
- * Be2Beauty), as vendas e comissões de cada um, os totais gerais, e define a
- * comissão (%) individual. A % nova vale para as PRÓXIMAS vendas.
+ * Aba Afiliados — programa independente do B2B (CNPJ é opcional). O admin
+ * primeiro aprova/recusa os PEDIDOS de entrada (por e-mail); depois, para
+ * quem já está aprovado, acompanha vendas e comissões e define a % de cada um.
  */
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import { formatarPreco } from "@/lib/preco";
 import {
+  decidirCadastroAfiliado,
   decidirSaqueAfiliado,
   definirComissaoAfiliado,
+  excluirAfiliado,
   listarAfiliadosAdmin,
+  listarCadastrosAfiliado,
   type AfiliadoAdmin,
+  type CadastroAfiliado,
   type SaqueAfiliado,
   type VendaAfiliado,
 } from "@/lib/servidor";
@@ -22,6 +26,10 @@ function formatarCnpj(d: string): string {
 }
 
 export function AbaAfiliados() {
+  const [cadastros, setCadastros] = useState<CadastroAfiliado[]>([]);
+  const [carregandoCadastros, setCarregandoCadastros] = useState(true);
+  const [decidindo, setDecidindo] = useState<string | null>(null);
+
   const [afiliados, setAfiliados] = useState<AfiliadoAdmin[]>([]);
   const [geral, setGeral] = useState({
     vendas: 0,
@@ -39,6 +47,13 @@ export function AbaAfiliados() {
   const [salvando, setSalvando] = useState<string | null>(null);
   const [salvoOk, setSalvoOk] = useState<string | null>(null);
 
+  async function carregarCadastros() {
+    setCarregandoCadastros(true);
+    const r = await listarCadastrosAfiliado();
+    setCadastros(r.cadastros);
+    setCarregandoCadastros(false);
+  }
+
   async function carregar() {
     setCarregando(true);
     const r = await listarAfiliadosAdmin();
@@ -51,8 +66,29 @@ export function AbaAfiliados() {
   }
 
   useEffect(() => {
+    void carregarCadastros();
     void carregar();
   }, []);
+
+  async function decidirPedido(email: string, status: "aprovado" | "recusado") {
+    setDecidindo(email);
+    const r = await decidirCadastroAfiliado(email, status);
+    setDecidindo(null);
+    if (r.ok) {
+      setCadastros((lista) => lista.map((c) => (c.email === email ? { ...c, status } : c)));
+      if (status === "aprovado") void carregar();
+    }
+  }
+
+  async function excluirPedido(email: string) {
+    setDecidindo(email);
+    const r = await excluirAfiliado(email);
+    setDecidindo(null);
+    if (r.ok) {
+      setCadastros((lista) => lista.filter((c) => c.email !== email));
+      void carregar();
+    }
+  }
 
   async function decidirSaque(id: string, status: "pago" | "recusado") {
     setDecidindoSaque(id);
@@ -61,21 +97,98 @@ export function AbaAfiliados() {
     if (r.ok) void carregar();
   }
 
-  async function salvarPct(cnpj: string) {
-    const pct = Number(String(pctEdicao[cnpj] ?? "").replace(",", "."));
+  async function salvarPct(id: string) {
+    const pct = Number(String(pctEdicao[id] ?? "").replace(",", "."));
     if (!Number.isFinite(pct) || pct < 0 || pct > 90) return;
-    setSalvando(cnpj);
-    const r = await definirComissaoAfiliado(cnpj, pct);
+    setSalvando(id);
+    const r = await definirComissaoAfiliado(id, pct);
     setSalvando(null);
     if (r.ok) {
-      setAfiliados((lista) => lista.map((a) => (a.cnpj === cnpj ? { ...a, pct } : a)));
-      setSalvoOk(cnpj);
+      setAfiliados((lista) => lista.map((a) => (a.id === id ? { ...a, pct } : a)));
+      setSalvoOk(id);
       setTimeout(() => setSalvoOk(null), 2500);
     }
   }
 
+  const pendentes = cadastros.filter((c) => c.status === "pendente");
+
   return (
     <div>
+      {/* pedidos de entrada no programa — precisam de decisão */}
+      <div>
+        <h3 className="text-[0.9375rem] font-semibold text-tinta">{copy.afiliado.admin.titulo}</h3>
+        <p className="mt-1 max-w-[70ch] text-[0.875rem] text-grafite">{copy.afiliado.admin.texto}</p>
+        {carregandoCadastros && <p className="mt-4 text-[0.875rem] text-cinza">Carregando…</p>}
+        {!carregandoCadastros && cadastros.length === 0 && (
+          <p className="mt-4 text-[0.875rem] text-cinza">{copy.afiliado.admin.vazio}</p>
+        )}
+        <ul className="mt-3 space-y-2">
+          {(pendentes.length > 0 ? pendentes : cadastros.slice(0, 10)).map((c) => (
+            <li
+              key={c.email}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-linha p-3"
+            >
+              <div className="min-w-0 grow text-[0.875rem]">
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-tinta">{c.nome}</span>
+                  <span
+                    className={`rounded-[999px] px-2 py-0.5 text-[0.75rem] font-semibold ${
+                      c.status === "aprovado"
+                        ? "bg-sucesso/10 text-sucesso"
+                        : c.status === "recusado"
+                          ? "bg-erro/10 text-erro"
+                          : "bg-alerta/10 text-alerta"
+                    }`}
+                  >
+                    {c.status === "aprovado"
+                      ? copy.afiliado.admin.aprovado
+                      : c.status === "recusado"
+                        ? copy.afiliado.admin.recusadoRotulo
+                        : copy.afiliado.admin.pendente}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-[0.8125rem] text-grafite">
+                  {c.email} · {c.whatsapp} ·{" "}
+                  {c.cnpj ? <span className="num">CNPJ {formatarCnpj(c.cnpj)}</span> : copy.afiliado.admin.semCnpj}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {c.status !== "aprovado" && (
+                  <button
+                    type="button"
+                    disabled={decidindo === c.email}
+                    onClick={() => void decidirPedido(c.email, "aprovado")}
+                    className="h-10 rounded-[999px] bg-sucesso px-4 text-[0.8125rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                  >
+                    {copy.afiliado.admin.aprovar}
+                  </button>
+                )}
+                {c.status !== "recusado" && (
+                  <button
+                    type="button"
+                    disabled={decidindo === c.email}
+                    onClick={() => void decidirPedido(c.email, "recusado")}
+                    className="h-10 rounded-[999px] border border-erro px-4 text-[0.8125rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
+                  >
+                    {copy.afiliado.admin.recusar}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={decidindo === c.email}
+                  onClick={() => void excluirPedido(c.email)}
+                  className="h-10 rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-erro hover:text-erro disabled:opacity-50"
+                >
+                  {copy.afiliado.admin.excluir}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <hr className="my-6 border-linha" />
+
       <p className="max-w-[70ch] text-[0.9375rem] text-grafite">{copy.b2b.afiliado.admin.texto}</p>
 
       {/* totais gerais */}
@@ -110,7 +223,7 @@ export function AbaAfiliados() {
                 >
                   <div className="min-w-0 grow text-[0.875rem]">
                     <p className="font-semibold text-tinta">
-                      {s.razao || s.nome} ·{" "}
+                      {s.nome} ·{" "}
                       <span className="num text-sucesso">{formatarPreco(s.valorCentavos)}</span>
                     </p>
                     <p className="num mt-0.5 text-[0.8125rem] text-grafite">
@@ -158,13 +271,14 @@ export function AbaAfiliados() {
       <ul className="mt-4 space-y-3">
         {afiliados.map((a) => (
           <li
-            key={a.cnpj}
+            key={a.id}
             className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[10px] border border-linha p-4"
           >
             <div className="min-w-0 grow">
-              <p className="font-semibold text-tinta">{a.razao || a.nome}</p>
-              <p className="num mt-0.5 text-[0.8125rem] text-grafite">
-                CNPJ {formatarCnpj(a.cnpj)}
+              <p className="font-semibold text-tinta">{a.nome}</p>
+              <p className="text-[0.8125rem] text-grafite">
+                {a.email}
+                {a.cnpj && <span className="num"> · CNPJ {formatarCnpj(a.cnpj)}</span>}
                 {" · "}
                 {a.codigo ? (
                   <>
@@ -185,17 +299,17 @@ export function AbaAfiliados() {
               <input
                 type="text"
                 inputMode="decimal"
-                value={pctEdicao[a.cnpj] ?? String(a.pct)}
-                onChange={(e) => setPctEdicao((s) => ({ ...s, [a.cnpj]: e.target.value }))}
+                value={pctEdicao[a.id] ?? String(a.pct)}
+                onChange={(e) => setPctEdicao((s) => ({ ...s, [a.id]: e.target.value }))}
                 className="num h-10 w-16 rounded-[6px] border border-linha px-2 text-center outline-none focus:border-violeta"
               />
               <button
                 type="button"
-                disabled={salvando === a.cnpj}
-                onClick={() => void salvarPct(a.cnpj)}
+                disabled={salvando === a.id}
+                onClick={() => void salvarPct(a.id)}
                 className="h-10 rounded-[999px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-50"
               >
-                {salvoOk === a.cnpj ? copy.b2b.afiliado.admin.salvo : copy.b2b.afiliado.admin.salvarPct}
+                {salvoOk === a.id ? copy.b2b.afiliado.admin.salvo : copy.b2b.afiliado.admin.salvarPct}
               </button>
             </label>
           </li>
