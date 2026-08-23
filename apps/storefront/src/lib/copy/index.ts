@@ -225,6 +225,7 @@ export const copy = {
     avaliacoes: "Avaliações da loja",
     contato: "Fale com a gente",
     rastrearPedido: "Rastrear pedido",
+    programaAfiliados: "Seja um afiliado",
     cnpj: LOJA.b2b
       ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
       : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",

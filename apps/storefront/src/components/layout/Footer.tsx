@@ -40,6 +40,7 @@ export function Footer() {
             <li><Link className="text-grafite hover:text-roxo" href="/avaliacoes">{copy.rodape.avaliacoes}</Link></li>
             <li><Link className="text-grafite hover:text-roxo" href="/atendimento#contato">{copy.rodape.contato}</Link></li>
             <li><Link className="text-grafite hover:text-roxo" href="/conta">{copy.rodape.rastrearPedido}</Link></li>
+            <li><Link className="text-grafite hover:text-roxo" href="/afiliado">{copy.rodape.programaAfiliados}</Link></li>
           </ul>
         </nav>
 
