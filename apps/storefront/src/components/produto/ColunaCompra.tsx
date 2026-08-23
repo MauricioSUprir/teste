@@ -286,7 +286,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
       <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 text-[0.8125rem] text-grafite">
         <li>✓ {copy.pdp.distribuidorAutorizado}</li>
         <li>✓ {copy.pdp.trocaFacil}</li>
-        <li>✓ {copy.pdp.envio24h}</li>
+        <li>✓ {copy.pdp.envioRapido}</li>
       </ul>
     </div>
   );

@@ -1,18 +1,35 @@
 "use client";
 
-/** Aba Configurações — status das integrações e referências rápidas. */
+/**
+ * Aba Configurações — status das integrações e referências rápidas.
+ * Mercado Pago e notificações batem no /saude do servidor (mesmo servidor
+ * das duas lojas, então o status é sempre igual nos dois admins).
+ */
+import { useEffect, useState } from "react";
+import { copy } from "@/lib/copy";
 import { ADMIN_EMAIL, GOOGLE_CLIENT_ID } from "@/lib/conta/config";
 import { catalogoReal } from "@/lib/catalogo/consultas";
-import { servidorConfigurado } from "@/lib/servidor";
+import { emailRealAtivo, mercadoPagoAtivo, servidorConfigurado } from "@/lib/servidor";
 
 interface Integracao {
   nome: string;
   descricao: string;
   ativa: boolean;
+  /** true enquanto o status ainda não voltou do servidor — não mostra "Pendente" à toa */
+  verificando?: boolean;
   pendencia: string;
 }
 
 export function AbaConfiguracoes() {
+  // null = ainda checando no servidor (evita piscar "Pendente" antes da resposta)
+  const [mpAtivo, setMpAtivo] = useState<boolean | null>(null);
+  const [emailAtivo, setEmailAtivo] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void mercadoPagoAtivo().then(setMpAtivo);
+    void emailRealAtivo().then(setEmailAtivo);
+  }, []);
+
   const integracoes: Integracao[] = [
     {
       nome: "Catálogo Hub Suprir",
@@ -35,14 +52,16 @@ export function AbaConfiguracoes() {
     {
       nome: "Mercado Pago",
       descricao: "Pix, cartão e boleto reais — o valor de cada venda cai na conta MP da loja.",
-      ativa: false,
+      ativa: mpAtivo ?? false,
+      verificando: mpAtivo === null,
       pendencia: "Enviar o Access Token do painel de desenvolvedor do Mercado Pago.",
     },
     {
       nome: "Notificações de venda",
-      descricao: "E-mail com a logo BeautyNow para o admin a cada pedido concluído.",
-      ativa: false,
-      pendencia: "Ativa junto com o servidor hospedado + senha de app do Gmail.",
+      descricao: `E-mail com a logo ${copy.marca.nome} para o admin a cada pedido concluído.`,
+      ativa: emailAtivo ?? false,
+      verificando: emailAtivo === null,
+      pendencia: "Ativa junto com o servidor hospedado + Brevo (ou senha de app do Gmail).",
     },
   ];
 
@@ -63,14 +82,20 @@ export function AbaConfiguracoes() {
               <div className="min-w-0">
                 <p className="text-[0.875rem] font-medium text-tinta">{i.nome}</p>
                 <p className="mt-0.5 text-[0.8125rem] text-grafite">{i.descricao}</p>
-                {!i.ativa && <p className="mt-1 text-[0.75rem] text-cinza">Para ativar: {i.pendencia}</p>}
+                {!i.ativa && !i.verificando && (
+                  <p className="mt-1 text-[0.75rem] text-cinza">Para ativar: {i.pendencia}</p>
+                )}
               </div>
               <span
                 className={`shrink-0 rounded-[999px] px-2.5 py-1 text-[0.6875rem] font-semibold ${
-                  i.ativa ? "bg-[#E7F5EE] text-sucesso" : "bg-superficie text-cinza"
+                  i.verificando
+                    ? "bg-superficie text-cinza"
+                    : i.ativa
+                      ? "bg-[#E7F5EE] text-sucesso"
+                      : "bg-superficie text-cinza"
                 }`}
               >
-                {i.ativa ? "✓ Ativa" : "Pendente"}
+                {i.verificando ? "Verificando…" : i.ativa ? "✓ Ativa" : "Pendente"}
               </span>
             </li>
           ))}

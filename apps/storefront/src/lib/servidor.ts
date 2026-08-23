@@ -8,6 +8,7 @@
  * pedidos registrados apenas localmente.
  */
 import { obterAfiliado } from "./afiliado";
+import { LOJA_ID } from "./loja";
 import type { Pedido } from "./pedidos";
 
 export const SERVIDOR_URL = (process.env.NEXT_PUBLIC_SERVIDOR_URL ?? "").replace(/\/$/, "");
@@ -127,7 +128,7 @@ export async function criarCheckoutPro(
     const resposta = await fetch(`${SERVIDOR_URL}/pagamentos/checkout-pro`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pedido, meio }),
+      body: JSON.stringify({ pedido, meio, loja: LOJA_ID }),
     });
     const dados = (await resposta.json()) as { initPoint?: string; erro?: string };
     if (!resposta.ok || !dados.initPoint) return { ok: false, erro: dados.erro ?? "Falha ao iniciar o pagamento." };

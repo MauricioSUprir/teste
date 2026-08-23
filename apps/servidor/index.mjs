@@ -40,6 +40,15 @@ const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN ?? "";
 const MP_API = "https://api.mercadopago.com";
 /** URL pública do site, usada nos retornos do Checkout Pro */
 const SITE_URL = (process.env.SITE_URL ?? "https://mauriciosuprir.github.io/teste").replace(/\/$/, "");
+const SITE_URL_B2B = (process.env.SITE_URL_B2B ?? "https://www.be2beauty.com.br").replace(/\/$/, "");
+
+/** As duas lojas usam o mesmo servidor — o pedido diz de qual loja veio, pra
+ * voltar pro site certo depois do pagamento e identificar a marca no extrato. */
+function dadosDaLoja(lojaId) {
+  return lojaId === "be2beauty"
+    ? { siteUrl: SITE_URL_B2B, statementDescriptor: "BE2BEAUTY" }
+    : { siteUrl: SITE_URL, statementDescriptor: "BEAUTYNOW" };
+}
 
 const VALIDADE_MS = 10 * 60_000;
 const MAX_TENTATIVAS = 5;
@@ -774,10 +783,11 @@ aplicacao.post("/pagamentos/pix", async (req, res) => {
 
 aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
   if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
-  const { pedido, meio } = req.body ?? {};
+  const { pedido, meio, loja } = req.body ?? {};
   if (!pedido?.numero || !Array.isArray(pedido.itens)) {
     return res.status(400).json({ erro: "Pedido incompleto." });
   }
+  const { siteUrl, statementDescriptor } = dadosDaLoja(loja);
   try {
     // itens do MP precisam somar o total real do pedido (frete e cupom incluídos)
     const produtosCentavos = pedido.itens.reduce(
@@ -804,7 +814,7 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
       // então a cobrança vira uma linha única com o total já com desconto
       itens = [
         {
-          title: `Pedido ${pedido.numero} — BeautyNow`,
+          title: `Pedido ${pedido.numero} — ${statementDescriptor === "BE2BEAUTY" ? "Be2Beauty" : "BeautyNow"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: totalCentavos / 100,
@@ -822,12 +832,12 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
             ? { excluded_payment_types: [{ id: "credit_card" }, { id: "debit_card" }] }
             : { excluded_payment_types: [{ id: "ticket" }], installments: 6 },
         back_urls: {
-          success: `${SITE_URL}/checkout/confirmacao/`,
-          pending: `${SITE_URL}/checkout/confirmacao/`,
-          failure: `${SITE_URL}/checkout/`,
+          success: `${siteUrl}/checkout/confirmacao/`,
+          pending: `${siteUrl}/checkout/confirmacao/`,
+          failure: `${siteUrl}/checkout/`,
         },
         auto_return: "approved",
-        statement_descriptor: "BEAUTYNOW",
+        statement_descriptor: statementDescriptor,
       }),
     });
     // sempre o init_point oficial. Em modo teste (token TEST-), o pagamento

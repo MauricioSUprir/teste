@@ -20,7 +20,7 @@ export const copy = {
     fecharMenu: "Fechar menu",
     anuncio: LOJA.b2b
       ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
-      : "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais",
+      : "Pix com 5% de desconto · Produtos 100% originais",
   },
   nav: {
     inicio: "Início",
@@ -42,8 +42,8 @@ export const copy = {
     verTudo: "Ver tudo",
     seloOriginal: "Distribuidor autorizado",
     seloOriginalTexto: "Produto 100% original, direto do fabricante.",
-    seloEnvio: "Envio em até 24h",
-    seloEnvioTexto: "Pedidos aprovados até 15h saem no mesmo dia.",
+    seloEnvio: "Envio rápido",
+    seloEnvioTexto: "Despachamos para todo o Brasil com rastreio ponta a ponta.",
     seloTroca: "Troca fácil em 7 dias",
     seloTrocaTexto: "Sem burocracia, conforme o CDC.",
     seloPix: "5% off no Pix",
@@ -112,7 +112,7 @@ export const copy = {
     emEstoque: "Em estoque",
     distribuidorAutorizado: "Distribuidor autorizado",
     trocaFacil: "Troca em 7 dias",
-    envio24h: "Envio em 24h",
+    envioRapido: "Envio rápido",
     compraVerificada: "Compra verificada",
     de: "de",
     noPix: "no Pix",

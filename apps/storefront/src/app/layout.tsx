@@ -25,7 +25,7 @@ const tituloLoja =
     : "BeautyNow — Cosméticos profissionais com curadoria";
 const descricaoLoja = LOJA.b2b
   ? "Distribuidora de cosméticos para profissionais e revenda. Cadastre o CNPJ do seu salão ou loja e acesse a tabela de preços exclusiva."
-  : "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Pix com 5% de desconto e envio em até 24h.";
+  : "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Pix com 5% de desconto.";
 
 // cada loja tem o próprio domínio (o /pro do beautynowstore vira só um espelho)
 const dominioLoja = LOJA.b2b
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     title: tituloLoja,
     description: LOJA.b2b
       ? "Venda exclusiva para profissionais — cadastre seu CNPJ e veja os preços."
-      : "Pix com 5% de desconto · Envio em até 24h · Produtos 100% originais.",
+      : "Pix com 5% de desconto · Produtos 100% originais.",
     images: [
       {
         url: LOJA.b2b ? "og-imagem-b2b.png" : "og-imagem.png",

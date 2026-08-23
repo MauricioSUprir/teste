@@ -39,3 +39,5 @@ services:
         sync: false
       - key: SITE_URL
         value: https://www.beautynowstore.com.br
+      - key: SITE_URL_B2B
+        value: https://www.be2beauty.com.br
