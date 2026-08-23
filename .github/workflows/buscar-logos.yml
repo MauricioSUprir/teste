@@ -66,7 +66,12 @@ jobs:
             echo "\"wwwA\": \"$(dig +short A www.beautynowstore.com.br | tr '\n' ' ')\","
             echo "\"httpsWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://www.beautynowstore.com.br/ || echo erro)\","
             echo "\"httpWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 http://www.beautynowstore.com.br/ || echo erro)\","
-            echo "\"httpsApex\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L https://beautynowstore.com.br/ || echo erro)\""
+            echo "\"httpsApex\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L https://beautynowstore.com.br/ || echo erro)\","
+            echo "\"b2bWwwCname\": \"$(dig +short CNAME www.be2beauty.com.br | tr '\n' ' ')\","
+            echo "\"b2bApexA\": \"$(dig +short A be2beauty.com.br | tr '\n' ' ')\","
+            echo "\"b2bHttpWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L http://www.be2beauty.com.br/ || echo erro)\","
+            echo "\"b2bHttpsWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://www.be2beauty.com.br/ || echo erro)\","
+            echo "\"b2bMarca\": \"$(curl -sL --max-time 30 http://www.be2beauty.com.br/ | grep -c BE2BEAUTY || echo 0)\""
             echo '}'
           } > dns-check.json
           cat dns-check.json
