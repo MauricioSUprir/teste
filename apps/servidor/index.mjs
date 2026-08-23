@@ -1424,6 +1424,95 @@ aplicacao.get("/b2b/exportar", (req, res) => {
   res.json({ geradoEm: new Date().toISOString(), cadastros: cadastrosB2B });
 });
 
+// ===== Preços manuais (admin) =====
+// O admin escolhe um produto no painel e fixa um preço na mão. O valor fica
+// AQUI (não no navegador dele), então vale para todos os clientes: o site
+// consulta GET /catalogo/precos ao carregar e aplica por cima do catálogo.
+// Escopo por loja: um preço fixado no BeautyNow não muda o da Be2Beauty.
+// Valores SEMPRE em centavos (regra do projeto). precoPorCentavos null
+// remove o preço manual e o produto volta ao preço padrão do catálogo.
+const ARQ_PRECOS_MANUAIS = "/tmp/precos-manuais.json";
+const PRECOS_BACKUP_URL =
+  "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/precos-backup.json";
+let precosManuais = { beautynow: {}, be2beauty: {} };
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_PRECOS_MANUAIS)) {
+    precosManuais = JSON.parse(fs.readFileSync(ARQ_PRECOS_MANUAIS, "utf8"));
+  } else {
+    const r = await fetch(PRECOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    if (r?.ok) precosManuais = await r.json();
+  }
+  precosManuais.beautynow ??= {};
+  precosManuais.be2beauty ??= {};
+} catch {
+  precosManuais = { beautynow: {}, be2beauty: {} };
+}
+
+async function salvarPrecosManuais() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_PRECOS_MANUAIS, JSON.stringify(precosManuais));
+  } catch {
+    /* segue em memória */
+  }
+}
+
+// site consulta ao carregar (público — preço é informação pública da loja)
+aplicacao.get("/catalogo/precos", (req, res) => {
+  const loja = req.query.loja === "be2beauty" ? "be2beauty" : "beautynow";
+  res.json({ ok: true, precos: precosManuais[loja] ?? {} });
+});
+
+// admin fixa ou remove o preço manual de um produto
+aplicacao.post("/catalogo/precos", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const loja = req.body?.loja === "be2beauty" ? "be2beauty" : "beautynow";
+  const slug = String(req.body?.slug ?? "").trim();
+  if (!slug) return res.status(400).json({ erro: "Informe o slug do produto." });
+
+  if (req.body?.precoPorCentavos == null) {
+    delete precosManuais[loja][slug];
+    await salvarPrecosManuais();
+    console.log(`[precos] ${loja}/${slug} → preço padrão restaurado`);
+    return res.json({ ok: true, removido: true });
+  }
+
+  const precoPor = Number(req.body.precoPorCentavos);
+  if (!Number.isInteger(precoPor) || precoPor <= 0 || precoPor > 100_000_00) {
+    return res.status(400).json({ erro: "Preço inválido — envie centavos inteiros." });
+  }
+  let precoDe = null;
+  if (req.body?.precoDeCentavos != null) {
+    precoDe = Number(req.body.precoDeCentavos);
+    if (!Number.isInteger(precoDe) || precoDe <= precoPor) {
+      return res.status(400).json({ erro: "Preço 'de' precisa ser maior que o preço 'por'." });
+    }
+  }
+  precosManuais[loja][slug] = {
+    precoPorCentavos: precoPor,
+    precoDeCentavos: precoDe,
+    titulo: String(req.body?.titulo ?? "").slice(0, 120),
+    em: new Date().toISOString(),
+  };
+  // não cresce sem limite (o catálogo tem ~1200 itens)
+  const chaves = Object.keys(precosManuais[loja]);
+  if (chaves.length > 3000) delete precosManuais[loja][chaves[0]];
+  await salvarPrecosManuais();
+  console.log(`[precos] ${loja}/${slug} → ${precoPor} centavos${precoDe ? ` (de ${precoDe})` : ""}`);
+  res.json({ ok: true, precos: precosManuais[loja][slug] });
+});
+
+// export p/ backup versionado (mesmo padrão dos outros dados)
+aplicacao.get("/catalogo/precos/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json(precosManuais);
+});
+
 // ===== Afiliados — programa independente do B2B =====
 // O afiliado é uma entidade própria (não precisa ter cadastro B2B/CNPJ):
 // cadastra nome + e-mail + WhatsApp (CNPJ opcional), o admin aprova, e ele

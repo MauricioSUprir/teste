@@ -29,6 +29,7 @@ import {
 } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { formatarPreco } from "@/lib/preco";
+import { definirPrecoManual, servidorConfigurado } from "@/lib/servidor";
 
 function reaisParaCentavos(texto: string): number | null {
   const limpo = texto.trim().replace(/\./g, "").replace(",", ".");
@@ -215,6 +216,8 @@ export function AbaCatalogo() {
                   }}
                   aoRestaurar={() => {
                     restaurarProduto(l.produto.slug);
+                    // limpa também o preço manual global (volta ao preço padrão p/ todos)
+                    if (servidorConfigurado()) void definirPrecoManual(l.produto.slug, null, null);
                     recarregar();
                   }}
                   aoEsgotar={(esgotado) => {
@@ -395,16 +398,36 @@ function FormEditarProduto({
   const [estoque, setEstoque] = useState(String(variante.estoque));
   const [imagem, setImagem] = useState(produto.imagens?.[0] ?? "");
   const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
 
-  function salvar(e: React.FormEvent) {
+  async function salvar(e: React.FormEvent) {
     e.preventDefault();
+    if (salvando) return;
     const precoCent = reaisParaCentavos(preco);
     if (!titulo.trim()) return setErro("Informe o nome do produto.");
     if (precoCent === null || precoCent <= 0) return setErro("Preço inválido. Use o formato 89,90.");
     const precoDeCent = precoDe.trim() ? reaisParaCentavos(precoDe) : null;
     if (precoDe.trim() && precoDeCent === null) return setErro("Preço 'De' inválido.");
+    if (precoDeCent !== null && precoDeCent <= precoCent) {
+      return setErro("O preço 'De' precisa ser maior que o preço 'Por'.");
+    }
     const estoqueNum = Number(estoque);
     if (!Number.isInteger(estoqueNum) || estoqueNum < 0) return setErro("Estoque inválido.");
+
+    // preço mudou num produto do catálogo → fixa no servidor, para valer em
+    // TODOS os navegadores (não só neste). Sem servidor (demo), fica local.
+    const precoMudou =
+      precoCent !== variante.precoPor || (precoDeCent ?? null) !== (variante.precoDe ?? null);
+    if (precoMudou && !produto.local && servidorConfigurado()) {
+      setSalvando(true);
+      setErro(null);
+      const r = await definirPrecoManual(produto.slug, precoCent, precoDeCent, produto.titulo);
+      setSalvando(false);
+      if (!r.ok) {
+        return setErro(r.erro ?? "Não deu para salvar o preço no servidor. Tente de novo.");
+      }
+    }
+
     aoSalvar({
       titulo: titulo.trim(),
       marca,
@@ -444,11 +467,19 @@ function FormEditarProduto({
       <div className="flex items-end gap-3">
         <button
           type="submit"
-          className="h-10 rounded-[999px] bg-roxo px-5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+          disabled={salvando}
+          aria-busy={salvando}
+          className="h-10 rounded-[999px] bg-roxo px-5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
         >
-          Salvar
+          {salvando ? "Salvando…" : "Salvar"}
         </button>
       </div>
+      {!produto.local && servidorConfigurado() && (
+        <p className="text-[0.75rem] text-cinza sm:col-span-2 lg:col-span-5">
+          Preço alterado aqui vale para todos os clientes da loja (fica salvo no servidor).
+          &quot;Restaurar&quot; volta ao preço padrão do catálogo.
+        </p>
+      )}
       {produto.variantes.length > 1 && (
         <p className="text-[0.75rem] text-cinza sm:col-span-2 lg:col-span-5">
           Preço e estoque editados valem para a 1ª variação ({variante.tituloVariacao}).

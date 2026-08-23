@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { marcas, menorPreco, notaMedia, temEstoque } from "@/lib/catalogo/consultas";
-import { aplicarAjustesLista, produtosLocais } from "@/lib/catalogo/ajustes";
+import { EVENTO_AJUSTES, aplicarAjustesLista, produtosLocais } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
 
@@ -60,11 +60,17 @@ export function GradeFiltrada({
 
   // após a hidratação: aplica edições/exclusões do admin e soma os produtos locais
   useEffect(() => {
-    const ajustada = aplicarAjustesLista(produtos);
-    const locais = produtosLocais().filter((p) =>
-      categoria ? p.categorias.includes(categoria) : marca ? p.marca === marca : false
-    );
-    if (locais.length > 0 || ajustada !== produtos) setBase([...locais, ...ajustada]);
+    const aplicar = () => {
+      const ajustada = aplicarAjustesLista(produtos);
+      const locais = produtosLocais().filter((p) =>
+        categoria ? p.categorias.includes(categoria) : marca ? p.marca === marca : false
+      );
+      if (locais.length > 0 || ajustada !== produtos) setBase([...locais, ...ajustada]);
+    };
+    aplicar();
+    // preços manuais podem chegar do servidor depois da montagem
+    window.addEventListener(EVENTO_AJUSTES, aplicar);
+    return () => window.removeEventListener(EVENTO_AJUSTES, aplicar);
   }, [produtos, categoria, marca]);
 
   const lerLista = useCallback(

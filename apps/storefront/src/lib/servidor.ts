@@ -149,6 +149,59 @@ export async function statusPagamento(paymentId: number | string): Promise<strin
   }
 }
 
+// ===== Preços manuais (admin fixa um preço e vale para todos os clientes) =====
+
+export interface PrecoManual {
+  precoPorCentavos: number;
+  precoDeCentavos: number | null;
+  titulo?: string;
+  em?: string;
+}
+
+/** Preços fixados manualmente no admin desta loja — o site aplica ao carregar. */
+export async function consultarPrecosManuais(): Promise<Record<string, PrecoManual> | null> {
+  if (!servidorConfigurado()) return null;
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/catalogo/precos?loja=${LOJA_ID}`,
+      75_000,
+      {}
+    );
+    if (!resposta.ok) return null;
+    const dados = (await resposta.json()) as { precos?: Record<string, PrecoManual> };
+    return dados.precos ?? {};
+  } catch {
+    return null;
+  }
+}
+
+/** Admin fixa (ou remove, com precoPorCentavos null) o preço manual de um produto. */
+export async function definirPrecoManual(
+  slug: string,
+  precoPorCentavos: number | null,
+  precoDeCentavos: number | null,
+  titulo?: string
+): Promise<{ ok: boolean; erro?: string }> {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/catalogo/precos`, 30_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slug,
+        precoPorCentavos,
+        precoDeCentavos,
+        titulo,
+        loja: LOJA_ID,
+        chave: CHAVE_ADMIN_SERVIDOR,
+      }),
+    });
+    const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string };
+    return { ok: resposta.ok, erro: corpo.erro };
+  } catch {
+    return { ok: false, erro: "Sem conexão com o servidor. Tente de novo em instantes." };
+  }
+}
+
 /** Pede ao servidor que gere e envie o código de verificação por e-mail. */
 export function solicitarCodigoPorEmail(email: string) {
   return chamar("/codigo", { email });

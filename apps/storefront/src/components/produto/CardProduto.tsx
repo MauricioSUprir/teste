@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { notaMedia, obterMarca, temEstoque } from "@/lib/catalogo/consultas";
-import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
+import { EVENTO_AJUSTES, aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { formatarPreco, parcelamento, percentualDesconto, precoPix } from "@/lib/preco";
 import { PrecoProtegido } from "@/components/b2b/PrecoProtegido";
@@ -27,9 +27,15 @@ export function CardProduto({ produto: produtoBase }: { produto: Produto }) {
 
   useEffect(() => {
     if (produtoBase.local) return; // produto local já vem com os dados finais
-    const ajustado = aplicarAjustesProduto(produtoBase);
-    if (ajustado === null) setOculto(true);
-    else if (ajustado !== produtoBase) setProduto(ajustado);
+    const aplicar = () => {
+      const ajustado = aplicarAjustesProduto(produtoBase);
+      if (ajustado === null) setOculto(true);
+      else setProduto(ajustado);
+    };
+    aplicar();
+    // preços manuais podem chegar do servidor depois da montagem
+    window.addEventListener(EVENTO_AJUSTES, aplicar);
+    return () => window.removeEventListener(EVENTO_AJUSTES, aplicar);
   }, [produtoBase]);
 
   const marca = obterMarca(produto.marca);

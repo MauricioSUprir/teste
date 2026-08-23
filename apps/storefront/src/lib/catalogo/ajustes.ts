@@ -31,7 +31,65 @@ export interface AjustesCatalogo {
 }
 
 const CHAVE = "beautynow:catalogo-ajustes:v1";
+/** slugs cujo preço veio do servidor (para limpar quando o admin remover lá) */
+const CHAVE_PRECOS_SERVIDOR = "beautynow:precos-servidor:v1";
 const VAZIO: AjustesCatalogo = { adicionados: [], editados: {}, excluidos: [] };
+
+/** Evento disparado quando os ajustes mudam (ex.: preços chegaram do servidor);
+ * componentes que já montaram re-aplicam os ajustes ao ouvir. */
+export const EVENTO_AJUSTES = "beautynow:ajustes-mudaram";
+
+export function anunciarAjustes() {
+  try {
+    window.dispatchEvent(new Event(EVENTO_AJUSTES));
+  } catch {
+    // fora do navegador
+  }
+}
+
+/**
+ * Aplica os preços manuais vindos do servidor por cima dos ajustes locais.
+ * Só mexe nos campos de preço (mantém título/foto/estoque editados) e limpa
+ * o preço de produtos que deixaram de ter preço manual. Devolve true se algo
+ * mudou (para o chamador disparar o EVENTO_AJUSTES).
+ */
+export function aplicarPrecosServidor(
+  precos: Record<string, { precoPorCentavos: number; precoDeCentavos: number | null }>
+): boolean {
+  const ajustes = lerAjustes();
+  let anteriores: string[] = [];
+  try {
+    anteriores = JSON.parse(localStorage.getItem(CHAVE_PRECOS_SERVIDOR) ?? "[]") as string[];
+  } catch {
+    anteriores = [];
+  }
+  let mudou = false;
+  const editados = { ...ajustes.editados };
+
+  for (const [slug, p] of Object.entries(precos)) {
+    const atual = editados[slug];
+    if (atual?.precoPor !== p.precoPorCentavos || atual?.precoDe !== p.precoDeCentavos) {
+      editados[slug] = { ...atual, precoPor: p.precoPorCentavos, precoDe: p.precoDeCentavos };
+      mudou = true;
+    }
+  }
+  // preço manual removido no servidor → volta ao preço padrão do catálogo
+  for (const slug of anteriores) {
+    if (precos[slug] || !editados[slug]) continue;
+    const { precoPor: _p, precoDe: _d, ...resto } = editados[slug]; // eslint-disable-line @typescript-eslint/no-unused-vars
+    if (Object.keys(resto).length === 0) delete editados[slug];
+    else editados[slug] = resto;
+    mudou = true;
+  }
+
+  if (mudou) gravarAjustes({ ...ajustes, editados });
+  try {
+    localStorage.setItem(CHAVE_PRECOS_SERVIDOR, JSON.stringify(Object.keys(precos)));
+  } catch {
+    // storage indisponível
+  }
+  return mudou;
+}
 
 export function lerAjustes(): AjustesCatalogo {
   if (typeof window === "undefined") return VAZIO;

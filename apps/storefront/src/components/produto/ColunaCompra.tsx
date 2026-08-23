@@ -9,7 +9,7 @@ import { copy } from "@/lib/copy";
 import { useB2B } from "@/lib/b2b/contexto";
 import { PrecoProtegido } from "@/components/b2b/PrecoProtegido";
 import { useCarrinho } from "@/lib/carrinho/contexto";
-import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
+import { EVENTO_AJUSTES, aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { calcularFrete, validarCep, type OpcaoFrete } from "@/lib/frete";
 import {
@@ -28,8 +28,14 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
   // aplica preço/estoque editados no admin após a hidratação (PDP é estática)
   useEffect(() => {
     if (produtoBase.local) return;
-    const ajustado = aplicarAjustesProduto(produtoBase);
-    if (ajustado && ajustado !== produtoBase) setProduto(ajustado);
+    const aplicar = () => {
+      const ajustado = aplicarAjustesProduto(produtoBase);
+      if (ajustado) setProduto(ajustado);
+    };
+    aplicar();
+    // preços manuais podem chegar do servidor depois da montagem
+    window.addEventListener(EVENTO_AJUSTES, aplicar);
+    return () => window.removeEventListener(EVENTO_AJUSTES, aplicar);
   }, [produtoBase]);
 
   const [skuAtivo, setSkuAtivo] = useState(
