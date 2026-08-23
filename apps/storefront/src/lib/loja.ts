@@ -6,9 +6,9 @@
  *                         preço do Hub sem acréscimo e FECHADO até o
  *                         cadastro com CNPJ ser aprovado no admin.
  *
- * Escolhida no build por NEXT_PUBLIC_LOJA=be2beauty (regra do Mauricio, 22/08:
- * "jogar os preços do BeautyNow para o Be2Beauty exatamente igual e no
- * BeautyNow aumentar o valor em 70%").
+ * Escolhida no build por NEXT_PUBLIC_LOJA=be2beauty. Markup do BeautyNow
+ * definido pelo Mauricio em 23/08 após pesquisa de mercado: ×1,4 sobre o
+ * preço do Hub (o ×1,7 anterior ficava acima dos concorrentes).
  */
 
 export type LojaId = "beautynow" | "be2beauty";
@@ -29,7 +29,7 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
   beautynow: {
     id: "beautynow",
     nome: "BeautyNow",
-    multiplicadorPreco: 1.7,
+    multiplicadorPreco: 1.4,
     b2b: false,
   },
   be2beauty: {
