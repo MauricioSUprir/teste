@@ -29,7 +29,7 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
   beautynow: {
     id: "beautynow",
     nome: "BeautyNow",
-    multiplicadorPreco: 1.4,
+    multiplicadorPreco: 1.3,
     b2b: false,
   },
   be2beauty: {
