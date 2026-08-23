@@ -69,6 +69,13 @@ interface ContaContexto {
     complemento: string;
   }) => Promise<{ ok: boolean; erro?: string }>;
   iniciarLogin: (email: string, senha: string) => Promise<{ ok: boolean; erro?: string }>;
+  /**
+   * Login direto do admin — pula a senha e manda o código na hora. Só existe
+   * para o e-mail do admin (fixo, não recebe parâmetro) e é usado pelo botão
+   * "Conectar" entre os dois sites (mesma conta admin nos dois): a pessoa já
+   * provou quem é ao entrar no primeiro site, então aqui só falta o código.
+   */
+  iniciarLoginDiretoAdmin: () => Promise<{ ok: boolean; erro?: string }>;
   confirmarCodigo: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
   /** manda um novo código para o mesmo e-mail (botão "Reenviar") */
   reenviarCodigo: () => Promise<{ ok: boolean; erro?: string }>;
@@ -241,6 +248,17 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }, []);
 
+  const iniciarLoginDiretoAdmin: ContaContexto["iniciarLoginDiretoAdmin"] = useCallback(async () => {
+    if (await emailRealAtivo()) {
+      const r = await solicitarCodigoPorEmail(ADMIN_EMAIL);
+      if (!r.ok) return { ok: false, erro: r.erro };
+      setPendente({ email: ADMIN_EMAIL, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    } else {
+      setPendente({ email: ADMIN_EMAIL, codigo: gerarCodigo(), expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+    }
+    return { ok: true };
+  }, []);
+
   const confirmarCodigo: ContaContexto["confirmarCodigo"] = useCallback(
     async (codigo) => {
       if (!pendente) return { ok: false, erro: "Nenhuma verificação em andamento." };
@@ -379,6 +397,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       codigoDemo: pendente?.codigo ?? null,
       criarConta,
       iniciarLogin,
+      iniciarLoginDiretoAdmin,
       confirmarCodigo,
       reenviarCodigo,
       cancelarVerificacao,
@@ -386,7 +405,19 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       entrarComGoogleCredencial,
       sair,
     }),
-    [usuario, pendente, criarConta, iniciarLogin, confirmarCodigo, reenviarCodigo, cancelarVerificacao, entrarComGoogle, entrarComGoogleCredencial, sair]
+    [
+      usuario,
+      pendente,
+      criarConta,
+      iniciarLogin,
+      iniciarLoginDiretoAdmin,
+      confirmarCodigo,
+      reenviarCodigo,
+      cancelarVerificacao,
+      entrarComGoogle,
+      entrarComGoogleCredencial,
+      sair,
+    ]
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

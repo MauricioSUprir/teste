@@ -20,6 +20,8 @@ export interface EdicaoProduto {
   imagem?: string;
   /** true = todas as variações ficam sem estoque (produto some da venda) */
   esgotado?: boolean;
+  /** slug da marca — corrige produto cadastrado na marca errada */
+  marca?: string;
 }
 
 export interface AjustesCatalogo {
@@ -82,6 +84,7 @@ export function aplicarEdicao(produto: Produto, e: EdicaoProduto): Produto {
     ...produto,
     titulo: e.titulo ?? produto.titulo,
     descricao: e.descricao ?? produto.descricao,
+    marca: e.marca ?? produto.marca,
     imagens: e.imagem ? [e.imagem, ...(produto.imagens ?? []).slice(1)] : produto.imagens,
     variantes,
   };

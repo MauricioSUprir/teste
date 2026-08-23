@@ -387,6 +387,7 @@ function FormEditarProduto({
   aoSalvar: (edicao: EdicaoProduto) => void;
 }) {
   const [titulo, setTitulo] = useState(produto.titulo);
+  const [marca, setMarca] = useState(produto.marca);
   const [preco, setPreco] = useState((variante.precoPor / 100).toFixed(2).replace(".", ","));
   const [precoDe, setPrecoDe] = useState(
     variante.precoDe ? (variante.precoDe / 100).toFixed(2).replace(".", ",") : ""
@@ -406,6 +407,7 @@ function FormEditarProduto({
     if (!Number.isInteger(estoqueNum) || estoqueNum < 0) return setErro("Estoque inválido.");
     aoSalvar({
       titulo: titulo.trim(),
+      marca,
       precoPor: precoCent,
       precoDe: precoDeCent,
       estoque: estoqueNum,
@@ -416,6 +418,20 @@ function FormEditarProduto({
   return (
     <form onSubmit={salvar} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <CampoAdmin rotulo="Nome" valor={titulo} aoMudar={setTitulo} classeExtra="lg:col-span-2" />
+      <label className="block">
+        <span className="text-[0.8125rem] font-medium text-grafite">Marca</span>
+        <select
+          value={marca}
+          onChange={(e) => setMarca(e.target.value)}
+          className="mt-1 h-10 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+        >
+          {marcas.map((m) => (
+            <option key={m.slug} value={m.slug}>
+              {m.nome}
+            </option>
+          ))}
+        </select>
+      </label>
       <CampoAdmin rotulo="Preço (R$)" valor={preco} aoMudar={setPreco} numerico />
       <CampoAdmin rotulo="De (R$, opcional)" valor={precoDe} aoMudar={setPrecoDe} numerico />
       <CampoAdmin rotulo="Estoque" valor={estoque} aoMudar={setEstoque} numerico />

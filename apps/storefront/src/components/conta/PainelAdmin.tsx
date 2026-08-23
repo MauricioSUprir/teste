@@ -9,8 +9,9 @@
  * neste navegador (demonstração); com o servidor no ar, a mesma tela passa
  * a mostrar os dados reais centralizados.
  */
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
+import { LOJA } from "@/lib/loja";
 import { useConta } from "@/lib/conta/contexto";
 import { atualizarStatus, lerPedidos, type Pedido, type StatusPedido } from "@/lib/pedidos";
 import { AbaVisaoGeral } from "@/components/admin/AbaVisaoGeral";
@@ -23,6 +24,8 @@ import { AbaProfissionais } from "@/components/admin/AbaProfissionais";
 import { AbaAfiliados } from "@/components/admin/AbaAfiliados";
 import { AbaConfiguracoes } from "@/components/admin/AbaConfiguracoes";
 import { FormEntrar } from "./FormEntrar";
+import { HandoffAdmin } from "./HandoffAdmin";
+import { BotaoConectarLojaIrma } from "./BotaoConectarLojaIrma";
 
 type Aba =
   | "visao"
@@ -77,6 +80,9 @@ export function PainelAdmin() {
           {copy.conta.admin.titulo}
         </h1>
         <p className="mt-2 text-[0.9375rem] text-grafite">{copy.conta.admin.acessoNegado}</p>
+        <Suspense fallback={null}>
+          <HandoffAdmin />
+        </Suspense>
         <div className="mt-6 rounded-[16px] border border-linha bg-white p-6">
           <FormEntrar destino="/admin" />
         </div>
@@ -86,12 +92,17 @@ export function PainelAdmin() {
 
   return (
     <div className="container-bn py-10">
-      <p className="text-[0.8125rem] font-semibold uppercase tracking-widest text-violeta">
-        {copy.conta.admin.subtitulo}
-      </p>
-      <h1 className="font-titulo mt-1 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
-        {copy.conta.admin.titulo}
-      </h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[0.8125rem] font-semibold uppercase tracking-widest text-violeta">
+            {copy.conta.admin.subtitulo}
+          </p>
+          <h1 className="font-titulo mt-1 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
+            {copy.conta.admin.titulo}
+          </h1>
+        </div>
+        <BotaoConectarLojaIrma />
+      </div>
 
       {/* abas */}
       <div
