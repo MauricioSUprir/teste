@@ -1,0 +1,40 @@
+{
+  "achados": {
+    "arvensis": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/arvensis.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    },
+    "bruna-tavares": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/lojabrunatavares.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    },
+    "evoly": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/evoly.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    },
+    "melu": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/melubyrubyrose.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    },
+    "rebeel": {
+      "dominio": "unavatar",
+      "url": "https://unavatar.io/rebeel.com.br",
+      "tipo": "image/png",
+      "bytes": 1506,
+      "avatar": true
+    }
+  },
+  "falhas": []
+}

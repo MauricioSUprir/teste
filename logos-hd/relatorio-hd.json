@@ -1,0 +1,132 @@
+{
+  "batiste": "FALHOU",
+  "issue": {
+    "url": "https://issueprofessional.com/",
+    "metodo": "screenshot",
+    "bytes": 21303,
+    "screenshot": true
+  },
+  "joico": {
+    "url": "https://www.joico.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 2216,
+    "screenshot": true
+  },
+  "latika": {
+    "url": "https://latika.com.br/",
+    "metodo": "screenshot",
+    "bytes": 50110,
+    "screenshot": true
+  },
+  "mawwal": {
+    "url": "https://mawwal.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 20029
+  },
+  "nina": {
+    "url": "https://ninamakeup.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/png",
+    "bytes": 6661,
+    "screenshot": true
+  },
+  "noue": {
+    "url": "https://nouecosmeticos.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/png",
+    "bytes": 31471,
+    "screenshot": true
+  },
+  "sallve": {
+    "url": "https://sallve.com.br/",
+    "metodo": "screenshot",
+    "bytes": 4839,
+    "screenshot": true
+  },
+  "reyou": "FALHOU",
+  "oceane": {
+    "url": "https://oceane.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/png",
+    "bytes": 9222,
+    "screenshot": true
+  },
+  "k-pro": {
+    "url": "https://kpro.com.br/",
+    "metodo": "screenshot",
+    "bytes": 27998,
+    "screenshot": true
+  },
+  "beleza-brasileira": {
+    "url": "https://belezabrasileira.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 6790,
+    "screenshot": true
+  },
+  "soffie": {
+    "url": "https://www.soffie.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/png",
+    "bytes": 23577,
+    "screenshot": true
+  },
+  "arvensis": "FALHOU",
+  "papel-para-mechas": {
+    "url": "https://papelparamechas.com.br/",
+    "metodo": "screenshot",
+    "bytes": 26282,
+    "screenshot": true
+  },
+  "jacques-janine": {
+    "url": "https://jacquesjanine.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 6292,
+    "screenshot": true
+  },
+  "hidratei": {
+    "url": "https://hidratei.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 2476,
+    "screenshot": true
+  },
+  "senscience": {
+    "url": "https://senscience.com/",
+    "metodo": "arquivo",
+    "tipo": "image/svg+xml",
+    "bytes": 81331,
+    "screenshot": true
+  },
+  "widi-care": {
+    "url": "https://widicare.com.br/",
+    "metodo": "screenshot",
+    "bytes": 14964,
+    "screenshot": true
+  },
+  "d-vence": {
+    "url": "https://dvence.com.br/",
+    "metodo": "screenshot",
+    "bytes": 31166,
+    "screenshot": true
+  },
+  "bioderma": {
+    "url": "https://www.bioderma.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/png",
+    "bytes": 9970,
+    "screenshot": true
+  },
+  "byem": "FALHOU",
+  "dentalclean": {
+    "url": "https://dentalclean.com.br/",
+    "metodo": "arquivo",
+    "tipo": "image/png",
+    "bytes": 11887,
+    "screenshot": true
+  },
+  "melu": "FALHOU"
+}

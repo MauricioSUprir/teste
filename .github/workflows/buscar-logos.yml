@@ -1,0 +1,138 @@
+name: buscar-logos
+
+# Ponte de logos: o runner do GitHub tem internet aberta, então ele chama o
+# exportador de logos do servidor (Render) e grava o resultado no repositório.
+# Gatilho: qualquer push que altere .github/pedido-logos.txt (a chave vai nele).
+on:
+  push:
+    paths:
+      - ".github/pedido-logos.txt"
+
+permissions:
+  contents: write
+
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Baixar logos pelo exportador do servidor
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          ok=""
+          for i in 1 2 3 4; do
+            if curl -fsS --max-time 280 \
+              "https://beautynow-servidor.onrender.com/exportar-logos?chave=${chave}" \
+              -o logos-marcas-v2.json; then
+              ok=1; break
+            fi
+            echo "tentativa $i falhou (servidor acordando?); aguardando 40s"
+            sleep 40
+          done
+          test -n "$ok" && test -s logos-marcas-v2.json
+          node -e "const j=require('./logos-marcas-v2.json'); console.log('logos ok:', j.total, '| falhas:', JSON.stringify(j.falhas))"
+
+      - name: Caçada extra nas marcas que faltam (direto do runner)
+        run: node scripts/buscar-logos-extra.mjs
+        continue-on-error: true
+
+      - name: Caçada com navegador de verdade (sites com anti-robô)
+        run: |
+          npm i --no-save playwright >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          node scripts/cacar-logos-hd.mjs
+        continue-on-error: true
+
+      - name: Testar meios de pagamento (Pix, cartão, boleto)
+        run: node scripts/testar-pagamentos.mjs
+        continue-on-error: true
+
+      - name: Coletar logos enviadas pelo navegador
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/enviar-logos/exportar?chave=${chave}" \
+            -o logos-enviadas.json || echo '{}' > logos-enviadas.json
+          node -e "const j=require('./logos-enviadas.json'); console.log('enviadas pelo navegador:', j.total ?? 0)"
+        continue-on-error: true
+
+      - name: Verificar DNS do domínio novo
+        run: |
+          {
+            echo '{'
+            echo "\"apexA\": \"$(dig +short A beautynowstore.com.br | tr '\n' ' ')\","
+            echo "\"wwwCname\": \"$(dig +short CNAME www.beautynowstore.com.br | tr '\n' ' ')\","
+            echo "\"wwwA\": \"$(dig +short A www.beautynowstore.com.br | tr '\n' ' ')\","
+            echo "\"httpsWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://www.beautynowstore.com.br/ || echo erro)\","
+            echo "\"httpWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 http://www.beautynowstore.com.br/ || echo erro)\","
+            echo "\"httpsApex\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L https://beautynowstore.com.br/ || echo erro)\","
+            echo "\"b2bWwwCname\": \"$(dig +short CNAME www.be2beauty.com.br | tr '\n' ' ')\","
+            echo "\"b2bApexA\": \"$(dig +short A be2beauty.com.br | tr '\n' ' ')\","
+            echo "\"b2bHttpWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L http://www.be2beauty.com.br/ || echo erro)\","
+            echo "\"b2bHttpsWww\": \"$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 https://www.be2beauty.com.br/ || echo erro)\","
+            echo "\"b2bMarca\": \"$(curl -sL --max-time 30 http://www.be2beauty.com.br/ | grep -c Be2Beauty || echo 0)\","
+            echo "\"b2bCaa\": \"$(dig +short CAA be2beauty.com.br | tr '\n' ' ')\","
+            echo "\"b2bAcme\": \"$(dig +short CNAME _acme-challenge.www.be2beauty.com.br | tr '\n' ' ')\""
+            echo '}'
+          } > dns-check.json
+          cat dns-check.json
+        continue-on-error: true
+
+      - name: Coletar banners enviados pelo navegador
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 180 \
+            "https://beautynow-servidor.onrender.com/enviar-banners/exportar?chave=${chave}" \
+            -o banners-enviados.json || echo '{}' > banners-enviados.json
+          node -e "const j=require('./banners-enviados.json'); console.log('banners:', j.total ?? 0)"
+        continue-on-error: true
+
+      - name: Baixar miniaturas de TODAS as fotos de produto
+        run: |
+          npm i --no-save sharp >/dev/null 2>&1
+          node scripts/baixar-todas-fotos.mjs
+        continue-on-error: true
+
+      - name: Status da conexão com o Bling
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/bling/status?chave=${chave}" \
+            -o bling-status.json || echo '{}' > bling-status.json
+          cat bling-status.json
+        continue-on-error: true
+
+      - name: Backup das avaliações da loja
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/avaliacoes/exportar?chave=${chave}" \
+            -o avaliacoes-novas.json && mv avaliacoes-novas.json avaliacoes-backup.json || true
+        continue-on-error: true
+
+      - name: Backup dos cadastros profissionais (B2B)
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/b2b/exportar?chave=${chave}" \
+            -o b2b-novo.json && mv b2b-novo.json b2b-backup.json || true
+        continue-on-error: true
+
+      - name: Backup das vendas de afiliados
+        run: |
+          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          curl -fsS --max-time 120 \
+            "https://beautynow-servidor.onrender.com/afiliados/exportar?chave=${chave}" \
+            -o afiliados-novo.json && mv afiliados-novo.json afiliados-backup.json || true
+        continue-on-error: true
+
+      - name: Commitar resultado
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add logos-marcas-v2.json logos-enviadas.json logos-extra logos-hd teste-pagamentos.json avaliacoes-backup.json dns-check.json banners-enviados.json imagens-check fotos-todas bling-status.json b2b-backup.json afiliados-backup.json || true
+          git commit -m "chore(logos): resultado do exportador de logos v2" || echo "sem mudanças"
+          # a branch pode ter avançado durante a caçada — traz as novidades antes de entregar
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          git push
