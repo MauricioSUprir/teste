@@ -18,3 +18,4 @@ gatilho-fotos-todas 1787315660
 gatilho-bling-status 1787354460
 gatilho-be2beauty 20260822T231752
 gatilho-dns-b2b 20260823T004034
+gatilho-https-b2b 20260823T005539
