@@ -3,6 +3,7 @@ name: Publicar jogo no GitHub Pages
 on:
   push:
     branches:
+      - claude/explain-claude-code-luoxt # branch padrao do repositorio
       - claude/qr-code-project-entry-m2q9n2
   workflow_dispatch:
 
