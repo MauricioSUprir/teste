@@ -1,0 +1,33 @@
+{
+  "name": "estudaflow",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema completo de organização de estudos com IA e integrações Google",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "setup": "npm install && prisma generate && prisma db push"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "@prisma/client": "^6.16.0",
+    "googleapis": "^160.0.0",
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "overrides": {
+    "google-auth-library": "10.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "prisma": "^6.16.0",
+    "typescript": "^5.9.0"
+  }
+}

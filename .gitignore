@@ -1,3 +1,20 @@
+# Python (calculadora de demonstração)
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Banco de dados local e segredos
+prisma/dev.db
+prisma/dev.db-journal
+.env
+.env.local
+
+# Sistema
+.DS_Store

@@ -1,0 +1,107 @@
+// Modelo de dados do EstudaFlow.
+// SQLite não suporta enums no Prisma, então campos de status/prioridade
+// usam String com valores documentados em docs/MODELO-DE-DADOS.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#2E6E54")
+  createdAt DateTime @default(now())
+
+  topics    Topic[]
+  tasks     Task[]
+  blocks    StudyBlock[]
+  sessions  PomodoroSession[]
+  notes     Note[]
+  cards     Flashcard[]
+}
+
+model Topic {
+  id        String  @id @default(cuid())
+  name      String
+  done      Boolean @default(false)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("TODO") // TODO | DOING | DONE
+  priority    String    @default("MEDIA") // BAIXA | MEDIA | ALTA
+  dueDate     DateTime?
+  source      String    @default("LOCAL") // LOCAL | CLASSROOM
+  externalId  String?   @unique // id da atividade no Classroom, para não duplicar na sincronização
+  link        String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId   String?
+}
+
+model StudyBlock {
+  id          String  @id @default(cuid())
+  dayOfWeek   Int // 0 = domingo … 6 = sábado
+  startMin    Int // minutos desde 00:00 (ex.: 8h30 = 510)
+  durationMin Int
+  subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId   String
+}
+
+model PomodoroSession {
+  id        String   @id @default(cuid())
+  startedAt DateTime @default(now())
+  focusMin  Int
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId String?
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @default("")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId String?
+}
+
+model Flashcard {
+  id          String   @id @default(cuid())
+  front       String
+  back        String
+  // Estado do algoritmo de repetição espaçada SM-2
+  easiness    Float    @default(2.5)
+  intervalDays Int     @default(0)
+  repetitions Int      @default(0)
+  dueDate     DateTime @default(now())
+  createdAt   DateTime @default(now())
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId   String?
+}
+
+// Conta Google conectada (app de usuário único — uma linha só)
+model GoogleAccount {
+  id           Int      @id @default(1)
+  email        String
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  connectedAt  DateTime @default(now())
+}
+
+// Configurações simples em chave/valor (ex.: meta semanal de minutos)
+model Setting {
+  key   String @id
+  value String
+}
