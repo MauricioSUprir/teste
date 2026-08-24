@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="20" fill="#14171C"/>
+  <rect x="18" y="26" width="92" height="76" rx="6" fill="#E3C98F"/>
+  <rect x="18" y="26" width="92" height="76" rx="6" fill="none" stroke="#C23B2E" stroke-width="4"/>
+  <text x="64" y="60" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#C23B2E" transform="rotate(-8 64 60)">CASO</text>
+  <text x="64" y="84" text-anchor="middle" font-family="monospace" font-size="18" font-weight="bold" fill="#14171C" transform="rotate(-8 64 84)">DANTÈS</text>
+  <circle cx="98" cy="94" r="14" fill="#C23B2E"/>
+  <text x="98" y="99" text-anchor="middle" font-family="monospace" font-size="13" fill="#EDE7DA">🔍</text>
+</svg>

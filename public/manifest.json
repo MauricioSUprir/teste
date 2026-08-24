@@ -1,0 +1,18 @@
+{
+  "name": "CASO DANTÈS: ARQUIVO REABERTO",
+  "short_name": "Caso Dantès",
+  "description": "Jogo de detetive do sarau literário — O Conde de Monte Cristo em 2026.",
+  "start_url": "./?entrada=pwa",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#14171C",
+  "theme_color": "#14171C",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
