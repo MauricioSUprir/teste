@@ -8,8 +8,11 @@ Documentação em `docs/`.
 
 ## Preferências do usuário
 
-- **Sempre enviar o link do GitHub** (branch, commit ou PR) ao final de qualquer
-  trabalho commitado/enviado, em toda resposta.
+- **Sempre enviar o link de acesso ao PROJETO** ao final de cada trabalho:
+  http://localhost:3000 enquanto for local; a URL de produção depois do deploy.
+  O usuário NÃO quer o link do GitHub.
+- **Nunca enviar links do claude.ai** (artifacts etc.) — o usuário está com o
+  claude.ai bloqueado e não consegue acessar.
 - Comunicação em português do Brasil.
 
 ## Comandos
