@@ -13,6 +13,8 @@ Documentação em `docs/`.
   O usuário NÃO quer o link do GitHub.
 - **Nunca enviar links do claude.ai** (artifacts etc.) — o usuário está com o
   claude.ai bloqueado e não consegue acessar.
+- **Passo a passo sempre com o link direto junto de cada passo** (URL completa
+  que já abre na tela certa), para o usuário cair direto no lugar.
 - Comunicação em português do Brasil.
 
 ## Comandos
