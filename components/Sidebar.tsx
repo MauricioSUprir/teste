@@ -42,8 +42,12 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="logo">
-        Estuda<span>Flow</span>
+      <div className="logo" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.svg" alt="" width={30} height={30} />
+        <span style={{ color: "var(--tinta)" }}>
+          Pul<span style={{ color: "var(--acento)" }}>so</span>
+        </span>
       </div>
       {grupos.map((grupo) => (
         <div key={grupo.titulo}>

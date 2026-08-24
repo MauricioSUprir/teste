@@ -1,0 +1,18 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo do Pulso">
+  <!-- Livro aberto cuja página vira uma seta ascendente, com brilho âmbar -->
+  <g fill="none" stroke="#2E6E54" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <!-- capa de trás (linha dupla à esquerda) -->
+    <path d="M 106 214 L 86 226 L 86 394 C 146 368 214 374 256 412" />
+    <!-- página esquerda -->
+    <path d="M 256 226 C 218 188 158 180 118 198 L 118 374 C 158 358 218 366 256 404" />
+    <!-- página direita (a seta ocupa a borda interna) -->
+    <path d="M 256 404 C 294 366 354 358 394 374 L 394 252" />
+    <!-- vinco central -->
+    <path d="M 256 232 L 256 400" />
+    <!-- seta: a página que sobe -->
+    <path d="M 262 398 C 276 306 308 226 380 162" />
+    <path d="M 330 156 L 386 148 L 378 204" />
+  </g>
+  <!-- brilho âmbar -->
+  <path d="M 430 78 C 438 106 446 114 474 122 C 446 130 438 138 430 166 C 422 138 414 130 386 122 C 414 114 422 106 430 78 Z" fill="#C77B21" />
+</svg>

@@ -14,7 +14,7 @@ materiais ficam no Drive — mais três lugares para olhar.
 
 ## A solução
 
-O EstudaFlow junta tudo em um único sistema local:
+O Pulso junta tudo em um único sistema local:
 
 - Os quatro passos (planejar → executar → reter → acompanhar) viram módulos que conversam
   entre si: a sessão de Pomodoro alimenta as estatísticas e a sequência de dias; as tarefas

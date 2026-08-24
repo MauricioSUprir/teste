@@ -95,7 +95,7 @@ export async function enviarPush(titulo: string, corpo: string) {
   if (!pushConfigurado()) return { enviados: 0, erro: "push não configurado" };
 
   webpush.setVapidDetails(
-    "mailto:notificacoes@estudaflow.local",
+    "mailto:notificacoes@pulso.local",
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
     process.env.VAPID_PRIVATE_KEY!
   );
@@ -134,7 +134,7 @@ export async function enviarEmail(titulo: string, corpo: string) {
 
   const gmail = google.gmail({ version: "v1", auth });
 
-  const assunto = `EstudaFlow · ${titulo}`;
+  const assunto = `Pulso · ${titulo}`;
   // Assunto com acentos precisa de codificação MIME
   const assuntoMime = `=?UTF-8?B?${Buffer.from(assunto).toString("base64")}?=`;
   const mensagem = [
@@ -144,7 +144,7 @@ export async function enviarEmail(titulo: string, corpo: string) {
     "",
     corpo,
     "",
-    "— EstudaFlow, seu sistema de estudos",
+    "— Pulso, seu sistema de estudos",
   ].join("\r\n");
 
   try {

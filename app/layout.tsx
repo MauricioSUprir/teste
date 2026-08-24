@@ -3,7 +3,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "EstudaFlow",
+  title: "Pulso",
   description: "Sistema completo de organização de estudos com IA",
 };
 

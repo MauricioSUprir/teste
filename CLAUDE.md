@@ -2,7 +2,7 @@
 
 ## Sobre
 
-EstudaFlow — sistema pessoal de organização de estudos (Next.js 15 + Prisma/SQLite),
+Pulso — sistema pessoal de organização de estudos (Next.js 15 + Prisma/SQLite),
 em português, com assistente de IA (Claude) e integrações Google somente leitura.
 Documentação em `docs/`.
 

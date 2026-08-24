@@ -10,8 +10,15 @@ export default async function Entrar({
   return (
     <div style={{ maxWidth: 380, margin: "18vh auto 0" }}>
       <div className="cartao pilha">
-        <div className="logo" style={{ padding: 0 }}>
-          Estuda<span style={{ color: "var(--acento)" }}>Flow</span>
+        <div
+          className="logo"
+          style={{ padding: 0, display: "flex", alignItems: "center", gap: 8 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" width={34} height={34} />
+          <span>
+            Pul<span style={{ color: "var(--acento)" }}>so</span>
+          </span>
         </div>
         <p className="texto-suave">Este é um espaço pessoal. Digite a senha de acesso.</p>
         {erro && (

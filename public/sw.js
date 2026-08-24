@@ -1,7 +1,7 @@
-// Service worker do EstudaFlow — recebe notificações push e as mostra na tela.
+// Service worker do Pulso — recebe notificações push e as mostra na tela.
 
 self.addEventListener("push", (event) => {
-  let dados = { titulo: "EstudaFlow", corpo: "Você tem pendências de estudo." };
+  let dados = { titulo: "Pulso", corpo: "Você tem pendências de estudo." };
   try {
     dados = event.data.json();
   } catch (e) {
@@ -14,7 +14,7 @@ self.addEventListener("push", (event) => {
       body: dados.corpo,
       icon: "/icone-192.png",
       badge: "/icone-192.png",
-      tag: "estudaflow-resumo",
+      tag: "pulso-resumo",
       renotify: true,
     })
   );

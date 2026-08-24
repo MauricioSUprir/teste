@@ -1,7 +1,9 @@
-# EstudaFlow 📚
+<img src="public/logo.svg" alt="Logo do Pulso" width="72" align="right" />
 
-Sistema completo e pessoal de organização de estudos, com assistente de IA (Claude) e
-integrações com Google Classroom, Gmail e Drive. Roda no seu computador, com seus dados
+# Pulso
+
+Sistema completo e pessoal de organização de estudos, com assistente de IA (Gemini
+gratuito ou Claude) e integrações com Google Classroom, Gmail e Drive. Roda no seu computador, com seus dados
 guardados em um banco local — nada vai para a nuvem além das chamadas de IA e do Google
 que você autorizar.
 
@@ -68,4 +70,4 @@ Para acessar de qualquer lugar por um link público protegido por senha, siga
 ---
 
 *Obs.: `calculadora.py` e `test_calculadora.py` são arquivos de demonstração anteriores do
-repositório, sem relação com o EstudaFlow.*
+repositório, sem relação com o Pulso.*

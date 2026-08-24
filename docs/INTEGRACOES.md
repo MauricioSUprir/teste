@@ -2,7 +2,7 @@
 
 ## 1. Assistente IA — escolha sua opção
 
-O EstudaFlow funciona com **duas IAs** (assistente, quiz, Feynman, leitura de imagens do
+O Pulso funciona com **duas IAs** (assistente, quiz, Feynman, leitura de imagens do
 calendário). Você só precisa de UMA:
 
 ### Opção A — Gemini (Google) · GRATUITA · ~2 minutos
@@ -31,9 +31,9 @@ calendário). Você só precisa de UMA:
 ### E o NotebookLM ("Gemini Notebook")?
 
 O **NotebookLM não tem API pública** — o Google não permite que outros aplicativos se
-conectem a ele. Ou seja, não dá para integrar diretamente ao EstudaFlow. Alternativas:
+conectem a ele. Ou seja, não dá para integrar diretamente ao Pulso. Alternativas:
 - Use o **Gemini** aqui dentro (opção A) — é a mesma família de IA por trás do NotebookLM;
-- Para usar o NotebookLM em paralelo: copie suas Notas do EstudaFlow e cole lá como fonte.
+- Para usar o NotebookLM em paralelo: copie suas Notas do Pulso e cole lá como fonte.
 
 ## 2. Google (Classroom, Gmail, Drive) — ~10 minutos, gratuito
 
@@ -43,14 +43,14 @@ sua conta Google.
 ### Passo a passo no Google Cloud
 
 1. Acesse [console.cloud.google.com](https://console.cloud.google.com) com sua conta Google.
-2. No topo, crie um **novo projeto** (ex.: "EstudaFlow").
+2. No topo, crie um **novo projeto** (ex.: "Pulso").
 3. **Ative as três APIs** — menu *APIs e serviços → Biblioteca*, busque e ative uma a uma:
    - **Google Classroom API**
    - **Gmail API**
    - **Google Drive API**
 4. **Tela de consentimento** — menu *APIs e serviços → Tela de permissão OAuth*:
    - Tipo de usuário: **Externo** → criar
-   - Preencha só o obrigatório (nome do app "EstudaFlow", seu e-mail nos dois campos)
+   - Preencha só o obrigatório (nome do app "Pulso", seu e-mail nos dois campos)
    - Em **Usuários de teste**, adicione o seu próprio e-mail (importante!)
 5. **Credenciais** — menu *APIs e serviços → Credenciais → Criar credenciais → ID do
    cliente OAuth*:
@@ -68,7 +68,7 @@ sua conta Google.
    ```
 7. Reinicie o servidor, abra **Integrações** no menu e clique em **Conectar conta Google**.
    O Google mostrará um aviso de "app não verificado" — normal para apps pessoais em modo
-   de teste; clique em *Avançado → Acessar EstudaFlow*.
+   de teste; clique em *Avançado → Acessar Pulso*.
 
 ### O que cada integração faz
 

@@ -71,7 +71,7 @@ export async function contextoDoEstudante(): Promise<string> {
   return linhas.join("\n");
 }
 
-export const SYSTEM_TUTOR = `Você é o assistente de estudos do EstudaFlow, um sistema pessoal de organização de estudos.
+export const SYSTEM_TUTOR = `Você é o assistente de estudos do Pulso, um sistema pessoal de organização de estudos.
 Você recebe, junto com cada conversa, um retrato do estado atual dos estudos do usuário (matérias, tarefas, cronograma, horas estudadas).
 
 Suas funções:

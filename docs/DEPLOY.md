@@ -1,6 +1,6 @@
-# Colocar o EstudaFlow na internet (gratuito)
+# Colocar o Pulso na internet (gratuito)
 
-Ao final você terá um link público (ex.: `https://estudaflow.vercel.app`) para acessar de
+Ao final você terá um link público (ex.: `https://pulso.vercel.app`) para acessar de
 qualquer lugar, protegido por uma senha que só você conhece.
 
 Usamos dois serviços com plano gratuito generoso:
@@ -12,13 +12,13 @@ Tempo total: ~15 minutos.
 ## 1. Criar o banco no Turso (~5 min)
 
 1. Acesse [turso.tech](https://turso.tech) e clique em **Sign Up** (entre com o GitHub).
-2. No painel, clique em **Create Database** — dê o nome `estudaflow` e escolha a região
+2. No painel, clique em **Create Database** — dê o nome `pulso` e escolha a região
    `São Paulo (gru)` se disponível.
 3. Abra o banco criado e copie a **URL** (começa com `libsql://`).
 4. Ainda no banco, vá em **Tokens** (ou "Generate Token") e crie um token — copie-o.
 5. No seu computador, adicione os dois valores ao `.env`:
    ```
-   TURSO_DATABASE_URL="libsql://estudaflow-....turso.io"
+   TURSO_DATABASE_URL="libsql://pulso-....turso.io"
    TURSO_AUTH_TOKEN="eyJ..."
    ```
 6. Crie as tabelas no banco da nuvem:
@@ -47,7 +47,7 @@ Tempo total: ~15 minutos.
 4. Clique em **Deploy** e aguarde (~2 min). A Vercel mostrará o link do seu projeto —
    algo como `https://teste-xxxx.vercel.app`.
 5. (Opcional) Em *Settings → Domains* você pode trocar para um nome melhor, ex.:
-   `estudaflow.vercel.app`, se estiver livre.
+   `pulso.vercel.app`, se estiver livre.
 
 Pronto: abra o link, digite sua senha e use de qualquer lugar, inclusive do celular.
 

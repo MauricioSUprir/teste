@@ -1,6 +1,6 @@
 # Notificações
 
-O EstudaFlow envia um **resumo diário** com: tarefas atrasadas e vencendo em 48h (com o
+O Pulso envia um **resumo diário** com: tarefas atrasadas e vencendo em 48h (com o
 nível de urgência), provas/eventos do calendário de hoje e amanhã, flashcards vencidos e os
 blocos de estudo do dia. Ele chega por dois canais:
 
