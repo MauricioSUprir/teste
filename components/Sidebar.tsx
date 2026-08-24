@@ -34,6 +34,9 @@ const grupos: { titulo: string; itens: { href: string; label: string }[] }[] = [
 export function Sidebar() {
   const pathname = usePathname();
 
+  // A tela de senha não mostra a navegação
+  if (pathname === "/entrar") return null;
+
   return (
     <aside className="sidebar">
       <div className="logo">

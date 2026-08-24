@@ -49,6 +49,11 @@ funcionam sem nenhuma configuração extra.
 Siga o passo a passo em [`docs/INTEGRACOES.md`](docs/INTEGRACOES.md) — leva ~10 minutos e
 é gratuito.
 
+### Publicar na internet (opcional)
+
+Para acessar de qualquer lugar por um link público protegido por senha, siga
+[`docs/DEPLOY.md`](docs/DEPLOY.md) — Vercel + Turso, gratuito, ~15 minutos.
+
 ## Documentação
 
 - [`docs/VISAO.md`](docs/VISAO.md) — o que é o projeto e para quem

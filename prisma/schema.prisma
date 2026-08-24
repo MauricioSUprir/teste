@@ -3,7 +3,8 @@
 // usam String com valores documentados em docs/MODELO-DE-DADOS.md.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {

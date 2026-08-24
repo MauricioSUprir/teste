@@ -9,11 +9,14 @@
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
+    "db:push:turso": "node scripts/db-push-turso.mjs",
     "db:studio": "prisma studio",
     "setup": "npm install && prisma generate && prisma db push"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.0",
+    "@libsql/client": "^0.17.4",
+    "@prisma/adapter-libsql": "^6.19.3",
     "@prisma/client": "^6.16.0",
     "googleapis": "^160.0.0",
     "next": "^15.5.0",
