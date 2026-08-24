@@ -1,13 +1,15 @@
 "use client";
 
 import { useTransition } from "react";
-import { excluirTarefa, moverTarefa } from "@/lib/actions";
+import { ajustarTarefa, excluirTarefa, moverTarefa } from "@/lib/actions";
+import { nivelUrgencia, ROTULO_URGENCIA } from "@/lib/urgencia";
 
 export type TarefaView = {
   id: string;
   title: string;
   status: string;
-  priority: string;
+  kind: string;
+  difficulty: number;
   dueDate: string | null;
   source: string;
   link: string | null;
@@ -20,12 +22,6 @@ const COLUNAS = [
   { status: "DOING", titulo: "Fazendo" },
   { status: "DONE", titulo: "Concluídas" },
 ];
-
-const ROTULO_PRIORIDADE: Record<string, string> = {
-  BAIXA: "baixa",
-  MEDIA: "média",
-  ALTA: "alta",
-};
 
 export function QuadroTarefas({ tarefas }: { tarefas: TarefaView[] }) {
   const [, startTransition] = useTransition();
@@ -42,6 +38,12 @@ export function QuadroTarefas({ tarefas }: { tarefas: TarefaView[] }) {
             {itens.map((t) => {
               const atrasada =
                 t.status !== "DONE" && t.dueDate && new Date(t.dueDate) < new Date();
+              const urgencia = nivelUrgencia({
+                dueDate: t.dueDate,
+                difficulty: t.difficulty,
+                kind: t.kind,
+                status: t.status,
+              });
               return (
                 <div key={t.id} className="cartao" style={{ padding: "12px 14px" }}>
                   <div className="linha-flex" style={{ marginBottom: 6 }}>
@@ -60,13 +62,23 @@ export function QuadroTarefas({ tarefas }: { tarefas: TarefaView[] }) {
                     </button>
                   </div>
                   <div className="linha-flex" style={{ gap: 6, marginBottom: 8 }}>
+                    {t.status !== "DONE" && (
+                      <span
+                        className={`pilula ${
+                          urgencia === "CRITICA" || urgencia === "ALTA"
+                            ? "pilula-perigo"
+                            : urgencia === "MEDIA"
+                              ? "pilula-ambar"
+                              : ""
+                        }`}
+                      >
+                        {ROTULO_URGENCIA[urgencia]}
+                      </span>
+                    )}
+                    <span className={`pilula ${t.kind === "AVALIATIVO" ? "pilula-ambar" : ""}`}>
+                      {t.kind === "AVALIATIVO" ? "vale nota" : "dever de casa"}
+                    </span>
                     {t.subjectName && <span className="pilula">{t.subjectName}</span>}
-                    {t.priority === "ALTA" && (
-                      <span className="pilula pilula-ambar">prioridade alta</span>
-                    )}
-                    {t.priority !== "ALTA" && (
-                      <span className="pilula">{ROTULO_PRIORIDADE[t.priority] ?? t.priority}</span>
-                    )}
                     {t.dueDate && (
                       <span className={`pilula ${atrasada ? "pilula-perigo" : ""}`}>
                         {atrasada ? "atrasada · " : ""}
@@ -77,6 +89,39 @@ export function QuadroTarefas({ tarefas }: { tarefas: TarefaView[] }) {
                       <span className="pilula pilula-acento">Classroom</span>
                     )}
                   </div>
+                  {t.status !== "DONE" && (
+                    <div className="linha-flex" style={{ gap: 6, marginBottom: 8 }}>
+                      <label className="texto-suave" style={{ fontSize: "0.8rem" }}>
+                        Dificuldade{" "}
+                        <select
+                          value={t.difficulty}
+                          onChange={(e) => {
+                            const dif = Number(e.target.value);
+                            startTransition(() => ajustarTarefa(t.id, { difficulty: dif }));
+                          }}
+                        >
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="texto-suave" style={{ fontSize: "0.8rem" }}>
+                        Tipo{" "}
+                        <select
+                          value={t.kind}
+                          onChange={(e) => {
+                            const kind = e.target.value;
+                            startTransition(() => ajustarTarefa(t.id, { kind }));
+                          }}
+                        >
+                          <option value="CASA">casa</option>
+                          <option value="AVALIATIVO">vale nota</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
                   <div className="linha-flex" style={{ gap: 6 }}>
                     {coluna.status !== "TODO" && (
                       <button

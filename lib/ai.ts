@@ -1,20 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
-
-export const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5";
-
-export function aiDisponivel(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
-}
-
-export function getClient(): Anthropic {
-  return new Anthropic();
-}
 
 // Monta um retrato do estado atual dos estudos para dar contexto real
 // ao assistente: matérias, tarefas pendentes, horas estudadas, revisões.
 export async function contextoDoEstudante(): Promise<string> {
-  const [subjects, tasks, sessions, cardsDue, blocks] = await Promise.all([
+  const [subjects, tasks, sessions, cardsDue, blocks, eventos] = await Promise.all([
     db.subject.findMany({ include: { topics: true } }),
     db.task.findMany({
       where: { status: { not: "DONE" } },
@@ -28,6 +17,12 @@ export async function contextoDoEstudante(): Promise<string> {
     }),
     db.flashcard.count({ where: { dueDate: { lte: new Date() } } }),
     db.studyBlock.findMany({ include: { subject: true } }),
+    db.event.findMany({
+      where: { date: { gte: new Date() } },
+      orderBy: { date: "asc" },
+      take: 15,
+      include: { subject: true },
+    }),
   ]);
 
   const dias = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -63,6 +58,13 @@ export async function contextoDoEstudante(): Promise<string> {
   linhas.push("");
   linhas.push("TEMPO DE ESTUDO NOS ÚLTIMOS 14 DIAS (minutos de foco):");
   for (const [nome, min] of minutosPorMateria) linhas.push(`- ${nome}: ${min} min`);
+  linhas.push("");
+  linhas.push("PRÓXIMOS EVENTOS DO CALENDÁRIO (provas, entregas):");
+  for (const e of eventos) {
+    linhas.push(
+      `- ${e.date.toLocaleDateString("pt-BR")}: [${e.type}] ${e.title}${e.subject ? ` (${e.subject.name})` : ""}`
+    );
+  }
   linhas.push("");
   linhas.push(`FLASHCARDS VENCIDOS PARA REVISAR HOJE: ${cardsDue}`);
 

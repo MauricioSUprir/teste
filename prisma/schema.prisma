@@ -24,6 +24,7 @@ model Subject {
   sessions  PomodoroSession[]
   notes     Note[]
   cards     Flashcard[]
+  events    Event[]
 }
 
 model Topic {
@@ -40,6 +41,8 @@ model Task {
   description String?
   status      String    @default("TODO") // TODO | DOING | DONE
   priority    String    @default("MEDIA") // BAIXA | MEDIA | ALTA
+  kind        String    @default("CASA") // CASA (dever de casa) | AVALIATIVO (vale nota)
+  difficulty  Int       @default(3) // 1 (muito fácil) a 5 (muito difícil) — pesa na urgência
   dueDate     DateTime?
   source      String    @default("LOCAL") // LOCAL | CLASSROOM
   externalId  String?   @unique // id da atividade no Classroom, para não duplicar na sincronização
@@ -48,6 +51,28 @@ model Task {
   completedAt DateTime?
   subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   subjectId   String?
+}
+
+// Evento do calendário (prova, entrega, aula especial, evento da escola)
+model Event {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  type      String   @default("EVENTO") // PROVA | TRABALHO | AULA | EVENTO
+  notes     String?
+  source    String   @default("MANUAL") // MANUAL | IMAGEM
+  createdAt DateTime @default(now())
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId String?
+}
+
+// Inscrição de notificações push do navegador/celular
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }
 
 model StudyBlock {

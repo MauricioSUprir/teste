@@ -43,13 +43,33 @@ export async function criarTarefa(formData: FormData) {
   if (!title) return;
   const dueDateRaw = String(formData.get("dueDate") ?? "");
   const subjectId = String(formData.get("subjectId") ?? "");
+  const kind = String(formData.get("kind") ?? "CASA");
+  const difficulty = Math.min(5, Math.max(1, Number(formData.get("difficulty") ?? 3)));
   await db.task.create({
     data: {
       title,
-      priority: String(formData.get("priority") ?? "MEDIA"),
+      priority: kind === "AVALIATIVO" ? "ALTA" : "MEDIA",
+      kind,
+      difficulty,
       dueDate: dueDateRaw ? new Date(dueDateRaw + "T23:59:00") : null,
       subjectId: subjectId || null,
       description: String(formData.get("description") ?? "").trim() || null,
+    },
+  });
+  revalidatePath("/", "layout");
+}
+
+export async function ajustarTarefa(
+  id: string,
+  campos: { difficulty?: number; kind?: string }
+) {
+  await db.task.update({
+    where: { id },
+    data: {
+      ...(campos.difficulty
+        ? { difficulty: Math.min(5, Math.max(1, campos.difficulty)) }
+        : {}),
+      ...(campos.kind ? { kind: campos.kind } : {}),
     },
   });
   revalidatePath("/", "layout");
@@ -85,6 +105,49 @@ export async function criarBloco(formData: FormData) {
 export async function excluirBloco(id: string) {
   await db.studyBlock.delete({ where: { id } });
   revalidatePath("/", "layout");
+}
+
+// ── Calendário ───────────────────────────────────────────────
+
+export async function criarEvento(formData: FormData) {
+  const title = String(formData.get("title") ?? "").trim();
+  const dateRaw = String(formData.get("date") ?? "");
+  if (!title || !dateRaw) return;
+  const subjectId = String(formData.get("subjectId") ?? "");
+  await db.event.create({
+    data: {
+      title,
+      date: new Date(dateRaw + "T12:00:00"),
+      type: String(formData.get("type") ?? "EVENTO"),
+      subjectId: subjectId || null,
+      notes: String(formData.get("notes") ?? "").trim() || null,
+    },
+  });
+  revalidatePath("/calendario");
+}
+
+export async function excluirEvento(id: string) {
+  await db.event.delete({ where: { id } });
+  revalidatePath("/calendario");
+}
+
+// Salva os eventos extraídos de uma imagem pela IA (após confirmação do usuário)
+export async function criarEventosEmLote(
+  eventos: { title: string; date: string; type: string; notes?: string }[]
+) {
+  const validos = eventos.filter((e) => e.title.trim() && /^\d{4}-\d{2}-\d{2}$/.test(e.date));
+  if (validos.length === 0) return 0;
+  await db.event.createMany({
+    data: validos.map((e) => ({
+      title: e.title.trim(),
+      date: new Date(e.date + "T12:00:00"),
+      type: ["PROVA", "TRABALHO", "AULA", "EVENTO"].includes(e.type) ? e.type : "EVENTO",
+      notes: e.notes?.trim() || null,
+      source: "IMAGEM",
+    })),
+  });
+  revalidatePath("/calendario");
+  return validos.length;
 }
 
 // ── Pomodoro ─────────────────────────────────────────────────

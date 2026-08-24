@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 
 type OAuth2Client = Auth.OAuth2Client;
 
-// Escopos pedidos ao Google — somente leitura, o app nunca altera nada na sua conta.
+// Escopos pedidos ao Google. Leitura em tudo; a única escrita é gmail.send,
+// usada para enviar o lembrete diário de estudos para o SEU próprio e-mail.
 export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/classroom.courses.readonly",
@@ -11,6 +12,7 @@ export const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/classroom.announcements.readonly",
   "https://www.googleapis.com/auth/drive.metadata.readonly",
   "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
 ];
 
 export function googleConfigurado(): boolean {
@@ -100,6 +102,15 @@ export async function sincronizarClassroom(auth: OAuth2Client) {
         );
       }
 
+      // Vale nota (tem pontuação) => AVALIATIVO; senão, dever de casa.
+      const valeNota = typeof work.maxPoints === "number" && work.maxPoints > 0;
+      // Estimativa inicial de dificuldade (ajustável na tela de Tarefas):
+      // avaliativo pesa mais; questões rápidas pesam menos.
+      const rapida =
+        work.workType === "SHORT_ANSWER_QUESTION" ||
+        work.workType === "MULTIPLE_CHOICE_QUESTION";
+      const difficulty = valeNota ? 4 : rapida ? 2 : 3;
+
       await db.task.create({
         data: {
           title: work.title ?? "Atividade do Classroom",
@@ -109,7 +120,9 @@ export async function sincronizarClassroom(auth: OAuth2Client) {
           externalId,
           link: work.alternateLink ?? null,
           subjectId: subject.id,
-          priority: "ALTA",
+          priority: valeNota ? "ALTA" : "MEDIA",
+          kind: valeNota ? "AVALIATIVO" : "CASA",
+          difficulty,
         },
       });
       importadas++;

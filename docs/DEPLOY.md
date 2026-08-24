@@ -39,7 +39,9 @@ Tempo total: ~15 minutos.
    | `TURSO_DATABASE_URL` | a URL `libsql://...` do passo 1 |
    | `TURSO_AUTH_TOKEN` | o token do passo 1 |
    | `SENHA_DE_ACESSO` | uma senha forte, só sua — será pedida ao abrir o site |
-   | `ANTHROPIC_API_KEY` | sua chave do Claude (para o Assistente IA) |
+   | `GEMINI_API_KEY` **ou** `ANTHROPIC_API_KEY` | sua chave de IA (Gemini é gratuito — docs/INTEGRACOES.md) |
+   | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | chaves de push (docs/NOTIFICACOES.md) |
+   | `CRON_SECRET` | texto aleatório longo — protege o disparo diário de notificações |
    | `DATABASE_URL` | `file:./dev.db` (exigido pelo Prisma no build; não é usado em produção) |
 
 4. Clique em **Deploy** e aguarde (~2 min). A Vercel mostrará o link do seu projeto —

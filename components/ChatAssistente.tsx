@@ -55,12 +55,24 @@ export function ChatAssistente({ ativo }: { ativo: boolean }) {
       <div className="cartao">
         <h2>Assistente desativado</h2>
         <p style={{ marginBottom: 8 }}>
-          Para ativar, crie uma chave da API do Claude e adicione ao arquivo{" "}
-          <code>.env</code>:
+          Para ativar, conecte uma das duas IAs no arquivo <code>.env</code> e reinicie o
+          servidor:
         </p>
         <ol style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 4 }}>
           <li>
-            Acesse{" "}
+            <strong>Gemini (gratuito)</strong> — crie uma chave em{" "}
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "var(--acento)", fontWeight: 700 }}
+            >
+              aistudio.google.com
+            </a>{" "}
+            e preencha <code>GEMINI_API_KEY</code>.
+          </li>
+          <li>
+            <strong>Claude (pago por uso)</strong> — crie uma chave em{" "}
             <a
               href="https://console.anthropic.com/settings/keys"
               target="_blank"
@@ -69,14 +81,10 @@ export function ChatAssistente({ ativo }: { ativo: boolean }) {
             >
               console.anthropic.com
             </a>{" "}
-            e crie uma chave.
+            e preencha <code>ANTHROPIC_API_KEY</code>.
           </li>
-          <li>
-            Copie <code>.env.example</code> para <code>.env</code> e preencha{" "}
-            <code>ANTHROPIC_API_KEY</code>.
-          </li>
-          <li>Reinicie o servidor (<code>npm run dev</code>).</li>
         </ol>
+        <p className="texto-suave">O passo a passo completo está na página Integrações e em docs/INTEGRACOES.md.</p>
       </div>
     );
   }

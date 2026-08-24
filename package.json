@@ -21,7 +21,8 @@
     "googleapis": "^160.0.0",
     "next": "^15.5.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "web-push": "^3.6.7"
   },
   "overrides": {
     "google-auth-library": "10.5.0"
@@ -30,6 +31,7 @@
     "@types/node": "^24.3.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/web-push": "^3.6.4",
     "prisma": "^6.16.0",
     "typescript": "^5.9.0"
   }

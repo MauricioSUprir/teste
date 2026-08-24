@@ -17,9 +17,21 @@ Item do conteúdo de uma matéria. O progresso da matéria = tópicos concluído
 ### Task (tarefa)
 - `status`: `TODO` | `DOING` | `DONE`
 - `priority`: `BAIXA` | `MEDIA` | `ALTA`
+- `kind`: `CASA` (dever de casa) | `AVALIATIVO` (vale nota — no Classroom, atividade com pontuação)
+- `difficulty`: 1 a 5 — pesa no cálculo de urgência (`lib/urgencia.ts`)
 - `source`: `LOCAL` (criada no app) | `CLASSROOM` (importada)
 - `externalId` (único): `classroom:<cursoId>:<atividadeId>` — garante importação sem duplicar
 - `dueDate`, `link`, `completedAt`
+- **Urgência** (calculada, não gravada): prazo + dificuldade + vale nota →
+  `BAIXA`/`MEDIA`/`ALTA`/`CRITICA`
+
+### Event (evento do calendário)
+- `type`: `PROVA` | `TRABALHO` | `AULA` | `EVENTO`
+- `source`: `MANUAL` | `IMAGEM` (extraído de foto pela IA)
+- `date`, `notes`, matéria opcional
+
+### PushSubscription (notificações push)
+Um registro por dispositivo com push ativado (`endpoint` único + chaves de criptografia).
 
 ### StudyBlock (bloco do cronograma)
 Compromisso fixo semanal de estudo.

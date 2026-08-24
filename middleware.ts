@@ -8,7 +8,15 @@ export async function middleware(request: NextRequest) {
   if (!senha) return NextResponse.next();
 
   const { pathname } = request.nextUrl;
-  if (pathname === "/entrar" || pathname === "/api/entrar") {
+  // Rotas livres: login, service worker/ícones (o navegador busca sem cookie)
+  // e o disparo de notificações, que valida o próprio acesso (CRON_SECRET ou sessão).
+  if (
+    pathname === "/entrar" ||
+    pathname === "/api/entrar" ||
+    pathname === "/sw.js" ||
+    pathname.startsWith("/icone-") ||
+    pathname === "/api/notificacoes/enviar"
+  ) {
     return NextResponse.next();
   }
 

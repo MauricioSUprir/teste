@@ -1,17 +1,39 @@
 # Configurar as integrações
 
-## 1. Assistente IA (Claude) — ~2 minutos
+## 1. Assistente IA — escolha sua opção
 
-1. Acesse [console.anthropic.com](https://console.anthropic.com) e crie uma conta (ou entre).
-2. Vá em **Settings → API Keys → Create Key** e copie a chave.
-3. No projeto, copie `.env.example` para `.env` (se ainda não fez) e preencha:
+O EstudaFlow funciona com **duas IAs** (assistente, quiz, Feynman, leitura de imagens do
+calendário). Você só precisa de UMA:
+
+### Opção A — Gemini (Google) · GRATUITA · ~2 minutos
+
+1. Acesse [aistudio.google.com/apikey](https://aistudio.google.com/apikey) com sua conta
+   Google e clique em **Create API key** (não pede cartão).
+2. No `.env`, preencha:
+   ```
+   GEMINI_API_KEY="AIza..."
+   ```
+3. Reinicie o servidor. Pronto — o plano gratuito tem limites por minuto/dia, mas é
+   suficiente para uso pessoal de estudos.
+
+### Opção B — Claude (Anthropic) · paga por uso · ~2 minutos
+
+1. Acesse [console.anthropic.com](https://console.anthropic.com), crie a conta e vá em
+   **Settings → API Keys → Create Key**.
+2. No `.env`, preencha:
    ```
    ANTHROPIC_API_KEY="sk-ant-..."
    ```
-4. Reinicie o servidor (`npm run dev`). A página **Assistente IA** passa a funcionar.
+> O Claude não tem camada gratuita na API: é pago por consumo (centavos por conversa,
+> exige adicionar créditos/cartão). Em troca, costuma dar respostas de mais qualidade.
+> Se tiver as duas chaves, escolha com `IA_PROVEDOR="claude"` ou `"gemini"`.
 
-> O uso da API é pago por consumo (centavos por conversa). Você acompanha os gastos no
-> próprio console da Anthropic.
+### E o NotebookLM ("Gemini Notebook")?
+
+O **NotebookLM não tem API pública** — o Google não permite que outros aplicativos se
+conectem a ele. Ou seja, não dá para integrar diretamente ao EstudaFlow. Alternativas:
+- Use o **Gemini** aqui dentro (opção A) — é a mesma família de IA por trás do NotebookLM;
+- Para usar o NotebookLM em paralelo: copie suas Notas do EstudaFlow e cole lá como fonte.
 
 ## 2. Google (Classroom, Gmail, Drive) — ~10 minutos, gratuito
 

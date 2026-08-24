@@ -11,14 +11,17 @@ que você autorizar.
 |---|---|
 | **Painel** | Visão do dia: meta semanal, sequência de dias estudados, prazos próximos, blocos de hoje |
 | **Matérias** | Disciplinas com cores, tópicos e progresso |
-| **Tarefas** | Quadro kanban (a fazer / fazendo / concluídas) com prioridades e prazos |
+| **Tarefas** | Deveres de casa × avaliativos, com **urgência automática** (prazo + dificuldade + vale nota), em kanban |
+| **Calendário** | Provas e eventos: adicione manualmente ou **envie uma foto** do calendário da escola e a IA preenche as datas |
 | **Cronograma** | Blocos fixos de estudo na semana |
 | **Pomodoro** | Timer de foco que registra cada sessão na matéria |
 | **Flashcards** | Revisão com repetição espaçada (algoritmo SM-2, estilo Anki) |
+| **Modos de estudo** | Quiz gerado por IA e técnica Feynman (explique e receba correção) |
 | **Notas** | Anotações por matéria |
-| **Assistente IA** | Tutor com contexto real dos seus estudos: monta planos, replaneja a semana, explica conteúdos, gera quizzes |
+| **Assistente IA** | Tutor com contexto real dos seus estudos — funciona com **Gemini (grátis)** ou Claude |
+| **Notificações** | Resumo diário por **push na tela** (PC e celular) e por e-mail no seu Gmail |
 | **Estatísticas** | Horas por matéria, evolução diária, tarefas concluídas |
-| **Integrações** | Importa atividades do Classroom como tarefas; e-mails de estudo do Gmail; arquivos do Drive |
+| **Integrações** | Classroom → tarefas já classificadas; e-mails de estudo do Gmail; arquivos do Drive |
 
 ## Como rodar
 
@@ -38,11 +41,11 @@ npm run dev
 Abra **http://localhost:3000** no navegador. Pronto — todos os módulos de organização já
 funcionam sem nenhuma configuração extra.
 
-### Ativar o Assistente IA (opcional, recomendado)
+### Ativar a IA (opcional, recomendado)
 
-1. Crie uma chave em [console.anthropic.com](https://console.anthropic.com/settings/keys)
-2. Cole no `.env`: `ANTHROPIC_API_KEY="sua-chave"`
-3. Reinicie o servidor
+Opção gratuita: chave do **Gemini** em [aistudio.google.com/apikey](https://aistudio.google.com/apikey) → `GEMINI_API_KEY` no `.env`.
+Opção paga: chave do **Claude** em [console.anthropic.com](https://console.anthropic.com/settings/keys) → `ANTHROPIC_API_KEY`.
+Detalhes em [`docs/INTEGRACOES.md`](docs/INTEGRACOES.md).
 
 ### Ativar Google Classroom, Gmail e Drive (opcional)
 

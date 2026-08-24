@@ -11,8 +11,10 @@ export default async function Integracoes() {
     <>
       <h1>Integrações</h1>
       <p className="subtitulo">
-        Conecte sua conta Google para importar atividades do Classroom como tarefas, ver
-        e-mails de estudo do Gmail e acessar materiais do Drive — tudo somente leitura.
+        Conecte sua conta Google para importar atividades do Classroom como tarefas
+        (já separadas entre dever de casa e avaliativo), ver e-mails de estudo do Gmail e
+        acessar materiais do Drive. O app só lê seus dados — a única exceção é o envio do
+        lembrete diário para o seu próprio e-mail.
       </p>
       <PainelGoogle
         configurado={googleConfigurado()}

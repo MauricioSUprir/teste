@@ -10,6 +10,7 @@ const grupos: { titulo: string; itens: { href: string; label: string }[] }[] = [
       { href: "/", label: "Painel" },
       { href: "/materias", label: "Matérias" },
       { href: "/tarefas", label: "Tarefas" },
+      { href: "/calendario", label: "Calendário" },
       { href: "/cronograma", label: "Cronograma" },
     ],
   },
@@ -18,6 +19,7 @@ const grupos: { titulo: string; itens: { href: string; label: string }[] }[] = [
     itens: [
       { href: "/pomodoro", label: "Pomodoro" },
       { href: "/flashcards", label: "Flashcards" },
+      { href: "/estudar", label: "Modos de estudo" },
       { href: "/notas", label: "Notas" },
     ],
   },
@@ -26,6 +28,7 @@ const grupos: { titulo: string; itens: { href: string; label: string }[] }[] = [
     itens: [
       { href: "/assistente", label: "Assistente IA" },
       { href: "/estatisticas", label: "Estatísticas" },
+      { href: "/notificacoes", label: "Notificações" },
       { href: "/integracoes", label: "Integrações" },
     ],
   },

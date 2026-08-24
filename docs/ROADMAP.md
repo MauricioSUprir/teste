@@ -24,6 +24,15 @@
 - Gmail → e-mails de estudo recentes
 - Drive → arquivos recentes
 
+## ✅ Fase 6 — Pedidos do dia a dia (entregue)
+- Tarefas com tipo (casa × avaliativo), dificuldade 1-5 e **urgência automática**
+- Classroom já importa classificando tipo/dificuldade/prioridade
+- **Calendário** mensal com eventos manuais e importação por **foto** (IA lê as datas)
+- **Modos de estudo**: quiz por IA e técnica Feynman
+- Suporte a **Gemini (gratuito)** além do Claude, com seleção por variável
+- **Notificações**: push na tela (Web Push + service worker) e e-mail diário via Gmail
+  do próprio usuário; cron diário na Vercel
+
 ## 🔜 Próximos passos (ideias priorizadas)
 
 1. **IA gera flashcards direto no banco** — hoje o assistente sugere cartões em texto
