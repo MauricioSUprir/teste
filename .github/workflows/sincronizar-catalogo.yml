@@ -9,11 +9,15 @@ name: Sincronizar catálogo do Hub
 #
 # Este arquivo vive na branch padrão porque o GitHub só agenda workflows a
 # partir dela — mas todo o código-fonte usado vem da RAMO_FONTE abaixo.
+# Para rodar fora do horário: edite .github/disparar-sincronizacao.txt.
 
 on:
   schedule:
     - cron: "0 9 * * *" # 06:00 no horário de Brasília, todo dia
   workflow_dispatch: {}
+  push:
+    paths:
+      - ".github/disparar-sincronizacao.txt"
 
 permissions:
   contents: write
