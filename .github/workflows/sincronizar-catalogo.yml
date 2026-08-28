@@ -57,11 +57,17 @@ jobs:
           done
           # força uma coleta nova (refazer=1) e espera ficar pronta
           curl -s "$SERVIDOR/exportar-catalogo?chave=$CHAVE&refazer=1" -o /dev/null
-          for i in $(seq 1 60); do
+          for i in $(seq 1 90); do
             curl -s -L "$SERVIDOR/exportar-catalogo/baixar?chave=$CHAVE" -o catalogo-hub.json || true
             if jq -e '.brutos | length > 900' catalogo-hub.json >/dev/null 2>&1; then
               echo "catálogo pronto: $(jq '.brutos | length' catalogo-hub.json) produtos"
               break
+            fi
+            # o Hub às vezes dá 502 no meio da coleta — a cada 2 min sem
+            # resultado, manda refazer (inofensivo se ainda estiver coletando)
+            if [ $((i % 12)) -eq 0 ]; then
+              echo "sem resultado ainda — pedindo nova coleta (refazer)…"
+              curl -s "$SERVIDOR/exportar-catalogo?chave=$CHAVE&refazer=1" -o /dev/null
             fi
             echo "aguardando coleta… ($i)"
             sleep 10
