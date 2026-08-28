@@ -1,0 +1,121 @@
+name: Sincronizar catálogo do Hub
+
+# Robô diário do BeautyNow: baixa o catálogo do Hub Suprir (via servidor no
+# Render, que guarda a HUB_API_KEY), roda o script de sincronização e, se
+# houver produto/marca/preço/foto novos, atualiza dados-hub.json na branch
+# de trabalho e republica os sites (BeautyNow na raiz + espelho Be2Beauty
+# em /pro). O site da Be2Beauty (domínio próprio) tem um robô igual no
+# repositório dele.
+#
+# Este arquivo vive na branch padrão porque o GitHub só agenda workflows a
+# partir dela — mas todo o código-fonte usado vem da RAMO_FONTE abaixo.
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 06:00 no horário de Brasília, todo dia
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sincronizar-catalogo
+  cancel-in-progress: false
+
+env:
+  RAMO_FONTE: claude/beauty-now-ecommerce-fbfxh2
+  SERVIDOR: https://beautynow-servidor.onrender.com
+  # mesma chave que o painel do admin usa no navegador (já é pública no bundle)
+  CHAVE: exporta-bn-2026
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RAMO_FONTE }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Baixar catálogo do Hub (via servidor)
+        run: |
+          set -e
+          # acorda o servidor gratuito (pode levar ~1 min)
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$SERVIDOR/saude" || echo 000)
+            [ "$code" = "200" ] && break
+            echo "acordando servidor… ($i)"
+            sleep 10
+          done
+          # força uma coleta nova (refazer=1) e espera ficar pronta
+          curl -s "$SERVIDOR/exportar-catalogo?chave=$CHAVE&refazer=1" -o /dev/null
+          for i in $(seq 1 60); do
+            curl -s -L "$SERVIDOR/exportar-catalogo/baixar?chave=$CHAVE" -o catalogo-hub.json || true
+            if jq -e '.brutos | length > 900' catalogo-hub.json >/dev/null 2>&1; then
+              echo "catálogo pronto: $(jq '.brutos | length' catalogo-hub.json) produtos"
+              break
+            fi
+            echo "aguardando coleta… ($i)"
+            sleep 10
+          done
+          # trava de segurança: catálogo muito pequeno = coleta falhou, não publica
+          jq -e '.brutos | length > 900' catalogo-hub.json >/dev/null
+
+      - run: npm ci
+
+      - name: Sincronizar catálogo
+        run: node scripts/sincronizar-catalogo.mjs catalogo-hub.json
+
+      - name: Verificar se há novidade (ignora só o carimbo de data)
+        id: diff
+        run: |
+          git show "HEAD:apps/storefront/src/lib/catalogo/dados-hub.json" | jq 'del(.atualizadoEm)' > /tmp/antes.json
+          jq 'del(.atualizadoEm)' apps/storefront/src/lib/catalogo/dados-hub.json > /tmp/depois.json
+          if cmp -s /tmp/antes.json /tmp/depois.json; then
+            echo "mudou=nao" >> "$GITHUB_OUTPUT"
+            echo "Nada novo no Hub hoje — nada a publicar."
+          else
+            echo "mudou=sim" >> "$GITHUB_OUTPUT"
+            echo "Catálogo mudou — vou commitar e republicar."
+          fi
+
+      - name: Commitar o catálogo novo na branch de trabalho
+        if: steps.diff.outputs.mudou == 'sim'
+        run: |
+          git config user.name "robo-catalogo"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/storefront/src/lib/catalogo/dados-hub.json
+          git commit -m "chore(catalogo): sincronização automática diária do Hub"
+          git push origin "HEAD:$RAMO_FONTE"
+
+      - name: Build BeautyNow (raiz) e Be2Beauty (/pro)
+        if: steps.diff.outputs.mudou == 'sim'
+        run: |
+          set -e
+          STATIC_EXPORT=1 NEXT_PUBLIC_SERVIDOR_URL="$SERVIDOR" npm run build --workspace=@beautynow/storefront
+          mv apps/storefront/out /tmp/out-root
+          rm -rf apps/storefront/.next
+          STATIC_EXPORT=1 BASE_PATH=/pro NEXT_PUBLIC_LOJA=be2beauty NEXT_PUBLIC_SERVIDOR_URL="$SERVIDOR" npm run build --workspace=@beautynow/storefront
+          mv apps/storefront/out /tmp/out-pro
+
+      - name: Publicar no GitHub Pages
+        if: steps.diff.outputs.mudou == 'sim'
+        run: |
+          set -e
+          mkdir -p /tmp/site/pro
+          cp -r /tmp/out-root/. /tmp/site/
+          cp -r /tmp/out-pro/. /tmp/site/pro/
+          echo "www.beautynowstore.com.br" > /tmp/site/CNAME
+          touch /tmp/site/.nojekyll
+          cd /tmp/site
+          git init -q -b gh-pages
+          git config user.name "robo-catalogo"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "chore: publicação automática após sincronização do catálogo"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" gh-pages
+          echo "Sites republicados com o catálogo novo."
