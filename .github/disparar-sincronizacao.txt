@@ -1,0 +1,2 @@
+Edite este arquivo (qualquer mudança) para rodar a sincronização do catálogo fora do horário agendado.
+Disparo de teste: 2026-08-28
