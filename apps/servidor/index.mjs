@@ -562,7 +562,7 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
   if (!HUB_API_KEY) {
     return res.status(400).send(paginaExport("Falta configurar", "A variável <b>HUB_API_KEY</b> não está preenchida no Render."));
   }
-  if (exportacao.estado === "pronto") {
+  if (exportacao.estado === "pronto" && !req.query.refazer) {
     return res.send(
       paginaExport(
         "✅ Catálogo pronto!",
