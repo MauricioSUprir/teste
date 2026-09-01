@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import { useAfiliado } from "@/lib/afiliado/contexto";
 import { formatarPreco } from "@/lib/preco";
+import { LinksProdutos } from "./LinksProdutos";
 import {
   consultarPainelAfiliado,
   gerarLinkAfiliado,
@@ -179,6 +180,9 @@ export function PainelAfiliado() {
           </p>
         </div>
       )}
+
+      {/* pesquisa de produtos: um link individual por produto */}
+      {dados?.codigo && <LinksProdutos codigo={dados.codigo} />}
 
       {/* números */}
       {dados && (

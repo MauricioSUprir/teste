@@ -221,7 +221,72 @@ export async function enviarPedidoAoServidor(
   // veio de link de afiliado? o código segue junto para creditar a comissão
   const afiliado = obterAfiliado();
   // falha aqui não pode travar a confirmação da compra — o registro local fica
-  await chamar("/pedidos", { ...pedido, ...extras, afiliado }).catch(() => undefined);
+  await chamar("/pedidos", { ...pedido, ...extras, afiliado, loja: LOJA_ID }).catch(() => undefined);
+}
+
+// ===== Pedidos no painel do admin (histórico completo no servidor) =====
+
+export interface EnderecoPedido {
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  referencia?: string;
+}
+
+export interface PedidoAdmin {
+  numero: string;
+  data: string;
+  loja: "beautynow" | "be2beauty";
+  clienteNome: string;
+  clienteEmail: string;
+  cpf: string;
+  telefone: string;
+  endereco: EnderecoPedido | null;
+  itens: { sku: string; titulo: string; quantidade: number; precoCentavos: number }[];
+  totalCentavos: number;
+  meio: string;
+  freteNome: string;
+  cupom: string | null;
+  descontoCentavos: number;
+  afiliado: string | null;
+  status: "aguardando_pagamento" | "pago" | "cancelado";
+}
+
+/** Admin: todos os pedidos do site, com endereço e contato do cliente. */
+export async function listarPedidosAdmin(): Promise<{ ok: boolean; pedidos: PedidoAdmin[] }> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/pedidos/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      75_000,
+      {}
+    );
+    if (!resposta.ok) return { ok: false, pedidos: [] };
+    const dados = (await resposta.json()) as { pedidos?: PedidoAdmin[] };
+    return { ok: true, pedidos: dados.pedidos ?? [] };
+  } catch {
+    return { ok: false, pedidos: [] };
+  }
+}
+
+/** Admin muda o status de um pedido no servidor (pago fora do MP, cancelado…). */
+export async function mudarStatusPedidoAdmin(
+  numero: string,
+  status: "pago" | "cancelado" | "aguardando_pagamento"
+) {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/pedidos/status`, 30_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numero, status, chave: CHAVE_ADMIN_SERVIDOR }),
+    });
+    return { ok: resposta.ok };
+  } catch {
+    return { ok: false };
+  }
 }
 
 // ===== Avaliações da loja =====

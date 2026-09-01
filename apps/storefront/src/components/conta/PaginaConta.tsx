@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { obterProduto } from "@/lib/catalogo/consultas";
 import { useConta } from "@/lib/conta/contexto";
@@ -10,6 +11,7 @@ import { lerPedidos, type Pedido } from "@/lib/pedidos";
 import { formatarPreco } from "@/lib/preco";
 import { CardProduto } from "@/components/produto/CardProduto";
 import { FormEntrar } from "./FormEntrar";
+import { SecaoAfiliadoConta } from "./SecaoAfiliadoConta";
 
 const rotuloStatus = {
   aguardando_pagamento: "Aguardando pagamento",
@@ -26,7 +28,21 @@ const corStatus = {
 export function PaginaConta() {
   const conta = useConta();
   const favoritos = useFavoritos();
+  const router = useRouter();
   const [meusPedidos, setMeusPedidos] = useState<Pedido[]>([]);
+
+  // quem foi mandado do checkout para entrar/criar conta volta para lá sozinho
+  useEffect(() => {
+    if (!conta.usuario) return;
+    try {
+      if (sessionStorage.getItem("bn:voltar-checkout") === "1") {
+        sessionStorage.removeItem("bn:voltar-checkout");
+        router.replace("/checkout");
+      }
+    } catch {
+      // sem storage, segue na conta normalmente
+    }
+  }, [conta.usuario, router]);
   const produtosFavoritos = favoritos.slugs
     .map((slug) => obterProduto(slug))
     .filter((p) => p !== undefined);
@@ -143,6 +159,9 @@ export function PaginaConta() {
           </ul>
         )}
       </section>
+
+      {/* qualquer cliente pode pedir para virar afiliado — a aprovação é do admin */}
+      <SecaoAfiliadoConta />
 
       <section className="mt-4 rounded-[16px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.favoritos}</h2>

@@ -143,6 +143,11 @@ export const copy = {
   },
   checkout: {
     titulo: "Finalizar compra",
+    precisaContaTitulo: "Entre na sua conta para finalizar",
+    precisaContaTexto:
+      "Para concluir a compra você precisa estar na sua conta — assim seus pedidos ficam salvos e o acompanhamento é mais fácil. Seu carrinho fica guardado.",
+    precisaContaEntrar: "Entrar na minha conta",
+    precisaContaCriar: "Criar conta grátis",
     identificacao: "Identificação",
     entrega: "Entrega",
     pagamento: "Pagamento",
@@ -290,7 +295,7 @@ export const copy = {
       falha: "Não foi possível carregar agora. Tente de novo em instantes.",
       saqueTitulo: "Resgatar comissão",
       saqueTexto:
-        "O valor disponível é enviado por Pix para a chave que você informar. Depois de pedir, o pagamento é confirmado pela nossa equipe.",
+        "O valor disponível é enviado por Pix para a chave que você informar. Depois de pedir, o pagamento é confirmado pela nossa equipe — o dinheiro chega em no máximo 2 dias.",
       saqueDisponivel: "Disponível para saque",
       saqueAguardando: "Aguardando pagamento",
       saqueRecebido: "Já recebido",
@@ -298,7 +303,7 @@ export const copy = {
       saqueValor: "Valor do saque (R$)",
       saquePedir: "Pedir saque",
       saquePedindo: "Enviando pedido…",
-      saqueOk: "✅ Pedido de saque enviado! Você recebe um e-mail quando o Pix sair.",
+      saqueOk: "✅ Pedido de saque enviado! O Pix chega em no máximo 2 dias — você recebe um e-mail quando sair.",
       saqueSemSaldo: "Você ainda não tem saldo para sacar.",
       saqueHistorico: "Seus saques",
       saqueStatusPendente: "⏳ Aguardando",
@@ -356,6 +361,33 @@ export const copy = {
     statusRecusadoTitulo: "❌ Cadastro não aprovado",
     statusRecusadoTexto: "Em caso de dúvida, fale com a gente: (21) 99732-2464.",
     verificarNovamente: "Verificar novamente",
+    conta: {
+      titulo: "Programa de afiliados",
+      texto:
+        "Divulgue nossos produtos com os seus links e ganhe comissão em cada venda paga. A solicitação vai para o administrador aprovar.",
+      botao: "Quero ser afiliado",
+      senhaRotulo: "Confirme sua senha",
+      senhaErrada: "Senha incorreta. Confira e tente de novo.",
+      enviada: "✅ Solicitação enviada! Você recebe a resposta por e-mail.",
+      pendente: "⏳ Sua solicitação está em análise",
+      pendenteTexto: "O administrador vai aprovar e avisamos por e-mail — geralmente em até 1 dia útil.",
+      recusada: "❌ Sua solicitação não foi aprovada",
+      recusadaTexto: "Em caso de dúvida, fale com a gente: (21) 99732-2464.",
+      aprovada: "✅ Você é afiliado!",
+      aprovadaTexto: "Seu painel tem seus links, suas vendas, sua comissão e o pedido de saque.",
+      abrirPainel: "Abrir meu painel de afiliado",
+    },
+    links: {
+      titulo: "Links por produto",
+      texto:
+        "Cada produto tem um link só seu, que abre direto na página dele. Pesquise ou filtre por marca e copie o link do produto que você vai divulgar.",
+      busca: "Pesquisar produto…",
+      todasMarcas: "Todas as marcas",
+      nenhum: "Nenhum produto encontrado com essa busca.",
+      copiar: "Copiar link",
+      copiado: "✅ Copiado!",
+      maisResultados: (n: number) => `+${n} produtos — refine a busca para achar o seu.`,
+    },
     admin: {
       titulo: "Pedidos de afiliado",
       texto: "Cadastros pedindo entrada no programa de afiliados — CNPJ é opcional aqui.",

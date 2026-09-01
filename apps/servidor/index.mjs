@@ -684,10 +684,89 @@ aplicacao.post("/codigo/verificar", (req, res) => {
   res.json({ ok: true });
 });
 
+// ===== Histórico de pedidos (painel do admin) =====
+// Cada pedido do site fica guardado aqui com TODOS os dados (itens, valor,
+// endereço de entrega, contato) para o admin abrir no painel e ver o detalhe.
+// O status vira "pago" quando o webhook do Mercado Pago confirma.
+const ARQ_PEDIDOS_LOJA = "/tmp/pedidos-loja.json";
+let pedidosLoja = [];
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_PEDIDOS_LOJA)) {
+    pedidosLoja = JSON.parse(fs.readFileSync(ARQ_PEDIDOS_LOJA, "utf8"));
+  }
+} catch {
+  pedidosLoja = [];
+}
+
+async function salvarPedidosLoja() {
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_PEDIDOS_LOJA, JSON.stringify(pedidosLoja));
+  } catch {
+    /* segue em memória */
+  }
+}
+
+function registrarPedidoLoja(pedido) {
+  if (!pedido?.numero) return;
+  const registro = {
+    numero: String(pedido.numero),
+    data: pedido.data ?? new Date().toISOString(),
+    loja: pedido.loja === "be2beauty" ? "be2beauty" : "beautynow",
+    clienteNome: String(pedido.clienteNome ?? ""),
+    clienteEmail: String(pedido.clienteEmail ?? ""),
+    cpf: String(pedido.cpf ?? ""),
+    telefone: String(pedido.telefone ?? ""),
+    endereco: pedido.endereco ?? null,
+    itens: Array.isArray(pedido.itens) ? pedido.itens : [],
+    totalCentavos: Number(pedido.totalCentavos ?? 0),
+    meio: String(pedido.meio ?? ""),
+    freteNome: String(pedido.freteNome ?? ""),
+    cupom: pedido.cupom ?? null,
+    descontoCentavos: Number(pedido.descontoCentavos ?? 0),
+    afiliado: pedido.afiliado ?? null,
+    status: "aguardando_pagamento",
+  };
+  pedidosLoja = [registro, ...pedidosLoja.filter((p) => p.numero !== registro.numero)];
+  if (pedidosLoja.length > 2000) pedidosLoja = pedidosLoja.slice(0, 2000);
+  salvarPedidosLoja();
+}
+
+function atualizarStatusPedidoLoja(numero, status) {
+  const p = pedidosLoja.find((x) => x.numero === String(numero));
+  if (!p || p.status === status) return;
+  p.status = status;
+  salvarPedidosLoja();
+  console.log(`[pedidos] ${numero} → ${status}`);
+}
+
+// lista completa para o painel do admin (dados de entrega inclusos)
+aplicacao.get("/pedidos/lista", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ ok: true, total: pedidosLoja.length, pedidos: pedidosLoja.slice(0, 300) });
+});
+
+// admin marca pago (venda fora do MP) ou cancela
+aplicacao.post("/pedidos/status", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const status = String(req.body?.status ?? "");
+  if (!["pago", "cancelado", "aguardando_pagamento"].includes(status)) {
+    return res.status(400).json({ erro: "Status inválido." });
+  }
+  atualizarStatusPedidoLoja(String(req.body?.numero ?? ""), status);
+  res.json({ ok: true });
+});
+
 aplicacao.post("/pedidos", async (req, res) => {
   const pedido = req.body ?? {};
   guardarPedidoRecente(pedido); // o webhook do MP usa isso para faturar no Bling
   anotarPedidoAfiliado(pedido); // se veio de link de afiliado, fica anotado até pagar
+  if (!pedido.testeChave) registrarPedidoLoja(pedido); // histórico p/ o painel do admin
 
   // pedido de TESTE (só com a chave do admin): registra a atribuição de
   // afiliado mas NÃO vai ao Hub nem dispara aviso de venda
@@ -878,6 +957,10 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
         criarPedidoNoBling(completo).catch(() => undefined);
       } else if (pagamento.external_reference) {
         console.warn(`[bling] pedido ${pagamento.external_reference} aprovado mas sem dados completos na memória`);
+      }
+      // histórico do painel: o pedido vira "pago"
+      if (pagamento.external_reference) {
+        atualizarStatusPedidoLoja(pagamento.external_reference, "pago");
       }
       // venda veio de link de afiliado? credita a comissão (uma vez só)
       if (pagamento.external_reference) {

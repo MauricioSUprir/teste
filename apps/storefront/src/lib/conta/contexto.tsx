@@ -79,6 +79,11 @@ interface ContaContexto {
   confirmarCodigo: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
   /** manda um novo código para o mesmo e-mail (botão "Reenviar") */
   reenviarCodigo: () => Promise<{ ok: boolean; erro?: string }>;
+  /**
+   * Confere a senha do usuário logado (ex.: antes de pedir para virar
+   * afiliado). Conta criada pelo Google não tem senha — devolve true.
+   */
+  validarSenha: (senha: string) => Promise<boolean>;
   cancelarVerificacao: () => void;
   /** login demonstrativo (sem Client ID do Google configurado) */
   entrarComGoogle: () => void;
@@ -322,6 +327,18 @@ export function ContaProvider({ children }: { children: ReactNode }) {
 
   const cancelarVerificacao = useCallback(() => setPendente(null), []);
 
+  const validarSenha: ContaContexto["validarSenha"] = useCallback(
+    async (senha) => {
+      if (!usuario) return false;
+      if (usuario.email === ADMIN_EMAIL) return (await pbkdf2(senha)) === ADMIN_SENHA_PBKDF2;
+      const u = lerUsuarios().find((x) => x.email === usuario.email);
+      if (!u) return false;
+      if (u.viaGoogle && !u.senhaHash) return true; // conta Google não tem senha
+      return u.senhaHash === (await sha256(senha));
+    },
+    [usuario]
+  );
+
   /** garante o cadastro do usuário vindo do Google e dispara a 2ª etapa (código) */
   const iniciarVerificacaoGoogle = useCallback(async (nome: string, email: string) => {
     const usuarios = lerUsuarios();
@@ -401,6 +418,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       confirmarCodigo,
       reenviarCodigo,
       cancelarVerificacao,
+      validarSenha,
       entrarComGoogle,
       entrarComGoogleCredencial,
       sair,
@@ -414,6 +432,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       confirmarCodigo,
       reenviarCodigo,
       cancelarVerificacao,
+      validarSenha,
       entrarComGoogle,
       entrarComGoogleCredencial,
       sair,

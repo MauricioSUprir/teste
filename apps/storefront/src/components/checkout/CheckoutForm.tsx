@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { useCarrinho } from "@/lib/carrinho/contexto";
+import { useConta } from "@/lib/conta/contexto";
 import { calcularFrete, validarCep, type OpcaoFrete } from "@/lib/frete";
 import {
   PEDIDO_MINIMO_CENTAVOS,
@@ -44,6 +45,7 @@ interface Endereco {
 
 export function CheckoutForm() {
   const carrinho = useCarrinho();
+  const conta = useConta();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -73,6 +75,25 @@ export function CheckoutForm() {
   useEffect(() => {
     acordarServidor();
   }, []);
+
+  // compra exige conta: nome e e-mail vêm dela (o e-mail identifica o pedido)
+  useEffect(() => {
+    if (!conta.usuario) return;
+    setEmail(conta.usuario.email);
+    setNome((atual) => atual || conta.usuario?.nome || "");
+  }, [conta.usuario]);
+
+  // sem conta: marca que a pessoa veio do checkout — depois do login/cadastro
+  // a página da conta traz ela de volta para cá automaticamente
+  useEffect(() => {
+    try {
+      if (!conta.usuario && carrinho.itens.length > 0) {
+        sessionStorage.setItem("bn:voltar-checkout", "1");
+      }
+    } catch {
+      // sem storage, a pessoa volta pelo carrinho
+    }
+  }, [conta.usuario, carrinho.itens.length]);
 
   const frete = fretes.find((f) => f.id === freteEscolhido);
   const totalProdutos = carrinho.subtotalCentavos;
@@ -226,6 +247,47 @@ export function CheckoutForm() {
     );
   }
 
+  // finalizar compra exige conta — o carrinho segue guardado enquanto entra
+  if (!conta.usuario) {
+    return (
+      <div className="min-h-dvh bg-superficie">
+        <header className="border-b border-linha bg-white">
+          <div className="container-bn flex h-16 items-center justify-between">
+            <Link href="/" aria-label={`${copy.marca.nome} — página inicial`}>
+              <Logo altura={24} />
+            </Link>
+            <p className="hidden items-center gap-4 text-[0.8125rem] text-grafite sm:flex">
+              <span>🔒 {copy.checkout.seguro}</span>
+              <span className="num">{copy.checkout.atendimento}</span>
+            </p>
+          </div>
+        </header>
+        <div className="container-bn max-w-md py-16 text-center">
+          <h1 className="font-titulo text-[1.5rem] font-semibold text-tinta">
+            {copy.checkout.precisaContaTitulo}
+          </h1>
+          <p className="mt-2 text-[0.9375rem] leading-relaxed text-grafite">
+            {copy.checkout.precisaContaTexto}
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link
+              href="/conta"
+              className="rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+            >
+              {copy.checkout.precisaContaEntrar}
+            </Link>
+            <Link
+              href="/conta/criar"
+              className="rounded-[999px] border-2 border-roxo py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
+            >
+              {copy.checkout.precisaContaCriar}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const abaixoDoMinimo = totalProdutos < PEDIDO_MINIMO_CENTAVOS;
 
   return (
@@ -260,6 +322,7 @@ export function CheckoutForm() {
                 aoMudar={setEmail}
                 required
                 classeExtra="sm:col-span-2"
+                somenteLeitura
               />
               <Campo
                 rotulo={copy.checkout.nome}
@@ -564,6 +627,7 @@ function Campo({
   autoComplete,
   inputMode,
   classeExtra = "",
+  somenteLeitura = false,
 }: {
   rotulo: string;
   id: string;
@@ -575,6 +639,7 @@ function Campo({
   autoComplete?: string;
   inputMode?: "numeric" | "tel" | "email" | "text";
   classeExtra?: string;
+  somenteLeitura?: boolean;
 }) {
   return (
     <div className={classeExtra}>
@@ -591,7 +656,10 @@ function Campo({
         required={required}
         autoComplete={autoComplete}
         inputMode={inputMode}
-        className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+        readOnly={somenteLeitura}
+        className={`mt-1 h-11 w-full rounded-[6px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta ${
+          somenteLeitura ? "bg-superficie text-grafite" : "bg-white"
+        }`}
       />
     </div>
   );
