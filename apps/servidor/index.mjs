@@ -459,6 +459,8 @@ const LOGOS_DOMINIOS = {
   sallve: ["sallve.com.br"],
   senscience: ["senscience.com"],
   soffie: ["soffie.com.br"],
+  theoric: ["theoric.com.br", "theoricprofessional.com.br"],
+  wahl: ["wahl.com.br", "wahlbrasil.com.br", "wahlusa.com", "wahl.com"],
   "widi-care": ["widicare.com.br"],
 };
 
@@ -530,14 +532,22 @@ aplicacao.get("/exportar-logos", async (req, res) => {
 
   const logos = {};
   const falhas = [];
-  for (const [slug, dominios] of Object.entries(LOGOS_DOMINIOS)) {
+  // ?marcas=batiste,latika → busca só essas (recoleta pontual de logo ruim)
+  const filtro = String(req.query.marcas ?? "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const alvo = filtro.length
+    ? Object.fromEntries(Object.entries(LOGOS_DOMINIOS).filter(([s]) => filtro.includes(s)))
+    : LOGOS_DOMINIOS;
+  for (const [slug, dominios] of Object.entries(alvo)) {
     let achado = null;
     for (const d of dominios) {
       achado =
-        (await baixar(`https://logo.clearbit.com/${d}?size=256`).catch(() => null)) ??
+        (await baixar(`https://logo.clearbit.com/${d}?size=512`).catch(() => null)) ??
         (await iconeDaHome(d)) ??
         (await (async () => {
-          const f = await baixar(`https://www.google.com/s2/favicons?domain=${d}&sz=128`).catch(
+          const f = await baixar(`https://www.google.com/s2/favicons?domain=${d}&sz=256`).catch(
             () => null
           );
           if (f && padrao && f.bytes.equals(padrao.bytes)) return null; // globo genérico
