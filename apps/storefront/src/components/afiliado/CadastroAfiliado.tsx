@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { copy } from "@/lib/copy";
 import { useAfiliado } from "@/lib/afiliado/contexto";
-import { cadastrarAfiliado } from "@/lib/servidor";
+import { USUARIO_VENDEDOR_RE, cadastrarAfiliado } from "@/lib/servidor";
 
 /** validação oficial de CNPJ (mesma regra do servidor) — só roda se preenchido */
 function cnpjValido(cnpj: string): boolean {
@@ -37,6 +37,8 @@ const classeCampo =
 export function CadastroAfiliado() {
   const afiliado = useAfiliado();
   const [nome, setNome] = useState("");
+  const [usuario, setUsuario] = useState("");
+  const [chavePix, setChavePix] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [erro, setErro] = useState<string | null>(null);
@@ -52,10 +54,20 @@ export function CadastroAfiliado() {
       setErro(copy.afiliado.cnpjInvalido);
       return;
     }
+    if (!USUARIO_VENDEDOR_RE.test(usuario.trim())) {
+      setErro(copy.afiliado.usuarioInvalido);
+      return;
+    }
+    if (!chavePix.trim()) {
+      setErro(copy.afiliado.pixVazia);
+      return;
+    }
     setEnviando(true);
     const r = await cadastrarAfiliado({
       email: afiliado.email!,
       nome: nome.trim(),
+      usuario: usuario.trim(),
+      chavePix: chavePix.trim(),
       whatsapp: whatsapp.trim(),
       cnpj: digitos || undefined,
     });
@@ -82,6 +94,30 @@ export function CadastroAfiliado() {
             onChange={(e) => setNome(e.target.value)}
             className={`${classeCampo} mt-1`}
           />
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-[0.875rem] font-medium text-tinta">{copy.afiliado.usuarioRotulo}</span>
+          <input
+            type="text"
+            required
+            placeholder="MARIA#22"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value.toUpperCase())}
+            className={`${classeCampo} num mt-1 uppercase`}
+          />
+          <span className="mt-1 block text-[0.75rem] text-cinza">{copy.afiliado.usuarioDica}</span>
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-[0.875rem] font-medium text-tinta">{copy.afiliado.pixRotulo}</span>
+          <input
+            type="text"
+            required
+            placeholder="CPF, e-mail, celular ou aleatória"
+            value={chavePix}
+            onChange={(e) => setChavePix(e.target.value)}
+            className={`${classeCampo} mt-1`}
+          />
+          <span className="mt-1 block text-[0.75rem] text-cinza">{copy.afiliado.pixDica}</span>
         </label>
         <label className="block">
           <span className="text-[0.875rem] font-medium text-tinta">{copy.afiliado.formWhatsapp}</span>

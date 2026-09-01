@@ -7,7 +7,6 @@
  * build, o site funciona em modo demonstração: código exibido na tela e
  * pedidos registrados apenas localmente.
  */
-import { obterAfiliado } from "./afiliado";
 import { LOJA_ID } from "./loja";
 import type { Pedido } from "./pedidos";
 
@@ -215,13 +214,25 @@ export function verificarCodigoNoServidor(email: string, codigo: string) {
 /** Envia o pedido ao servidor, que repassa ao Hub Suprir. */
 export async function enviarPedidoAoServidor(
   pedido: Pedido,
-  extras: { endereco: unknown; cpf: string; telefone: string }
+  extras: {
+    endereco: unknown;
+    cpf: string;
+    telefone: string;
+    /** código do afiliado — só vai quando o usuário do vendedor foi informado e validado */
+    afiliadoCodigo?: string | null;
+    vendedorUsuario?: string | null;
+  }
 ): Promise<void> {
   if (!servidorConfigurado()) return; // modo demonstração: pedido só local
-  // veio de link de afiliado? o código segue junto para creditar a comissão
-  const afiliado = obterAfiliado();
+  const { afiliadoCodigo, vendedorUsuario, ...resto } = extras;
   // falha aqui não pode travar a confirmação da compra — o registro local fica
-  await chamar("/pedidos", { ...pedido, ...extras, afiliado, loja: LOJA_ID }).catch(() => undefined);
+  await chamar("/pedidos", {
+    ...pedido,
+    ...resto,
+    afiliado: afiliadoCodigo ?? undefined,
+    vendedorUsuario: vendedorUsuario ?? undefined,
+    loja: LOJA_ID,
+  }).catch(() => undefined);
 }
 
 // ===== Pedidos no painel do admin (histórico completo no servidor) =====
@@ -253,6 +264,7 @@ export interface PedidoAdmin {
   cupom: string | null;
   descontoCentavos: number;
   afiliado: string | null;
+  vendedorUsuario?: string | null;
   status: "aguardando_pagamento" | "pago" | "cancelado";
 }
 
@@ -496,6 +508,8 @@ export interface SaqueAfiliado {
 
 export interface PainelAfiliado {
   nome: string;
+  usuario: string | null;
+  chavePix: string | null;
   codigo: string | null;
   url: string | null;
   pct: number;
@@ -515,6 +529,8 @@ export interface AfiliadoAdmin {
   id: string;
   email: string;
   nome: string;
+  usuario?: string | null;
+  chavePix?: string | null;
   whatsapp: string;
   cnpj: string | null;
   codigo: string | null;
@@ -529,6 +545,8 @@ export interface CadastroAfiliado {
   id: string;
   email: string;
   nome: string;
+  usuario?: string | null;
+  chavePix?: string | null;
   whatsapp: string;
   cnpj: string | null;
   criadoEm: string;
@@ -537,10 +555,15 @@ export interface CadastroAfiliado {
   comissaoPct: number;
 }
 
-/** Pede entrada no programa de afiliados. CNPJ é opcional. */
+/** Regra do usuário de vendedor: SÓ MAIÚSCULAS + número + caractere especial. */
+export const USUARIO_VENDEDOR_RE = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%&*_.\-])[A-Z0-9!@#$%&*_.\-]{4,20}$/;
+
+/** Pede entrada no programa de afiliados. CNPJ é opcional; usuário e Pix, não. */
 export async function cadastrarAfiliado(dados: {
   email: string;
   nome: string;
+  usuario: string;
+  chavePix: string;
   whatsapp: string;
   cnpj?: string;
 }): Promise<{ ok: boolean; status?: string; erro?: string }> {
@@ -560,7 +583,7 @@ export async function cadastrarAfiliado(dados: {
 /** Consulta pública da situação do cadastro pelo e-mail. */
 export async function consultarStatusAfiliado(
   email: string
-): Promise<{ ok: boolean; status: string }> {
+): Promise<{ ok: boolean; status: string; usuario?: string | null }> {
   try {
     const resposta = await fetchComTimeout(
       `${SERVIDOR_URL}/afiliados/cadastro/status?email=${encodeURIComponent(email)}`,
@@ -568,9 +591,44 @@ export async function consultarStatusAfiliado(
       {}
     );
     if (!resposta.ok) return { ok: false, status: "nao_cadastrado" };
-    return (await resposta.json()) as { ok: boolean; status: string };
+    return (await resposta.json()) as { ok: boolean; status: string; usuario?: string | null };
   } catch {
     return { ok: false, status: "nao_cadastrado" };
+  }
+}
+
+/** Vendedor público: pelo código do link (?af=) ou pelo usuário digitado. */
+export async function consultarVendedor(filtro: {
+  codigo?: string;
+  usuario?: string;
+}): Promise<{ ok: boolean; usuario?: string | null; codigo?: string | null }> {
+  try {
+    const q = filtro.codigo
+      ? `codigo=${encodeURIComponent(filtro.codigo)}`
+      : `usuario=${encodeURIComponent(filtro.usuario ?? "")}`;
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/vendedor?${q}`, 30_000, {});
+    if (!resposta.ok) return { ok: false };
+    return (await resposta.json()) as { ok: boolean; usuario: string | null; codigo: string | null };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Confere se o usuário de vendedor bate com o cadastro daquele e-mail. */
+export async function conferirUsuarioAfiliado(
+  email: string,
+  usuario: string
+): Promise<{ ok: boolean; confere: boolean }> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/afiliados/conferir-usuario?email=${encodeURIComponent(email)}&usuario=${encodeURIComponent(usuario)}`,
+      30_000,
+      {}
+    );
+    if (!resposta.ok) return { ok: false, confere: false };
+    return (await resposta.json()) as { ok: boolean; confere: boolean };
+  } catch {
+    return { ok: false, confere: false };
   }
 }
 
@@ -640,11 +698,14 @@ export async function gerarLinkAfiliado(
   }
 }
 
-/** Painel do próprio afiliado: link, vendas e comissão. */
-export async function consultarPainelAfiliado(email: string): Promise<PainelAfiliado | null> {
+/** Painel do próprio afiliado: link, vendas e comissão (exige o usuário). */
+export async function consultarPainelAfiliado(
+  email: string,
+  usuario: string
+): Promise<PainelAfiliado | null> {
   try {
     const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/afiliados/painel?email=${encodeURIComponent(email)}`,
+      `${SERVIDOR_URL}/afiliados/painel?email=${encodeURIComponent(email)}&usuario=${encodeURIComponent(usuario)}`,
       75_000,
       {}
     );

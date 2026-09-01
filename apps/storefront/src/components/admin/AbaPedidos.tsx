@@ -343,10 +343,13 @@ function PedidoLinha({
                     </>
                   )}
                   E-mail: {p.clienteEmail}
-                  {p.afiliado && (
+                  {(p.vendedorUsuario || p.afiliado) && (
                     <>
                       <br />
-                      Veio do afiliado: <span className="font-semibold text-roxo">{p.afiliado}</span>
+                      Veio do vendedor:{" "}
+                      <span className="num font-semibold text-roxo">
+                        {p.vendedorUsuario ?? p.afiliado}
+                      </span>
                     </>
                   )}
                 </p>

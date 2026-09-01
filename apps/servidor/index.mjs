@@ -736,6 +736,7 @@ function registrarPedidoLoja(pedido) {
     cupom: pedido.cupom ?? null,
     descontoCentavos: Number(pedido.descontoCentavos ?? 0),
     afiliado: pedido.afiliado ?? null,
+    vendedorUsuario: pedido.vendedorUsuario ?? null,
     status: "aguardando_pagamento",
   };
   pedidosLoja = [registro, ...pedidosLoja.filter((p) => p.numero !== registro.numero)];
@@ -1697,6 +1698,10 @@ function afiliadoPorEmail(emailBruto) {
   return afiliadosCadastro.find((a) => a.email === email);
 }
 
+// usuário de vendedor: SÓ MAIÚSCULAS, com pelo menos um número e um
+// caractere especial, 4–20 caracteres — identifica o afiliado nas vendas
+const USUARIO_VENDEDOR_RE = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%&*_.\-])[A-Z0-9!@#$%&*_.\-]{4,20}$/;
+
 // pedido de entrada no programa de afiliados — CNPJ é OPCIONAL
 aplicacao.post("/afiliados/cadastro", async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
@@ -1708,6 +1713,18 @@ aplicacao.post("/afiliados/cadastro", async (req, res) => {
   if (cnpjBruto && !cnpjValido(cnpjBruto)) {
     return res.status(400).json({ erro: "CNPJ inválido — confira os 14 dígitos (ou deixe em branco)." });
   }
+  const usuario = String(req.body?.usuario ?? "").trim();
+  if (!USUARIO_VENDEDOR_RE.test(usuario)) {
+    return res.status(400).json({
+      erro: "Usuário de vendedor inválido — use SÓ LETRAS MAIÚSCULAS, com pelo menos um número e um caractere especial (ex.: MARIA#22).",
+    });
+  }
+  // usuários repetidos são bloqueados — é o que diferencia cada afiliado
+  if (afiliadosCadastro.some((a) => a.usuario === usuario)) {
+    return res.status(409).json({ erro: "Este usuário de vendedor já existe — escolha outro." });
+  }
+  const chavePix = String(req.body?.chavePix ?? "").trim().slice(0, 120);
+  if (!chavePix) return res.status(400).json({ erro: "Informe sua chave Pix (obrigatória para receber a comissão)." });
 
   const existente = afiliadoPorEmail(email);
   if (existente) return res.json({ ok: true, status: existente.status });
@@ -1718,6 +1735,8 @@ aplicacao.post("/afiliados/cadastro", async (req, res) => {
     nome,
     whatsapp,
     cnpj: cnpjBruto || null,
+    usuario,
+    chavePix,
     criadoEm: new Date().toISOString(),
     status: "pendente",
     codigoAfiliado: null,
@@ -1726,15 +1745,15 @@ aplicacao.post("/afiliados/cadastro", async (req, res) => {
   afiliadosCadastro.push(cadastro);
   if (afiliadosCadastro.length > 5000) afiliadosCadastro = afiliadosCadastro.slice(-5000);
   await salvarAfiliados();
-  console.log(`[afiliados] novo cadastro: ${nome} (${email})${cnpjBruto ? ` CNPJ ${cnpjBruto}` : ""}`);
+  console.log(`[afiliados] novo cadastro: ${nome} (${email}) usuario=${usuario}`);
   for (const destino of EMAILS_NOTIFICACAO) {
     enviarEmail({
       para: destino,
       assunto: `🤝 Novo pedido de afiliado — ${nome}`,
       texto:
         `Novo pedido de entrada no programa de afiliados:\n\n` +
-        `Nome: ${nome}\nE-mail: ${email}\nWhatsApp: ${whatsapp}\n` +
-        `CNPJ: ${cnpjBruto || "não informado"}\n\n` +
+        `Nome: ${nome}\nUsuário de vendedor: ${usuario}\nE-mail: ${email}\nWhatsApp: ${whatsapp}\n` +
+        `Chave Pix: ${chavePix}\nCNPJ: ${cnpjBruto || "não informado"}\n\n` +
         `Aprove no painel do admin (aba Afiliados).`,
     }).catch((erro) => console.error(`[afiliados] falha ao notificar: ${erro.message}`));
   }
@@ -1744,7 +1763,32 @@ aplicacao.post("/afiliados/cadastro", async (req, res) => {
 // consulta pública de situação (o afiliado pergunta pelo próprio e-mail)
 aplicacao.get("/afiliados/cadastro/status", (req, res) => {
   const cadastro = afiliadoPorEmail(req.query.email);
-  res.json({ ok: true, status: cadastro?.status ?? "nao_cadastrado" });
+  res.json({ ok: true, status: cadastro?.status ?? "nao_cadastrado", usuario: cadastro?.usuario ?? null });
+});
+
+// consulta pública do vendedor — pela ?codigo= (aviso ao entrar no link) ou
+// pelo ?usuario= (validação do campo "usuário do vendedor" no pagamento)
+aplicacao.get("/afiliados/vendedor", (req, res) => {
+  const codigo = String(req.query.codigo ?? "").trim().toLowerCase();
+  const usuario = String(req.query.usuario ?? "").trim();
+  const cadastro = codigo
+    ? afiliadosCadastro.find((a) => a.codigoAfiliado === codigo)
+    : usuario
+      ? afiliadosCadastro.find((a) => a.usuario === usuario)
+      : null;
+  if (!cadastro || cadastro.status !== "aprovado") {
+    return res.status(404).json({ erro: "Vendedor não encontrado." });
+  }
+  res.json({ ok: true, usuario: cadastro.usuario ?? null, codigo: cadastro.codigoAfiliado ?? null });
+});
+
+// o painel do afiliado exige e-mail + usuário de vendedor combinando
+aplicacao.get("/afiliados/conferir-usuario", (req, res) => {
+  const cadastro = afiliadoPorEmail(req.query.email);
+  const usuario = String(req.query.usuario ?? "").trim();
+  // sem cadastro ainda: livre (a pessoa vai se cadastrar em seguida)
+  const confere = !cadastro || !cadastro.usuario || cadastro.usuario === usuario;
+  res.json({ ok: true, confere });
 });
 
 // lista completa para o painel do admin aprovar/recusar
@@ -1768,6 +1812,15 @@ aplicacao.post("/afiliados/decidir", async (req, res) => {
   if (!cadastro) return res.status(404).json({ erro: "Cadastro não encontrado." });
   cadastro.status = status;
   cadastro.decididoEm = new Date().toISOString();
+  // aprovado já sai com o código de link pronto (o checkout traduz usuário → código)
+  if (status === "aprovado" && !cadastro.codigoAfiliado) {
+    const base = slugAfiliado(cadastro.nome);
+    let codigo = base;
+    while (afiliadosCadastro.some((a) => a.codigoAfiliado === codigo)) {
+      codigo = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+    cadastro.codigoAfiliado = codigo;
+  }
   await salvarAfiliados();
   console.log(`[afiliados] ${cadastro.email} → ${status}`);
   if (status !== "pendente") {
@@ -1811,11 +1864,15 @@ aplicacao.post("/afiliados/link", async (req, res) => {
   });
 });
 
-// painel do próprio afiliado: vendas, comissão e código — login por e-mail
+// painel do próprio afiliado: vendas, comissão e código — o acesso exige o
+// e-mail E o usuário de vendedor combinando (além do código enviado por e-mail)
 aplicacao.get("/afiliados/painel", (req, res) => {
   const cadastro = afiliadoPorEmail(req.query.email);
   if (!cadastro || cadastro.status !== "aprovado") {
     return res.status(403).json({ erro: "Cadastro não aprovado." });
+  }
+  if (cadastro.usuario && String(req.query.usuario ?? "").trim() !== cadastro.usuario) {
+    return res.status(403).json({ erro: "Usuário de vendedor não confere." });
   }
   const id = cadastro.id;
   const minhas = vendasAfiliados.filter((v) => v.afiliadoId === id);
@@ -1823,6 +1880,8 @@ aplicacao.get("/afiliados/painel", (req, res) => {
   res.json({
     ok: true,
     nome: cadastro.nome,
+    usuario: cadastro.usuario ?? null,
+    chavePix: cadastro.chavePix ?? null,
     codigo: cadastro.codigoAfiliado ?? null,
     url: cadastro.codigoAfiliado
       ? `${SITE_URL}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`
@@ -1937,6 +1996,8 @@ aplicacao.get("/afiliados/admin", (req, res) => {
         id: c.id,
         email: c.email,
         nome: c.nome,
+        usuario: c.usuario ?? null,
+        chavePix: c.chavePix ?? null,
         whatsapp: c.whatsapp,
         cnpj: c.cnpj,
         codigo: c.codigoAfiliado ?? null,

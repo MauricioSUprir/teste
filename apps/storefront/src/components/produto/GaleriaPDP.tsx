@@ -16,7 +16,12 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
         <ImagemProduto produto={produto} alt={alt} variacao={ativa} />
       </div>
       {TOTAL_FOTOS > 1 && (
-      <div className="mt-3 flex gap-2" role="tablist" aria-label="Fotos do produto">
+      // rola na horizontal quando não cabem — nada vaza da tela no celular
+      <div
+        className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1"
+        role="tablist"
+        aria-label="Fotos do produto"
+      >
         {Array.from({ length: TOTAL_FOTOS }, (_, i) => (
           <button
             key={i}
@@ -25,7 +30,7 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
             aria-selected={i === ativa}
             aria-label={`Foto ${i + 1} de ${TOTAL_FOTOS}`}
             onClick={() => setAtiva(i)}
-            className={`w-16 overflow-hidden rounded-[6px] border-2 transition-colors ${
+            className={`w-16 shrink-0 overflow-hidden rounded-[6px] border-2 transition-colors ${
               i === ativa ? "border-roxo" : "border-linha hover:border-cinza"
             }`}
           >

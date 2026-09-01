@@ -148,6 +148,10 @@ export const copy = {
       "Para concluir a compra você precisa estar na sua conta — assim seus pedidos ficam salvos e o acompanhamento é mais fácil. Seu carrinho fica guardado.",
     precisaContaEntrar: "Entrar na minha conta",
     precisaContaCriar: "Criar conta grátis",
+    vendedorRotulo: "Usuário do vendedor (se um afiliado te indicou)",
+    vendedorDica: "A compra é creditada ao vendedor com esse usuário.",
+    vendedorNaoEncontrado:
+      "Usuário do vendedor não encontrado — confira com quem te indicou ou deixe em branco.",
     identificacao: "Identificação",
     entrega: "Entrega",
     pagamento: "Pagamento",
@@ -361,6 +365,20 @@ export const copy = {
     statusRecusadoTitulo: "❌ Cadastro não aprovado",
     statusRecusadoTexto: "Em caso de dúvida, fale com a gente: (21) 99732-2464.",
     verificarNovamente: "Verificar novamente",
+    usuarioRotulo: "Usuário de vendedor",
+    usuarioDica:
+      "SÓ LETRAS MAIÚSCULAS, com pelo menos um número e um caractere especial (ex.: MARIA#22). É ele que identifica as suas vendas.",
+    usuarioInvalido:
+      "Usuário inválido — use só LETRAS MAIÚSCULAS, com pelo menos um número e um caractere especial (ex.: MARIA#22).",
+    loginUsuarioRotulo: "Seu usuário de vendedor",
+    usuarioNaoConfere: "Usuário de vendedor não confere com este e-mail. Confira e tente de novo.",
+    pixRotulo: "Sua chave Pix",
+    pixDica: "Obrigatória — é nela que a sua comissão cai.",
+    pixVazia: "Informe sua chave Pix (obrigatória para receber a comissão).",
+    aviso: {
+      entrouPeloLink: "Você entrou pelo link do vendedor",
+      compraCreditada: "Informe esse usuário no pagamento para a compra contar para ele.",
+    },
     conta: {
       titulo: "Programa de afiliados",
       texto:

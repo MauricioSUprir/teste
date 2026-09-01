@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { useConta } from "@/lib/conta/contexto";
 import {
+  USUARIO_VENDEDOR_RE,
   cadastrarAfiliado,
   consultarStatusAfiliado,
   emailRealAtivo,
@@ -43,8 +44,11 @@ export function SecaoAfiliadoConta() {
   const conta = useConta();
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
+  const [usuarioCadastrado, setUsuarioCadastrado] = useState<string | null>(null);
   const [etapa, setEtapa] = useState<Etapa>("resumo");
   const [senha, setSenha] = useState("");
+  const [usuario, setUsuario] = useState("");
+  const [chavePix, setChavePix] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -57,6 +61,7 @@ export function SecaoAfiliadoConta() {
     if (!email) return;
     const r = await consultarStatusAfiliado(email);
     setStatus(r.status);
+    setUsuarioCadastrado(r.usuario ?? null);
   }, [email]);
 
   useEffect(() => {
@@ -72,6 +77,8 @@ export function SecaoAfiliadoConta() {
     setErro(null);
     const digitos = cnpj.replace(/\D/g, "");
     if (digitos && !cnpjValido(digitos)) return setErro(copy.afiliado.cnpjInvalido);
+    if (!USUARIO_VENDEDOR_RE.test(usuario.trim())) return setErro(copy.afiliado.usuarioInvalido);
+    if (!chavePix.trim()) return setErro(copy.afiliado.pixVazia);
     if (!whatsapp.trim()) return setErro("Informe seu WhatsApp.");
     setEnviando(true);
     // 1) a dona da conta confirma a senha
@@ -108,6 +115,8 @@ export function SecaoAfiliadoConta() {
     const r = await cadastrarAfiliado({
       email: u.email,
       nome: u.nome,
+      usuario: usuario.trim(),
+      chavePix: chavePix.trim(),
       whatsapp: whatsapp.trim(),
       cnpj: cnpj.replace(/\D/g, "") || undefined,
     });
@@ -121,6 +130,7 @@ export function SecaoAfiliadoConta() {
   function abrirPainel() {
     try {
       localStorage.setItem("afiliado-email", u.email.toLowerCase());
+      if (usuarioCadastrado) localStorage.setItem("afiliado-usuario", usuarioCadastrado);
       localStorage.setItem("afiliado-status", "aprovado");
     } catch {
       // sem storage, a página /afiliado pede o código normalmente
@@ -183,6 +193,30 @@ export function SecaoAfiliadoConta() {
       {etapa === "formulario" && (
         <form onSubmit={iniciarPedido} className="mt-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="text-[0.8125rem] font-medium text-tinta">{copy.afiliado.usuarioRotulo}</span>
+              <input
+                type="text"
+                required
+                placeholder="MARIA#22"
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value.toUpperCase())}
+                className={`${classeCampo} num mt-1 uppercase`}
+              />
+              <span className="mt-1 block text-[0.75rem] text-cinza">{copy.afiliado.usuarioDica}</span>
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="text-[0.8125rem] font-medium text-tinta">{copy.afiliado.pixRotulo}</span>
+              <input
+                type="text"
+                required
+                placeholder="CPF, e-mail, celular ou aleatória"
+                value={chavePix}
+                onChange={(e) => setChavePix(e.target.value)}
+                className={`${classeCampo} mt-1`}
+              />
+              <span className="mt-1 block text-[0.75rem] text-cinza">{copy.afiliado.pixDica}</span>
+            </label>
             <label className="block">
               <span className="text-[0.8125rem] font-medium text-tinta">{copy.afiliado.formWhatsapp}</span>
               <input

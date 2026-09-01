@@ -103,11 +103,13 @@ export default async function PaginaProduto({
       />
 
       {/* acima da dobra: galeria 60% / coluna de compra 40% sticky (docs/03 §5) */}
+      {/* min-w-0: sem ele, a fileira de miniaturas alarga a coluna e a página
+          "vaza" para fora da tela no celular */}
       <div className="mt-4 grid gap-8 lg:grid-cols-[3fr_2fr]">
-        <div>
+        <div className="min-w-0">
           <GaleriaPDP produto={produto} alt={alt} />
         </div>
-        <div className="lg:sticky lg:top-[120px] lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-[120px] lg:self-start">
           {marca && (
             <Link
               href={`/marca/${marca.slug}`}

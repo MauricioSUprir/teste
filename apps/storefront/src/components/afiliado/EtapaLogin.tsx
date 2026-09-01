@@ -8,6 +8,7 @@ import { useAfiliado } from "@/lib/afiliado/contexto";
 export function EtapaLogin() {
   const afiliado = useAfiliado();
   const [email, setEmail] = useState("");
+  const [usuario, setUsuario] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -15,7 +16,7 @@ export function EtapaLogin() {
     e.preventDefault();
     setErro(null);
     setEnviando(true);
-    const r = await afiliado.entrar(email);
+    const r = await afiliado.entrar(email, usuario);
     setEnviando(false);
     if (!r.ok) setErro(r.erro ?? copy.afiliado.falha);
   }
@@ -36,6 +37,19 @@ export function EtapaLogin() {
           onChange={(e) => setEmail(e.target.value)}
           className="mt-1 h-12 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
         />
+      </label>
+      <label className="mt-3 block">
+        <span className="text-[0.875rem] font-medium text-tinta">{copy.afiliado.loginUsuarioRotulo}</span>
+        <input
+          type="text"
+          placeholder="MARIA#22"
+          value={usuario}
+          onChange={(e) => setUsuario(e.target.value.toUpperCase())}
+          className="num mt-1 h-12 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta"
+        />
+        <span className="mt-1 block text-[0.75rem] text-cinza">
+          Quem ainda vai se cadastrar pode deixar em branco.
+        </span>
       </label>
       {erro && (
         <p role="alert" className="mt-3 text-[0.875rem] font-medium text-erro">

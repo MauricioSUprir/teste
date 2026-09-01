@@ -148,9 +148,17 @@ export function AbaAfiliados() {
                   </span>
                 </p>
                 <p className="mt-0.5 text-[0.8125rem] text-grafite">
+                  {c.usuario && (
+                    <>
+                      Usuário: <span className="num font-semibold text-roxo">{c.usuario}</span> ·{" "}
+                    </>
+                  )}
                   {c.email} · {c.whatsapp} ·{" "}
                   {c.cnpj ? <span className="num">CNPJ {formatarCnpj(c.cnpj)}</span> : copy.afiliado.admin.semCnpj}
                 </p>
+                {c.chavePix && (
+                  <p className="num mt-0.5 text-[0.8125rem] text-cinza">Pix: {c.chavePix}</p>
+                )}
               </div>
               <div className="flex gap-2">
                 {c.status !== "aprovado" && (
@@ -275,7 +283,10 @@ export function AbaAfiliados() {
             className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[10px] border border-linha p-4"
           >
             <div className="min-w-0 grow">
-              <p className="font-semibold text-tinta">{a.nome}</p>
+              <p className="font-semibold text-tinta">
+                {a.nome}
+                {a.usuario && <span className="num ml-2 font-normal text-roxo">{a.usuario}</span>}
+              </p>
               <p className="text-[0.8125rem] text-grafite">
                 {a.email}
                 {a.cnpj && <span className="num"> · CNPJ {formatarCnpj(a.cnpj)}</span>}
@@ -315,6 +326,37 @@ export function AbaAfiliados() {
           </li>
         ))}
       </ul>
+
+      {/* histórico completo de saques (pendentes acima pedem ação; aqui fica tudo) */}
+      {saques.length > 0 && (
+        <>
+          <h3 className="mt-8 text-[0.9375rem] font-semibold text-tinta">Histórico de saques</h3>
+          <ul className="mt-2 divide-y divide-linha">
+            {saques.slice(0, 20).map((s) => (
+              <li key={s.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2 text-[0.875rem]">
+                <span className="text-grafite">
+                  {new Date(s.data).toLocaleDateString("pt-BR")} · <strong>{s.nome}</strong>{" "}
+                  <span className="num text-cinza">(Pix: {s.chavePix})</span>
+                </span>
+                <span className="num shrink-0">
+                  {formatarPreco(s.valorCentavos)}{" "}
+                  <span
+                    className={`ml-1 rounded-[999px] px-2 py-0.5 text-[0.6875rem] font-semibold ${
+                      s.status === "pago"
+                        ? "bg-sucesso/10 text-sucesso"
+                        : s.status === "recusado"
+                          ? "bg-erro/10 text-erro"
+                          : "bg-alerta/10 text-alerta"
+                    }`}
+                  >
+                    {s.status === "pago" ? "Pago" : s.status === "recusado" ? "Recusado" : "Pendente"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {/* últimas vendas por link */}
       {ultimas.length > 0 && (

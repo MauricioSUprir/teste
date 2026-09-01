@@ -17,7 +17,9 @@ import {
   type ReactNode,
 } from "react";
 import { CODIGO_VALIDADE_MIN } from "@/lib/conta/config";
+import { copy } from "@/lib/copy";
 import {
+  conferirUsuarioAfiliado,
   consultarStatusAfiliado,
   emailRealAtivo,
   solicitarCodigoPorEmail,
@@ -28,6 +30,8 @@ export type StatusAfiliado = "nao_cadastrado" | "pendente" | "aprovado" | "recus
 
 interface VerificacaoPendente {
   email: string;
+  /** usuário de vendedor digitado no login — validado antes do código */
+  usuario: string;
   /** null quando o código vive no servidor (enviado por e-mail) */
   codigo: string | null;
   expiraEm: number;
@@ -36,11 +40,13 @@ interface VerificacaoPendente {
 interface ContextoAfiliado {
   /** e-mail confirmado neste navegador (null = não logado) */
   email: string | null;
+  /** usuário de vendedor confirmado (obrigatório para abrir o painel) */
+  usuario: string | null;
   status: StatusAfiliado | null;
   aguardandoCodigo: boolean;
   emailAguardandoCodigo: string | null;
   codigoDemo: string | null;
-  entrar: (email: string) => Promise<{ ok: boolean; erro?: string }>;
+  entrar: (email: string, usuario: string) => Promise<{ ok: boolean; erro?: string }>;
   confirmarCodigo: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
   reenviarCodigo: () => Promise<{ ok: boolean; erro?: string }>;
   cancelarVerificacao: () => void;
@@ -57,10 +63,12 @@ function gerarCodigo(): string {
 const Contexto = createContext<ContextoAfiliado | null>(null);
 
 const CHAVE_EMAIL = "afiliado-email";
+const CHAVE_USUARIO = "afiliado-usuario";
 const CHAVE_STATUS = "afiliado-status";
 
 export function AfiliadoProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState<string | null>(null);
+  const [usuario, setUsuario] = useState<string | null>(null);
   const [status, setStatus] = useState<StatusAfiliado | null>(null);
   const [pendente, setPendente] = useState<VerificacaoPendente | null>(null);
 
@@ -69,6 +77,7 @@ export function AfiliadoProvider({ children }: { children: ReactNode }) {
     const salvo = localStorage.getItem(CHAVE_EMAIL);
     if (!salvo) return;
     setEmail(salvo);
+    setUsuario(localStorage.getItem(CHAVE_USUARIO));
     const salvoStatus = localStorage.getItem(CHAVE_STATUS) as StatusAfiliado | null;
     if (salvoStatus) setStatus(salvoStatus);
     consultarStatusAfiliado(salvo).then((r) => {
@@ -79,18 +88,25 @@ export function AfiliadoProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const entrar: ContextoAfiliado["entrar"] = useCallback(async (emailBruto) => {
+  const entrar: ContextoAfiliado["entrar"] = useCallback(async (emailBruto, usuarioBruto) => {
     const emailLimpo = emailBruto.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(emailLimpo)) {
       return { ok: false, erro: "E-mail inválido. Confira a digitação." };
     }
+    const usuarioLimpo = usuarioBruto.trim();
+    // o usuário de vendedor precisa bater com o cadastro deste e-mail
+    const conf = await conferirUsuarioAfiliado(emailLimpo, usuarioLimpo);
+    if (conf.ok && !conf.confere) {
+      return { ok: false, erro: copy.afiliado.usuarioNaoConfere };
+    }
     if (await emailRealAtivo()) {
       const r = await solicitarCodigoPorEmail(emailLimpo);
       if (!r.ok) return { ok: false, erro: r.erro };
-      setPendente({ email: emailLimpo, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+      setPendente({ email: emailLimpo, usuario: usuarioLimpo, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
     } else {
       setPendente({
         email: emailLimpo,
+        usuario: usuarioLimpo,
         codigo: gerarCodigo(),
         expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000,
       });
@@ -112,12 +128,15 @@ export function AfiliadoProvider({ children }: { children: ReactNode }) {
         return { ok: false, erro: "Código incorreto. Confira os 6 dígitos." };
       }
       const emailConfirmado = pendente.email;
+      const usuarioConfirmado = pendente.usuario;
       const r = await consultarStatusAfiliado(emailConfirmado);
       setEmail(emailConfirmado);
+      setUsuario(usuarioConfirmado);
       setStatus(r.status as StatusAfiliado);
       setPendente(null);
       try {
         localStorage.setItem(CHAVE_EMAIL, emailConfirmado);
+        localStorage.setItem(CHAVE_USUARIO, usuarioConfirmado);
         localStorage.setItem(CHAVE_STATUS, r.status);
       } catch {
         // segue sem persistir
@@ -153,10 +172,12 @@ export function AfiliadoProvider({ children }: { children: ReactNode }) {
 
   const sair = useCallback(() => {
     setEmail(null);
+    setUsuario(null);
     setStatus(null);
     setPendente(null);
     try {
       localStorage.removeItem(CHAVE_EMAIL);
+      localStorage.removeItem(CHAVE_USUARIO);
       localStorage.removeItem(CHAVE_STATUS);
     } catch {
       // nada a limpar
@@ -166,6 +187,7 @@ export function AfiliadoProvider({ children }: { children: ReactNode }) {
   const valor = useMemo<ContextoAfiliado>(
     () => ({
       email,
+      usuario,
       status,
       aguardandoCodigo: pendente !== null,
       emailAguardandoCodigo: pendente?.email ?? null,
@@ -177,7 +199,7 @@ export function AfiliadoProvider({ children }: { children: ReactNode }) {
       verificar,
       sair,
     }),
-    [email, status, pendente, entrar, confirmarCodigo, reenviarCodigo, cancelarVerificacao, verificar, sair]
+    [email, usuario, status, pendente, entrar, confirmarCodigo, reenviarCodigo, cancelarVerificacao, verificar, sair]
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

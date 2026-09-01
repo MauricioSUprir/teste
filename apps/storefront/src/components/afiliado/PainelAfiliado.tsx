@@ -42,7 +42,7 @@ function porMes(vendas: DadosPainel["vendas"]) {
 }
 
 export function PainelAfiliado() {
-  const { email, sair } = useAfiliado();
+  const { email, usuario, sair } = useAfiliado();
   const [dados, setDados] = useState<DadosPainel | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [gerando, setGerando] = useState(false);
@@ -56,11 +56,15 @@ export function PainelAfiliado() {
   const carregar = useCallback(async () => {
     if (!email) return;
     setCarregando(true);
-    const r = await consultarPainelAfiliado(email);
+    const r = await consultarPainelAfiliado(email, usuario ?? "");
     setFalha(r === null);
-    if (r) setDados(r);
+    if (r) {
+      setDados(r);
+      // pré-preenche o Pix do cadastro no formulário de saque
+      setChavePix((atual) => atual || r.chavePix || "");
+    }
     setCarregando(false);
-  }, [email]);
+  }, [email, usuario]);
 
   useEffect(() => {
     void carregar();

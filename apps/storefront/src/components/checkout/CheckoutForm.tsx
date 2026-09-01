@@ -24,11 +24,13 @@ import { ImagemProduto } from "@/components/produto/ImagemProduto";
 import { gravarPedido, type Pedido } from "@/lib/pedidos";
 import {
   acordarServidor,
+  consultarVendedor,
   criarCheckoutPro,
   criarPagamentoPix,
   enviarPedidoAoServidor,
   mercadoPagoAtivo,
 } from "@/lib/servidor";
+import { obterVendedorUsuario } from "@/lib/afiliado";
 
 type MeioPagamento = "pix" | "cartao" | "boleto";
 
@@ -65,6 +67,11 @@ export function CheckoutForm() {
   const [fretes, setFretes] = useState<OpcaoFrete[]>([]);
   const [freteEscolhido, setFreteEscolhido] = useState<string>("");
   const [meio, setMeio] = useState<MeioPagamento>("pix");
+  // quem chegou por link de afiliado já encontra o usuário do vendedor preenchido
+  const [vendedorUsuario, setVendedorUsuario] = useState("");
+  useEffect(() => {
+    setVendedorUsuario((atual) => atual || obterVendedorUsuario() || "");
+  }, []);
   const [erro, setErro] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -154,6 +161,19 @@ export function CheckoutForm() {
       setErro("Confira o CEP (8 números): o frete aparece na etapa 2 assim que ele estiver completo.");
       return;
     }
+    // usuário do vendedor informado → precisa existir para creditar a venda
+    let afiliadoCodigo: string | null = null;
+    const vendedorLimpo = vendedorUsuario.trim();
+    if (vendedorLimpo) {
+      setEtapa("Conferindo o vendedor…");
+      const v = await consultarVendedor({ usuario: vendedorLimpo });
+      if (!v.ok || !v.codigo) {
+        setErro(copy.checkout.vendedorNaoEncontrado);
+        setEtapa("");
+        return;
+      }
+      afiliadoCodigo = v.codigo;
+    }
     setErro("");
     setEnviando(true);
     try {
@@ -178,7 +198,13 @@ export function CheckoutForm() {
       };
       gravarPedido(pedido);
       setEtapa("Registrando o pedido…");
-      await enviarPedidoAoServidor(pedido, { endereco, cpf, telefone });
+      await enviarPedidoAoServidor(pedido, {
+        endereco,
+        cpf,
+        telefone,
+        afiliadoCodigo,
+        vendedorUsuario: vendedorLimpo || null,
+      });
 
       // pagamento real via Mercado Pago, quando configurado no servidor
       setEtapa("Conectando ao pagamento… na 1ª compra pode levar até 1 minuto.");
@@ -502,6 +528,22 @@ export function CheckoutForm() {
                 {copy.pdp.emAte} {parcela.vezes}x de {formatarPreco(parcela.valor)} {copy.pdp.semJuros}
               </p>
             )}
+            {/* venda indicada por afiliado: o usuário do vendedor credita a comissão */}
+            <label className="mt-4 block">
+              <span className="text-[0.8125rem] font-medium text-grafite">
+                {copy.checkout.vendedorRotulo}
+              </span>
+              <input
+                type="text"
+                value={vendedorUsuario}
+                onChange={(e) => setVendedorUsuario(e.target.value.toUpperCase())}
+                placeholder="MARIA#22"
+                className="num mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta sm:max-w-xs"
+              />
+              <span className="mt-1 block text-[0.75rem] text-cinza">
+                {copy.checkout.vendedorDica}
+              </span>
+            </label>
           </Bloco>
         </div>
 
