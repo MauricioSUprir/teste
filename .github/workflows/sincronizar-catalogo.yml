@@ -4,7 +4,8 @@ name: Sincronizar catálogo do Hub
 # Render, que guarda a HUB_API_KEY), roda o script de sincronização e, se
 # houver produto/marca/preço/foto novos, atualiza dados-hub.json na branch
 # de trabalho e republica os sites (BeautyNow na raiz + espelho Be2Beauty
-# em /pro + PULSE provisória em /pulse, até o domínio próprio dela chegar).
+# em /pro + PULSE em /pulse + BRADECO em /bradeco, as duas últimas em
+# subpasta até os domínios próprios chegarem).
 # O site da Be2Beauty (domínio próprio) tem um robô igual no repositório dele.
 #
 # Este arquivo vive na branch padrão porque o GitHub só agenda workflows a
@@ -102,7 +103,7 @@ jobs:
           git commit -m "chore(catalogo): sincronização automática diária do Hub"
           git push origin "HEAD:$RAMO_FONTE"
 
-      - name: Build BeautyNow (raiz), Be2Beauty (/pro) e PULSE (/pulse)
+      - name: Build das lojas (raiz, /pro, /pulse e /bradeco)
         if: steps.diff.outputs.mudou == 'sim'
         run: |
           set -e
@@ -114,15 +115,19 @@ jobs:
           rm -rf apps/storefront/.next
           STATIC_EXPORT=1 BASE_PATH=/pulse NEXT_PUBLIC_LOJA=pulse NEXT_PUBLIC_SERVIDOR_URL="$SERVIDOR" npm run build --workspace=@beautynow/storefront
           mv apps/storefront/out /tmp/out-pulse
+          rm -rf apps/storefront/.next
+          STATIC_EXPORT=1 BASE_PATH=/bradeco NEXT_PUBLIC_LOJA=bradeco NEXT_PUBLIC_SERVIDOR_URL="$SERVIDOR" npm run build --workspace=@beautynow/storefront
+          mv apps/storefront/out /tmp/out-bradeco
 
       - name: Publicar no GitHub Pages
         if: steps.diff.outputs.mudou == 'sim'
         run: |
           set -e
-          mkdir -p /tmp/site/pro /tmp/site/pulse
+          mkdir -p /tmp/site/pro /tmp/site/pulse /tmp/site/bradeco
           cp -r /tmp/out-root/. /tmp/site/
           cp -r /tmp/out-pro/. /tmp/site/pro/
           cp -r /tmp/out-pulse/. /tmp/site/pulse/
+          cp -r /tmp/out-bradeco/. /tmp/site/bradeco/
           echo "www.beautynowstore.com.br" > /tmp/site/CNAME
           touch /tmp/site/.nojekyll
           cd /tmp/site
