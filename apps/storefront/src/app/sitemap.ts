@@ -2,9 +2,18 @@ import type { MetadataRoute } from "next";
 
 export const dynamic = "force-static";
 import { categorias, marcas, necessidades, produtos } from "@/lib/catalogo/consultas";
-import { LOJA } from "@/lib/loja";
+import { LOJA_ID } from "@/lib/loja";
 
-const BASE = LOJA.b2b ? "https://www.be2beauty.com.br" : "https://www.beautynowstore.com.br";
+// cada loja tem o próprio endereço (Pulse e Bradeco ainda em subpasta, até os
+// domínios próprios chegarem)
+const BASE =
+  LOJA_ID === "be2beauty"
+    ? "https://www.be2beauty.com.br"
+    : LOJA_ID === "pulse"
+      ? "https://www.beautynowstore.com.br/pulse"
+      : LOJA_ID === "bradeco"
+        ? "https://www.beautynowstore.com.br/bradeco"
+        : "https://www.beautynowstore.com.br";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

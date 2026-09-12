@@ -8,11 +8,14 @@ import { LOJA } from "@/lib/loja";
 export const copy = {
   marca: {
     nome: LOJA.nome,
-    slogan: LOJA.b2b
-      ? "O e-commerce do cabeleireiro."
-      : LOJA.id === "pulse"
-        ? "Cuidado no ritmo certo."
-        : "Cosméticos profissionais, curadoria de verdade.",
+    slogan:
+      LOJA.id === "bradeco"
+        ? "Elo entre indústria e varejo."
+        : LOJA.b2b
+          ? "O e-commerce do cabeleireiro."
+          : LOJA.id === "pulse"
+            ? "Cuidado no ritmo certo."
+            : "Cosméticos profissionais, curadoria de verdade.",
   },
   header: {
     busca: "Buscar produto, marca ou necessidade",
@@ -20,9 +23,12 @@ export const copy = {
     sacola: "Sacola",
     menu: "Menu",
     fecharMenu: "Fechar menu",
-    anuncio: LOJA.b2b
-      ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
-      : "Pix com 5% de desconto · Produtos 100% originais",
+    anuncio:
+      LOJA.id === "bradeco"
+        ? "Distribuição para lojistas e profissionais em todo o estado de SP · Cadastre o CNPJ e libere os preços"
+        : LOJA.b2b
+          ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
+          : "Pix com 5% de desconto · Produtos 100% originais",
   },
   nav: {
     inicio: "Início",
@@ -237,20 +243,31 @@ export const copy = {
     contato: "Fale com a gente",
     rastrearPedido: "Rastrear pedido",
     programaAfiliados: "Seja um afiliado",
-    cnpj: LOJA.b2b
-      ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
-      : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
-    endereco: "Rio de Janeiro, RJ · Atendimento: (21) 99732-2464",
+    cnpj:
+      LOJA.id === "bradeco"
+        ? "Bradeco Distribuidora · Distribuição, consultoria e representação · Exclusivo para CNPJ"
+        : LOJA.b2b
+          ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
+          : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
+    endereco:
+      LOJA.id === "bradeco"
+        ? "Av. Rosa Zanetti Ferragut, 195 · Pinheirinho, Vinhedo/SP · admbradeco@gmail.com"
+        : "Rio de Janeiro, RJ · Atendimento: (21) 99732-2464",
     direitos: `© ${new Date().getFullYear()} ${LOJA.nome}. Todos os direitos reservados.`,
   },
   b2b: {
-    precoFechado: "Preço para profissionais",
+    precoFechado: LOJA.id === "bradeco" ? "Preço de distribuidora" : "Preço para profissionais",
     liberarPrecos: "Cadastre seu CNPJ para ver os preços",
     aguardandoAprovacao: "Cadastro em análise — avisamos por e-mail quando for aprovado",
-    recusado: "Cadastro não aprovado. Fale com a gente: (21) 99732-2464",
-    paginaTitulo: "Cadastro profissional",
+    recusado:
+      LOJA.id === "bradeco"
+        ? "Cadastro não aprovado. Fale com a gente: admbradeco@gmail.com"
+        : "Cadastro não aprovado. Fale com a gente: (21) 99732-2464",
+    paginaTitulo: LOJA.id === "bradeco" ? "Cadastro de lojista" : "Cadastro profissional",
     paginaTexto:
-      "A Be2Beauty vende exclusivamente para profissionais e lojistas. Cadastre o CNPJ do seu salão, clínica ou loja: após a aprovação, os preços e a compra ficam liberados neste navegador.",
+      LOJA.id === "bradeco"
+        ? "A Bradeco Distribuidora atende lojistas, farmácias, salões e redes em todo o estado de São Paulo. Cadastre o CNPJ da sua empresa: após a aprovação, os preços de distribuidora e a compra ficam liberados neste navegador."
+        : "A Be2Beauty vende exclusivamente para profissionais e lojistas. Cadastre o CNPJ do seu salão, clínica ou loja: após a aprovação, os preços e a compra ficam liberados neste navegador.",
     semCnpj: "Não tem CNPJ? Compre no varejo pela BeautyNow →",
     semCnpjUrl: "https://www.beautynowstore.com.br",
     cnpj: "CNPJ",
@@ -270,8 +287,8 @@ export const copy = {
     verificarNovamente: "Verificar novamente",
     trocarCnpj: "Cadastrar outro CNPJ",
     admin: {
-      titulo: "Profissionais (B2B)",
-      texto: "Cadastros com CNPJ do site Be2Beauty. Aprovar libera os preços para o cliente.",
+      titulo: LOJA.id === "bradeco" ? "Lojistas (B2B)" : "Profissionais (B2B)",
+      texto: `Cadastros com CNPJ do site ${LOJA.nome}. Aprovar libera os preços para o cliente.`,
       vazio: "Nenhum cadastro ainda.",
       aprovar: "Aprovar",
       recusar: "Recusar",

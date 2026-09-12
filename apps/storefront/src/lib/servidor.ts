@@ -251,7 +251,7 @@ export interface EnderecoPedido {
 export interface PedidoAdmin {
   numero: string;
   data: string;
-  loja: "beautynow" | "be2beauty" | "pulse";
+  loja: "beautynow" | "be2beauty" | "pulse" | "bradeco";
   clienteNome: string;
   clienteEmail: string;
   cpf: string;

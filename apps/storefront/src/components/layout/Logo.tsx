@@ -63,6 +63,41 @@ export function Logo({ altura = 28 }: { altura?: number }) {
       </span>
     );
   }
+  if (LOJA.id === "bradeco") {
+    // identidade oficial (@bradecodistribuidora): "BRADECO" largo e técnico em
+    // branco, com o "A" desenhado como uma seta laranja (sem travessão), e
+    // "Distribuidora" em laranja bem espaçado embaixo
+    return (
+      <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
+        <span className="sr-only">Bradeco Distribuidora</span>
+        <span
+          aria-hidden="true"
+          className="font-titulo leading-none"
+          style={{
+            fontSize: altura * 0.62,
+            fontWeight: 700,
+            color: "var(--bn-tinta)",
+            letterSpacing: "0.06em",
+          }}
+        >
+          BR<span style={{ color: "#ED7B2F" }}>Λ</span>DECO
+        </span>
+        <span
+          aria-hidden="true"
+          className="leading-none"
+          style={{
+            fontSize: altura * 0.245,
+            fontWeight: 600,
+            color: "#ED7B2F",
+            letterSpacing: "0.22em",
+            marginTop: altura * 0.14,
+          }}
+        >
+          Distribuidora
+        </span>
+      </span>
+    );
+  }
   if (LOJA.id === "be2beauty") {
     return (
       <span className="inline-flex flex-col justify-center" style={{ height: altura }}>

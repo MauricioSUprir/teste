@@ -141,6 +141,110 @@ html[data-loja="pulse"] main h2.font-titulo::after {
   background: linear-gradient(90deg, #a34e24, #d99a4e);
 }
 
+/* em bloco centralizado (newsletter), a assinatura acompanha o título */
+html[data-loja="pulse"] main .text-center h2.font-titulo::after {
+  margin-inline: auto;
+}
+
+/*
+ * Pele BRADECO (distribuidora B2B, 4ª loja) — identidade oficial
+ * (@bradecodistribuidora): PRETO absoluto, LARANJA industrial e branco.
+ * A tipografia do logo é larga, geométrica e "técnica", com cortes retos:
+ * aqui ela vira a fonte dos títulos E dos preços (Saira), sempre em caixa
+ * alta espaçada. As formas perdem o arredondado — quinas vivas de catálogo
+ * industrial — e o acento vira uma barra inclinada, eco do "Λ" do logo.
+ */
+html[data-loja="bradeco"] {
+  --color-roxo: #ed7b2f;
+  --color-roxo-escuro: #cf6317;
+  --color-roxo-claro: #fff1e6;
+  --color-violeta: #f0904a;
+  --color-violeta-claro: #ffe7d4;
+  --color-oferta: #cf6317;
+  --color-tinta: #101012;
+  --color-grafite: #4a4d55;
+  --color-cinza: #8b8f98;
+  --color-superficie: #f5f5f7;
+  --color-linha: #e2e2e6;
+  --bn-roxo: #ed7b2f;
+  --bn-roxo-escuro: #cf6317;
+  --bn-roxo-claro: #fff1e6;
+  --bn-violeta: #f0904a;
+  --bn-violeta-claro: #ffe7d4;
+  --bn-oferta: #cf6317;
+  --bn-tinta: #101012;
+  --bn-grafite: #4a4d55;
+  --bn-cinza: #8b8f98;
+  --bn-superficie: #f5f5f7;
+  --bn-linha: #e2e2e6;
+  --fonte-titulo: var(--font-saira), Arial, sans-serif;
+  --font-titulo: var(--font-saira), Arial, sans-serif;
+}
+
+/* formas: quinas vivas, sem pílula — catálogo técnico */
+html[data-loja="bradeco"] .rounded-\[999px\] { border-radius: 2px; }
+html[data-loja="bradeco"] .rounded-\[16px\] { border-radius: 3px; }
+html[data-loja="bradeco"] .rounded-\[12px\] { border-radius: 2px; }
+html[data-loja="bradeco"] .rounded-\[10px\] { border-radius: 2px; }
+html[data-loja="bradeco"] .rounded-\[6px\] { border-radius: 2px; }
+
+/* títulos na tipografia do logo: larga, caixa alta, muito espaçada */
+html[data-loja="bradeco"] .font-titulo {
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-weight: 600;
+}
+
+/* preços também na fonte do logo — número técnico, largura fixa */
+html[data-loja="bradeco"] .num {
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* header e rodapé pretos como o logo, com acentos laranja */
+html[data-loja="bradeco"] header,
+html[data-loja="bradeco"] footer {
+  background: #0b0b0d;
+  border-color: #26262b;
+  --color-tinta: #ffffff;
+  --bn-tinta: #ffffff;
+  --color-grafite: #cfd1d6;
+  --bn-grafite: #cfd1d6;
+  --color-cinza: #91949c;
+  --bn-cinza: #91949c;
+  --color-superficie: #1b1b1f;
+  --bn-superficie: #1b1b1f;
+  --color-linha: #26262b;
+  --bn-linha: #26262b;
+}
+
+html[data-loja="bradeco"] header .bg-white {
+  background: #15151a;
+}
+
+/* faixa de anúncio: preta com fio laranja embaixo */
+html[data-loja="bradeco"] header .bg-tinta {
+  background: #000000;
+  color: #ffffff;
+  border-bottom: 2px solid #ed7b2f;
+}
+
+/* assinatura "Λ": barra laranja inclinada sob os títulos de seção */
+html[data-loja="bradeco"] main h2.font-titulo::after {
+  content: "";
+  display: block;
+  width: 52px;
+  height: 4px;
+  margin-top: 10px;
+  background: #ed7b2f;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+
+html[data-loja="bradeco"] main .text-center h2.font-titulo::after {
+  margin-inline: auto;
+}
+
 html {
   scroll-behavior: smooth;
 }

@@ -44,10 +44,14 @@ const SITE_URL_B2B = (process.env.SITE_URL_B2B ?? "https://www.be2beauty.com.br"
 // PULSE começa no endereço provisório do GitHub; quando o domínio próprio
 // chegar, basta trocar SITE_URL_PULSE no Render
 const SITE_URL_PULSE = (process.env.SITE_URL_PULSE ?? "https://mauriciosuprir.github.io/pulse").replace(/\/$/, "");
+// BRADECO (distribuidora SP) também começa em subpasta até ter domínio próprio
+const SITE_URL_BRADECO = (
+  process.env.SITE_URL_BRADECO ?? "https://www.beautynowstore.com.br/bradeco"
+).replace(/\/$/, "");
 
 /** normaliza o identificador de loja vindo do site (padrão: beautynow) */
 function lojaValida(v) {
-  return v === "be2beauty" || v === "pulse" ? v : "beautynow";
+  return v === "be2beauty" || v === "pulse" || v === "bradeco" ? v : "beautynow";
 }
 
 /** As lojas usam o mesmo servidor — o pedido diz de qual loja veio, pra
@@ -56,6 +60,7 @@ function dadosDaLoja(lojaId) {
   const loja = lojaValida(lojaId);
   if (loja === "be2beauty") return { siteUrl: SITE_URL_B2B, statementDescriptor: "BE2BEAUTY" };
   if (loja === "pulse") return { siteUrl: SITE_URL_PULSE, statementDescriptor: "PULSE" };
+  if (loja === "bradeco") return { siteUrl: SITE_URL_BRADECO, statementDescriptor: "BRADECO" };
   return { siteUrl: SITE_URL, statementDescriptor: "BEAUTYNOW" };
 }
 
@@ -913,7 +918,7 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
       // então a cobrança vira uma linha única com o total já com desconto
       itens = [
         {
-          title: `Pedido ${pedido.numero} — ${statementDescriptor === "BE2BEAUTY" ? "Be2Beauty" : statementDescriptor === "PULSE" ? "PULSE" : "BeautyNow"}`,
+          title: `Pedido ${pedido.numero} — ${statementDescriptor === "BE2BEAUTY" ? "Be2Beauty" : statementDescriptor === "PULSE" ? "PULSE" : statementDescriptor === "BRADECO" ? "Bradeco" : "BeautyNow"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: totalCentavos / 100,
@@ -1537,7 +1542,7 @@ aplicacao.get("/b2b/exportar", (req, res) => {
 const ARQ_PRECOS_MANUAIS = "/tmp/precos-manuais.json";
 const PRECOS_BACKUP_URL =
   "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/precos-backup.json";
-let precosManuais = { beautynow: {}, be2beauty: {}, pulse: {} };
+let precosManuais = { beautynow: {}, be2beauty: {}, pulse: {}, bradeco: {} };
 try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_PRECOS_MANUAIS)) {
@@ -1549,8 +1554,9 @@ try {
   precosManuais.beautynow ??= {};
   precosManuais.be2beauty ??= {};
   precosManuais.pulse ??= {};
+  precosManuais.bradeco ??= {};
 } catch {
-  precosManuais = { beautynow: {}, be2beauty: {}, pulse: {} };
+  precosManuais = { beautynow: {}, be2beauty: {}, pulse: {}, bradeco: {} };
 }
 
 async function salvarPrecosManuais() {

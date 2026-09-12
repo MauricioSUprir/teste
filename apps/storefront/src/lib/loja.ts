@@ -11,14 +11,16 @@
  * preço do Hub (o ×1,7 anterior ficava acima dos concorrentes).
  */
 
-export type LojaId = "beautynow" | "be2beauty" | "pulse";
+export type LojaId = "beautynow" | "be2beauty" | "pulse" | "bradeco";
 
 export const LOJA_ID: LojaId =
   process.env.NEXT_PUBLIC_LOJA === "be2beauty"
     ? "be2beauty"
     : process.env.NEXT_PUBLIC_LOJA === "pulse"
       ? "pulse"
-      : "beautynow";
+      : process.env.NEXT_PUBLIC_LOJA === "bradeco"
+        ? "bradeco"
+        : "beautynow";
 
 interface ConfigLoja {
   id: LojaId;
@@ -49,6 +51,15 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
     nome: "Pulse",
     multiplicadorPreco: 1.3,
     b2b: false,
+  },
+  // 4ª loja (12/09): distribuidora em SP — elo entre indústria e varejo.
+  // Igual à Be2Beauty na regra comercial (preço do Hub sem acréscimo, fechado
+  // até o CNPJ ser aprovado), com identidade preto/laranja própria.
+  bradeco: {
+    id: "bradeco",
+    nome: "Bradeco",
+    multiplicadorPreco: 1,
+    b2b: true,
   },
 };
 
