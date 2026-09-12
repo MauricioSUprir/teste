@@ -89,6 +89,58 @@ html[data-loja="pulse"] .font-titulo {
   font-weight: 600;
 }
 
+/* PULSE: header e rodapé quase-pretos como o círculo do logo, com detalhes
+   dourados — as variáveis são remapeadas só dentro deles, então todos os
+   textos, ícones e fundos internos se adaptam sozinhos */
+html[data-loja="pulse"] header,
+html[data-loja="pulse"] footer {
+  background: #1c1714;
+  border-color: #3b2f25;
+  --color-tinta: #f3ede6;
+  --bn-tinta: #f3ede6;
+  --color-grafite: #dbcdbe;
+  --bn-grafite: #dbcdbe;
+  --color-cinza: #a8988a;
+  --bn-cinza: #a8988a;
+  --color-superficie: #2a211a;
+  --bn-superficie: #2a211a;
+  --color-linha: #3b2f25;
+  --bn-linha: #3b2f25;
+  /* nas áreas escuras o acento vira dourado (o terracota fica pras áreas claras) */
+  --color-roxo: #d99a4e;
+  --bn-roxo: #d99a4e;
+  --color-roxo-escuro: #c98a3e;
+  --bn-roxo-escuro: #c98a3e;
+  --color-violeta: #d99a4e;
+  --bn-violeta: #d99a4e;
+}
+
+/* painéis brancos dentro do header (megamenu, sugestões de busca) escurecem junto */
+html[data-loja="pulse"] header .bg-white {
+  background: #241c16;
+}
+
+/* contador da sacola: bolinha dourada pede texto escuro */
+html[data-loja="pulse"] header .bg-roxo.text-white {
+  color: #1c1714;
+}
+
+/* barra de anúncio: faixa em degradê terracota → dourado, como os posts da marca */
+html[data-loja="pulse"] header .bg-tinta {
+  background: linear-gradient(90deg, #8a4020, #a34e24 45%, #d99a4e);
+  color: #ffffff;
+}
+
+/* assinatura da marca nas seções: risquinho terracota → dourado sob os títulos */
+html[data-loja="pulse"] main h2.font-titulo::after {
+  content: "";
+  display: block;
+  width: 44px;
+  height: 3px;
+  margin-top: 10px;
+  background: linear-gradient(90deg, #a34e24, #d99a4e);
+}
+
 html {
   scroll-behavior: smooth;
 }

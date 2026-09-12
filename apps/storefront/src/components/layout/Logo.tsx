@@ -10,28 +10,55 @@ import { LOJA } from "@/lib/loja";
  */
 export function Logo({ altura = 28 }: { altura?: number }) {
   if (LOJA.id === "pulse") {
-    // identidade oficial (@pulse.beautystore): wordmark minúsculo "pulse."
-    // com o ponto em terracota e a assinatura "BEAUTY STORE" espaçada
+    // identidade oficial (@pulse.beautystore): selo redondo quase-preto com
+    // "P U L S E" fino (o avatar da marca) + wordmark minúsculo "pulse." com
+    // o ponto dourado e a assinatura "BEAUTY STORE" espaçada
+    const selo = altura * 1.35;
     return (
-      <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
-        <span className="leading-none" style={{ fontSize: altura * 0.72 }}>
-          <span style={{ fontWeight: 700, color: "var(--bn-tinta)", letterSpacing: "-0.01em" }}>
-            pulse
-          </span>
-          <span style={{ fontWeight: 700, color: "var(--bn-roxo)" }}>.</span>
-        </span>
+      <span className="inline-flex items-center" style={{ height: altura, gap: altura * 0.4 }}>
         <span
-          className="leading-none"
+          aria-hidden="true"
+          className="flex shrink-0 items-center justify-center rounded-full"
           style={{
-            fontSize: altura * 0.2,
-            fontWeight: 600,
-            color: "var(--bn-grafite)",
-            letterSpacing: "0.32em",
-            marginTop: altura * 0.12,
-            textTransform: "uppercase",
+            width: selo,
+            height: selo,
+            background: "#1c1714",
+            border: "1px solid rgba(217, 154, 78, 0.55)",
           }}
         >
-          Beauty Store
+          <span
+            className="leading-none"
+            style={{
+              fontSize: selo * 0.17,
+              fontWeight: 400,
+              color: "#f3ede6",
+              letterSpacing: "0.3em",
+              textIndent: "0.3em",
+            }}
+          >
+            PULSE
+          </span>
+        </span>
+        <span className="inline-flex flex-col justify-center">
+          <span className="leading-none" style={{ fontSize: altura * 0.72 }}>
+            <span style={{ fontWeight: 700, color: "var(--bn-tinta)", letterSpacing: "-0.01em" }}>
+              pulse
+            </span>
+            <span style={{ fontWeight: 700, color: "var(--bn-roxo)" }}>.</span>
+          </span>
+          <span
+            className="leading-none"
+            style={{
+              fontSize: altura * 0.2,
+              fontWeight: 600,
+              color: "var(--bn-grafite)",
+              letterSpacing: "0.32em",
+              marginTop: altura * 0.12,
+              textTransform: "uppercase",
+            }}
+          >
+            Beauty Store
+          </span>
         </span>
       </span>
     );

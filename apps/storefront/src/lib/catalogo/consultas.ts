@@ -41,7 +41,12 @@ if (LOJA.multiplicadorPreco !== 1) {
 }
 
 export const catalogoReal = usaHub;
-const categorias: Categoria[] = usaHub ? hub.categorias : categoriasDemo;
+// as descrições vêm do JSON compartilhado com o texto "curadoria BeautyNow";
+// nas outras lojas o nome da casa entra no lugar
+const categorias: Categoria[] = (usaHub ? hub.categorias : categoriasDemo).map((c) => ({
+  ...c,
+  descricao: c.descricao.replace(/curadoria BeautyNow/g, `curadoria ${LOJA.nome}`),
+}));
 const marcas: Marca[] = usaHub ? hub.marcas : marcasDemo;
 const produtos: Produto[] = usaHub ? hub.produtos : produtosDemo;
 // necessidades são curadoria editorial — o Hub não as fornece
