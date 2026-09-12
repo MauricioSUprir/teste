@@ -10,7 +10,9 @@ export const copy = {
     nome: LOJA.nome,
     slogan: LOJA.b2b
       ? "O e-commerce do cabeleireiro."
-      : "Cosméticos profissionais, curadoria de verdade.",
+      : LOJA.id === "pulse"
+        ? "Cuidado no ritmo certo."
+        : "Cosméticos profissionais, curadoria de verdade.",
   },
   header: {
     busca: "Buscar produto, marca ou necessidade",

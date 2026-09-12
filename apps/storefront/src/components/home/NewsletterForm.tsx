@@ -32,7 +32,7 @@ export function NewsletterForm() {
         autoComplete="email"
         inputMode="email"
         placeholder={copy.home.newsletterPlaceholder}
-        className="h-12 grow rounded-[999px] border border-linha bg-white px-5 text-[0.9375rem] outline-none focus:border-violeta"
+        className="h-12 min-w-0 grow rounded-[999px] border border-linha bg-white px-5 text-[0.9375rem] outline-none focus:border-violeta"
       />
       <button
         type="submit"

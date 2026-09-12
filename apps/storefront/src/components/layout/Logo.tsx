@@ -9,6 +9,33 @@ import { LOJA } from "@/lib/loja";
  * paleta (roxo ou azul-marinho).
  */
 export function Logo({ altura = 28 }: { altura?: number }) {
+  if (LOJA.id === "pulse") {
+    // identidade oficial (@pulse.beautystore): wordmark minúsculo "pulse."
+    // com o ponto em terracota e a assinatura "BEAUTY STORE" espaçada
+    return (
+      <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
+        <span className="leading-none" style={{ fontSize: altura * 0.72 }}>
+          <span style={{ fontWeight: 700, color: "var(--bn-tinta)", letterSpacing: "-0.01em" }}>
+            pulse
+          </span>
+          <span style={{ fontWeight: 700, color: "var(--bn-roxo)" }}>.</span>
+        </span>
+        <span
+          className="leading-none"
+          style={{
+            fontSize: altura * 0.2,
+            fontWeight: 600,
+            color: "var(--bn-grafite)",
+            letterSpacing: "0.32em",
+            marginTop: altura * 0.12,
+            textTransform: "uppercase",
+          }}
+        >
+          Beauty Store
+        </span>
+      </span>
+    );
+  }
   if (LOJA.id === "be2beauty") {
     return (
       <span className="inline-flex flex-col justify-center" style={{ height: altura }}>

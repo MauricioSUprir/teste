@@ -244,6 +244,11 @@ function PedidoLinha({
               Be2Beauty
             </span>
           )}
+          {p.loja === "pulse" && (
+            <span className="mt-1 block w-fit rounded-[6px] bg-[#F8EFE8] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#A34E24]">
+              Pulse
+            </span>
+          )}
         </td>
         <td className="num px-4 py-3 text-grafite">
           {new Date(p.data).toLocaleDateString("pt-BR")}{" "}

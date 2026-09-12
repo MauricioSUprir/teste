@@ -41,13 +41,22 @@ const MP_API = "https://api.mercadopago.com";
 /** URL pública do site, usada nos retornos do Checkout Pro */
 const SITE_URL = (process.env.SITE_URL ?? "https://mauriciosuprir.github.io/teste").replace(/\/$/, "");
 const SITE_URL_B2B = (process.env.SITE_URL_B2B ?? "https://www.be2beauty.com.br").replace(/\/$/, "");
+// PULSE começa no endereço provisório do GitHub; quando o domínio próprio
+// chegar, basta trocar SITE_URL_PULSE no Render
+const SITE_URL_PULSE = (process.env.SITE_URL_PULSE ?? "https://mauriciosuprir.github.io/pulse").replace(/\/$/, "");
 
-/** As duas lojas usam o mesmo servidor — o pedido diz de qual loja veio, pra
+/** normaliza o identificador de loja vindo do site (padrão: beautynow) */
+function lojaValida(v) {
+  return v === "be2beauty" || v === "pulse" ? v : "beautynow";
+}
+
+/** As lojas usam o mesmo servidor — o pedido diz de qual loja veio, pra
  * voltar pro site certo depois do pagamento e identificar a marca no extrato. */
 function dadosDaLoja(lojaId) {
-  return lojaId === "be2beauty"
-    ? { siteUrl: SITE_URL_B2B, statementDescriptor: "BE2BEAUTY" }
-    : { siteUrl: SITE_URL, statementDescriptor: "BEAUTYNOW" };
+  const loja = lojaValida(lojaId);
+  if (loja === "be2beauty") return { siteUrl: SITE_URL_B2B, statementDescriptor: "BE2BEAUTY" };
+  if (loja === "pulse") return { siteUrl: SITE_URL_PULSE, statementDescriptor: "PULSE" };
+  return { siteUrl: SITE_URL, statementDescriptor: "BEAUTYNOW" };
 }
 
 const VALIDADE_MS = 10 * 60_000;
@@ -723,7 +732,7 @@ function registrarPedidoLoja(pedido) {
   const registro = {
     numero: String(pedido.numero),
     data: pedido.data ?? new Date().toISOString(),
-    loja: pedido.loja === "be2beauty" ? "be2beauty" : "beautynow",
+    loja: lojaValida(pedido.loja),
     clienteNome: String(pedido.clienteNome ?? ""),
     clienteEmail: String(pedido.clienteEmail ?? ""),
     cpf: String(pedido.cpf ?? ""),
@@ -904,7 +913,7 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
       // então a cobrança vira uma linha única com o total já com desconto
       itens = [
         {
-          title: `Pedido ${pedido.numero} — ${statementDescriptor === "BE2BEAUTY" ? "Be2Beauty" : "BeautyNow"}`,
+          title: `Pedido ${pedido.numero} — ${statementDescriptor === "BE2BEAUTY" ? "Be2Beauty" : statementDescriptor === "PULSE" ? "PULSE" : "BeautyNow"}`,
           quantity: 1,
           currency_id: "BRL",
           unit_price: totalCentavos / 100,
@@ -1528,7 +1537,7 @@ aplicacao.get("/b2b/exportar", (req, res) => {
 const ARQ_PRECOS_MANUAIS = "/tmp/precos-manuais.json";
 const PRECOS_BACKUP_URL =
   "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/precos-backup.json";
-let precosManuais = { beautynow: {}, be2beauty: {} };
+let precosManuais = { beautynow: {}, be2beauty: {}, pulse: {} };
 try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_PRECOS_MANUAIS)) {
@@ -1539,8 +1548,9 @@ try {
   }
   precosManuais.beautynow ??= {};
   precosManuais.be2beauty ??= {};
+  precosManuais.pulse ??= {};
 } catch {
-  precosManuais = { beautynow: {}, be2beauty: {} };
+  precosManuais = { beautynow: {}, be2beauty: {}, pulse: {} };
 }
 
 async function salvarPrecosManuais() {
@@ -1554,7 +1564,7 @@ async function salvarPrecosManuais() {
 
 // site consulta ao carregar (público — preço é informação pública da loja)
 aplicacao.get("/catalogo/precos", (req, res) => {
-  const loja = req.query.loja === "be2beauty" ? "be2beauty" : "beautynow";
+  const loja = lojaValida(req.query.loja);
   res.json({ ok: true, precos: precosManuais[loja] ?? {} });
 });
 
@@ -1563,7 +1573,7 @@ aplicacao.post("/catalogo/precos", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  const loja = req.body?.loja === "be2beauty" ? "be2beauty" : "beautynow";
+  const loja = lojaValida(req.body?.loja);
   const slug = String(req.body?.slug ?? "").trim();
   if (!slug) return res.status(400).json({ erro: "Informe o slug do produto." });
 

@@ -45,6 +45,50 @@ html[data-loja="be2beauty"] {
   --bn-oferta: #0b2545;
 }
 
+/*
+ * Pele PULSE (varejo, 3ª loja) — beleza + bem-estar + performance, loja de
+ * academia. Identidade oficial (Instagram @pulse.beautystore): quase-preto
+ * marrom, TERRACOTA queimado e creme; tipografia minimalista em caixa alta
+ * com espaçamento largo ("P U L S E"). Muda também a FORMA: cantos retos
+ * e editoriais no lugar das pílulas.
+ */
+html[data-loja="pulse"] {
+  --color-roxo: #a34e24;
+  --color-roxo-escuro: #7a3a1b;
+  --color-roxo-claro: #f8efe8;
+  --color-violeta: #c0764e;
+  --color-violeta-claro: #f5e6da;
+  --color-oferta: #1c1714;
+  --color-tinta: #1c1714;
+  --color-superficie: #faf6f1;
+  --color-linha: #eadfd4;
+  --bn-roxo: #a34e24;
+  --bn-roxo-escuro: #7a3a1b;
+  --bn-roxo-claro: #f8efe8;
+  --bn-violeta: #c0764e;
+  --bn-violeta-claro: #f5e6da;
+  --bn-oferta: #1c1714;
+  --bn-tinta: #1c1714;
+  --bn-superficie: #faf6f1;
+  --bn-linha: #eadfd4;
+  --fonte-titulo: var(--font-archivo), Arial, sans-serif;
+  --font-titulo: var(--font-archivo), Arial, sans-serif;
+}
+
+/* formas: as pílulas e cartões arredondados viram retângulos editoriais */
+html[data-loja="pulse"] .rounded-\[999px\] { border-radius: 4px; }
+html[data-loja="pulse"] .rounded-\[16px\] { border-radius: 6px; }
+html[data-loja="pulse"] .rounded-\[12px\] { border-radius: 4px; }
+html[data-loja="pulse"] .rounded-\[10px\] { border-radius: 4px; }
+html[data-loja="pulse"] .rounded-\[6px\] { border-radius: 2px; }
+
+/* tipografia display: caixa alta com respiro largo, como no logo da marca */
+html[data-loja="pulse"] .font-titulo {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -54,6 +98,9 @@ body {
   color: var(--bn-tinta);
   background: var(--bn-branco);
   -webkit-font-smoothing: antialiased;
+  /* nada pode empurrar a página pro lado no celular (clip não vira scroll container,
+     então position: sticky continua funcionando) */
+  overflow-x: clip;
 }
 
 /* Foco visível em todo elemento navegável — nunca outline: none sem substituto */

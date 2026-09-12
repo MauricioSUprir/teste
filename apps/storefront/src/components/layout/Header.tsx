@@ -313,7 +313,7 @@ function Seta() {
 
 function MegaPainel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="invisible absolute left-0 top-full z-50 w-max min-w-[520px] rounded-b-[10px] border border-t-0 border-linha bg-white p-4 opacity-0 shadow-card transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+    <div className="invisible absolute left-0 top-full z-50 w-max min-w-[520px] max-w-[720px] rounded-b-[10px] border border-t-0 border-linha bg-white p-4 opacity-0 shadow-card transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
       {children}
     </div>
   );

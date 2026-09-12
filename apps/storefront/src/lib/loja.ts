@@ -11,10 +11,14 @@
  * preço do Hub (o ×1,7 anterior ficava acima dos concorrentes).
  */
 
-export type LojaId = "beautynow" | "be2beauty";
+export type LojaId = "beautynow" | "be2beauty" | "pulse";
 
 export const LOJA_ID: LojaId =
-  process.env.NEXT_PUBLIC_LOJA === "be2beauty" ? "be2beauty" : "beautynow";
+  process.env.NEXT_PUBLIC_LOJA === "be2beauty"
+    ? "be2beauty"
+    : process.env.NEXT_PUBLIC_LOJA === "pulse"
+      ? "pulse"
+      : "beautynow";
 
 interface ConfigLoja {
   id: LojaId;
@@ -37,6 +41,14 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
     nome: "Be2Beauty",
     multiplicadorPreco: 1,
     b2b: true,
+  },
+  // 3ª loja (12/09): varejo com o mesmo catálogo e preço do BeautyNow,
+  // identidade visual própria — formas retas e tipografia display forte
+  pulse: {
+    id: "pulse",
+    nome: "Pulse",
+    multiplicadorPreco: 1.3,
+    b2b: false,
   },
 };
 
