@@ -40,12 +40,13 @@ const descricaoLoja = LOJA.b2b
     : "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Pix com 5% de desconto.";
 
 // cada loja tem o próprio domínio (o /pro do beautynowstore vira só um espelho;
-// a PULSE começa no endereço provisório do GitHub até o domínio próprio chegar)
+// a PULSE começa provisoriamente em beautynowstore.com.br/pulse até o domínio
+// próprio chegar)
 const dominioLoja =
   LOJA_ID === "be2beauty"
     ? "https://www.be2beauty.com.br/"
     : LOJA_ID === "pulse"
-      ? "https://mauriciosuprir.github.io/pulse/"
+      ? "https://www.beautynowstore.com.br/pulse/"
       : "https://www.beautynowstore.com.br/";
 
 export const metadata: Metadata = {
