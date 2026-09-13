@@ -7,6 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { NEGOCIO, linkWhatsapp } from "@/lib/negocio";
 import { copy } from "@/lib/copy";
 import { atualizarStatus } from "@/lib/pedidos";
 import { formatarPreco } from "@/lib/preco";
@@ -34,6 +35,7 @@ export function Confirmacao() {
   const [pedido, setPedido] = useState<UltimoPedido | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [aprovado, setAprovado] = useState(false);
+  const mensagemWhatsapp = `Olá! Tenho uma dúvida sobre o pedido ${pedido?.numero ?? ""}`.trim();
 
   useEffect(() => {
     try {
@@ -187,6 +189,44 @@ export function Confirmacao() {
           ✓ Pix recebido! Seu pedido já entrou na fila de separação.
         </p>
       )}
+
+      {/* o que acontece agora — a pessoa sai da página sabendo o próximo passo */}
+      <section aria-labelledby="proximos-passos" className="mt-8 rounded-[16px] bg-superficie px-6 py-5 text-left">
+        <h2 id="proximos-passos" className="font-titulo text-[1.0625rem] font-semibold">
+          {copy.confirmacao.proximosTitulo}
+        </h2>
+        <ol className="mt-3 space-y-2 text-[0.9375rem] text-grafite">
+          {copy.confirmacao.proximosPassos.map((passo, i) => (
+            <li key={passo} className="flex gap-2.5">
+              <span
+                aria-hidden="true"
+                className="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[999px] bg-roxo text-[0.75rem] font-bold text-white"
+              >
+                {i + 1}
+              </span>
+              {passo}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 text-[0.875rem] text-grafite">
+          {copy.confirmacao.duvida}{" "}
+          {NEGOCIO.whatsapp && NEGOCIO.whatsappVisivel ? (
+            <a
+              href={linkWhatsapp(NEGOCIO.whatsapp, mensagemWhatsapp)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="num font-semibold text-roxo underline"
+            >
+              {NEGOCIO.whatsappVisivel}
+            </a>
+          ) : (
+            <a href={`mailto:${NEGOCIO.email}`} className="font-semibold text-roxo underline">
+              {NEGOCIO.email}
+            </a>
+          )}{" "}
+          — {NEGOCIO.promessaResposta}
+        </p>
+      </section>
 
       <AvaliacaoPosCompra pedido={pedido?.numero} />
 

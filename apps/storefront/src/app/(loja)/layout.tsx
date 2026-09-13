@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/Footer";
 import { CapturaAfiliado } from "@/components/layout/CapturaAfiliado";
 import { SincronizaPrecos } from "@/components/layout/SincronizaPrecos";
 import { DrawerCarrinho } from "@/components/carrinho/DrawerCarrinho";
+import { DadosDoNegocio } from "@/components/layout/DadosDoNegocio";
 
 /**
  * Layout das páginas de loja: header com megamenu, footer e drawer de carrinho.
@@ -12,6 +13,7 @@ import { DrawerCarrinho } from "@/components/carrinho/DrawerCarrinho";
 export default function LayoutLoja({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <DadosDoNegocio />
       <CapturaAfiliado />
       <SincronizaPrecos />
       <Header />

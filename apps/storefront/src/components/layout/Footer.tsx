@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { Logo } from "./Logo";
+import { NEGOCIO, enderecoEmLinha, linkWhatsapp } from "@/lib/negocio";
 
 export function Footer() {
   return (
@@ -11,10 +12,32 @@ export function Footer() {
           <p className="mt-3 max-w-[28ch] text-[0.875rem] leading-relaxed text-grafite">
             {copy.marca.slogan}
           </p>
+          {/* contato de verdade, clicável, com o tempo de resposta na frente */}
+          <ul className="mt-4 space-y-1.5 text-[0.8125rem] text-grafite">
+            {NEGOCIO.whatsapp && NEGOCIO.whatsappVisivel && (
+              <li>
+                <a
+                  href={linkWhatsapp(NEGOCIO.whatsapp, `Olá! Vim pelo site.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="num hover:text-roxo"
+                >
+                  WhatsApp {NEGOCIO.whatsappVisivel}
+                </a>
+              </li>
+            )}
+            <li>
+              <a href={`mailto:${NEGOCIO.email}`} className="hover:text-roxo">
+                {NEGOCIO.email}
+              </a>
+            </li>
+            <li className="text-cinza">{NEGOCIO.horario}</li>
+            <li className="text-cinza">{NEGOCIO.promessaResposta}</li>
+          </ul>
           <p className="mt-4 text-[0.75rem] leading-relaxed text-cinza">
             {copy.rodape.cnpj}
             <br />
-            {copy.rodape.endereco}
+            {NEGOCIO.endereco ? enderecoEmLinha(NEGOCIO.endereco) : NEGOCIO.regiao}
           </p>
         </div>
 

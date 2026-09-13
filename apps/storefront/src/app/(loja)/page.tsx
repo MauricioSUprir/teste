@@ -13,6 +13,7 @@ import { CardProduto } from "@/components/produto/CardProduto";
 import { ProdutosLocaisDestaque } from "@/components/produto/ProdutosLocaisDestaque";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
 import { CarrosselBanners } from "@/components/home/CarrosselBanners";
+import { CasesDaLoja } from "@/components/home/CasesDaLoja";
 
 /** Home — hero editorial, categorias, mais vendidos, marcas (ticket 2.2). */
 export default function Home() {
@@ -181,6 +182,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Depoimentos reais de quem já comprou (some se ainda não houver) */}
+      <CasesDaLoja />
 
       {/* Newsletter */}
       <section className="container-bn pt-12">

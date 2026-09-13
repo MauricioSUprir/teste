@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { NEGOCIO } from "@/lib/negocio";
 
 export const dynamic = "force-static";
 
@@ -7,8 +8,10 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/checkout", "/conta", "/admin"],
+      // páginas de uso pessoal ou restrito não entram na busca
+      disallow: ["/checkout", "/conta", "/admin", "/afiliado"],
     },
-    sitemap: "https://beautynow.com.br/sitemap.xml",
+    // cada loja aponta para o próprio mapa do site
+    sitemap: `${NEGOCIO.site}/sitemap.xml`,
   };
 }

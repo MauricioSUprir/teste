@@ -25,6 +25,9 @@ export function ImagemProduto({
       <img
         src={fotoReal}
         alt={alt}
+        /* alt vazio = imagem decorativa (o botão em volta já tem a descrição):
+           marcar como oculta evita o leitor de tela anunciar duas vezes */
+        aria-hidden={alt === "" ? "true" : undefined}
         loading="lazy"
         className={className}
         style={{ aspectRatio: "1 / 1", display: "block", width: "100%", height: "auto", objectFit: "contain", background: "#FFFFFF" }}

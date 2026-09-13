@@ -5,6 +5,7 @@
  * CTA sticky em mobile e cálculo de frete por CEP (tickets 3.1, 3.3, 3.4, 3.8).
  */
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { useB2B } from "@/lib/b2b/contexto";
 import { PrecoProtegido } from "@/components/b2b/PrecoProtegido";
@@ -149,8 +150,16 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
         </fieldset>
       )}
 
-      {/* sem preço liberado não há compra — o convite ao cadastro está acima */}
-      {!liberado ? null : disponivel ? (
+      {/* sem preço liberado não há compra — no celular, uma barra fixa leva
+          direto ao cadastro do CNPJ (senão a tela fica sem ação) */}
+      {!liberado ? (
+        <Link
+          href="/profissional"
+          className="fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-center bg-roxo px-4 text-[0.9375rem] font-semibold text-white md:hidden"
+        >
+          {copy.b2b.liberarPrecos}
+        </Link>
+      ) : disponivel ? (
         <>
           {/* quantidade + CTA — fixo no rodapé em mobile: preço e CTA sempre
               visíveis sem rolagem em 360×640 (regra crítica de docs/03 §5) */}

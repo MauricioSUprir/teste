@@ -5,6 +5,7 @@ import { CarrinhoProvider } from "@/lib/carrinho/contexto";
 import { ContaProvider } from "@/lib/conta/contexto";
 import { FavoritosProvider } from "@/lib/favoritos/contexto";
 import { LOJA, LOJA_ID } from "@/lib/loja";
+import { Analytics } from "@/components/layout/Analytics";
 import "./globals.css";
 
 const inter = Inter({
@@ -153,6 +154,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${fraunces.variable} ${archivo.variable} ${saira.variable}`}
     >
       <body>
+        <Analytics />
         <ContaProvider>
           <B2BProvider>
             <FavoritosProvider>
