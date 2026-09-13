@@ -3,5 +3,6 @@ Allow: /
 Disallow: /checkout
 Disallow: /conta
 Disallow: /admin
+Disallow: /afiliado
 
-Sitemap: https://beautynow.com.br/sitemap.xml
+Sitemap: https://www.be2beauty.com.br/sitemap.xml
