@@ -51,7 +51,12 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
   if (forcarControle) {
     Object.defineProperty(game.input, 'pointerLocked', { get: () => true })
   }
-  canvas.addEventListener('click', () => game.input.requestPointerLock())
+  canvas.addEventListener('click', () => {
+    game.audio.iniciar()
+    game.audio.retomar()
+    game.input.requestPointerLock()
+  })
+  window.addEventListener('keydown', () => { game.audio.iniciar(); game.audio.retomar() }, { once: true })
 
   setInterval(() => {
     const s = game.stats()
@@ -66,7 +71,8 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
       ${s.partes}<br>
       obst: ${s.obstaculos}<br>
       ${s.entrada}<br>
-      ocl: ${s.oclusao}
+      ocl: ${s.oclusao}<br>
+      carros ${game.traffic.count} · pessoas ${game.crowd.count} · interação: ${game.interacoes.atual?.rotulo ?? '—'}
     `
   }, 250)
 
@@ -80,5 +86,12 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
     parar: () => { game.input.override = null },
     olhar: (dx: number, dy: number) => game.player.rig.look(dx, dy),
     tp: (px: number, pz: number) => game.player.teleport(px, pz),
+    bola: () => game.soltarBola(),
+    partida: (id?: string) => game.iniciarPartida(id ?? game.world.pitches[0]?.id ?? ''),
+    carro: () => {
+      const v = game.traffic.veiculoProximo(game.player.position.x, game.player.position.z, 40)
+      if (v) { game.traffic.liberar(v); game.player.entrarNoVeiculo(v) }
+      return !!v
+    },
   }
 }

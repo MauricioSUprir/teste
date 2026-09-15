@@ -89,6 +89,8 @@ export class Match {
   config: MatchConfig
   /** Jogador humano, quando participa. */
   humano: Footballer | null = null
+  /** Potência do próximo contato do jogador humano (0..1). */
+  potenciaHumano = 1
   private rng: Rng
   private nextId = 1
   private surfaces: BallSurfaceQuery
@@ -570,7 +572,12 @@ export class Match {
       const antes = (f.actionTime - 1 / 60) / dur
       const agora = f.actionTime / dur
       if (antes < contato && agora >= contato && d < 2.0) {
-        this.aplicarChute(f, f.action)
+        if (f.humano) {
+          const mira = new THREE.Vector3().subVectors(f.destino, ball.position).setY(0)
+          this.aplicarChute(f, f.action, mira, this.potenciaHumano)
+        } else {
+          this.aplicarChute(f, f.action)
+        }
       }
       return
     }

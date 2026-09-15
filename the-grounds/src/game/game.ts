@@ -3,6 +3,7 @@
  */
 
 import * as THREE from 'three'
+import { damp } from '../core/math'
 import { Engine } from '../core/engine'
 import { Input } from '../core/input'
 import { loadSettings, sanitizeSettings, saveSettings, type Settings } from '../core/settings'
@@ -12,6 +13,13 @@ import { CDN_PRIORITY, CdnTextureLoader } from '../assets/cdnTextures'
 import { Player } from './player'
 import { defaultAppearance, type Appearance } from '../character/appearance'
 import { MAP_HALF } from '../world/terrain'
+import { Traffic } from '../vehicle/traffic'
+import { makeVehicleMaterials, type VehicleMaterials } from '../vehicle/vehicle'
+import { Crowd } from '../npc/crowd'
+import { AudioManager, superficieSonora } from '../audio/audio'
+import { InteractionSystem } from './interactions'
+import { Ball, makeBallMaterial } from '../football/ball'
+import { Match, type MatchConfig } from '../football/match'
 
 export interface GameStats {
   fps: number
@@ -49,6 +57,15 @@ export class Game {
   readonly materials: MaterialLibrary
   readonly world: World
   player!: Player
+  readonly traffic: Traffic
+  readonly crowd: Crowd
+  readonly audio: AudioManager
+  readonly interacoes = new InteractionSystem()
+  readonly vehicleMaterials: VehicleMaterials
+  /** Bola livre para bater pelada em qualquer lugar. */
+  readonly bolaLivre: Ball
+  /** Partida em andamento, quando houver. */
+  partida: Match | null = null
   settings: Settings
   private cdn: CdnTextureLoader
   private cdnDone = 0
@@ -60,6 +77,20 @@ export class Game {
   private envTimer = 0
   /** Congela o tempo do mundo e a entrada (menus). */
   paused = false
+  /** Câmera cinematográfica usada como fundo do menu. */
+  cinematica = false
+  private cineT = 0
+  private cineAlvo = new THREE.Vector3()
+  private cineOlho = new THREE.Vector3()
+  /** Pontos de sobrevoo do menu (marcos da cidade). */
+  private cinePontos: { x: number; z: number; alt: number; raio: number }[] = [
+    { x: -400, z: -378, alt: 34, raio: 86 },   // Vila Aurora (onde o jogo começa)
+    { x: 0, z: -150, alt: 62, raio: 125 },     // Centro
+    { x: 520, z: 330, alt: 40, raio: 108 },    // Campo Grande
+    { x: -40, z: 520, alt: 32, raio: 104 },    // Parque da Enseada
+    { x: 250, z: 60, alt: 44, raio: 112 },     // Beira do Sanhaço
+  ]
+  private cineIndice = 0
 
   constructor(canvas: HTMLCanvasElement, appearance: Appearance = defaultAppearance()) {
     this.settings = sanitizeSettings(loadSettings())
@@ -82,6 +113,22 @@ export class Game {
     }
 
     this.cdn = new CdnTextureLoader(this.engine.maxAnisotropy, this.settings.graphics.textureQuality)
+
+    const superficies = {
+      surface: (x: number, z: number, fromY: number) => this.world.surfaceHeight(x, z, fromY),
+      normal: (x: number, z: number, out: THREE.Vector3) => this.world.groundNormal(x, z, out),
+    }
+    this.vehicleMaterials = makeVehicleMaterials()
+    this.traffic = new Traffic(
+      this.world.layout, this.world.root, this.world.collision,
+      this.vehicleMaterials, superficies,
+    )
+    this.crowd = new Crowd(this.world, this.world.layout, this.world.collision)
+    this.audio = new AudioManager(this.settings.audio)
+
+    this.bolaLivre = new Ball(makeBallMaterial())
+    this.bolaLivre.mesh.visible = false
+    this.world.root.add(this.bolaLivre.mesh)
 
     window.addEventListener('resize', this.onResize)
   }
@@ -143,11 +190,29 @@ export class Game {
     this.input.update()
     const allow = !this.paused && this.input.pointerLocked
 
-    if (!this.paused) {
+    if (this.cinematica) {
+      this.world.update(dt, this.cineAlvo, this.engine.fog, this.engine.sun, this.engine.hemi)
+    } else if (!this.paused) {
       this.world.update(dt, this.player.position, this.engine.fog, this.engine.sun, this.engine.hemi)
       this.player.update(dt, this.input, allow)
       this.world.updateStreaming(this.player.position)
       this.world.processBuildQueue(4.5)
+
+      this.traffic.update(
+        dt, this.player.position, this.settings.graphics.trafficDensity,
+        this.world.trafficPhase, this.world.trafficAmber,
+      )
+      this.crowd.update(
+        dt, this.player.position, this.settings.graphics.pedestrianDensity,
+        this.world.trafficPhase, this.world.hour,
+      )
+      this.sincronizarJogadorNaPartida()
+      this.partida?.update(dt)
+      if (this.bolaLivre.mesh.visible && !this.partida) {
+        this.bolaLivre.update(dt, this.world.collision, this.superficieBola)
+      }
+      this.atualizarInteracoes(dt)
+      this.atualizarAudio(dt)
 
       // Rede de segurança: fora do mapa ou preso, volta para um ponto seguro.
       const p = this.player.position
@@ -159,7 +224,12 @@ export class Game {
       this.player.update(dt, this.input, false)
     }
 
-    this.engine.updateSunShadow(this.player.position, this.world.sky.sunDirection)
+    if (this.cinematica) this.atualizarCinematica(dt)
+
+    this.engine.updateSunShadow(
+      this.cinematica ? this.cineAlvo : this.player.position,
+      this.world.sky.sunDirection,
+    )
     this.envTimer -= dt
     if (this.envTimer <= 0) {
       this.envTimer = 3
@@ -170,6 +240,258 @@ export class Game {
     this.cpuMs = performance.now() - t0
     this.engine.render(dt, this.cpuMs)
     this.input.endFrame()
+  }
+
+  /**
+   * Sobrevoo lento para o fundo do menu: a câmera orbita marcos da cidade e
+   * troca de ponto suavemente, sem cortes bruscos.
+   */
+  private atualizarCinematica(dt: number): void {
+    this.cineT += dt
+    const ponto = this.cinePontos[this.cineIndice]
+    const duracao = 16
+    if (this.cineT > duracao) {
+      this.cineT = 0
+      this.cineIndice = (this.cineIndice + 1) % this.cinePontos.length
+    }
+    const p = this.cinePontos[this.cineIndice]
+    const t = this.cineT / duracao
+    const ang = t * 0.9 + this.cineIndice * 1.7
+    const base = this.world.groundHeight(p.x, p.z)
+    this.cineAlvo.set(p.x, base + 12, p.z)
+    this.cineOlho.set(
+      p.x + Math.cos(ang) * p.raio,
+      base + p.alt + Math.sin(this.cineT * 0.22) * 4,
+      p.z + Math.sin(ang) * p.raio,
+    )
+    // Entrada e saída suaves entre pontos.
+    const fade = Math.min(1, Math.min(this.cineT, duracao - this.cineT) / 2.2)
+    const cam = this.engine.camera
+    const lambda = 1.6 + fade * 1.4
+    cam.position.x = damp(cam.position.x, this.cineOlho.x, lambda, dt)
+    cam.position.y = damp(cam.position.y, this.cineOlho.y, lambda, dt)
+    cam.position.z = damp(cam.position.z, this.cineOlho.z, lambda, dt)
+    cam.lookAt(this.cineAlvo)
+    this.engine.setFov(42)
+    void ponto
+    // Mantém o mundo carregado em torno do ponto observado.
+    this.world.updateStreaming(this.cineAlvo)
+    this.world.processBuildQueue(4)
+  }
+
+  /** Entra ou sai do modo de fundo do menu. */
+  definirCinematica(ativo: boolean): void {
+    this.cinematica = ativo
+    if (ativo) {
+      this.cineT = 0
+      // Começa pelo marco mais próximo do que já está carregado, e coloca a
+      // câmera direto na posição — sem isso o menu abriria olhando para nada.
+      const p0 = this.player.position
+      let melhor = 0
+      let melhorD = Infinity
+      this.cinePontos.forEach((p, i) => {
+        const d = Math.hypot(p.x - p0.x, p.z - p0.z)
+        if (d < melhorD) { melhorD = d; melhor = i }
+      })
+      this.cineIndice = melhor
+      const p = this.cinePontos[melhor]
+      const base = this.world.groundHeight(p.x, p.z)
+      this.cineAlvo.set(p.x, base + 12, p.z)
+      this.cineOlho.set(p.x + p.raio, base + p.alt, p.z)
+      this.engine.camera.position.copy(this.cineOlho)
+      this.engine.camera.lookAt(this.cineAlvo)
+      this.world.updateStreaming(this.cineAlvo)
+      this.player.character.setVisible(false)
+    } else {
+      this.player.character.setVisible(true)
+      this.engine.setFov(this.settings.gameplay.fov)
+      this.player.rig.snapTo({
+        position: this.player.position,
+        yaw: this.player.controller.yaw,
+        speed: 0,
+        height: this.player.character.height,
+      })
+    }
+  }
+
+  /** Consulta de superfície usada pela bola. */
+  private superficieBola = {
+    surface: (x: number, z: number, fromY: number) => this.world.surfaceHeight(x, z, fromY),
+    normal: (x: number, z: number, out: THREE.Vector3) => this.world.groundNormal(x, z, out),
+    kind: (x: number, z: number): 'grama' | 'cimento' | 'terra' | 'asfalto' | 'interno' => {
+      if (this.world.layout.isOnRoad(x, z)) return 'asfalto'
+      if (this.world.layout.isOnSidewalk(x, z)) return 'cimento'
+      return 'grama'
+    },
+  }
+
+  /** Recria a lista de interações próximas a cada quadro. */
+  private atualizarInteracoes(dt: number): void {
+    const p = this.player.position
+    const f = this.player.rig.forward
+    this.interacoes.limpar()
+
+    if (this.player.mode === 'dirigindo' && this.player.veiculo) {
+      const v = this.player.veiculo
+      this.interacoes.registrar({
+        kind: 'sairVeiculo', rotulo: 'Sair do veículo', raio: 99, prioridade: 5,
+        position: v.position.clone(),
+        executar: () => {
+          if (!this.player.sairDoVeiculo()) return 'Reduza a velocidade para sair'
+          this.audio.porta(true, v.position.x, v.position.y + 0.9, v.position.z)
+          this.audio.pararMotor(1)
+        },
+      })
+    } else {
+      const v = this.traffic.veiculoProximo(p.x, p.z, 4.2)
+      if (v) {
+        this.interacoes.registrar({
+          kind: 'veiculo', rotulo: `Entrar no ${v.spec.nome}`, raio: 4.2, prioridade: 2,
+          position: v.position.clone(),
+          executar: () => {
+            this.traffic.liberar(v)
+            if (this.player.entrarNoVeiculo(v)) {
+              this.audio.porta(false, v.position.x, v.position.y + 0.9, v.position.z)
+              return `${v.spec.nome}`
+            }
+          },
+        })
+      }
+
+      const pessoa = this.crowd.maisProxima(p.x, p.z, 3.2)
+      if (pessoa) {
+        this.interacoes.registrar({
+          kind: 'pessoa', rotulo: `Falar com ${pessoa.nome}`, raio: 3.2, prioridade: 1,
+          position: pessoa.position.clone(),
+          executar: () => {
+            pessoa.state = 'conversando'
+            pessoa.stateTimer = 8
+            pessoa.action = 'conversa'
+            this.player.playAction('conversa')
+            return `${pessoa.nome}: ${falaDe(pessoa.assunto)}`
+          },
+        })
+      }
+
+      // Campo de futebol próximo
+      const campo = this.world.nearestPitch(p.x, p.z)
+      if (campo && campo.dist < 26) {
+        this.interacoes.registrar({
+          kind: 'campo', rotulo: this.partida ? 'Encerrar partida' : `Jogar em ${campo.pitch.name}`,
+          raio: 26, prioridade: 0,
+          position: new THREE.Vector3(campo.pitch.x, campo.pitch.y, campo.pitch.z),
+          executar: () => {
+            if (this.partida) { this.encerrarPartida(); return 'Partida encerrada' }
+            this.iniciarPartida(campo.pitch.id)
+            return `${campo.pitch.name}`
+          },
+        })
+      }
+    }
+
+    this.interacoes.atualizar(dt, p, f)
+    if (this.input.isPressed('interagir') && !this.paused) {
+      if (this.interacoes.acionar()) this.audio.interface('confirmar')
+    }
+  }
+
+  private atualizarAudio(dt: number): void {
+    if (!this.audio.iniciado) return
+    const cam = this.engine.camera
+    const f = this.player.rig.forward
+    this.audio.atualizarEscuta(cam.position, f, new THREE.Vector3(0, 1, 0))
+
+    const p = this.player.position
+    const naRua = this.world.layout.isOnRoad(p.x, p.z)
+    const naCalcada = this.world.layout.isOnSidewalk(p.x, p.z)
+    const molhado = this.world.weather.wetness > 0.35
+
+    if (this.player.mode !== 'dirigindo') {
+      this.audio.atualizarPassos(
+        dt, this.player.controller.speed, this.player.controller.grounded,
+        superficieSonora(naRua, naCalcada, molhado, false),
+        p.x, p.y, p.z,
+      )
+    } else if (this.player.veiculo) {
+      const v = this.player.veiculo
+      const rpm = Math.min(1, Math.abs(v.forwardSpeed) / 32)
+      this.audio.motor(1, rpm, this.player.entradaVeiculo.acelerador, 0, true)
+      if (this.player.entradaVeiculo.buzina && Math.random() < dt * 4) {
+        this.audio.buzina(v.position.x, v.position.y + 0.8, v.position.z)
+      }
+    }
+
+    const perto = this.crowd.count
+    this.audio.definirAmbiente({
+      vento: 0.4 + this.world.weather.windSpeed * 0.5,
+      trafego: Math.min(1, this.traffic.count / 14),
+      murmurio: Math.min(1, perto / 18),
+      chuva: this.world.weather.rain,
+      rio: Math.max(0, 1 - Math.min(1, Math.hypot(p.x, p.z) / 500)) * 0,
+      interior: 0,
+    })
+    this.audio.atualizar(dt, {
+      chuva: this.world.weather.rain,
+      vegetacao: 0.6,
+      dia: this.world.sky.daylight,
+    })
+
+    // Impactos da bola
+    const bola = this.partida?.ball ?? this.bolaLivre
+    for (const i of bola.impactos) {
+      const tipo = i.tipo === 'trave' ? 'trave' : i.tipo === 'jogador' ? 'chute' : 'quique'
+      this.audio.bola(tipo, i.forca, i.x, i.y, i.z)
+    }
+  }
+
+  /**
+   * O jogador humano é movido pelo controlador comum; a partida só precisa
+   * conhecer sua posição, orientação e ação para resolver o toque na bola.
+   */
+  private sincronizarJogadorNaPartida(): void {
+    const m = this.partida
+    if (!m || !m.humano) return
+    const h = m.humano
+    const c = this.player.controller
+    h.position.copy(c.position)
+    h.yaw = c.yaw
+    h.speed = c.speed
+    h.action = this.player.currentAction
+    h.actionTime = this.player.actionProgress * 0.6
+    // A mira do chute do jogador vem da câmera, não da formação.
+    h.destino.copy(c.position).addScaledVector(this.player.miraPlano, 14)
+    m.potenciaHumano = this.player.potenciaChute
+  }
+
+  /** Inicia uma partida no campo indicado. */
+  iniciarPartida(pitchId: string, porLado = 5): void {
+    if (this.partida) this.encerrarPartida()
+    const pitch = this.world.pitches.find((x) => x.id === pitchId)
+    if (!pitch) return
+    const cfg: MatchConfig = {
+      pitch, porLado, duracao: 180, timeDoJogador: 0, dificuldade: 0.55,
+    }
+    this.partida = new Match(cfg, this.world, this.world.collision, makeBallMaterial())
+    this.partida.montar(this.player.character.aparencia, this.player.position.clone())
+    this.player.mode = 'futebol'
+    this.player.rig.setMode('futebol')
+    this.bolaLivre.mesh.visible = false
+    this.audio.apito()
+  }
+
+  encerrarPartida(): void {
+    this.partida?.encerrar()
+    this.partida = null
+    this.player.mode = 'aPe'
+    this.player.rig.setMode(this.player.cameraOnFoot)
+  }
+
+  /** Coloca uma bola livre à frente do jogador (pelada de rua). */
+  soltarBola(): void {
+    const p = this.player.position
+    const f = this.player.miraPlano
+    this.bolaLivre.reset(p.x + f.x * 1.4, p.y + 0.4, p.z + f.z * 1.4)
+    this.bolaLivre.mesh.visible = true
   }
 
   applySettings(next: Settings): void {
@@ -188,6 +510,7 @@ export class Game {
       reduceMotion: this.settings.gameplay.reduceCameraMotion,
       smoothing: 1,
     }
+    this.audio.aplicarSettings(this.settings.audio)
   }
 
   stats(): GameStats {
@@ -281,10 +604,29 @@ export class Game {
     this.stop()
     window.removeEventListener('resize', this.onResize)
     this.input.dispose()
+    this.traffic.dispose()
+    this.crowd.dispose()
+    this.partida?.encerrar()
+    this.audio.dispose()
     this.world.dispose()
     this.materials.dispose()
     this.engine.dispose()
   }
+}
+
+const FALAS = [
+  'O campo da vila enche depois das seis.',
+  'Tá bom o dia, hein? Aproveita.',
+  'Se for pro centro, vai de ônibus. Trânsito hoje tá pesado.',
+  'A padaria da esquina abre cedo, vale a pena.',
+  'Ouvi dizer que vai chover mais tarde.',
+  'Meu time joga sábado na arena. Aparece lá.',
+  'Cuidado pra atravessar aí, o pessoal não respeita a faixa.',
+  'Bonito esse tempo, né? Bom pra bater uma bola.',
+]
+
+function falaDe(i: number): string {
+  return FALAS[i % FALAS.length]
 }
 
 function clamp(v: number): number {
