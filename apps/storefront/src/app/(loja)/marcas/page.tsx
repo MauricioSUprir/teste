@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LOJA } from "@/lib/loja";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { comBase } from "@/lib/caminho";
@@ -8,7 +9,7 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 export const metadata: Metadata = {
   title: "Nossas marcas",
   description:
-    "Todas as marcas da BeautyNow: distribuição autorizada com garantia de originalidade.",
+    `Todas as marcas da ${LOJA.nome}: distribuição autorizada, com nota fiscal e garantia de originalidade.`,
 };
 
 /** Vitrine de todas as marcas, com foto real de cada uma. */

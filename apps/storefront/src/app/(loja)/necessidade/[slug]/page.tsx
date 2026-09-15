@@ -25,7 +25,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const necessidade = obterNecessidade(slug);
   if (!necessidade) return {};
-  return { title: `${necessidade.nome} — produtos selecionados` };
+  return { title: `${necessidade.nome}: produtos selecionados` };
 }
 
 export default async function PaginaNecessidade({

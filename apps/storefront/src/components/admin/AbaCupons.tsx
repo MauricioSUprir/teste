@@ -41,7 +41,7 @@ export function AbaCupons() {
       return;
     }
     if (tipo === "percentual" && valorNum > 90) {
-      setErro("Percentual máximo de 90% — confira o valor.");
+      setErro("Percentual máximo de 90%. Confira o valor.");
       return;
     }
     const novo: Cupom = {

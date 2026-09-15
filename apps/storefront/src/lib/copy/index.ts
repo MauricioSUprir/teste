@@ -40,7 +40,7 @@ export const copy = {
   home: {
     heroTitulo: "Seu cabelo, tratado como em salão.",
     heroTexto:
-      "Selecionamos o melhor do haircare profissional, da perfumaria e do cuidado pessoal para você usar em casa, com orientação de quem distribui essas marcas há 15 anos.",
+      "As linhas de haircare, perfumaria e cuidado pessoal que a gente distribui para salão há 15 anos, agora para você usar em casa.",
     heroCta: "Ver mais vendidos",
     maisVendidos: "Mais vendidos",
     lancamentos: "Lançamentos",
@@ -156,13 +156,13 @@ export const copy = {
     titulo: "Finalizar compra",
     precisaContaTitulo: "Entre na sua conta para finalizar",
     precisaContaTexto:
-      "Para concluir a compra você precisa estar na sua conta — assim seus pedidos ficam salvos e o acompanhamento é mais fácil. Seu carrinho fica guardado.",
+      "Para concluir a compra você precisa estar na sua conta. Assim seus pedidos ficam salvos e fica mais fácil acompanhar. Seu carrinho continua guardado.",
     precisaContaEntrar: "Entrar na minha conta",
     precisaContaCriar: "Criar conta grátis",
     vendedorRotulo: "Usuário do vendedor (se um afiliado te indicou)",
     vendedorDica: "A compra é creditada ao vendedor com esse usuário.",
     vendedorNaoEncontrado:
-      "Usuário do vendedor não encontrado — confira com quem te indicou ou deixe em branco.",
+      "Usuário do vendedor não encontrado. Confira com quem te indicou ou deixe em branco.",
     identificacao: "Identificação",
     entrega: "Entrega",
     pagamento: "Pagamento",
@@ -210,7 +210,7 @@ export const copy = {
     proximosTitulo: "O que acontece agora",
     proximosPassos: [
       "Confirmamos o pagamento e você recebe um e-mail com o resumo do pedido.",
-      "Separamos e embalamos os produtos — pedidos aprovados até 15h saem no mesmo dia útil.",
+      "Separamos e embalamos os produtos. Pedidos aprovados até 15h saem no mesmo dia útil.",
       "Assim que despachar, o código de rastreio chega no seu e-mail e no WhatsApp.",
     ],
     duvida: "Dúvida sobre o pedido? Fale com a gente:",
@@ -231,12 +231,12 @@ export const copy = {
     escolhaEstrelas: "Escolha de 1 a 5 estrelas antes de enviar.",
     carregando: "Carregando avaliações…",
     sejaPrimeira: "Seja a primeira pessoa a avaliar a loja!",
-    nenhumaAinda: "Nenhuma avaliação ainda — a sua pode ser a primeira.",
+    nenhumaAinda: "Nenhuma avaliação ainda. A sua pode ser a primeira.",
     avaliacao: "avaliação",
     avaliacoes: "avaliações",
     compraVerificada: "compra verificada",
     posCompraTitulo: "Como foi sua experiência?",
-    posCompraTexto: "Avalie em segundos — isso ajuda outras clientes e a gente a melhorar.",
+    posCompraTexto: "Avalie em segundos. Ajuda outras clientes e ajuda a gente a melhorar.",
   },
   rodape: {
     institucional: "Institucional",
@@ -268,7 +268,7 @@ export const copy = {
   b2b: {
     precoFechado: LOJA.id === "bradeco" ? "Preço de distribuidora" : "Preço para profissionais",
     liberarPrecos: "Cadastre seu CNPJ para ver os preços",
-    aguardandoAprovacao: "Cadastro em análise — avisamos por e-mail quando for aprovado",
+    aguardandoAprovacao: "Cadastro em análise. Avisamos por e-mail quando for aprovado",
     recusado:
       LOJA.id === "bradeco"
         ? "Cadastro não aprovado. Fale com a gente: admbradeco@gmail.com"
@@ -288,11 +288,11 @@ export const copy = {
     enviar: "Enviar cadastro",
     enviando: "Enviando…",
     enviadoOk: "✅ Cadastro recebido! Vamos analisar e avisar por e-mail.",
-    cnpjInvalido: "CNPJ inválido — confira os 14 dígitos.",
+    cnpjInvalido: "CNPJ inválido. Confira os 14 dígitos.",
     falha: "Não foi possível enviar agora. Tente novamente em instantes.",
     statusTitulo: "Situação do seu cadastro",
     statusPendente: "⏳ Em análise",
-    statusAprovado: "✅ Aprovado — preços liberados!",
+    statusAprovado: "✅ Aprovado! Preços liberados.",
     statusRecusado: "❌ Não aprovado",
     verificarNovamente: "Verificar novamente",
     trocarCnpj: "Cadastrar outro CNPJ",
@@ -309,7 +309,7 @@ export const copy = {
     afiliado: {
       titulo: "Programa de afiliados",
       texto:
-        "Divulgue a BeautyNow com o seu link. Cada compra feita por ele rende comissão para você — acompanhe tudo aqui.",
+        `Divulgue a ${LOJA.nome} com o seu link. Cada compra feita por ele rende comissão para você, e dá para acompanhar tudo por aqui.`,
       gerarLink: "Gerar meu link de afiliado",
       gerando: "Gerando…",
       seuLink: "Seu link de afiliado",
@@ -328,7 +328,7 @@ export const copy = {
       falha: "Não foi possível carregar agora. Tente de novo em instantes.",
       saqueTitulo: "Resgatar comissão",
       saqueTexto:
-        "O valor disponível é enviado por Pix para a chave que você informar. Depois de pedir, o pagamento é confirmado pela nossa equipe — o dinheiro chega em no máximo 2 dias.",
+        "O valor disponível é enviado por Pix para a chave que você informar. Depois do pedido, a nossa equipe confirma o pagamento e o dinheiro chega em no máximo 2 dias.",
       saqueDisponivel: "Disponível para saque",
       saqueAguardando: "Aguardando pagamento",
       saqueRecebido: "Já recebido",
@@ -336,7 +336,7 @@ export const copy = {
       saqueValor: "Valor do saque (R$)",
       saquePedir: "Pedir saque",
       saquePedindo: "Enviando pedido…",
-      saqueOk: "✅ Pedido de saque enviado! O Pix chega em no máximo 2 dias — você recebe um e-mail quando sair.",
+      saqueOk: "✅ Pedido de saque enviado! O Pix chega em no máximo 2 dias e você recebe um e-mail quando ele sair.",
       saqueSemSaldo: "Você ainda não tem saldo para sacar.",
       saqueHistorico: "Seus saques",
       saqueStatusPendente: "⏳ Aguardando",
@@ -345,7 +345,7 @@ export const copy = {
       admin: {
         titulo: "Afiliados",
         texto:
-          "Profissionais aprovados que divulgam o BeautyNow. Defina a comissão (%) de cada um e acompanhe as vendas.",
+          `Profissionais aprovados que divulgam a ${LOJA.nome}. Defina a comissão (%) de cada um e acompanhe as vendas.`,
         geralVendas: "Vendas por afiliados",
         geralVendido: "Total vendido",
         geralComissao: "Comissões a pagar",
@@ -353,7 +353,7 @@ export const copy = {
         salvarPct: "Salvar",
         salvo: "✅",
         semCodigo: "ainda não gerou o link",
-        vazio: "Nenhum afiliado ainda — aprove cadastros na aba Profissionais.",
+        vazio: "Nenhum afiliado ainda. Aprove cadastros na aba Profissionais.",
         ultimasVendas: "Últimas vendas por link de afiliado",
         saquesTitulo: "Pedidos de saque",
         saquesTexto:
@@ -369,7 +369,7 @@ export const copy = {
   afiliado: {
     paginaTitulo: "Área do afiliado",
     paginaTexto:
-      "Divulgue a BeautyNow com o seu link e ganhe comissão em cada venda. Entre com o e-mail cadastrado — o acesso funciona em qualquer aparelho, sem senha.",
+      `Divulgue a ${LOJA.nome} com o seu link e ganhe comissão em cada venda. Entre com o e-mail cadastrado: o acesso funciona em qualquer aparelho, sem senha.`,
     loginTitulo: "Entrar",
     loginTexto: "Digite o e-mail que você usou (ou vai usar) no cadastro de afiliado.",
     loginEmailRotulo: "E-mail",
@@ -379,7 +379,7 @@ export const copy = {
     sair: "Sair",
     cadastroTitulo: "Cadastro de afiliado",
     cadastroTexto:
-      "Só precisamos do seu nome e WhatsApp — o CNPJ é opcional. Depois de aprovado, você recebe um link só seu para divulgar.",
+      "Só precisamos do seu nome e WhatsApp. O CNPJ é opcional. Depois de aprovado, você recebe um link só seu para divulgar.",
     formNome: "Seu nome",
     formWhatsapp: "WhatsApp",
     formCnpj: "CNPJ (opcional)",
@@ -387,10 +387,10 @@ export const copy = {
     enviar: "Enviar cadastro",
     enviando: "Enviando…",
     enviadoOk: "✅ Cadastro recebido! Vamos analisar e avisar por e-mail.",
-    cnpjInvalido: "CNPJ inválido — confira os 14 dígitos (ou deixe em branco).",
+    cnpjInvalido: "CNPJ inválido. Confira os 14 dígitos ou deixe o campo em branco.",
     falha: "Não foi possível enviar agora. Tente novamente em instantes.",
     statusPendenteTitulo: "⏳ Cadastro em análise",
-    statusPendenteTexto: "Avisamos por e-mail assim que aprovarmos — geralmente em até 1 dia útil.",
+    statusPendenteTexto: "Avisamos por e-mail assim que aprovarmos, geralmente em até 1 dia útil.",
     statusRecusadoTitulo: "❌ Cadastro não aprovado",
     statusRecusadoTexto: "Em caso de dúvida, fale com a gente: (21) 99732-2464.",
     verificarNovamente: "Verificar novamente",
@@ -398,11 +398,11 @@ export const copy = {
     usuarioDica:
       "SÓ LETRAS MAIÚSCULAS, com pelo menos um número e um caractere especial (ex.: MARIA#22). É ele que identifica as suas vendas.",
     usuarioInvalido:
-      "Usuário inválido — use só LETRAS MAIÚSCULAS, com pelo menos um número e um caractere especial (ex.: MARIA#22).",
+      "Usuário inválido. Use só LETRAS MAIÚSCULAS, com pelo menos um número e um caractere especial (ex.: MARIA#22).",
     loginUsuarioRotulo: "Seu usuário de vendedor",
     usuarioNaoConfere: "Usuário de vendedor não confere com este e-mail. Confira e tente de novo.",
     pixRotulo: "Sua chave Pix",
-    pixDica: "Obrigatória — é nela que a sua comissão cai.",
+    pixDica: "Obrigatória: é nela que a sua comissão cai.",
     pixVazia: "Informe sua chave Pix (obrigatória para receber a comissão).",
     aviso: {
       entrouPeloLink: "Você entrou pelo link do vendedor",
@@ -417,7 +417,7 @@ export const copy = {
       senhaErrada: "Senha incorreta. Confira e tente de novo.",
       enviada: "✅ Solicitação enviada! Você recebe a resposta por e-mail.",
       pendente: "⏳ Sua solicitação está em análise",
-      pendenteTexto: "O administrador vai aprovar e avisamos por e-mail — geralmente em até 1 dia útil.",
+      pendenteTexto: "O administrador vai aprovar e avisamos por e-mail, geralmente em até 1 dia útil.",
       recusada: "❌ Sua solicitação não foi aprovada",
       recusadaTexto: "Em caso de dúvida, fale com a gente: (21) 99732-2464.",
       aprovada: "✅ Você é afiliado!",
@@ -433,11 +433,11 @@ export const copy = {
       nenhum: "Nenhum produto encontrado com essa busca.",
       copiar: "Copiar link",
       copiado: "✅ Copiado!",
-      maisResultados: (n: number) => `+${n} produtos — refine a busca para achar o seu.`,
+      maisResultados: (n: number) => `+${n} produtos. Refine a busca para achar o seu.`,
     },
     admin: {
       titulo: "Pedidos de afiliado",
-      texto: "Cadastros pedindo entrada no programa de afiliados — CNPJ é opcional aqui.",
+      texto: "Cadastros pedindo entrada no programa de afiliados. O CNPJ é opcional aqui.",
       vazio: "Nenhum pedido de afiliado ainda.",
       aprovar: "Aprovar",
       recusar: "Recusar",
@@ -480,7 +480,7 @@ export const copy = {
     botaoCriar: "Criar conta",
     botaoCriando: "Criando conta…",
     botaoConfirmando: "Confirmando…",
-    aguardeServidor: "Conectando ao servidor — a primeira vez do dia pode levar até 1 minuto.",
+    aguardeServidor: "Conectando ao servidor. A primeira vez do dia pode levar até 1 minuto.",
     entrarComGoogle: "Entrar com o Google",
     ou: "ou",
     aindaSemConta: "Ainda não tem conta?",

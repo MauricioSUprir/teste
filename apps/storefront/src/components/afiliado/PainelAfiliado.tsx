@@ -101,7 +101,7 @@ export function PainelAfiliado() {
       ? Math.round(Number(valorSaque.replace(/\./g, "").replace(",", ".")) * 100)
       : disponivel;
     if (!Number.isFinite(valor) || valor <= 0 || valor > disponivel) {
-      setSaqueMsg({ ok: false, texto: "Valor inválido — confira o saldo disponível." });
+      setSaqueMsg({ ok: false, texto: "Valor inválido. Confira o saldo disponível." });
       return;
     }
     setPedindoSaque(true);

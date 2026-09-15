@@ -41,7 +41,7 @@ async function chamar(caminho: string, corpo: unknown): Promise<{ ok: boolean; e
   } catch {
     return {
       ok: false,
-      erro: "O servidor está acordando — aguarde uns 30 segundos e tente de novo.",
+      erro: "O servidor está acordando. Aguarde uns 30 segundos e tente de novo.",
     };
   }
 }

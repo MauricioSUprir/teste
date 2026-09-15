@@ -67,7 +67,7 @@ export function AbaBanners() {
       <p className="rounded-[10px] border border-violeta/30 bg-violeta-claro px-4 py-3 text-[0.8125rem] leading-relaxed text-grafite">
         As artes aparecem no topo da home, na ordem dos números, trocando sozinhas a cada
         20 segundos. <b>Formato ideal: deitado, 1600×600</b> (mínimo 1200 de largura), até 7MB.
-        A troca vale na hora — sem esperar atualização do site.
+        A troca vale na hora, sem esperar atualização do site.
       </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">

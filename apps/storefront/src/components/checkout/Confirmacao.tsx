@@ -149,7 +149,7 @@ export function Confirmacao() {
               />
               <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.8125rem] text-grafite">
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sucesso" aria-hidden="true" />
-                Aguardando pagamento — esta página confirma sozinha quando aprovar
+                Aguardando pagamento. Esta página confirma sozinha quando o pagamento cair.
               </p>
             </>
           ) : (
@@ -224,7 +224,7 @@ export function Confirmacao() {
               {NEGOCIO.email}
             </a>
           )}{" "}
-          — {NEGOCIO.promessaResposta}
+          {NEGOCIO.promessaResposta}
         </p>
       </section>
 

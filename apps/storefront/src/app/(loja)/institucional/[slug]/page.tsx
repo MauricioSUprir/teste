@@ -19,12 +19,12 @@ const quemSomos = LOJA.b2b
   ? [
       `A ${LOJA.nome} é o braço de venda para empresas de uma operação com 15 anos de estrada na distribuição de cosméticos. ${NEGOCIO.regiao}.`,
       "Atendemos salões, clínicas, farmácias, lojas e redes: catálogo aberto para consulta, preço de distribuidor liberado assim que o CNPJ é aprovado, e nota fiscal em toda venda.",
-      "Trabalhamos apenas com marcas das quais somos distribuidores autorizados — o produto sai do fabricante e chega no seu estoque sem intermediário desconhecido no meio do caminho.",
+      "Trabalhamos apenas com marcas das quais somos distribuidores autorizados: o produto sai do fabricante e chega no seu estoque sem passar por atravessador.",
     ]
   : [
       `A ${LOJA.nome} nasceu de uma operação com 15 anos de mercado na distribuição de cosméticos profissionais. Depois de mais de uma década abastecendo salões e profissionais de beleza, trouxemos a mesma curadoria para quem cuida do cabelo e da pele em casa.`,
       "Trabalhamos apenas com marcas que conhecemos de perto, como distribuidores autorizados: cada produto vem direto do fabricante, com garantia de originalidade e nota fiscal.",
-      "Nosso compromisso é simples: seleção intencional em vez de prateleira infinita, informação honesta em vez de promessa milagrosa, e atendimento de gente que entende do produto que vende.",
+      "Preferimos um catálogo menor, escolhido produto a produto. Quem atende no WhatsApp conhece as linhas que vende e fala o que cada produto faz e o que ele não faz.",
     ];
 
 const paginas: Record<string, { titulo: string; paragrafos: string[] }> = {
@@ -34,7 +34,7 @@ const paginas: Record<string, { titulo: string; paragrafos: string[] }> = {
       ...quemSomos,
       NEGOCIO.endereco
         ? `Você encontra a gente em ${enderecoEmLinha(NEGOCIO.endereco)}. Atendimento ${NEGOCIO.horario.toLowerCase()}.`
-        : `Atendimento ${NEGOCIO.horario.toLowerCase()} — fale com a gente ${contato}.`,
+        : `Atendimento ${NEGOCIO.horario.toLowerCase()}. Fale com a gente ${contato}.`,
     ],
   },
   "politica-de-privacidade": {

@@ -51,7 +51,7 @@ export function AbaConfiguracoes() {
     },
     {
       nome: "Mercado Pago",
-      descricao: "Pix, cartão e boleto reais — o valor de cada venda cai na conta MP da loja.",
+      descricao: "Pix, cartão e boleto reais: o valor de cada venda cai na conta MP da loja.",
       ativa: mpAtivo ?? false,
       verificando: mpAtivo === null,
       pendencia: "Enviar o Access Token do painel de desenvolvedor do Mercado Pago.",

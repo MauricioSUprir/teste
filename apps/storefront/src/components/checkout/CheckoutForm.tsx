@@ -279,7 +279,7 @@ export function CheckoutForm() {
       <div className="min-h-dvh bg-superficie">
         <header className="border-b border-linha bg-white">
           <div className="container-bn flex h-16 items-center justify-between">
-            <Link href="/" aria-label={`${copy.marca.nome} — página inicial`}>
+            <Link href="/" aria-label={`${copy.marca.nome}: página inicial`}>
               <Logo altura={24} />
             </Link>
             <p className="hidden items-center gap-4 text-[0.8125rem] text-grafite sm:flex">
@@ -321,7 +321,7 @@ export function CheckoutForm() {
       {/* header reduzido: logo, selo e telefone — sem navegação */}
       <header className="border-b border-linha bg-white">
         <div className="container-bn flex h-16 items-center justify-between">
-          <Link href="/" aria-label="BeautyNow — página inicial">
+          <Link href="/" aria-label={`${copy.marca.nome}: página inicial`}>
             <Logo altura={24} />
           </Link>
           <p className="hidden items-center gap-4 text-[0.8125rem] text-grafite sm:flex">

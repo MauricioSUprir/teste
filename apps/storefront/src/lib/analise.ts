@@ -40,7 +40,7 @@ export function faixasDoPeriodo(periodo: Periodo, agora = new Date()): Faixa[] {
     const inicioDia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
     for (let h = 0; h < 24; h++) {
       faixas.push({
-        rotulo: `${String(h).padStart(2, "0")}h–${String(h + 1).padStart(2, "0")}h`,
+        rotulo: `${String(h).padStart(2, "0")}h-${String(h + 1).padStart(2, "0")}h`,
         rotuloEixo: `${String(h).padStart(2, "0")}h`,
         inicio: inicioDia + h * 3_600_000,
         fim: inicioDia + (h + 1) * 3_600_000,

@@ -331,7 +331,7 @@ function PedidoLinha({
                   </p>
                 ) : (
                   <p className="mt-1 text-cinza">
-                    Pedido registrado só neste navegador — sem os dados de entrega.
+                    Pedido registrado só neste navegador, sem os dados de entrega.
                   </p>
                 )}
               </div>

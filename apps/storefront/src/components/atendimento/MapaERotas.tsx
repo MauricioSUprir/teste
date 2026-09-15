@@ -20,7 +20,7 @@ export function MapaERotas() {
 
       <div className="mt-4 overflow-hidden rounded-[12px] border border-linha">
         <iframe
-          title={`Mapa — ${e.rua}, ${e.cidade}/${e.uf}`}
+          title={`Mapa de ${e.rua}, ${e.cidade}/${e.uf}`}
           src={`https://maps.google.com/maps?q=${consulta}&z=16&output=embed`}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"

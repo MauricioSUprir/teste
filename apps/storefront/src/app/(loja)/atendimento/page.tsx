@@ -92,7 +92,6 @@ export default function PaginaAtendimento() {
       </p>
       {/* promessa de resposta — a pessoa sabe quanto tempo vai esperar */}
       <p className="mt-3 inline-flex items-center gap-2 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.875rem] font-medium text-roxo-escuro">
-        <span aria-hidden="true">⏱</span>
         {NEGOCIO.promessaResposta}
       </p>
 
@@ -102,10 +101,10 @@ export default function PaginaAtendimento() {
 
       <section id="contato" className="mt-10 rounded-[16px] bg-superficie p-6">
         <h2 className="font-titulo text-[1.25rem] font-semibold">Fale com a gente</h2>
-        <ul className="mt-3 space-y-2 text-[0.9375rem] text-grafite">
-          {NEGOCIO.whatsapp && NEGOCIO.whatsappVisivel && (
-            <li>
-              <strong>WhatsApp:</strong>{" "}
+        <div className="mt-3 space-y-2 text-[0.9375rem] text-grafite">
+          {NEGOCIO.whatsapp && NEGOCIO.whatsappVisivel ? (
+            <p>
+              Chame no WhatsApp{" "}
               <a
                 href={linkWhatsapp(NEGOCIO.whatsapp, `Olá! Vim pelo site da ${LOJA.nome}.`)}
                 target="_blank"
@@ -114,19 +113,23 @@ export default function PaginaAtendimento() {
               >
                 {NEGOCIO.whatsappVisivel}
               </a>{" "}
-              — {NEGOCIO.horario}
-            </li>
+              ou escreva para{" "}
+              <a href={`mailto:${NEGOCIO.email}`} className="text-roxo underline">
+                {NEGOCIO.email}
+              </a>
+              . Tem gente atendendo {NEGOCIO.horario.toLowerCase()}.
+            </p>
+          ) : (
+            <p>
+              Escreva para{" "}
+              <a href={`mailto:${NEGOCIO.email}`} className="text-roxo underline">
+                {NEGOCIO.email}
+              </a>
+              . Tem gente atendendo {NEGOCIO.horario.toLowerCase()}.
+            </p>
           )}
-          <li>
-            <strong>E-mail:</strong>{" "}
-            <a href={`mailto:${NEGOCIO.email}`} className="text-roxo underline">
-              {NEGOCIO.email}
-            </a>
-          </li>
-          <li>
-            <strong>Atendimento:</strong> {NEGOCIO.regiao}
-          </li>
-        </ul>
+          <p>Atendemos {NEGOCIO.regiao.toLowerCase()}.</p>
+        </div>
       </section>
 
       <MapaERotas />

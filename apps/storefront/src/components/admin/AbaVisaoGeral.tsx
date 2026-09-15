@@ -13,10 +13,10 @@ import type { Pedido } from "@/lib/pedidos";
 import { formatarPreco } from "@/lib/preco";
 
 const periodos: { id: Periodo; rotulo: string; tituloGrafico: string; nomeFalado: string; comparativo: string; semBase: string }[] = [
-  { id: "dia", rotulo: "Hoje", tituloGrafico: "Receita por hora — hoje", nomeFalado: "hoje", comparativo: "em relação a ontem", semBase: "Ontem não houve vendas para comparar." },
-  { id: "semana", rotulo: "7 dias", tituloGrafico: "Receita por dia — últimos 7 dias", nomeFalado: "nos últimos 7 dias", comparativo: "em relação aos 7 dias anteriores", semBase: "Nos 7 dias anteriores não houve vendas para comparar." },
-  { id: "mes", rotulo: "30 dias", tituloGrafico: "Receita por dia — últimos 30 dias", nomeFalado: "nos últimos 30 dias", comparativo: "em relação aos 30 dias anteriores", semBase: "Nos 30 dias anteriores não houve vendas para comparar." },
-  { id: "ano", rotulo: "12 meses", tituloGrafico: "Receita por mês — últimos 12 meses", nomeFalado: "nos últimos 12 meses", comparativo: "em relação aos 12 meses anteriores", semBase: "Nos 12 meses anteriores não houve vendas para comparar." },
+  { id: "dia", rotulo: "Hoje", tituloGrafico: "Receita por hora (hoje)", nomeFalado: "hoje", comparativo: "em relação a ontem", semBase: "Ontem não houve vendas para comparar." },
+  { id: "semana", rotulo: "7 dias", tituloGrafico: "Receita por dia (últimos 7 dias)", nomeFalado: "nos últimos 7 dias", comparativo: "em relação aos 7 dias anteriores", semBase: "Nos 7 dias anteriores não houve vendas para comparar." },
+  { id: "mes", rotulo: "30 dias", tituloGrafico: "Receita por dia (últimos 30 dias)", nomeFalado: "nos últimos 30 dias", comparativo: "em relação aos 30 dias anteriores", semBase: "Nos 30 dias anteriores não houve vendas para comparar." },
+  { id: "ano", rotulo: "12 meses", tituloGrafico: "Receita por mês (últimos 12 meses)", nomeFalado: "nos últimos 12 meses", comparativo: "em relação aos 12 meses anteriores", semBase: "Nos 12 meses anteriores não houve vendas para comparar." },
 ];
 
 import { GraficoBarras, BarrasRanqueadas } from "./GraficoBarras";

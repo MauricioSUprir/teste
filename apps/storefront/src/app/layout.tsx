@@ -39,19 +39,19 @@ const saira = Saira({
 
 const tituloLoja =
   LOJA_ID === "be2beauty"
-    ? "Be2Beauty — O e-commerce do cabeleireiro"
+    ? "Be2Beauty: o e-commerce do cabeleireiro"
     : LOJA_ID === "pulse"
-      ? "Pulse Beauty Store — Cuidado no ritmo certo"
+      ? "Pulse Beauty Store: cuidado no ritmo certo"
       : LOJA_ID === "bradeco"
-        ? "Bradeco Distribuidora — Elo entre indústria e varejo"
-        : "BeautyNow — Cosméticos profissionais com curadoria";
+        ? "Bradeco Distribuidora: elo entre indústria e varejo"
+        : "BeautyNow: cosméticos profissionais com curadoria";
 const descricaoLoja =
   LOJA_ID === "bradeco"
     ? "Distribuição, consultoria e representação de cosméticos em todo o estado de SP. Cadastre o CNPJ da sua loja e acesse a tabela de preços de distribuidora."
     : LOJA.b2b
       ? "Distribuidora de cosméticos para profissionais e revenda. Cadastre o CNPJ do seu salão ou loja e acesse a tabela de preços exclusiva."
       : LOJA_ID === "pulse"
-        ? "O encontro entre beleza, bem-estar e performance: haircare, perfumaria e cuidado pessoal para o seu ritmo. Pix com 5% de desconto."
+        ? "O encontro entre beleza, bem-estar e performance. Produtos de cabelo, perfumaria e cuidado pessoal para usar depois do treino. Pix com 5% de desconto."
         : "Haircare profissional, perfumaria e cuidado pessoal com curadoria de quem distribui há 15 anos. Pix com 5% de desconto.";
 
 // cada loja tem o próprio domínio (o /pro do beautynowstore vira só um espelho;
@@ -124,9 +124,9 @@ export const metadata: Metadata = {
     title: tituloLoja,
     description:
       LOJA_ID === "bradeco"
-        ? "Distribuição, consultoria e representação — cadastre o CNPJ e veja os preços."
+        ? "Distribuição, consultoria e representação. Cadastre o CNPJ e veja os preços."
         : LOJA.b2b
-          ? "Venda exclusiva para profissionais — cadastre seu CNPJ e veja os preços."
+          ? "Venda exclusiva para profissionais. Cadastre seu CNPJ e veja os preços."
           : "Pix com 5% de desconto · Produtos 100% originais.",
     images: [
       {

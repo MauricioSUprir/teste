@@ -107,7 +107,7 @@ export function BotaoGoogle() {
         {copy.conta.entrarComGoogle}
       </button>
       <p className="mt-1.5 text-center text-[0.6875rem] text-cinza">
-        Demonstração — o botão oficial do Google ativa com o Client ID configurado.
+        Demonstração: o botão oficial do Google ativa com o Client ID configurado.
       </p>
     </div>
   );

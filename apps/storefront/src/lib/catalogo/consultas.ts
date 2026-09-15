@@ -41,13 +41,24 @@ if (LOJA.multiplicadorPreco !== 1) {
 }
 
 export const catalogoReal = usaHub;
-// as descrições vêm do JSON compartilhado com o texto "curadoria BeautyNow";
-// nas outras lojas o nome da casa entra no lugar
+// o JSON traz a descrição no molde "Seleção de X com curadoria BeautyNow." —
+// a mesma frase em toda categoria, com o nome de outra loja. Aqui vira uma
+// linha curta e sem jargão, com o nome certo da casa
 const categorias: Categoria[] = (usaHub ? hub.categorias : categoriasDemo).map((c) => ({
   ...c,
-  descricao: c.descricao.replace(/curadoria BeautyNow/g, `curadoria ${LOJA.nome}`),
+  descricao: c.descricao
+    .replace(/^Seleção de (.+) com curadoria BeautyNow\.$/i, "Nossa seleção de $1.")
+    .replace(/curadoria BeautyNow/g, `curadoria ${LOJA.nome}`),
 }));
-const marcas: Marca[] = usaHub ? hub.marcas : marcasDemo;
+// mesma história das marcas: "Produtos X com garantia de originalidade
+// BeautyNow." repetido marca a marca, e com o nome de outra loja
+const marcas: Marca[] = (usaHub ? hub.marcas : marcasDemo).map((m) => ({
+  ...m,
+  descricao: m.descricao?.replace(
+    /^Produtos (.+) com garantia de originalidade BeautyNow\.$/i,
+    "Produtos $1 originais, direto do fabricante."
+  ),
+}));
 const produtos: Produto[] = usaHub ? hub.produtos : produtosDemo;
 // necessidades são curadoria editorial — o Hub não as fornece
 const necessidades: Necessidade[] = usaHub ? [] : necessidadesDemo;

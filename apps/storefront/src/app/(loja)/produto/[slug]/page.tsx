@@ -37,7 +37,7 @@ export async function generateMetadata({
   if (!produto) return {};
   const marca = obterMarca(produto.marca);
   return {
-    title: `${produto.titulo} — ${marca?.nome}`,
+    title: `${produto.titulo} | ${marca?.nome}`,
     description: produto.descricao.slice(0, 160),
   };
 }

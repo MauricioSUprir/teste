@@ -275,7 +275,7 @@ export const produtos: Produto[] = [
     beneficios: ["Concentração eau de parfum (15%)", "Fixação de até 8h", "Notas florais brasileiras"],
     modoDeUso: [
       "Borrife nos pontos de pulsação: pulsos, pescoço e atrás das orelhas.",
-      "Não esfregue — deixe a fragrância evoluir na pele.",
+      "Não esfregue: deixe a fragrância evoluir na pele.",
     ],
     composicao: "Alcohol, Parfum, Aqua, Linalool, Limonene, Citronellol.",
     especificacoes: {
