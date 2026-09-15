@@ -124,7 +124,11 @@ export class World {
   // Consultas de superfície
   // ------------------------------------------------------------------------
 
-  /** Altura pisável considerando pontes, calçadas e lajes. */
+  /**
+   * Altura pisável considerando pontes, calçadas e lajes.
+   * `fromY` limita a busca: superfícies muito acima desse valor são ignoradas,
+   * o que evita colocar o jogador em cima de um prédio ao procurar o chão.
+   */
   surfaceHeight(x: number, z: number, fromY = 1e4): number {
     const t = terrainHeight(x, z)
     const s = this.collision.supportHeight(x, z, fromY)

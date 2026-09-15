@@ -130,7 +130,8 @@ export class CdnTextureLoader {
 /** Ordem de prioridade: o que cobre mais pixels na tela primeiro. */
 export const CDN_PRIORITY: CdnKey[] = [
   'asfalto', 'calcada', 'fachada', 'concreto', 'grama',
-  'tijolo', 'telha', 'fachadaPastilha', 'fachadaGasta', 'meioFio',
-  'paralelepipedo', 'terra', 'metal', 'madeira', 'pisoInterno',
-  'azulejo', 'madeiraEscura', 'metalPintado', 'asfaltoGasto',
+  'tijolo', 'telhaCeramica', 'telha', 'fachadaPastilha', 'fachadaGasta',
+  'meioFio', 'paralelepipedo', 'terra', 'metal', 'pisoInterno',
+  'madeira', 'azulejo', 'madeiraEscura', 'metalPintado', 'asfaltoGasto',
+  'vidroPredio',
 ]

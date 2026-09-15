@@ -6,7 +6,7 @@
  */
 
 import * as THREE from 'three'
-import { lerp, makeRng, pick, randInt, randRange, type Rng } from '../core/math'
+import { clamp, lerp, makeRng, pick, randInt, randRange, type Rng } from '../core/math'
 import { GeometryBatcher, makeBox, makeCylinder, transform, withColor } from './geometry'
 import type { CollisionWorld } from './collision'
 import { terrainHeight } from './terrain'
@@ -14,8 +14,6 @@ import { terrainHeight } from './terrain'
 const CINZA = new THREE.Color(0x8a8f94)
 const CINZA_ESCURO = new THREE.Color(0x3b4045)
 const CONCRETO = new THREE.Color(0xc2beb5)
-const VERDE_FOLHA = [0x2f5d2a, 0x3a6b30, 0x27522a, 0x437a35, 0x2b6338, 0x4d7f3a]
-const TRONCO = new THREE.Color(0x5b4632)
 
 export interface PropContext {
   batcher: GeometryBatcher
@@ -171,53 +169,196 @@ export function addSign(ctx: PropContext, x: number, z: number, yaw: number, kin
   ctx.collision.add({ x, y: y + h / 2, z }, { x: 0.1, y: h / 2, z: 0.1 }, 0, 'prop', ctx.owner)
 }
 
-/** Árvore: tronco cônico e copa em camadas com variação de cor. */
-export function addTree(ctx: PropContext, x: number, z: number, rng: Rng, scale = 1): void {
-  const y = ground(x, z)
-  const h = randRange(rng, 4.2, 7.6) * scale
-  const trunkR = lerp(0.14, 0.26, rng()) * scale
-  const leafColor = new THREE.Color(pick(rng, VERDE_FOLHA))
-  ctx.batcher.add('tronco', withColor(
-    transform(makeCylinder(trunkR, h * 0.55, 7, 1.2), x, y + h * 0.275, z), TRONCO.clone().multiplyScalar(lerp(0.85, 1.15, rng()))))
+export type EspecieArvore = 'ipeAmarelo' | 'ipeRosa' | 'copaLarga' | 'palmeira' | 'coqueiro' | 'jovem' | 'sibipiruna'
 
-  const layers = randInt(rng, 3, 5)
-  for (let i = 0; i < layers; i++) {
-    const t = i / (layers - 1 || 1)
-    const r = lerp(2.5, 0.9, t) * scale * lerp(0.85, 1.15, rng())
-    const ly = y + h * 0.5 + t * h * 0.5
-    const sphere = new THREE.IcosahedronGeometry(r, 0)
-    const jitter = sphere.attributes.position as THREE.BufferAttribute
-    for (let v = 0; v < jitter.count; v++) {
-      jitter.setXYZ(v,
-        jitter.getX(v) * lerp(0.82, 1.18, rng()),
-        jitter.getY(v) * lerp(0.7, 1.0, rng()),
-        jitter.getZ(v) * lerp(0.82, 1.18, rng()))
+const VERDES_COPA: [number, number][] = [
+  [0x2c5a28, 0x4a8438], [0x27522a, 0x3f7a35], [0x2f6338, 0x53904a],
+  [0x33602c, 0x4d8a3c], [0x2a5630, 0x447a40],
+]
+
+/**
+ * Copa em aglomerados: várias elipsoides achatadas e deformadas, com a face
+ * externa mais clara que o interior. Dá volume e leitura de folhagem sem
+ * recorrer a bilhoards nem a malhas importadas.
+ */
+function copaAglomerada(
+  ctx: PropContext, x: number, y: number, z: number,
+  raio: number, achatamento: number, grupos: number,
+  claro: THREE.Color, escuro: THREE.Color, rng: Rng,
+): void {
+  for (let i = 0; i < grupos; i++) {
+    const ang = (i / grupos) * Math.PI * 2 + rng() * 0.8
+    const dist = i === 0 ? 0 : raio * randRange(rng, 0.30, 0.62)
+    const r = raio * (i === 0 ? randRange(rng, 0.72, 0.9) : randRange(rng, 0.42, 0.68))
+    const cx = x + Math.cos(ang) * dist
+    const cz = z + Math.sin(ang) * dist
+    const cy = y + (i === 0 ? 0 : randRange(rng, -0.25, 0.42) * raio)
+
+    const g = new THREE.IcosahedronGeometry(r, 1)
+    const p = g.attributes.position as THREE.BufferAttribute
+    const cores = new Float32Array(p.count * 3)
+    const uv = new Float32Array(p.count * 2)
+    const n = new THREE.Vector3()
+    for (let v = 0; v < p.count; v++) {
+      n.set(p.getX(v), p.getY(v), p.getZ(v))
+      const len = n.length() || 1
+      // Deformação irregular, mais forte na horizontal que na vertical.
+      const ruido = 0.78 + rng() * 0.44
+      p.setXYZ(v,
+        n.x * ruido,
+        n.y * ruido * achatamento,
+        n.z * ruido)
+      // Topo e bordas mais claros; interior e parte de baixo mais escuros.
+      const t = clamp((n.y / len) * 0.5 + 0.55, 0, 1)
+      const c = escuro.clone().lerp(claro, t * randRange(rng, 0.75, 1.0))
+      cores[v * 3] = c.r; cores[v * 3 + 1] = c.g; cores[v * 3 + 2] = c.b
+      uv[v * 2] = rng(); uv[v * 2 + 1] = rng()
     }
-    sphere.computeVertexNormals()
-    // UVs simples para o material com textura
-    const uv = new Float32Array(jitter.count * 2)
-    for (let v = 0; v < jitter.count; v++) { uv[v * 2] = rng(); uv[v * 2 + 1] = rng() }
-    sphere.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
-    ctx.batcher.add('folhagem', withColor(
-      transform(sphere, x + randRange(rng, -0.5, 0.5) * scale, ly, z + randRange(rng, -0.5, 0.5) * scale),
-      leafColor.clone().multiplyScalar(lerp(0.78, 1.18, rng()))))
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
+    g.setAttribute('color', new THREE.BufferAttribute(cores, 3))
+    g.computeVertexNormals()
+    transform(g, cx, cy, cz)
+    ctx.batcher.add('folhagem', g)
   }
-  ctx.collision.add({ x, y: y + h * 0.3, z }, { x: trunkR + 0.12, y: h * 0.3, z: trunkR + 0.12 }, 0, 'prop', ctx.owner)
+}
+
+/** Tronco com leve inclinação e afinamento. */
+function troncoArvore(
+  ctx: PropContext, x: number, y: number, z: number,
+  altura: number, raioBase: number, inclinacao: number, cor: THREE.Color, rng: Rng,
+): { topoX: number; topoY: number; topoZ: number } {
+  const segs = 3
+  const dir = rng() * Math.PI * 2
+  let px = x, pz = z
+  let py = y
+  for (let i = 0; i < segs; i++) {
+    const h = altura / segs
+    const r = lerp(raioBase, raioBase * 0.55, i / segs)
+    const dx = Math.cos(dir) * inclinacao * h * (i / segs)
+    const dz = Math.sin(dir) * inclinacao * h * (i / segs)
+    const g = makeCylinder(r, h * 1.04, 8, 1.2)
+    transform(g, px + dx / 2, py + h / 2, pz + dz / 2)
+    ctx.batcher.add('tronco', withColor(g, cor.clone().multiplyScalar(lerp(1.0, 0.86, i / segs))))
+    px += dx
+    pz += dz
+    py += h
+  }
+  return { topoX: px, topoY: py, topoZ: pz }
+}
+
+/** Fronde de palmeira: uma folha alongada e arqueada. */
+function fronde(
+  ctx: PropContext, x: number, y: number, z: number,
+  comprimento: number, angulo: number, queda: number, cor: THREE.Color,
+): void {
+  const segs = 5
+  for (let i = 0; i < segs; i++) {
+    const t0 = i / segs
+    const t1 = (i + 1) / segs
+    const meio = (t0 + t1) / 2
+    const larg = Math.sin(meio * Math.PI) * 0.34 + 0.06
+    const raio = comprimento * meio
+    const alturaSeg = -queda * meio * meio * comprimento
+    const g = makeBox(comprimento / segs * 1.08, 0.025, larg, { uvScale: 0.5 })
+    transform(g,
+      x + Math.cos(angulo) * raio,
+      y + alturaSeg + comprimento * 0.10 * Math.sin(meio * Math.PI),
+      z + Math.sin(angulo) * raio,
+      -angulo)
+    ctx.batcher.add('folhagem', withColor(g, cor.clone().multiplyScalar(lerp(1.06, 0.82, meio))))
+  }
+}
+
+/** Árvore urbana. As espécies mudam a silhueta da rua de forma perceptível. */
+export function addTree(ctx: PropContext, x: number, z: number, rng: Rng, scale = 1, especie?: EspecieArvore): void {
+  const y = ground(x, z)
+  const esp: EspecieArvore = especie ?? pick(rng, [
+    'copaLarga', 'copaLarga', 'copaLarga', 'sibipiruna', 'sibipiruna',
+    'ipeAmarelo', 'ipeRosa', 'palmeira', 'coqueiro', 'jovem',
+  ])
+  const troncoCor = new THREE.Color(0x5b4632).multiplyScalar(lerp(0.82, 1.18, rng()))
+
+  switch (esp) {
+    case 'palmeira': case 'coqueiro': {
+      const altura = randRange(rng, 6.5, 11.5) * scale
+      const r = randRange(rng, 0.16, 0.24) * scale
+      const topo = troncoArvore(ctx, x, y, z, altura, r, esp === 'coqueiro' ? 0.10 : 0.03,
+        new THREE.Color(0x7a6a52).multiplyScalar(lerp(0.9, 1.1, rng())), rng)
+      const verde = new THREE.Color(0x2f6b34).lerp(new THREE.Color(0x4f9440), rng())
+      const n = randInt(rng, 7, 11)
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + rng() * 0.3
+        fronde(ctx, topo.topoX, topo.topoY, topo.topoZ,
+          randRange(rng, 1.9, 2.9) * scale, a, randRange(rng, 0.45, 0.85), verde)
+      }
+      if (esp === 'coqueiro') {
+        for (let i = 0; i < 4; i++) {
+          const a = rng() * Math.PI * 2
+          const g = new THREE.IcosahedronGeometry(0.14 * scale, 0)
+          transform(g, topo.topoX + Math.cos(a) * 0.3, topo.topoY - 0.25, topo.topoZ + Math.sin(a) * 0.3)
+          ctx.batcher.add('folhagem', withColor(g, new THREE.Color(0x7a6a3a)))
+        }
+      }
+      ctx.collision.add({ x, y: y + altura / 2, z }, { x: r + 0.1, y: altura / 2, z: r + 0.1 }, 0, 'prop', ctx.owner)
+      break
+    }
+
+    case 'ipeAmarelo': case 'ipeRosa': {
+      const altura = randRange(rng, 5.0, 8.0) * scale
+      const r = randRange(rng, 0.17, 0.27) * scale
+      const topo = troncoArvore(ctx, x, y, z, altura * 0.52, r, 0.09, troncoCor, rng)
+      const flor = esp === 'ipeAmarelo'
+        ? new THREE.Color(0xf2c230)
+        : new THREE.Color(0xe08ab4)
+      const florEsc = flor.clone().multiplyScalar(0.72)
+      copaAglomerada(ctx, topo.topoX, topo.topoY + altura * 0.22, topo.topoZ,
+        randRange(rng, 2.1, 3.1) * scale, 0.62, randInt(rng, 4, 6), flor, florEsc, rng)
+      ctx.collision.add({ x, y: y + altura * 0.3, z }, { x: r + 0.12, y: altura * 0.3, z: r + 0.12 }, 0, 'prop', ctx.owner)
+      break
+    }
+
+    case 'jovem': {
+      const altura = randRange(rng, 2.6, 4.0) * scale
+      const r = randRange(rng, 0.07, 0.12) * scale
+      const topo = troncoArvore(ctx, x, y, z, altura * 0.55, r, 0.05, troncoCor, rng)
+      const [c1, c2] = pick(rng, VERDES_COPA)
+      copaAglomerada(ctx, topo.topoX, topo.topoY + altura * 0.22, topo.topoZ,
+        randRange(rng, 0.9, 1.4) * scale, 0.78, 3, new THREE.Color(c2), new THREE.Color(c1), rng)
+      ctx.collision.add({ x, y: y + altura * 0.3, z }, { x: r + 0.1, y: altura * 0.3, z: r + 0.1 }, 0, 'prop', ctx.owner)
+      break
+    }
+
+    case 'sibipiruna': {
+      const altura = randRange(rng, 6.0, 9.5) * scale
+      const r = randRange(rng, 0.20, 0.32) * scale
+      const topo = troncoArvore(ctx, x, y, z, altura * 0.48, r, 0.11, troncoCor, rng)
+      const [c1, c2] = pick(rng, VERDES_COPA)
+      // Copa larga e rala, típica de árvore de calçada.
+      copaAglomerada(ctx, topo.topoX, topo.topoY + altura * 0.20, topo.topoZ,
+        randRange(rng, 2.6, 3.8) * scale, 0.48, randInt(rng, 5, 7), new THREE.Color(c2), new THREE.Color(c1), rng)
+      ctx.collision.add({ x, y: y + altura * 0.3, z }, { x: r + 0.14, y: altura * 0.3, z: r + 0.14 }, 0, 'prop', ctx.owner)
+      break
+    }
+
+    default: {
+      const altura = randRange(rng, 5.5, 9.0) * scale
+      const r = randRange(rng, 0.22, 0.36) * scale
+      const topo = troncoArvore(ctx, x, y, z, altura * 0.44, r, 0.08, troncoCor, rng)
+      const [c1, c2] = pick(rng, VERDES_COPA)
+      copaAglomerada(ctx, topo.topoX, topo.topoY + altura * 0.26, topo.topoZ,
+        randRange(rng, 2.4, 3.6) * scale, 0.78, randInt(rng, 5, 8), new THREE.Color(c2), new THREE.Color(c1), rng)
+      ctx.collision.add({ x, y: y + altura * 0.32, z }, { x: r + 0.14, y: altura * 0.32, z: r + 0.14 }, 0, 'prop', ctx.owner)
+      break
+    }
+  }
 }
 
 export function addBush(ctx: PropContext, x: number, z: number, rng: Rng): void {
   const y = ground(x, z)
-  const r = randRange(rng, 0.5, 1.1)
-  const g = new THREE.IcosahedronGeometry(r, 0)
-  const p = g.attributes.position as THREE.BufferAttribute
-  for (let v = 0; v < p.count; v++) {
-    p.setXYZ(v, p.getX(v) * randRange(rng, 0.8, 1.2), p.getY(v) * randRange(rng, 0.6, 0.95), p.getZ(v) * randRange(rng, 0.8, 1.2))
-  }
-  g.computeVertexNormals()
-  const uv = new Float32Array(p.count * 2)
-  for (let v = 0; v < p.count; v++) { uv[v * 2] = rng(); uv[v * 2 + 1] = rng() }
-  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
-  ctx.batcher.add('folhagem', withColor(transform(g, x, y + r * 0.6, z), new THREE.Color(pick(rng, VERDE_FOLHA)).multiplyScalar(randRange(rng, 0.8, 1.15))))
+  const r = randRange(rng, 0.5, 1.15)
+  const [c1, c2] = pick(rng, VERDES_COPA)
+  copaAglomerada(ctx, x, y + r * 0.62, z, r, 0.68, randInt(rng, 2, 4),
+    new THREE.Color(c2), new THREE.Color(c1), rng)
 }
 
 /** Muro baixo com grade (divisa de lote residencial). */

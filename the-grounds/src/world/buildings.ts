@@ -318,15 +318,19 @@ export function buildBuilding(
   }
 
   const facadeKey = facadeMaterialFor(spec, rng)
+  // Cada edifício desloca e reescala a UV: sem isso, quarteirões inteiros
+  // exibem o mesmo desenho de textura alinhado, o que denuncia a repetição.
+  const uvOff: [number, number] = [rng() * 8, rng() * 8]
+  const uvFach = 2.3 * randRange(rng, 0.88, 1.16)
 
   // ---- Térreo oco: 4 paredes com vão de porta na frente --------------------
   const gh = Math.min(fh, spec.type === 'galpao' ? 6.5 : 3.15)
   const hw = w / 2, hd = d / 2
 
   // Parede traseira e laterais
-  batcher.add(facadeKey, withColor(place(makeBox(w, gh, WALL_T, { uvScale: 2.2 }), 0, gh / 2, -hd + WALL_T / 2), groundColor))
-  batcher.add(facadeKey, withColor(place(makeBox(WALL_T, gh, d, { uvScale: 2.2 }), -hw + WALL_T / 2, gh / 2, 0), groundColor))
-  batcher.add(facadeKey, withColor(place(makeBox(WALL_T, gh, d, { uvScale: 2.2 }), hw - WALL_T / 2, gh / 2, 0), groundColor))
+  batcher.add(facadeKey, withColor(place(makeBox(w, gh, WALL_T, { uvScale: uvFach, uvOffset: uvOff }), 0, gh / 2, -hd + WALL_T / 2), groundColor))
+  batcher.add(facadeKey, withColor(place(makeBox(WALL_T, gh, d, { uvScale: uvFach, uvOffset: uvOff }), -hw + WALL_T / 2, gh / 2, 0), groundColor))
+  batcher.add(facadeKey, withColor(place(makeBox(WALL_T, gh, d, { uvScale: uvFach, uvOffset: uvOff }), hw - WALL_T / 2, gh / 2, 0), groundColor))
   addCollider(0, gh / 2, -hd + WALL_T / 2, hw, gh / 2, WALL_T / 2, 'parede')
   addCollider(-hw + WALL_T / 2, gh / 2, 0, WALL_T / 2, gh / 2, hd, 'parede')
   addCollider(hw - WALL_T / 2, gh / 2, 0, WALL_T / 2, gh / 2, hd, 'parede')
@@ -335,15 +339,15 @@ export function buildBuilding(
   const doorHalf = DOOR_W / 2
   const leftW = hw - doorHalf
   if (leftW > 0.05) {
-    batcher.add(facadeKey, withColor(place(makeBox(leftW, gh, WALL_T, { uvScale: 2.2 }), -(doorHalf + leftW / 2), gh / 2, hd - WALL_T / 2), groundColor))
-    batcher.add(facadeKey, withColor(place(makeBox(leftW, gh, WALL_T, { uvScale: 2.2 }), doorHalf + leftW / 2, gh / 2, hd - WALL_T / 2), groundColor))
+    batcher.add(facadeKey, withColor(place(makeBox(leftW, gh, WALL_T, { uvScale: uvFach, uvOffset: uvOff }), -(doorHalf + leftW / 2), gh / 2, hd - WALL_T / 2), groundColor))
+    batcher.add(facadeKey, withColor(place(makeBox(leftW, gh, WALL_T, { uvScale: uvFach, uvOffset: uvOff }), doorHalf + leftW / 2, gh / 2, hd - WALL_T / 2), groundColor))
     addCollider(-(doorHalf + leftW / 2), gh / 2, hd - WALL_T / 2, leftW / 2, gh / 2, WALL_T / 2, 'parede')
     addCollider(doorHalf + leftW / 2, gh / 2, hd - WALL_T / 2, leftW / 2, gh / 2, WALL_T / 2, 'parede')
   }
   // Verga acima da porta
   const lintelH = gh - DOOR_H
   if (lintelH > 0.05) {
-    batcher.add(facadeKey, withColor(place(makeBox(DOOR_W, lintelH, WALL_T, { uvScale: 2.2 }), 0, DOOR_H + lintelH / 2, hd - WALL_T / 2), groundColor))
+    batcher.add(facadeKey, withColor(place(makeBox(DOOR_W, lintelH, WALL_T, { uvScale: uvFach, uvOffset: uvOff }), 0, DOOR_H + lintelH / 2, hd - WALL_T / 2), groundColor))
     addCollider(0, DOOR_H + lintelH / 2, hd - WALL_T / 2, doorHalf, lintelH / 2, WALL_T / 2, 'parede')
   }
   // Batente e soleira
@@ -359,7 +363,7 @@ export function buildBuilding(
   if (upperH > 0.3) {
     const skip = new Set(['ny'])
     batcher.add(facadeKey, withColor(
-      place(makeBox(w, upperH, d, { uvScale: 2.4, skip }), 0, gh + upperH / 2, 0), color))
+      place(makeBox(w, upperH, d, { uvScale: uvFach * 1.05, uvOffset: uvOff, skip }), 0, gh + upperH / 2, 0), color))
     addCollider(0, gh + upperH / 2, 0, hw, upperH / 2, hd)
   }
 
@@ -511,12 +515,12 @@ function addRoof(
       const sd = d * (1 - t) + 0.9
       const sw = w + 0.9 - t * 0.25
       const y = totalH + rise * t + rise / (steps * 2)
-      batcher.add('telha', withColor(
-        place(makeBox(sw, rise / steps + 0.03, sd, { uvScale: 1.1 }), 0, y, 0),
+      batcher.add('telhaCeramica', withColor(
+        place(makeBox(sw, rise / steps + 0.03, sd, { uvScale: 1.15, uvOffset: [t * 0.4, 0] }), 0, y, 0),
         roofColor.clone().multiplyScalar(lerp(0.92, 1.08, t))))
     }
     // Beiral
-    batcher.add('telha', withColor(place(makeBox(w + 1.1, 0.12, d + 1.1, { uvScale: 1.1 }), 0, totalH + 0.06, 0), roofColor))
+    batcher.add('telhaCeramica', withColor(place(makeBox(w + 1.1, 0.12, d + 1.1, { uvScale: 1.15 }), 0, totalH + 0.06, 0), roofColor))
   } else {
     // Laje plana com platibanda
     const pb = 0.85

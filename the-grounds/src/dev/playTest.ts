@@ -72,7 +72,8 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
       obst: ${s.obstaculos}<br>
       ${s.entrada}<br>
       ocl: ${s.oclusao}<br>
-      carros ${game.traffic.count} · pessoas ${game.crowd.count} · interação: ${game.interacoes.atual?.rotulo ?? '—'}
+      carros ${game.traffic.count} · pessoas ${game.crowd.count} · interiores ${game.interiores.count}<br>
+      interação: ${game.interacoes.atual?.rotulo ?? '—'} · dentro: ${game.interiores.atual ? 'sim' : 'não'}
     `
   }, 250)
 
@@ -87,6 +88,24 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
     olhar: (dx: number, dy: number) => game.player.rig.look(dx, dy),
     tp: (px: number, pz: number) => game.player.teleport(px, pz),
     bola: () => game.soltarBola(),
+    /** Vai até a porta do prédio mais próximo e entra. */
+    porta: (dentro = true) => {
+      const p = game.player.position
+      const perto = game.world.buildingsNear(p.x, p.z, 80)
+      if (perto.length === 0) return null
+      let melhor = perto[0]
+      let d = Infinity
+      for (const b of perto) {
+        const dd = Math.hypot(b.door.x - p.x, b.door.z - p.z)
+        if (dd < d) { d = dd; melhor = b }
+      }
+      const fx = Math.sin(melhor.yaw)
+      const fz = Math.cos(melhor.yaw)
+      const dist = dentro ? -1.6 : 2.2
+      game.player.teleport(melhor.door.x + fx * dist, melhor.door.z + fz * dist, melhor.yaw + Math.PI)
+      game.player.rig.yaw = melhor.yaw + Math.PI
+      return { nome: melhor.label ?? melhor.type, tipo: melhor.interior, x: melhor.x, z: melhor.z }
+    },
     partida: (id?: string) => game.iniciarPartida(id ?? game.world.pitches[0]?.id ?? ''),
     carro: () => {
       const v = game.traffic.veiculoProximo(game.player.position.x, game.player.position.z, 40)

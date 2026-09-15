@@ -20,6 +20,7 @@ import { AudioManager, superficieSonora } from '../audio/audio'
 import { InteractionSystem } from './interactions'
 import { Ball, makeBallMaterial } from '../football/ball'
 import { Match, type MatchConfig } from '../football/match'
+import { InteriorManager } from '../world/interiors'
 
 export interface GameStats {
   fps: number
@@ -61,6 +62,7 @@ export class Game {
   readonly crowd: Crowd
   readonly audio: AudioManager
   readonly interacoes = new InteractionSystem()
+  readonly interiores: InteriorManager
   readonly vehicleMaterials: VehicleMaterials
   /** Bola livre para bater pelada em qualquer lugar. */
   readonly bolaLivre: Ball
@@ -124,6 +126,7 @@ export class Game {
       this.vehicleMaterials, superficies,
     )
     this.crowd = new Crowd(this.world, this.world.layout, this.world.collision)
+    this.interiores = new InteriorManager(this.materials, this.world.root, this.world.collision)
     this.audio = new AudioManager(this.settings.audio)
 
     this.bolaLivre = new Ball(makeBallMaterial())
@@ -211,6 +214,11 @@ export class Game {
       if (this.bolaLivre.mesh.visible && !this.partida) {
         this.bolaLivre.update(dt, this.world.collision, this.superficieBola)
       }
+      this.interiores.atualizar(
+        this.player.position,
+        this.world.buildingsNear(this.player.position.x, this.player.position.z, 48),
+      )
+      this.interiores.atualizarLuzes(this.world.sky.daylight)
       this.atualizarInteracoes(dt)
       this.atualizarAudio(dt)
 
@@ -373,6 +381,27 @@ export class Game {
         })
       }
 
+      // Interiores montados: portas, interruptores, assentos, lojas…
+      for (const { interior, ponto } of this.interiores.pontos()) {
+        if (Math.hypot(ponto.x - p.x, ponto.z - p.z) > ponto.raio + 1) continue
+        this.interacoes.registrar({
+          kind: ponto.kind === 'balcao' ? 'loja' : ponto.kind,
+          rotulo: ponto.rotulo,
+          raio: ponto.raio,
+          prioridade: 3,
+          position: new THREE.Vector3(ponto.x, ponto.y, ponto.z),
+          executar: () => this.executarPontoInterior(interior, ponto),
+        })
+      }
+
+      if (this.player.mode === 'sentado') {
+        this.interacoes.registrar({
+          kind: 'levantar', rotulo: 'Levantar', raio: 99, prioridade: 9,
+          position: p.clone(),
+          executar: () => { this.player.levantar() },
+        })
+      }
+
       // Campo de futebol próximo
       const campo = this.world.nearestPitch(p.x, p.z)
       if (campo && campo.dist < 26) {
@@ -395,6 +424,44 @@ export class Game {
     }
   }
 
+  /** Resolve a ação de um ponto de interação de interior. */
+  private executarPontoInterior(
+    interior: import('../world/interiors').InteriorConstruido,
+    ponto: import('../world/interiors').PontoInterativo,
+  ): string | void {
+    switch (ponto.kind) {
+      case 'interruptor':
+        this.interiores.alternarLuz(interior)
+        return interior.acesa ? 'Luz acesa' : 'Luz apagada'
+      case 'sentar':
+        this.player.sentar(ponto.x, this.world.surfaceHeight(ponto.x, ponto.z, ponto.y + 1), ponto.z, ponto.yaw ?? 0)
+        return
+      case 'cama':
+        this.world.hour = 7.5
+        return 'Você dormiu até as 7h30'
+      case 'porta':
+        this.audio.porta(true, ponto.x, ponto.y, ponto.z)
+        return
+      case 'guardaRoupa':
+        return 'Guarda-roupa: personalize pelo menu de pausa'
+      case 'geladeira':
+        return 'Você comeu alguma coisa. Fôlego recuperado.'
+      case 'espelho':
+        return 'Espelho: personalize pelo menu de pausa'
+      case 'tv':
+        return 'A televisão está passando o jogo de sábado'
+      case 'elevador':
+        return 'Elevador em manutenção — por enquanto só o térreo é acessível'
+      case 'loja':
+      case 'balcao':
+        return `${interior.spec.label ?? 'Estabelecimento'} — atendimento em breve`
+      case 'maquina':
+        return 'Garagem: guarde ou troque de veículo aqui'
+      default:
+        return
+    }
+  }
+
   private atualizarAudio(dt: number): void {
     if (!this.audio.iniciado) return
     const cam = this.engine.camera
@@ -409,7 +476,7 @@ export class Game {
     if (this.player.mode !== 'dirigindo') {
       this.audio.atualizarPassos(
         dt, this.player.controller.speed, this.player.controller.grounded,
-        superficieSonora(naRua, naCalcada, molhado, false),
+        superficieSonora(naRua, naCalcada, molhado, !!this.interiores.atual),
         p.x, p.y, p.z,
       )
     } else if (this.player.veiculo) {
@@ -427,8 +494,8 @@ export class Game {
       trafego: Math.min(1, this.traffic.count / 14),
       murmurio: Math.min(1, perto / 18),
       chuva: this.world.weather.rain,
-      rio: Math.max(0, 1 - Math.min(1, Math.hypot(p.x, p.z) / 500)) * 0,
-      interior: 0,
+      rio: 0,
+      interior: this.interiores.atual ? 1 : 0,
     })
     this.audio.atualizar(dt, {
       chuva: this.world.weather.rain,
@@ -606,6 +673,7 @@ export class Game {
     this.input.dispose()
     this.traffic.dispose()
     this.crowd.dispose()
+    this.interiores.dispose()
     this.partida?.encerrar()
     this.audio.dispose()
     this.world.dispose()

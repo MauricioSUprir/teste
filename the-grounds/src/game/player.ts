@@ -36,6 +36,8 @@ export class Player {
   cargaChute = 0
   /** Última direção de mira no plano, usada pelo futebol. */
   readonly miraPlano = new THREE.Vector3(0, 0, 1)
+  /** Assento ocupado fora de veículo (banco, sofá, cadeira). */
+  private assentoMundo: { x: number; y: number; z: number; yaw: number } | null = null
   private surfaces: SurfaceQuery
   private readonly camTarget: CameraTarget = {
     position: new THREE.Vector3(), yaw: 0, speed: 0, height: 1.78,
@@ -65,8 +67,14 @@ export class Player {
 
   get position(): THREE.Vector3 { return this.controller.position }
 
-  teleport(x: number, z: number, yaw = 0): void {
-    const y = this.world.surfaceHeight(x, z, 1e4)
+  /**
+   * Reposiciona o jogador no nível do chão. A busca de superfície parte um
+   * pouco acima do terreno, senão o topo de um prédio contaria como apoio e o
+   * jogador apareceria sobre o telhado.
+   */
+  teleport(x: number, z: number, yaw = 0, alturaBase?: number): void {
+    const solo = alturaBase ?? this.world.groundHeight(x, z)
+    const y = this.world.surfaceHeight(x, z, solo + 0.8)
     this.controller.teleport(x, y, z, yaw)
     this.character.setPosition(x, y, z)
     this.character.setYaw(yaw)
@@ -128,6 +136,10 @@ export class Player {
 
     if (this.mode === 'dirigindo') {
       this.updateDriving(dt, input, allowControl)
+    } else if (this.mode === 'sentado') {
+      // Sentado: só o olhar responde; levantar é uma interação.
+      this.controller.velocity.set(0, 0, 0)
+      this.controller.speed = 0
     } else if (this.mode === 'aPe' || this.mode === 'futebol') {
       this.updateOnFoot(dt, input, allowControl)
     }
@@ -146,6 +158,28 @@ export class Player {
 
     this.syncCharacter(dt)
     this.rig.update(dt, this.cameraTarget(), this.world.collision)
+  }
+
+  /** Senta o personagem em um ponto fixo do mundo. */
+  sentar(x: number, y: number, z: number, yaw: number): void {
+    if (this.mode !== 'aPe') return
+    this.assentoMundo = { x, y, z, yaw }
+    this.mode = 'sentado'
+    this.controller.teleport(x, y, z, yaw)
+    this.controller.velocity.set(0, 0, 0)
+  }
+
+  /** Levanta de onde estiver sentado. */
+  levantar(): void {
+    if (this.mode !== 'sentado' || !this.assentoMundo) return
+    const a = this.assentoMundo
+    this.assentoMundo = null
+    this.mode = 'aPe'
+    const fx = Math.sin(a.yaw)
+    const fz = Math.cos(a.yaw)
+    const nx = a.x + fx * 0.85
+    const nz = a.z + fz * 0.85
+    this.controller.teleport(nx, this.world.surfaceHeight(nx, nz, a.y + 1.2), nz, a.yaw)
   }
 
   // ------------------------------------------------------------------------

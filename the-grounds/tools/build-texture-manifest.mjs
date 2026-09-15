@@ -8,26 +8,34 @@
 import { writeFileSync } from 'node:fs'
 
 /** chave do material no jogo -> asset CC0 do Poly Haven */
+/**
+ * Seleção enxuta e contemporânea: superfícies limpas, de construção recente.
+ * Materiais muito desgastados dão ar de vila antiga europeia, não de cidade
+ * brasileira atual — por isso o desgaste entra por variação de cor e por
+ * poucos materiais específicos, não como padrão.
+ */
 const SELECTION = {
-  asfalto:          { id: 'asphalt_02',            uvScale: 7.0 },
-  asfaltoGasto:     { id: 'road_damaged',          uvScale: 8.0 },
-  calcada:          { id: 'concrete_pavers_02',    uvScale: 3.2 },
-  meioFio:          { id: 'worn_concrete_floor',   uvScale: 2.0 },
-  concreto:         { id: 'concrete_wall_008',     uvScale: 2.6 },
-  fachada:          { id: 'white_plaster_rough_02', uvScale: 2.4 },
-  fachadaGasta:     { id: 'worn_mossy_plasterwall', uvScale: 2.6 },
-  fachadaPastilha:  { id: 'rectangular_facade_tiles', uvScale: 1.8 },
-  tijolo:           { id: 'red_bricks_02',         uvScale: 2.2 },
-  telha:            { id: 'ceramic_roof_01',       uvScale: 1.6 },
-  grama:            { id: 'sparse_grass',          uvScale: 4.0 },
-  terra:            { id: 'dirt_floor',            uvScale: 4.0 },
-  madeira:          { id: 'wood_planks',           uvScale: 2.0 },
-  madeiraEscura:    { id: 'dark_wood',             uvScale: 1.6 },
-  azulejo:          { id: 'square_tiled_wall',     uvScale: 1.2 },
-  pisoInterno:      { id: 'tiled_floor_001',       uvScale: 2.0 },
-  paralelepipedo:   { id: 'cobblestone_floor_08',  uvScale: 3.0 },
-  metal:            { id: 'rusty_metal_04',        uvScale: 2.0 },
-  metalPintado:     { id: 'painted_metal_shutter', uvScale: 2.0 },
+  asfalto:          { id: 'asphalt_04',              uvScale: 8.0 },
+  asfaltoGasto:     { id: 'asphalt_02',              uvScale: 8.0 },
+  calcada:          { id: 'square_concrete_pavers',  uvScale: 3.0 },
+  meioFio:          { id: 'concrete_floor_01',       uvScale: 2.4 },
+  concreto:         { id: 'concrete_wall_005',       uvScale: 3.0 },
+  fachada:          { id: 'white_plaster_02',        uvScale: 3.2 },
+  fachadaGasta:     { id: 'plaster_grey_04',         uvScale: 3.0 },
+  fachadaPastilha:  { id: 'rectangular_facade_tiles_02', uvScale: 2.2 },
+  tijolo:           { id: 'large_red_bricks',        uvScale: 2.6 },
+  telha:            { id: 'grey_roof_tiles_02',      uvScale: 1.8 },
+  telhaCeramica:    { id: 'ceramic_roof_01',         uvScale: 1.8 },
+  grama:            { id: 'leafy_grass',             uvScale: 4.5 },
+  terra:            { id: 'dirt_floor',              uvScale: 4.5 },
+  madeira:          { id: 'wood_floor',              uvScale: 2.4 },
+  madeiraEscura:    { id: 'dark_paneled_wood',       uvScale: 2.0 },
+  azulejo:          { id: 'long_white_tiles',        uvScale: 1.4 },
+  pisoInterno:      { id: 'large_grey_tiles',        uvScale: 2.6 },
+  paralelepipedo:   { id: 'patterned_paving',        uvScale: 3.0 },
+  metal:            { id: 'metal_plate',             uvScale: 2.2 },
+  metalPintado:     { id: 'painted_metal_shutter',   uvScale: 2.0 },
+  vidroPredio:      { id: 'concrete_tile_facade',    uvScale: 3.0 },
 }
 
 const MAP_KEYS = { Diffuse: 'map', nor_gl: 'normalMap', Rough: 'roughnessMap', AO: 'aoMap' }

@@ -13,7 +13,7 @@ export type WorldMaterialKey =
   | 'madeiraEscura' | 'azulejo' | 'pisoInterno' | 'tecido' | 'paralelepipedo'
   | 'folhagem' | 'tronco' | 'pintura' | 'plastico' | 'luz' | 'borracha' | 'cromo'
   | 'telha' | 'toldo' | 'rede' | 'fachadaGasta' | 'fachadaPastilha' | 'asfaltoGasto'
-  | 'metalPintado' | 'grade'
+  | 'metalPintado' | 'grade' | 'telhaCeramica' | 'vidroPredio'
 
 export class MaterialLibrary {
   readonly textures: TextureLibrary
@@ -132,7 +132,11 @@ export class MaterialLibrary {
           emissive: 0xffffff, emissiveIntensity: 1.0,
         })
       case 'telha':
+        return this.textured('concreto', { roughness: 0.88 })
+      case 'telhaCeramica':
         return this.textured('tijolo', { roughness: 0.9 })
+      case 'vidroPredio':
+        return this.textured('concreto', { roughness: 0.32, metalness: 0.15 })
       case 'toldo':
         return this.textured('tecido', { roughness: 0.88, side: THREE.DoubleSide })
       case 'rede':
@@ -185,7 +189,9 @@ export class MaterialLibrary {
       m.aoMap = maps.aoMap
       // A geometria do mundo tem um único canal de UV.
       m.aoMap.channel = 0
-      m.aoMapIntensity = 0.85
+      // Oclusão embutida forte deixa tudo com cara de encardido; entra apenas
+      // como um reforço sutil dos sulcos.
+      m.aoMapIntensity = 0.42
     }
     m.needsUpdate = true
     this.upgraded.add(m)

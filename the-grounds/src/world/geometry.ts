@@ -8,6 +8,8 @@ import * as THREE from 'three'
 export interface BoxFaceOptions {
   /** Metros por repetição da textura. */
   uvScale?: number
+  /** Deslocamento da UV, em repetições. Quebra o alinhamento entre objetos. */
+  uvOffset?: [number, number]
   /** Omite faces para economizar triângulos: 'px','nx','py','ny','pz','nz'. */
   skip?: ReadonlySet<string>
   /** Cor de vértice aplicada à caixa inteira. */
@@ -53,7 +55,7 @@ export function makeBox(w: number, h: number, d: number, opts: BoxFaceOptions = 
     for (const [a, b] of corners) {
       positions.push(cx + ux * a + vx * b, cy + uy * a + vy * b, cz + uz * a + vz * b)
       normals.push(nx, ny, nz)
-      uvs.push(((a + 1) / 2) * su, ((b + 1) / 2) * sv)
+      uvs.push(((a + 1) / 2) * su + (opts.uvOffset?.[0] ?? 0), ((b + 1) / 2) * sv + (opts.uvOffset?.[1] ?? 0))
       if (opts.color) colors.push(opts.color.r, opts.color.g, opts.color.b)
     }
     // A ordem dos triângulos precisa concordar com a normal da face: u × v

@@ -187,6 +187,25 @@ export class CameraRig {
       this.armLength = damp(this.armLength, allowed, lambda, dt)
 
       _desired.copy(_smoothFocus).addScaledVector(_dir, -this.armLength)
+
+      // Rede de segurança: se ainda assim a câmera terminar dentro de um
+      // colisor (paredes finas, quinas), encurta até sair.
+      if (collision) {
+        for (let tentativa = 0; tentativa < 6; tentativa++) {
+          const dentro = collision.query(_desired.x, _desired.z, 0.36).some((c) => {
+            if (!c.solid) return false
+            if (_desired.y < c.y - c.hy - 0.1 || _desired.y > c.y + c.hy + 0.1) return false
+            const px = _desired.x - c.x
+            const pz = _desired.z - c.z
+            const lx = px * c.cos + pz * c.sin
+            const lz = -px * c.sin + pz * c.cos
+            return Math.abs(lx) < c.hx + 0.22 && Math.abs(lz) < c.hz + 0.22
+          })
+          if (!dentro) break
+          this.armLength = Math.max(0.55, this.armLength - 0.32)
+          _desired.copy(_smoothFocus).addScaledVector(_dir, -this.armLength)
+        }
+      }
       // Deslocamento de ombro some quando a câmera está muito perto.
       const shoulder = cfg.shoulder * clamp((this.armLength - 1.2) / 1.6, 0, 1)
       _desired.x += Math.cos(this.yaw) * shoulder
