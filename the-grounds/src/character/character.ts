@@ -86,6 +86,8 @@ export class Character {
   private poleTarget = new THREE.Vector3()
   private worldPos = new THREE.Vector3()
   private elapsed = 0
+  /** Desliga a correção de pés (diagnóstico). */
+  ikAtivo = true
   /** Escala de raio de colisão derivada do corpo. */
   radius = 0.32
   height = 1.78
@@ -180,7 +182,7 @@ export class Character {
 
     this.group.updateMatrixWorld(true)
 
-    if (groundAt && this.input.grounded && !this.input.sentado && !this.input.dirigindo) {
+    if (this.ikAtivo && groundAt && this.input.grounded && !this.input.sentado && !this.input.dirigindo) {
       this.applyFootIK(dt, groundAt)
     }
   }
@@ -258,6 +260,43 @@ export class Character {
       if (m.name === 'barba') (m.material as THREE.MeshStandardMaterial).color.set(app.corBarba)
       if (m.name === 'sobrancelhas') (m.material as THREE.MeshStandardMaterial).color.set(app.corCabelo)
     }
+  }
+
+  /**
+   * Diagnóstico: calcula a posição deformada de vértices ligados a um osso,
+   * exatamente como o shader faz. Serve para verificar se uma parte do corpo
+   * está sendo desenhada onde deveria.
+   */
+  diagnosticarOsso(nome: BoneName, amostras = 6): { min: THREE.Vector3; max: THREE.Vector3; n: number } | null {
+    const mesh = this.meshes.find((m) => m.name === 'pele')
+    if (!mesh) return null
+    const geo = mesh.geometry
+    const si = geo.attributes.skinIndex as THREE.BufferAttribute | undefined
+    const sw = geo.attributes.skinWeight as THREE.BufferAttribute | undefined
+    const pos = geo.attributes.position as THREE.BufferAttribute
+    if (!si || !sw) return null
+
+    const alvo = BONE_INDEX[nome]
+    const min = new THREE.Vector3(Infinity, Infinity, Infinity)
+    const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity)
+    const v = new THREE.Vector3()
+    let n = 0
+    const passo = Math.max(1, Math.floor(pos.count / (amostras * 40)))
+    for (let i = 0; i < pos.count; i += passo) {
+      let liga = false
+      for (let k = 0; k < 4; k++) {
+        if (si.getComponent(i, k) === alvo && sw.getComponent(i, k) > 0.5) { liga = true; break }
+      }
+      if (!liga) continue
+      v.fromBufferAttribute(pos, i)
+      mesh.applyBoneTransform(i, v)
+      mesh.localToWorld(v)
+      min.min(v)
+      max.max(v)
+      n++
+      if (n >= amostras * 40) break
+    }
+    return n > 0 ? { min, max, n } : null
   }
 
   dispose(full = true): void {

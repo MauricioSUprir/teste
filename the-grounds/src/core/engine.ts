@@ -75,6 +75,9 @@ export class Engine {
       alpha: false,
     })
     this.renderer.setClearColor(0x87a6c8, 1)
+    // Com pós-processamento cada passe chamaria render() e zeraria os
+    // contadores; acumulamos manualmente para medir a cena inteira.
+    this.renderer.info.autoReset = false
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.05
@@ -321,12 +324,15 @@ export class Engine {
   }
 
   render(dt: number, cpuMs: number): void {
+    this.renderer.info.reset()
     const t0 = performance.now()
     if (this.composer) this.composer.render(dt)
     else this.renderer.render(this.scene, this.camera)
     const gpuIssueMs = performance.now() - t0
 
     const total = cpuMs + gpuIssueMs
+    // Descarta o primeiro quadro (compilação de shaders) da média.
+    if (this.frameTimes.length === 0 && total > 200) return
     this.frameTimes.push(total)
     if (this.frameTimes.length > 60) this.frameTimes.shift()
     const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length

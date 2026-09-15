@@ -4,6 +4,10 @@
  * É o que impede o pé de flutuar ou afundar em rampas, degraus e calçadas:
  * depois da animação procedural, o pé de apoio é reposicionado sobre a
  * superfície real e o joelho é recalculado para acompanhar.
+ *
+ * Implementação clássica em três etapas: corrige o ângulo da raiz e do meio
+ * pela lei dos cossenos, aponta a cadeia para o alvo e, por fim, gira em torno
+ * do eixo raiz→alvo para levar o joelho na direção do polo.
  */
 
 import * as THREE from 'three'
@@ -12,30 +16,40 @@ import { clamp } from '../core/math'
 const _rootPos = new THREE.Vector3()
 const _midPos = new THREE.Vector3()
 const _tipPos = new THREE.Vector3()
-const _toTip = new THREE.Vector3()
-const _toTarget = new THREE.Vector3()
-const _toMid = new THREE.Vector3()
+const _rootToMid = new THREE.Vector3()
+const _rootToTip = new THREE.Vector3()
+const _midToRoot = new THREE.Vector3()
+const _midToTip = new THREE.Vector3()
+const _rootToTarget = new THREE.Vector3()
 const _axis = new THREE.Vector3()
+const _poleDir = new THREE.Vector3()
+const _projMid = new THREE.Vector3()
+const _projPole = new THREE.Vector3()
 const _q = new THREE.Quaternion()
 const _parentQ = new THREE.Quaternion()
 const _invParentQ = new THREE.Quaternion()
-const _pole = new THREE.Vector3()
-const _planeNormal = new THREE.Vector3()
+const _target = new THREE.Vector3()
 const _tmp = new THREE.Vector3()
 
 /** Aplica uma rotação global a um osso, preservando a hierarquia. */
 function rotateBoneWorld(bone: THREE.Object3D, worldRot: THREE.Quaternion): void {
-  bone.parent?.getWorldQuaternion(_parentQ)
+  if (bone.parent) bone.parent.getWorldQuaternion(_parentQ)
+  else _parentQ.identity()
   _invParentQ.copy(_parentQ).invert()
-  // q_local_novo = inv(pai) * rot * pai * q_local
-  bone.quaternion.premultiply(_parentQ).premultiply(worldRot).premultiply(_invParentQ)
+  // q_local' = inv(pai) · R · pai · q_local
+  bone.quaternion.premultiply(_parentQ).premultiply(worldRot).premultiply(_invParentQ).normalize()
   bone.updateMatrixWorld(true)
+}
+
+function angleBetween(a: THREE.Vector3, b: THREE.Vector3): number {
+  const d = clamp(a.dot(b) / Math.max(a.length() * b.length(), 1e-8), -1, 1)
+  return Math.acos(d)
 }
 
 /**
  * Resolve a cadeia raiz→meio→ponta para alcançar `target` (espaço de mundo).
  * `poleHint` indica para onde o cotovelo/joelho deve apontar.
- * Devolve o quanto do alcance foi usado (1 = esticado).
+ * Devolve quanto do alcance foi usado (1 = esticado).
  */
 export function solveTwoBoneIK(
   root: THREE.Object3D,
@@ -56,60 +70,73 @@ export function solveTwoBoneIK(
   const l2 = _midPos.distanceTo(_tipPos)
   if (l1 < 1e-5 || l2 < 1e-5) return 0
 
-  // Alvo com peso: interpola entre a ponta atual e o destino.
-  _toTarget.copy(target).sub(_tipPos).multiplyScalar(weight).add(_tipPos)
-  const desired = _tmp.copy(_toTarget).sub(_rootPos)
+  // Alvo ponderado: interpola entre onde a ponta está e onde deveria ficar.
+  _target.copy(target).sub(_tipPos).multiplyScalar(clamp(weight, 0, 1)).add(_tipPos)
+  _rootToTarget.copy(_target).sub(_rootPos)
+  const reach = _rootToTarget.length()
+  if (reach < 1e-5) return 0
   const maxReach = (l1 + l2) * 0.999
-  let dist = desired.length()
-  if (dist < 1e-5) return 0
-  const reachRatio = dist / maxReach
-  if (dist > maxReach) { desired.multiplyScalar(maxReach / dist); dist = maxReach }
+  const minReach = Math.abs(l1 - l2) * 1.001 + 1e-4
+  const d = clamp(reach, minReach, maxReach)
+  if (d !== reach) _rootToTarget.setLength(d)
 
-  // 1) Aponta a cadeia inteira para o alvo.
-  _toTip.copy(_tipPos).sub(_rootPos).normalize()
-  _toTarget.copy(desired).normalize()
-  _q.setFromUnitVectors(_toTip, _toTarget)
-  rotateBoneWorld(root, _q)
-
-  // 2) Plano de dobra definido pelo polo (joelho para a frente).
-  _rootPos.setFromMatrixPosition(root.matrixWorld)
-  _midPos.setFromMatrixPosition(mid.matrixWorld)
-  _pole.copy(poleHint).sub(_rootPos)
-  _planeNormal.copy(desired).cross(_pole)
-  if (_planeNormal.lengthSq() < 1e-8) {
-    _planeNormal.set(1, 0, 0).cross(desired)
-    if (_planeNormal.lengthSq() < 1e-8) _planeNormal.set(0, 0, 1).cross(desired)
+  // --- Eixo de dobra ------------------------------------------------------
+  _rootToMid.copy(_midPos).sub(_rootPos)
+  _rootToTip.copy(_tipPos).sub(_rootPos)
+  _axis.crossVectors(_rootToMid, _rootToTip)
+  if (_axis.lengthSq() < 1e-10) {
+    // Cadeia esticada: usa o polo para definir o plano.
+    _poleDir.copy(poleHint).sub(_rootPos)
+    _axis.crossVectors(_rootToMid, _poleDir)
+    if (_axis.lengthSq() < 1e-10) _axis.set(1, 0, 0).cross(_rootToMid)
+    if (_axis.lengthSq() < 1e-10) _axis.set(0, 0, 1).cross(_rootToMid)
   }
-  _planeNormal.normalize()
+  _axis.normalize()
 
-  // Ângulo desejado na raiz (lei dos cossenos).
-  const cosRoot = clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1)
-  const angleRoot = Math.acos(cosRoot)
+  // --- Ângulos atuais e desejados (lei dos cossenos) ----------------------
+  const aCur = angleBetween(_rootToMid, _rootToTip)
+  _midToRoot.copy(_rootPos).sub(_midPos)
+  _midToTip.copy(_tipPos).sub(_midPos)
+  const bCur = angleBetween(_midToRoot, _midToTip)
 
-  // Ângulo atual entre (raiz→meio) e (raiz→alvo).
-  _toMid.copy(_midPos).sub(_rootPos).normalize()
-  _toTarget.copy(desired).normalize()
-  const cosCurrent = clamp(_toMid.dot(_toTarget), -1, 1)
-  const angleCurrent = Math.acos(cosCurrent)
+  const aWanted = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1))
+  const bWanted = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1))
 
-  // Sinal: de que lado do plano o meio está hoje.
-  _axis.copy(_toTarget).cross(_toMid)
-  const sign = _axis.dot(_planeNormal) >= 0 ? 1 : -1
-  const delta = angleRoot - angleCurrent * sign
-
-  _q.setFromAxisAngle(_planeNormal, -delta * sign)
+  _q.setFromAxisAngle(_axis, aWanted - aCur)
   rotateBoneWorld(root, _q)
-
-  // 3) Alinha a ponta exatamente no alvo girando o osso do meio.
-  mid.updateMatrixWorld(true)
-  _midPos.setFromMatrixPosition(mid.matrixWorld)
-  _tipPos.setFromMatrixPosition(tip.matrixWorld)
-  _toTip.copy(_tipPos).sub(_midPos).normalize()
-  _toTarget.copy(desired).add(_rootPos).sub(_midPos).normalize()
-  _q.setFromUnitVectors(_toTip, _toTarget)
+  _q.setFromAxisAngle(_axis, bWanted - bCur)
   rotateBoneWorld(mid, _q)
 
-  return Math.min(1, reachRatio)
+  // --- Aponta a cadeia para o alvo ---------------------------------------
+  tip.updateMatrixWorld(true)
+  _tipPos.setFromMatrixPosition(tip.matrixWorld)
+  _rootToTip.copy(_tipPos).sub(_rootPos)
+  if (_rootToTip.lengthSq() > 1e-10) {
+    _tmp.copy(_rootToTip).normalize()
+    _q.setFromUnitVectors(_tmp, _target.copy(_rootToTarget).normalize())
+    rotateBoneWorld(root, _q)
+  }
+
+  // --- Leva o joelho/cotovelo na direção do polo -------------------------
+  mid.updateMatrixWorld(true)
+  _midPos.setFromMatrixPosition(mid.matrixWorld)
+  _rootToTarget.normalize()
+  _projMid.copy(_midPos).sub(_rootPos)
+  _projMid.addScaledVector(_rootToTarget, -_projMid.dot(_rootToTarget))
+  _poleDir.copy(poleHint).sub(_rootPos)
+  _projPole.copy(_poleDir)
+  _projPole.addScaledVector(_rootToTarget, -_projPole.dot(_rootToTarget))
+  if (_projMid.lengthSq() > 1e-8 && _projPole.lengthSq() > 1e-8) {
+    _projMid.normalize()
+    _projPole.normalize()
+    let ang = angleBetween(_projMid, _projPole)
+    _tmp.crossVectors(_projMid, _projPole)
+    if (_tmp.dot(_rootToTarget) < 0) ang = -ang
+    _q.setFromAxisAngle(_rootToTarget, ang)
+    rotateBoneWorld(root, _q)
+  }
+
+  return clamp(reach / maxReach, 0, 1)
 }
 
 /** Orienta um osso para que seu eixo local aponte na direção dada. */
@@ -118,10 +145,9 @@ export function aimBone(
 ): void {
   if (weight <= 0.001) return
   bone.updateMatrixWorld(true)
-  const worldQ = new THREE.Quaternion()
-  bone.getWorldQuaternion(worldQ)
-  const current = localAxis.clone().applyQuaternion(worldQ).normalize()
-  const q = new THREE.Quaternion().setFromUnitVectors(current, worldDir.clone().normalize())
-  if (weight < 1) q.slerp(new THREE.Quaternion(), 1 - weight)
-  rotateBoneWorld(bone, q)
+  bone.getWorldQuaternion(_parentQ)
+  _tmp.copy(localAxis).applyQuaternion(_parentQ).normalize()
+  _q.setFromUnitVectors(_tmp, _target.copy(worldDir).normalize())
+  if (weight < 1) _q.slerp(_invParentQ.identity(), 1 - weight)
+  rotateBoneWorld(bone, _q)
 }

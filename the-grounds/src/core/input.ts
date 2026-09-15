@@ -48,6 +48,11 @@ export class Input {
   invertY = false
   /** Quando true, o próximo evento de tecla é capturado para remapeamento. */
   private captureResolve: ((code: string) => void) | null = null
+  /**
+   * Sobreposição usada pelos testes automatizados: quando definida, substitui
+   * o eixo de movimento depois da leitura do teclado e do gamepad.
+   */
+  override: { moveX: number; moveY: number; sprint: boolean } | null = null
 
   private readonly onKeyDown: (e: KeyboardEvent) => void
   private readonly onKeyUp: (e: KeyboardEvent) => void
@@ -142,6 +147,7 @@ export class Input {
   }
 
   isDown(action: ActionName): boolean {
+    if (this.override && action === 'correr') return this.override.sprint
     return this.down.has(this.bindings[action]) || this.padDown.has(action)
   }
   isPressed(action: ActionName): boolean {
@@ -200,6 +206,11 @@ export class Input {
     this.mouseDelta.y = 0
 
     this.pollGamepad()
+
+    if (this.override) {
+      f.moveX = this.override.moveX
+      f.moveY = this.override.moveY
+    }
 
     // Normaliza diagonal para não andar mais rápido na diagonal.
     const len = Math.hypot(f.moveX, f.moveY)

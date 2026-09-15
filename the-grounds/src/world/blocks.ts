@@ -112,13 +112,17 @@ function groundQuad(
   geo.rotateX(-Math.PI / 2)
   const pos = geo.attributes.position as THREE.BufferAttribute
   const uvs = geo.attributes.uv as THREE.BufferAttribute
+  // O plano nasce centrado na origem: cada vértice precisa receber a posição
+  // real da quadra, senão o piso é desenhado no centro do mundo.
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i) + cx
     const z = pos.getZ(i) + cz
-    pos.setY(i, terrainHeight(x, z) + lift)
-    uvs.setXY(i, (x) / uv, (z) / uv)
+    pos.setXYZ(i, x, terrainHeight(x, z) + lift, z)
+    uvs.setXY(i, x / uv, z / uv)
   }
+  pos.needsUpdate = true
   geo.computeVertexNormals()
+  geo.computeBoundingSphere()
   batcher.add(mat, withColor(geo, color))
 }
 
