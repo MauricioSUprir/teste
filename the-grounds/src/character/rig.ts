@@ -31,7 +31,7 @@ export const BONE_DEFS: BoneDef[] = [
   { name: 'lombar', parent: 'quadril', offset: [0, 0.13, 0] },
   { name: 'torax', parent: 'lombar', offset: [0, 0.16, 0] },
   { name: 'pescoco', parent: 'torax', offset: [0, 0.222, 0] },
-  { name: 'cabeca', parent: 'pescoco', offset: [0, 0.104, 0] },
+  { name: 'cabeca', parent: 'pescoco', offset: [0, 0.092, 0] },
 
   { name: 'ombroE', parent: 'torax', offset: [0.050, 0.126, 0] },
   { name: 'bracoE', parent: 'ombroE', offset: [0.108, -0.028, 0] },
@@ -201,8 +201,8 @@ const SEGMENTS: Segment[] = [
   {
     from: 'pescoco', to: 'cabeca', region: 'pescoco', rings: 2, sides: 12,
     profile: (t, s) => ({
-      rx: lerp(M(0.062), M(0.058), t) * s.corpo,
-      rz: lerp(M(0.060), M(0.058), t) * s.corpo,
+      rx: lerp(M(0.066), M(0.060), t) * lerp(1, s.corpo, 0.6),
+      rz: lerp(M(0.064), M(0.060), t) * lerp(1, s.corpo, 0.6),
     }),
   },
   // Braços: o ombro vira uma esfera (deltóide) e o tubo começa no braço.
@@ -299,6 +299,8 @@ export function buildBodyGeometry(
   const skinWeights: number[] = []
   const regions: number[] = []
   const indices: number[] = []
+  /** Oclusão pintada por vértice: escurece dobras, axilas e vincos. */
+  const colors: number[] = []
   const scale = s.altura / 1.75
 
   /** Junta elipsoidal: preenche a dobra e liga o membro ao tronco. */
@@ -322,6 +324,8 @@ export function buildBodyGeometry(
         skinIndices.push(boneIdx, 0, 0, 0)
         skinWeights.push(1, 0, 0, 0)
         regions.push(regionId)
+        // A junta é uma concavidade em relação aos tubos vizinhos.
+        colors.push(0.90, 0.90, 0.90)
       }
     }
     for (let i = 0; i < LATJ; i++) {
@@ -375,7 +379,9 @@ export function buildBodyGeometry(
         ? lerp(1, s.corpo, 0.8)
         : s.musculatura
       const js = seg.jointScale ?? [1, 1, 1]
-      addJoint(a, (seg.jointStart + inflate) * scale * mass, fromIdx, regionId, js[0], js[1], js[2])
+      // A roupa engorda menos na junta do que no tubo: aplicar o mesmo valor
+      // produziria ombreiras e cotoveleiras que não existem na peça real.
+      addJoint(a, (seg.jointStart + inflate * 0.40) * scale * mass, fromIdx, regionId, js[0], js[1], js[2])
     }
 
     const baseVertex = positions.length / 3
@@ -407,6 +413,15 @@ export function buildBodyGeometry(
         skinIndices.push(fromIdx, toIdx, 0, 0)
         skinWeights.push(wFrom, wTo, 0, 0)
         regions.push(regionId)
+        // Escurece perto das pontas do segmento (onde há dobra) e na face
+        // interna dos membros, que recebe menos luz do céu.
+        const dobra = 1 - Math.min(t, 1 - t) * 2
+        const interno = seg.region === 'braco' || seg.region === 'antebraco'
+          || seg.region === 'coxa' || seg.region === 'canela'
+          ? clamp(-nx * Math.sign(a.x || 1), 0, 1) * 0.10
+          : 0
+        const ao = clamp(1 - dobra * 0.13 - interno, 0.72, 1)
+        colors.push(ao, ao, ao)
       }
     }
 
@@ -430,6 +445,7 @@ export function buildBodyGeometry(
       skinIndices.push(boneIdx, 0, 0, 0)
       skinWeights.push(1, 0, 0, 0)
       regions.push(regionId)
+      colors.push(0.88, 0.88, 0.88)
       const row = (ringIndex - firstRing) * seg.sides
       for (let k = 0; k < seg.sides; k++) {
         const k2 = (k + 1) % seg.sides
@@ -452,13 +468,13 @@ export function buildBodyGeometry(
 
   // Mãos, pés e cabeça têm forma própria.
   if (!only || only.has('mao')) {
-    addHands(s, rest, positions, normals, uvs, skinIndices, skinWeights, regions, indices, inflate, REGION_ORDER.indexOf('mao'))
+    addHands(s, rest, positions, normals, uvs, skinIndices, skinWeights, regions, indices, inflate, REGION_ORDER.indexOf('mao'), colors)
   }
   if (!only || only.has('pe')) {
-    addFeet(s, rest, positions, normals, uvs, skinIndices, skinWeights, regions, indices, inflate, REGION_ORDER.indexOf('pe'))
+    addFeet(s, rest, positions, normals, uvs, skinIndices, skinWeights, regions, indices, inflate, REGION_ORDER.indexOf('pe'), colors)
   }
   if (!only || only.has('cabeca')) {
-    addHead(shape, rest, positions, normals, uvs, skinIndices, skinWeights, regions, indices, inflate)
+    addHead(shape, rest, positions, normals, uvs, skinIndices, skinWeights, regions, indices, inflate, colors)
   }
 
   const geo = new THREE.BufferGeometry()
@@ -467,6 +483,9 @@ export function buildBodyGeometry(
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
   geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4))
   geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4))
+  if (colors.length === positions.length) {
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+  }
   geo.setIndex(indices)
   geo.computeBoundingSphere()
 
@@ -478,7 +497,7 @@ function pushBlock(
   positions: number[], normals: number[], uvs: number[],
   skinIndices: number[], skinWeights: number[], regions: number[], indices: number[],
   px: number, py: number, pz: number, ex: number, ey: number, ez: number,
-  boneIdx: number, regionId: number,
+  boneIdx: number, regionId: number, colors?: number[], ao = 1,
 ): void {
   const corners: [number, number, number][] = [
     [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
@@ -499,6 +518,7 @@ function pushBlock(
       skinIndices.push(boneIdx, 0, 0, 0)
       skinWeights.push(1, 0, 0, 0)
       regions.push(regionId)
+      if (colors) colors.push(ao, ao, ao)
     }
     indices.push(start, start + 1, start + 2, start, start + 2, start + 3)
   }
@@ -509,7 +529,7 @@ function addFeet(
   s: BodyShape, rest: THREE.Vector3[],
   positions: number[], normals: number[], uvs: number[],
   skinIndices: number[], skinWeights: number[], regions: number[], indices: number[],
-  inflate: number, regionId: number,
+  inflate: number, regionId: number, colors?: number[],
 ): void {
   const scale = s.altura / 1.75
   for (const side of ['E', 'D'] as const) {
@@ -524,7 +544,7 @@ function addFeet(
       pushBlock(positions, normals, uvs, skinIndices, skinWeights, regions, indices,
         o.x + cx * scale, o.y + cy * scale, o.z + cz * scale,
         (hx + inflate) * scale, (hy + inflate) * scale, (hz + inflate) * scale,
-        footIdx, regionId)
+        footIdx, regionId, colors, 0.94)
     }
   }
 }
@@ -534,7 +554,7 @@ function addHands(
   s: BodyShape, rest: THREE.Vector3[],
   positions: number[], normals: number[], uvs: number[],
   skinIndices: number[], skinWeights: number[], regions: number[], indices: number[],
-  inflate: number, regionId: number,
+  inflate: number, regionId: number, colors?: number[],
 ): void {
   const scale = s.altura / 1.75
   for (const side of ['E', 'D'] as const) {
@@ -550,7 +570,7 @@ function addHands(
       pushBlock(positions, normals, uvs, skinIndices, skinWeights, regions, indices,
         o.x + cx * scale, o.y + cy * scale, o.z + cz * scale,
         (hx + inflate) * scale, (hy + inflate) * scale, (hz + inflate) * scale,
-        handIdx, regionId)
+        handIdx, regionId, colors, 0.95)
     }
   }
 }
@@ -588,6 +608,7 @@ function addHead(
   positions: number[], normals: number[], uvs: number[],
   skinIndices: number[], skinWeights: number[], regions: number[], indices: number[],
   inflate: number,
+  colors?: number[],
 ): void {
   const s = clampBodyShape(shape)
   const scale = (s.altura / 1.75) * s.cabeca
@@ -596,10 +617,9 @@ function addHead(
   const regionId = REGION_ORDER.indexOf('cabeca')
   const f = defaultFaceShape()
 
-  const LAT = 14
-  const LON = 18
+  const LAT = 18
+  const LON = 24
   const base = positions.length / 3
-  const rBase = 1
 
   for (let i = 0; i <= LAT; i++) {
     const v = i / LAT
@@ -611,46 +631,77 @@ function addHead(
       const sy = Math.cos(phi)
       const sz = Math.sin(phi) * Math.sin(theta)
 
-      // Deformações que transformam a esfera num crânio
-      const down = clamp(-sy, 0, 1)          // parte inferior (maxilar)
-      const front = clamp(sz, 0, 1)           // face
-      let rx = (HEAD_RADII.x + inflate) * scale
-      let ry = (HEAD_RADII.y + inflate) * scale
-      let rz = (HEAD_RADII.z + inflate) * scale
-      void rBase
+      const down = clamp(-sy, 0, 1)        // metade inferior (maxilar)
+      const up = clamp(sy, 0, 1)           // calota craniana
+      const front = clamp(sz, 0, 1)        // face
+      const back = clamp(-sz, 0, 1)        // nuca
+      const lado = Math.abs(sx)
 
-      // Mandíbula mais estreita que o crânio, com largura controlável
-      rx *= lerp(1, 0.78 * f.mandibula, down * 0.92) * f.largura
-      rz *= lerp(1, 0.92, down * 0.5)
-      ry *= f.alongamento
-      // Maçãs do rosto
-      if (sz > 0 && Math.abs(sy) < 0.45) rx *= lerp(1, f.macas, 0.35)
-      // Nuca mais volumosa
-      if (sz < 0) rz *= 1.05
+      let rx = (HEAD_RADII.x + inflate) * scale * f.largura
+      let ry = (HEAD_RADII.y + inflate) * scale * f.alongamento
+      let rz = (HEAD_RADII.z + inflate) * scale
+
+      // Crânio: largo nas parietais, estreitando para o topo.
+      rx *= lerp(1, 1.06, Math.sin(phi))
+      ry *= 1
+      // Mandíbula: estreita e com ângulo, não uma ponta.
+      const maxilar = Math.pow(down, 1.35)
+      rx *= lerp(1, 0.74 * f.mandibula, maxilar)
+      rz *= lerp(1, 0.88, maxilar * 0.7)
+      // Testa levemente recuada acima das sobrancelhas.
+      if (up > 0.30 && front > 0.25) rz *= lerp(1, 0.94, (up - 0.30) / 0.70)
+      // Maçãs do rosto.
+      if (front > 0.2 && Math.abs(sy) < 0.42) rx *= lerp(1, f.macas, 0.30)
+      // Nuca mais cheia.
+      if (back > 0.2) rz *= lerp(1, 1.07, back)
 
       let px = sx * rx
       let py = sy * ry + HEAD_CENTER_Y * scale
       let pz = sz * rz
 
-      // Queixo projetado
-      pz += front * down * 0.026 * scale * f.queixo
-      py -= down * down * 0.010 * scale * f.queixo
-      // Base do crânio alarga para encontrar o pescoço sem degrau
-      if (sy < -0.55) {
-        const blend = (-sy - 0.55) / 0.45
-        px = lerp(px, px * 0.72, blend)
-        pz = lerp(pz, pz * 0.78, blend)
+      // Arcada supraciliar: pequena saliência acima dos olhos.
+      const arcada = front * Math.exp(-Math.pow((sy - 0.30) * 6.5, 2)) * Math.exp(-Math.pow(lado * 2.6, 2))
+      pz += arcada * 0.0075 * scale
+
+      // Queixo projetado, com base plana em vez de bico.
+      const queixo = front * Math.pow(down, 2.2)
+      pz += queixo * 0.030 * scale * f.queixo
+      py -= queixo * 0.008 * scale * f.queixo
+
+      // Concavidade das órbitas.
+      const orbita = front * Math.exp(-Math.pow((sy - 0.13) * 8.0, 2))
+        * Math.exp(-Math.pow((lado - 0.36) * 6.0, 2))
+      pz -= orbita * 0.011 * scale * f.orbitas
+      // Sulco sob a maçã do rosto.
+      const sulco = front * Math.exp(-Math.pow((sy + 0.12) * 7.5, 2))
+        * Math.exp(-Math.pow((lado - 0.30) * 5.5, 2))
+      pz -= sulco * 0.006 * scale
+
+      // Encontro com o pescoço: a base do crânio se fecha.
+      if (sy < -0.58) {
+        const blend = (-sy - 0.58) / 0.42
+        px = lerp(px, px * 0.64, blend)
+        pz = lerp(pz, pz * 0.70, blend)
       }
-      // Testa levemente recuada no topo frontal
-      if (sy > 0.35 && sz > 0.2) pz -= (sy - 0.35) * 0.03 * scale
 
       positions.push(origin.x + px, origin.y + py, origin.z + pz)
-      const n = new THREE.Vector3(px, py - HEAD_CENTER_Y * scale, pz).normalize()
+      const n = new THREE.Vector3(px / (rx * rx), (py - HEAD_CENTER_Y * scale) / (ry * ry), pz / (rz * rz)).normalize()
       normals.push(n.x, n.y, n.z)
       uvs.push(u, 1 - v)
       skinIndices.push(headIdx, 0, 0, 0)
       skinWeights.push(1, 0, 0, 0)
       regions.push(regionId)
+
+      if (colors) {
+        // Oclusão pintada: sem ela o rosto fica com aparência de manequim.
+        let ao = 1
+        ao -= orbita * 0.34                                   // órbitas
+        ao -= sulco * 0.12                                    // sulco nasogeniano
+        ao -= front * Math.exp(-Math.pow((sy + 0.34) * 7.0, 2)) * 0.16  // sob o lábio
+        ao -= clamp((-sy - 0.45) / 0.55, 0, 1) * 0.28         // sob o queixo
+        ao -= back * up * 0.06                                // nuca
+        colors.push(ao, ao, ao)
+      }
     }
   }
 

@@ -16,6 +16,7 @@ import {
 import {
   BONE_INDEX, buildSkeleton, clampBodyShape, eyeHeight, type BoneName,
 } from './rig'
+import { bibliotecaPersonagem } from '../assets/characterTextures'
 
 export interface CharacterMaterials {
   pele: THREE.MeshPhysicalMaterial
@@ -28,40 +29,54 @@ export interface CharacterMaterials {
   acessorio: THREE.MeshStandardMaterial
 }
 
-/** Cria o conjunto de materiais de um personagem a partir da aparência. */
-function makeMaterials(app: Appearance, fabric?: THREE.Texture, fabricNormal?: THREE.Texture): CharacterMaterials {
+/**
+ * Cria o conjunto de materiais de um personagem.
+ *
+ * As texturas trazem relevo e variação de rugosidade; a cor continua vindo do
+ * editor, o que permite qualquer combinação sem gerar mapas novos.
+ */
+function makeMaterials(app: Appearance): CharacterMaterials {
+  const lib = bibliotecaPersonagem()
+
   const pele = new THREE.MeshPhysicalMaterial({
     color: app.pele,
-    roughness: 0.66,
+    roughness: 1,
     metalness: 0,
-    sheen: 0.35,
-    sheenRoughness: 0.75,
-    sheenColor: new THREE.Color(app.pele).multiplyScalar(1.25),
-    clearcoat: 0.06,
-    clearcoatRoughness: 0.8,
+    vertexColors: true,
+    // Brilho aveludado aproxima a dispersão sob a pele sem custo de subsurface.
+    sheen: 0.45,
+    sheenRoughness: 0.72,
+    sheenColor: new THREE.Color(app.pele).multiplyScalar(1.3),
+    clearcoat: 0.10,
+    clearcoatRoughness: 0.72,
   })
-  const roupa = new THREE.MeshStandardMaterial({
-    color: app.corTorso, roughness: 0.88, metalness: 0,
-    map: fabric ?? null, normalMap: fabricNormal ?? null,
-  })
-  const roupaBrilho = new THREE.MeshStandardMaterial({
-    color: app.corTorsoSec, roughness: 0.55, metalness: 0.05,
-  })
-  const cabelo = new THREE.MeshStandardMaterial({
-    color: app.corCabelo, roughness: 0.52, metalness: 0.02,
-  })
-  const olho = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 0.22 })
-  const iris = new THREE.MeshStandardMaterial({ color: app.corOlhos, roughness: 0.18, metalness: 0.05 })
-  const calcado = new THREE.MeshStandardMaterial({ color: app.corPes, roughness: 0.62 })
-  const acessorio = new THREE.MeshStandardMaterial({ color: app.corChapeu, roughness: 0.7 })
+  // A repetição é alta de propósito: os poros precisam ser densos na escala
+  // da malha, cuja UV vai de 0 a 1 por segmento do corpo.
+  lib.aplicar(pele as unknown as THREE.MeshStandardMaterial, 'pele', 3, 4, 0.55)
+
+  const roupa = new THREE.MeshStandardMaterial({ color: app.corTorso, roughness: 1, metalness: 0, vertexColors: true })
+  lib.aplicar(roupa, 'tecido', 4, 5, 0.85)
+
+  const roupaBrilho = new THREE.MeshStandardMaterial({ color: app.corTorsoSec, roughness: 1, metalness: 0.04, vertexColors: true })
+  lib.aplicar(roupaBrilho, 'tecido', 4, 5, 0.7)
+
+  const cabelo = new THREE.MeshStandardMaterial({ color: app.corCabelo, roughness: 1, metalness: 0.03, vertexColors: true })
+  lib.aplicar(cabelo, 'cabelo', 2, 2, 1.1)
+
+  const olho = new THREE.MeshStandardMaterial({ color: 0xf6f4f0, roughness: 0.18, vertexColors: true })
+  const iris = new THREE.MeshStandardMaterial({ color: app.corOlhos, roughness: 0.12, metalness: 0.06, vertexColors: true })
+
+  const calcado = new THREE.MeshStandardMaterial({ color: app.corPes, roughness: 1, vertexColors: true })
+  lib.aplicar(calcado, 'couro', 3, 3, 0.9)
+
+  const acessorio = new THREE.MeshStandardMaterial({ color: app.corChapeu, roughness: 1, vertexColors: true })
+  lib.aplicar(acessorio, 'tecido', 4, 4, 0.7)
+
   return { pele, roupa, roupaBrilho, cabelo, olho, iris, calcado, acessorio }
 }
 
 export interface CharacterOptions {
   castShadow?: boolean
-  /** Tecido compartilhado (textura) para as roupas. */
-  fabric?: THREE.Texture
-  fabricNormal?: THREE.Texture
   /** Simplifica: sem rosto detalhado nem acessórios pequenos. */
   lod?: 'alto' | 'medio' | 'baixo'
 }
@@ -109,7 +124,7 @@ export class Character {
     this.skeleton = skeleton
     this.group.add(root)
 
-    this.materials = makeMaterials(appearance, this.options.fabric, this.options.fabricNormal)
+    this.materials = makeMaterials(appearance)
     const parts = buildAppearanceParts(appearance)
     const lod = this.options.lod ?? 'alto'
 
@@ -128,20 +143,27 @@ export class Character {
 
     add(parts.pele, this.materials.pele, 'pele')
     add(parts.roupaTorso, this.materials.roupa, 'torso')
-    add(parts.roupaPernas, new THREE.MeshStandardMaterial({
-      color: appearance.corPernas, roughness: 0.86,
-      map: this.options.fabric ?? null, normalMap: this.options.fabricNormal ?? null,
-    }), 'pernas')
-    add(parts.meias, new THREE.MeshStandardMaterial({ color: appearance.corMeias, roughness: 0.92 }), 'meias')
+    const lib = bibliotecaPersonagem()
+    const matPernas = new THREE.MeshStandardMaterial({ color: appearance.corPernas, roughness: 1, vertexColors: true })
+    lib.aplicar(matPernas, 'tecido', 4, 6, 0.85)
+    add(parts.roupaPernas, matPernas, 'pernas')
+    const matMeias = new THREE.MeshStandardMaterial({ color: appearance.corMeias, roughness: 1, vertexColors: true })
+    lib.aplicar(matMeias, 'tecido', 3, 3, 0.8)
+    add(parts.meias, matMeias, 'meias')
     add(parts.calcados, this.materials.calcado, 'calcados')
     add(parts.cabelo, this.materials.cabelo, 'cabelo')
-    add(parts.barba, new THREE.MeshStandardMaterial({ color: appearance.corBarba, roughness: 0.6 }), 'barba')
+    const matBarba = new THREE.MeshStandardMaterial({ color: appearance.corBarba, roughness: 1, vertexColors: true })
+    lib.aplicar(matBarba, 'cabelo', 3, 3, 0.9)
+    add(parts.barba, matBarba, 'barba')
     if (lod !== 'baixo') {
       add(parts.rosto, this.materials.pele, 'rosto')
       add(parts.acessorios, this.materials.acessorio, 'acessorios')
       add(parts.detalheRoupa, this.materials.roupaBrilho, 'detalheRoupa')
       const face = buildFaceDetails(appearance, shape)
-      add(face.sobrancelhas, new THREE.MeshStandardMaterial({ color: appearance.corCabelo, roughness: 0.72 }), 'sobrancelhas')
+      add(face.esclera, this.materials.olho, 'olhos')
+      const matSobr = new THREE.MeshStandardMaterial({ color: appearance.corCabelo, roughness: 1, vertexColors: true })
+      lib.aplicar(matSobr, 'cabelo', 2, 2, 0.8)
+      add(face.sobrancelhas, matSobr, 'sobrancelhas')
       add(face.iris, this.materials.iris, 'iris')
     }
 

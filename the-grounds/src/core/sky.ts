@@ -168,7 +168,7 @@ export class Sky {
     const u = this.material.uniforms
     u.uTime.value = elapsed
     u.uCloudCover.value = state.cloudCover
-    u.uHaze.value = state.haze
+    u.uHaze.value = state.haze * 0.7
     u.uCloudSpeed.value = 0.5 + state.windSpeed * 1.6
 
     // Arco solar: nasce a leste (+X), põe a oeste (-X), com inclinação.
@@ -183,9 +183,9 @@ export class Sky {
     this.daylight = civil
 
     // Cores do céu por horário
-    const zenithDay = new THREE.Color(0.11, 0.30, 0.70)
+    const zenithDay = new THREE.Color(0.10, 0.31, 0.78)
     const zenithNight = new THREE.Color(0.018, 0.026, 0.055)
-    const horizonDay = new THREE.Color(0.70, 0.81, 0.93)
+    const horizonDay = new THREE.Color(0.62, 0.78, 0.95)
     const horizonDusk = new THREE.Color(0.95, 0.52, 0.28)
     const horizonNight = new THREE.Color(0.05, 0.06, 0.11)
 

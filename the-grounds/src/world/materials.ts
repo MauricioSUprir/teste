@@ -213,10 +213,14 @@ export const PALETTE = {
     0xe8e2d6, 0xdfe6dc, 0xbcd6c4, 0x9ec9bd, 0xa8c4de, 0x7fa8cc,
     0xf5efe2, 0xd6d0c2, 0xe0c7cf, 0xc9a9b8, 0xeadfcf, 0xcfd9c9,
   ],
-  /** Centro: tons mais sóbrios e pedra, com alguns prédios claros. */
+  /**
+   * Centro: base sóbria com prédios de cor — mesmo um centro adensado
+   * brasileiro tem fachadas amarelas, terracota e azuis entre as cinzas.
+   */
   fachadasCentro: [
     0xdfe3e6, 0xcdd4da, 0xb9c3cb, 0xe6e8ea, 0xa9b4bd, 0xd4d8db,
     0xe8dfc9, 0xcfc3a8, 0xbdc9d2, 0xf0ece2,
+    0xe8c98a, 0xd9a96a, 0xc98a63, 0x9fc0d8, 0x8fb5a8, 0xdcc9b4,
   ],
   /** Periferia: mais tijolo aparente, cal e cores fortes de tinta barata. */
   fachadasPeriferia: [

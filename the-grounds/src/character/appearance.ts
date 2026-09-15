@@ -252,12 +252,18 @@ interface PartBuilder {
   skinIndices: number[]
   skinWeights: number[]
   indices: number[]
+  colors: number[]
 }
 
 function newPart(): PartBuilder {
-  return { positions: [], normals: [], uvs: [], skinIndices: [], skinWeights: [], indices: [] }
+  return { positions: [], normals: [], uvs: [], skinIndices: [], skinWeights: [], indices: [], colors: [] }
 }
 
+/**
+ * Fecha a peça. A cor de vértice é sempre emitida: os materiais do personagem
+ * usam cor de vértice para a oclusão pintada, e uma peça sem esse atributo
+ * seria desenhada em preto.
+ */
 function finishPart(p: PartBuilder): THREE.BufferGeometry | null {
   if (p.positions.length === 0) return null
   const g = new THREE.BufferGeometry()
@@ -266,13 +272,14 @@ function finishPart(p: PartBuilder): THREE.BufferGeometry | null {
   g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uvs, 2))
   g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(p.skinIndices, 4))
   g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(p.skinWeights, 4))
+  g.setAttribute('color', new THREE.Float32BufferAttribute(p.colors, 3))
   g.setIndex(p.indices)
   g.computeVertexNormals()
   return g
 }
 
 /** Adiciona uma geometria já posicionada, presa a um osso. */
-function attach(p: PartBuilder, geo: THREE.BufferGeometry, boneIdx: number): void {
+function attach(p: PartBuilder, geo: THREE.BufferGeometry, boneIdx: number, ao = 1): void {
   const pos = geo.attributes.position as THREE.BufferAttribute
   const nor = geo.attributes.normal as THREE.BufferAttribute | undefined
   const uv = geo.attributes.uv as THREE.BufferAttribute | undefined
@@ -285,6 +292,7 @@ function attach(p: PartBuilder, geo: THREE.BufferGeometry, boneIdx: number): voi
     else p.uvs.push(0, 0)
     p.skinIndices.push(boneIdx, 0, 0, 0)
     p.skinWeights.push(1, 0, 0, 0)
+    p.colors.push(ao, ao, ao)
   }
   const idx = geo.index
   if (idx) for (let i = 0; i < idx.count; i++) p.indices.push(idx.getX(i) + base)
@@ -505,33 +513,46 @@ function buildFaceFeatures(app: Appearance, shape: BodyShape): THREE.BufferGeome
   const g = faceAnchors(app, k)
   const cx = c.x, cy = c.y, cz = c.z
 
-  // Globo ocular alojado na órbita
+  // Pálpebras (o globo ocular vem em `buildFaceDetails`, com material próprio).
   for (const sgn of [-1, 1]) {
-    const eye = sphere(g.eyeR, 10)
-    attach(p, put(eye, cx + sgn * g.eyeX, cy + g.eyeY, cz + g.eyeZ), head)
-    // Pálpebra superior: fatia fina que dá profundidade à órbita
-    const lid = sphere(g.eyeR * 1.16, 10)
-    lid.scale(1, 0.42, 1)
-    attach(p, put(lid, cx + sgn * g.eyeX, cy + g.eyeY + g.eyeR * 0.72, cz + g.eyeZ * 0.98), head)
+    // Pálpebra superior cobre o terço de cima do globo.
+    const sup = new THREE.SphereGeometry(g.eyeR * 1.12, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.34)
+    sup.scale(1.16, 1, 1.0)
+    attach(p, put(sup, cx + sgn * g.eyeX, cy + g.eyeY + g.eyeR * 0.16, cz + g.eyeZ * 0.99, -0.14), head, 0.86)
+    const inf = new THREE.SphereGeometry(g.eyeR * 1.09, 12, 8, 0, Math.PI * 2, Math.PI * 0.74, Math.PI * 0.26)
+    inf.scale(1.12, 1, 1.0)
+    attach(p, put(inf, cx + sgn * g.eyeX, cy + g.eyeY - g.eyeR * 0.10, cz + g.eyeZ * 0.99, 0.10), head, 0.92)
   }
 
-  // Nariz: cana, ponta e asas
-  const bridgeH = 0.052 * k * f.alongamento
-  attach(p, put(box(0.019 * k, bridgeH, 0.022 * k * f.nariz),
-    cx, cy + g.noseTopY - bridgeH * 0.35, cz + g.noseZ - 0.008 * k), head)
-  attach(p, put(sphere(0.0135 * k * f.nariz, 8), cx, cy + g.noseTipY, cz + g.noseZ), head)
+  // Nariz: cana afilada, ponta arredondada e asas discretas. Um nariz em
+  // bloco único fica com aspecto de boneco, por isso vai em três partes.
+  const bridgeH = 0.058 * k * f.alongamento
+  const cana = sphere(1, 10)
+  cana.scale(0.0085 * k, bridgeH * 0.5, 0.013 * k * f.nariz)
+  attach(p, put(cana, cx, cy + g.noseTopY - bridgeH * 0.30, cz + g.noseZ - 0.013 * k), head)
+  const ponta = sphere(1, 12)
+  ponta.scale(0.0125 * k * f.nariz, 0.0105 * k, 0.0130 * k * f.nariz)
+  attach(p, put(ponta, cx, cy + g.noseTipY, cz + g.noseZ - 0.002 * k), head)
   for (const sgn of [-1, 1]) {
-    attach(p, put(sphere(0.0085 * k * f.nariz, 6),
-      cx + sgn * 0.0145 * k * f.nariz, cy + g.noseTipY - 0.002 * k, cz + g.noseZ - 0.008 * k), head)
+    const asa = sphere(1, 8)
+    asa.scale(0.0062 * k * f.nariz, 0.0072 * k, 0.0085 * k)
+    attach(p, put(asa, cx + sgn * 0.0135 * k * f.nariz, cy + g.noseTipY - 0.0015 * k, cz + g.noseZ - 0.010 * k), head)
   }
 
   // Lábios
-  const mouthW = 0.023 * k
-  for (const [oy, h] of [[0.0045, 0.0075], [-0.0045, 0.0090]] as const) {
-    const lip = sphere(1, 10)
-    lip.scale(mouthW, h * k, 0.010 * k)
-    attach(p, put(lip, cx, cy + g.mouthY + oy * k, cz + g.mouthZ), head)
-  }
+  const mouthW = 0.0215 * k
+  const labioSup = sphere(1, 12)
+  labioSup.scale(mouthW, 0.0062 * k, 0.0085 * k)
+  attach(p, put(labioSup, cx, cy + g.mouthY + 0.0040 * k, cz + g.mouthZ), head, 0.93)
+  const labioInf = sphere(1, 12)
+  labioInf.scale(mouthW * 0.92, 0.0078 * k, 0.0095 * k)
+  attach(p, put(labioInf, cx, cy + g.mouthY - 0.0048 * k, cz + g.mouthZ), head, 0.97)
+  // Linha entre os lábios, para a boca não virar um bloco só.
+  const fenda = box(mouthW * 1.9, 0.0016 * k, 0.004 * k)
+  attach(p, put(fenda, cx, cy + g.mouthY, cz + g.mouthZ + 0.004 * k), head, 0.62)
+  // Filtro (sulco entre nariz e lábio)
+  const filtro = box(0.0055 * k, 0.010 * k, 0.003 * k)
+  attach(p, put(filtro, cx, cy + g.mouthY + 0.012 * k, cz + g.mouthZ + 0.001 * k), head, 0.88)
 
   // Orelhas
   for (const sgn of [-1, 1]) {
@@ -554,10 +575,10 @@ function faceAnchors(app: Appearance, k: number) {
   // Superfície frontal na altura dos olhos (elipsoide), recuada pela órbita.
   const surfZ = hz * Math.sqrt(Math.max(0, 1 - Math.pow((eyeY - cy) / hy, 2)))
   return {
-    eyeR: 0.0118 * k,
+    eyeR: 0.0102 * k,
     eyeX: hx * 0.42,
     eyeY,
-    eyeZ: surfZ * (0.90 - (f.orbitas - 1) * 0.06),
+    eyeZ: surfZ * (0.865 - (f.orbitas - 1) * 0.06),
     noseTopY: cy + hy * 0.12,
     noseTipY: cy - hy * 0.12,
     noseZ: hz * 0.99 + 0.006 * k * f.nariz,
@@ -566,7 +587,7 @@ function faceAnchors(app: Appearance, k: number) {
     earX: hx * 0.99,
     earY: cy + hy * 0.02,
     earZ: -hz * 0.06,
-    browY: cy + hy * 0.30,
+    browY: cy + hy * 0.245,
     browZ: surfZ * 0.95,
   }
 }
@@ -575,6 +596,7 @@ function faceAnchors(app: Appearance, k: number) {
 export function buildFaceDetails(app: Appearance, shape: BodyShape): {
   sobrancelhas: THREE.BufferGeometry | null
   iris: THREE.BufferGeometry | null
+  esclera: THREE.BufferGeometry | null
 } {
   const brow = newPart()
   const iris = newPart()
@@ -585,22 +607,27 @@ export function buildFaceDetails(app: Appearance, shape: BodyShape): {
 
   const dims: Record<EyebrowStyle, [number, number, number, number]> = {
     // largura, altura, profundidade, inclinação
-    finas: [0.028, 0.0055, 0.009, 0.06],
-    medias: [0.031, 0.0085, 0.010, 0.09],
-    grossas: [0.034, 0.0125, 0.011, 0.07],
-    arqueadas: [0.031, 0.0075, 0.010, 0.22],
+    finas: [0.030, 0.0060, 0.012, 0.06],
+    medias: [0.033, 0.0095, 0.013, 0.09],
+    grossas: [0.036, 0.0135, 0.014, 0.07],
+    arqueadas: [0.033, 0.0085, 0.013, 0.22],
   }
   const [bw, bh, bd, tilt] = dims[app.sobrancelha]
   for (const sgn of [-1, 1]) {
     attach(brow, put(box(bw * k, bh * k, bd * k),
       c.x + sgn * g.eyeX, c.y + g.browY, c.z + g.browZ, 0, 0, sgn * tilt), head)
   }
+  const esclera = newPart()
   for (const sgn of [-1, 1]) {
-    const eyeball = sphere(g.eyeR * 0.52, 8)
-    attach(iris, put(eyeball,
-      c.x + sgn * g.eyeX, c.y + g.eyeY, c.z + g.eyeZ + g.eyeR * 0.72), head)
+    const globo = sphere(g.eyeR, 14)
+    globo.scale(1.06, 1, 0.94)
+    attach(esclera, put(globo, c.x + sgn * g.eyeX, c.y + g.eyeY, c.z + g.eyeZ), head)
+    // Íris levemente afundada na frente do globo, com pupila escura.
+    const ir = sphere(g.eyeR * 0.50, 12)
+    ir.scale(1, 1, 0.42)
+    attach(iris, put(ir, c.x + sgn * g.eyeX, c.y + g.eyeY, c.z + g.eyeZ + g.eyeR * 0.80), head)
   }
-  return { sobrancelhas: finishPart(brow), iris: finishPart(iris) }
+  return { sobrancelhas: finishPart(brow), iris: finishPart(iris), esclera: finishPart(esclera) }
 }
 
 function buildFootwear(app: Appearance, shape: BodyShape): THREE.BufferGeometry | null {
@@ -762,6 +789,7 @@ function mergeParts(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const uv = new Float32Array(vCount * 2)
   const si = new Uint16Array(vCount * 4)
   const sw = new Float32Array(vCount * 4)
+  const co = new Float32Array(vCount * 3).fill(1)
   const idx = vCount > 65535 ? new Uint32Array(iCount) : new Uint16Array(iCount)
   let vo = 0
   let io = 0
@@ -776,6 +804,8 @@ function mergeParts(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
     if (a) si.set(a.array as Uint16Array, vo * 4)
     const w = g.attributes.skinWeight as THREE.BufferAttribute | undefined
     if (w) sw.set(w.array as Float32Array, vo * 4)
+    const c = g.attributes.color as THREE.BufferAttribute | undefined
+    if (c) co.set(c.array as Float32Array, vo * 3)
     if (g.index) {
       for (let i = 0; i < g.index.count; i++) idx[io + i] = g.index.getX(i) + vo
       io += g.index.count
@@ -791,6 +821,7 @@ function mergeParts(list: THREE.BufferGeometry[]): THREE.BufferGeometry {
   out.setAttribute('uv', new THREE.BufferAttribute(uv, 2))
   out.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4))
   out.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4))
+  out.setAttribute('color', new THREE.BufferAttribute(co, 3))
   out.setIndex(new THREE.BufferAttribute(idx, 1))
   return out
 }

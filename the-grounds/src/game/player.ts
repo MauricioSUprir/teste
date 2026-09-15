@@ -50,9 +50,8 @@ export class Player {
     appearance: Appearance,
     private readonly world: World,
     camera: THREE.PerspectiveCamera,
-    fabric?: THREE.Texture,
   ) {
-    this.character = new Character(appearance, { castShadow: true, fabric })
+    this.character = new Character(appearance, { castShadow: true })
     this.controller = new CharacterController(
       defaultConfig(this.character.radius, this.character.height),
     )
@@ -126,6 +125,25 @@ export class Player {
       this.rig.look(input.frame.lookX, input.frame.lookY)
       const wheel = input.takeWheel()
       if (wheel !== 0) this.rig.applyZoom(wheel)
+      if (input.isPressed('foto')) {
+        if (this.rig.mode === 'foto') {
+          this.rig.setMode(this.mode === 'dirigindo' ? this.cameraNoCarro : this.cameraOnFoot)
+          this.modoFoto = false
+        } else {
+          this.rig.setMode('foto')
+          this.modoFoto = true
+        }
+      }
+      if (this.modoFoto) {
+        // Câmera livre: o personagem fica parado.
+        this.rig.updateFreeCam(
+          dt,
+          (input.isDown('frente') ? 1 : 0) - (input.isDown('tras') ? 1 : 0),
+          (input.isDown('direita') ? 1 : 0) - (input.isDown('esquerda') ? 1 : 0),
+          (input.isDown('pular') ? 1 : 0) - (input.isDown('agachar') ? 1 : 0),
+          input.isDown('correr'),
+        )
+      }
       if (input.isPressed('primeiraPessoa')) {
         this.cameraOnFoot = this.cameraOnFoot === 'primeiraPessoa' ? 'terceiraPessoa' : 'primeiraPessoa'
         this.rig.setMode(this.cameraOnFoot)
@@ -134,7 +152,9 @@ export class Player {
 
     this.travaVeiculo = Math.max(0, this.travaVeiculo - dt)
 
-    if (this.mode === 'dirigindo') {
+    if (this.modoFoto) {
+      // Nada além da câmera se move no modo fotografia.
+    } else if (this.mode === 'dirigindo') {
       this.updateDriving(dt, input, allowControl)
     } else if (this.mode === 'sentado') {
       // Sentado: só o olhar responde; levantar é uma interação.
@@ -157,7 +177,7 @@ export class Player {
     }
 
     this.syncCharacter(dt)
-    this.rig.update(dt, this.cameraTarget(), this.world.collision)
+    if (!this.modoFoto) this.rig.update(dt, this.cameraTarget(), this.world.collision)
   }
 
   /** Senta o personagem em um ponto fixo do mundo. */
@@ -314,6 +334,8 @@ export class Player {
 
   /** Potência aplicada ao próximo contato com a bola. */
   potenciaChute = 1
+  /** Modo fotografia: câmera livre e personagem imóvel. */
+  modoFoto = false
 
   private syncCharacter(dt: number): void {
     const c = this.controller
