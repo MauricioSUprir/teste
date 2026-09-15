@@ -56,7 +56,17 @@ export function makeBox(w: number, h: number, d: number, opts: BoxFaceOptions = 
       uvs.push(((a + 1) / 2) * su, ((b + 1) / 2) * sv)
       if (opts.color) colors.push(opts.color.r, opts.color.g, opts.color.b)
     }
-    indices.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3)
+    // A ordem dos triângulos precisa concordar com a normal da face: u × v
+    // aponta para fora apenas em parte das faces, e inverter aqui evita que
+    // topos e bases sumam por descarte de face traseira.
+    const cross: [number, number, number] = [
+      f.u[1] * f.v[2] - f.u[2] * f.v[1],
+      f.u[2] * f.v[0] - f.u[0] * f.v[2],
+      f.u[0] * f.v[1] - f.u[1] * f.v[0],
+    ]
+    const facingOut = cross[0] * nx + cross[1] * ny + cross[2] * nz > 0
+    if (facingOut) indices.push(vi, vi + 1, vi + 2, vi, vi + 2, vi + 3)
+    else indices.push(vi, vi + 2, vi + 1, vi, vi + 3, vi + 2)
     vi += 4
   }
 
@@ -207,7 +217,9 @@ export class GeometryBatcher {
 export function mergeGeometries(list: THREE.BufferGeometry[]): THREE.BufferGeometry | null {
   const usable = list.filter((g) => g.attributes.position && g.attributes.position.count > 0)
   if (usable.length === 0) return null
-  const hasColor = usable.every((g) => !!g.attributes.color)
+  // Todos os materiais do mundo usam cor de vértice: a ausência do atributo em
+  // uma única geometria deixaria o lote inteiro preto, então sempre emitimos.
+  const hasColor = true
 
   let vCount = 0
   let iCount = 0
@@ -232,7 +244,10 @@ export function mergeGeometries(list: THREE.BufferGeometry[]): THREE.BufferGeome
     positions.set(p.array as Float32Array, vo * 3)
     if (n) normals.set(n.array as Float32Array, vo * 3)
     if (u) uvs.set(u.array as Float32Array, vo * 2)
-    if (colors && c) colors.set(c.array as Float32Array, vo * 3)
+    if (colors) {
+      if (c) colors.set(c.array as Float32Array, vo * 3)
+      else colors.fill(1, vo * 3, (vo + p.count) * 3)
+    }
 
     if (g.index) {
       const src = g.index.array
