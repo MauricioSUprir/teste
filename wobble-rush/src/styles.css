@@ -248,18 +248,45 @@ html, body {
    very little height, and the thumbs live in the bottom corners. */
 .touch-controls { position: absolute; inset: 0; pointer-events: none; display: none; }
 .touch-controls.active { display: block; }
+/* The stick is ALWAYS on screen. The previous version only appeared once a
+   finger landed, which reads as "this game has no joystick" - the control has
+   to advertise itself before it is touched. It rests at an anchor in the
+   bottom-left and jumps to wherever the thumb actually lands, which is how a
+   floating stick stays comfortable on any hand size. */
 .touch-stick {
-  position: absolute; width: clamp(96px, 34vmin, 150px); height: clamp(96px, 34vmin, 150px);
-  border-radius: 50%; border: 3px solid rgba(255,255,255,0.28); background: rgba(10,16,30,0.22);
-  transform: translate(-50%, -50%); pointer-events: none; opacity: 0; transition: opacity 140ms;
+  position: absolute;
+  width: 128px; height: 128px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.38);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.10) 38%, rgba(10,16,30,0.30) 39%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 160ms ease, left 180ms ease, top 180ms ease;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
 }
-.touch-stick.on { opacity: 1; }
+/* While a thumb is on it the base must not animate, or it lags behind. */
+.touch-stick.on { opacity: 1; transition: opacity 120ms ease; border-color: rgba(255,255,255,0.6); }
+
+/* Four ticks so the axes read at a glance. */
+.touch-stick::before,
+.touch-stick::after {
+  content: ''; position: absolute; left: 50%; top: 50%;
+  background: rgba(255,255,255,0.22); transform: translate(-50%, -50%);
+}
+.touch-stick::before { width: 76%; height: 2px; }
+.touch-stick::after { width: 2px; height: 76%; }
+
 .touch-stick i {
   position: absolute; left: 50%; top: 50%;
-  width: 44%; height: 44%; border-radius: 50%;
-  background: rgba(255,255,255,0.55); transform: translate(-50%,-50%);
+  width: 46%; height: 46%; border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(210,225,255,0.78));
+  box-shadow: 0 4px 10px rgba(0,0,0,0.35), inset 0 -3px 6px rgba(0,0,0,0.12);
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
-  /* Fades out for good once the player has found the stick. */
+
 .touch-hint {
   transition: opacity 400ms;
   position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px));

@@ -1,10 +1,13 @@
-import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const assets = readdirSync('dist/assets');
 const css = assets.find(f => f.endsWith('.css'));
 const entry = assets.find(f => f.startsWith('index-') && f.endsWith('.js'));
 
+// Vite hashes every filename, so a rebuild adds files instead of replacing them.
+// Left alone the folder keeps every past build and the publish ships them too.
+rmSync('artifact/assets', { recursive: true, force: true });
 mkdirSync('artifact/assets', { recursive: true });
 for (const f of assets) writeFileSync(join('artifact/assets', f), readFileSync(join('dist/assets', f)));
 

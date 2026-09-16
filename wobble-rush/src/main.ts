@@ -32,6 +32,9 @@ import { BotDifficulty, makeBotRoster } from './shared/bots';
 
 type Screen = 'loading' | 'menu' | 'draw' | 'intro' | 'match' | 'results';
 
+/** How far the knob slides, as a fraction of the base radius. Keeps it inside the ring. */
+const KNOB_TRAVEL = 0.54;
+
 /** Menu backdrop - a plain, friendly blue. */
 const MENU_BLUE = 0x2f6fd0;
 
@@ -97,6 +100,7 @@ export class App {
     this.camera.settings.invertY = s.invertY;
 
     this.input = new InputManager(this.canvas);
+    if (s.onScreenControls) this.input.setOnScreenControls(true);
 
     this.screenEl = document.createElement('div');
     this.screenEl.className = 'screen';
@@ -277,6 +281,8 @@ export class App {
         <button class="toggle ${s.invertY ? 'on' : ''}" id="invert"><i></i></button></div>
       <div class="row"><label>Mostrar cronômetro<span class="hint">Útil para speedrun</span></label>
         <button class="toggle ${s.showTimer ? 'on' : ''}" id="timer"><i></i></button></div>
+      <div class="row"><label>Controles na tela<span class="hint">Joystick e botões, mesmo no computador</span></label>
+        <button class="toggle ${s.onScreenControls ? 'on' : ''}" id="onscreen"><i></i></button></div>
       <div class="row"><label>Idioma</label>
         <select id="lang">
           <option value="pt-BR">Português</option><option value="en">English</option><option value="es">Español</option>
@@ -313,6 +319,9 @@ export class App {
       setLanguage(langSel.value as LangCode);
       saveManager.markDirty();
       panel.remove();
+      // The touch layer is built once at boot and outlives every screen, so
+      // rebuilding the menu alone would leave its labels in the old language.
+      this.relabelTouchControls();
       this.enterMenu();
     });
     const invert = panel.querySelector('#invert') as HTMLElement;
@@ -326,6 +335,14 @@ export class App {
     timer.addEventListener('click', () => {
       s.showTimer = !s.showTimer;
       timer.classList.toggle('on', s.showTimer);
+      saveManager.markDirty();
+    });
+    const onscreen = panel.querySelector('#onscreen') as HTMLElement;
+    onscreen.addEventListener('click', () => {
+      s.onScreenControls = !s.onScreenControls;
+      onscreen.classList.toggle('on', s.onScreenControls);
+      this.input.setOnScreenControls(s.onScreenControls);
+      this.touchEl.classList.toggle('active', this.input.touchEnabled && this.screen === 'match');
       saveManager.markDirty();
     });
     panel.querySelector('#reset')!.addEventListener('click', () => {
@@ -606,14 +623,27 @@ export class App {
   }
 
   // ── touch ───────────────────────────────────────────────────────────────
+  /** Re-applies the localised labels without touching the bound listeners. */
+  private relabelTouchControls(): void {
+    const set = (sel: string, key: string) => {
+      const el = this.touchEl.querySelector(sel) as HTMLElement | null;
+      if (!el) return;
+      el.textContent = t(key);
+      el.setAttribute('aria-label', t(key));
+    };
+    set('.touch-btn.jump', 'touch.jump');
+    set('.touch-btn.dive', 'touch.dive');
+    if (this.hintEl) this.hintEl.textContent = t('touch.hint');
+  }
+
   private buildTouchControls(): void {
     this.touchEl = document.createElement('div');
     this.touchEl.className = 'touch-controls';
     this.touchEl.innerHTML = `
       <div class="touch-stick"><i></i></div>
-      <button class="touch-btn jump" aria-label="Pular">PULO</button>
-      <button class="touch-btn dive" aria-label="Dash">DASH</button>
-      <div class="touch-hint">ARRASTE AQUI PARA CORRER</div>`;
+      <button class="touch-btn jump" aria-label="${t('touch.jump')}">${t('touch.jump')}</button>
+      <button class="touch-btn dive" aria-label="${t('touch.dive')}">${t('touch.dive')}</button>
+      <div class="touch-hint">${t('touch.hint')}</div>`;
     this.ui.appendChild(this.touchEl);
     this.stickEl = this.touchEl.querySelector('.touch-stick') as HTMLElement;
     this.hintEl = this.touchEl.querySelector('.touch-hint') as HTMLElement;
@@ -634,17 +664,35 @@ export class App {
 
   private updateTouchVisuals(): void {
     const stick = this.input.getStick();
-    if (!stick) { this.stickEl.classList.remove('on'); return; }
     // Once they have used it, the hint is just clutter over the game.
-    if (this.hintEl && this.hintEl.style.opacity !== '0') this.hintEl.style.opacity = '0';
-    this.stickEl.classList.add('on');
+    if (stick.active && this.hintEl && this.hintEl.style.opacity !== '0') {
+      this.hintEl.style.opacity = '0';
+    }
+    this.stickEl.classList.toggle('on', stick.active);
     this.stickEl.style.left = `${stick.ox}px`;
     this.stickEl.style.top = `${stick.oy}px`;
-    const knob = this.stickEl.firstElementChild as HTMLElement;
+
+    // Size the base from the same number the input normalises against, so the
+    // ring and the thumb travel can never disagree.
     const radius = touchStickRadius();
-    const dx = clamp(stick.x - stick.ox, -radius, radius);
-    const dy = clamp(stick.y - stick.oy, -radius, radius);
-    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    const size = radius * 2;
+    if (this.stickEl.style.width !== `${size}px`) {
+      this.stickEl.style.width = `${size}px`;
+      this.stickEl.style.height = `${size}px`;
+    }
+
+    const knob = this.stickEl.firstElementChild as HTMLElement;
+    // Clamp to a circle, not a square: a diagonal push must not reach further
+    // than a straight one. The knob then travels over the part of the ring that
+    // keeps it fully inside - visual travel is shorter than thumb travel on
+    // purpose, so the control looks tidy while still feeling generous.
+    let nx = (stick.x - stick.ox) / radius;
+    let ny = (stick.y - stick.oy) / radius;
+    const len = Math.hypot(nx, ny);
+    if (len > 1) { nx /= len; ny /= len; }
+    const travel = radius * KNOB_TRAVEL;
+    knob.style.transform =
+      `translate(calc(-50% + ${nx * travel}px), calc(-50% + ${ny * travel}px))`;
   }
 
   // ── input / debug ───────────────────────────────────────────────────────

@@ -45,6 +45,8 @@ export interface SaveData {
     quality: 'low' | 'medium' | 'high' | 'ultra' | 'auto';
     /** Set once the player picks a quality themselves - stops mobile defaults. */
     qualityTouched: boolean;
+    /** Show the joystick and buttons even on a device with a mouse. */
+    onScreenControls: boolean;
     master: number;
     music: number;
     sfx: number;
@@ -79,6 +81,7 @@ function defaults(): SaveData {
     settings: {
       quality: 'auto',
       qualityTouched: false,
+      onScreenControls: false,
       master: 0.85, music: 0.5, sfx: 0.85,
       sensitivity: 1, invertY: false, shake: 1,
       showTimer: false, language: '', reducedMotion: false,

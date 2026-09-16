@@ -6,7 +6,7 @@
  * the touch layer is built for thumbs, not for mouse users holding a phone.
  */
 import { Btn } from '../shared/types';
-import { clamp } from '../shared/math';
+
 
 export interface InputIntent {
   moveX: number;
@@ -41,6 +41,18 @@ export function touchStickRadius(): number {
   return Math.max(52, Math.min(short * 0.22, 96));
 }
 
+/**
+ * Resting place of the stick: bottom-left, clear of the safe area, and far
+ * enough in that the base is fully on screen.
+ */
+/** Sentinel id for a mouse-driven stick, kept out of real touch ids. */
+const MOUSE_STICK_ID = -777;
+
+export function touchStickAnchor(): { x: number; y: number } {
+  const r = touchStickRadius();
+  return { x: r + 26, y: window.innerHeight - r - 22 };
+}
+
 export class InputManager {
   readonly intent: InputIntent = { moveX: 0, moveZ: 0, buttons: 0, lookX: 0, lookY: 0 };
   bindings: Record<ActionName, string[]> = JSON.parse(JSON.stringify(DEFAULT_BINDINGS));
@@ -55,6 +67,9 @@ export class InputManager {
   private pointerLockBlocked = false;
   private mouseDown = false;
   private stickId = -1;
+  private forceOnScreen = false;
+  private nativeTouch = false;
+  private mouseStick = false;
   private stickOrigin = { x: 0, y: 0 };
   private stickPos = { x: 0, y: 0 };
   private lookId = -1;
@@ -65,7 +80,8 @@ export class InputManager {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.touchEnabled = matchMedia('(hover: none)').matches || 'ontouchstart' in window;
+    this.nativeTouch = matchMedia('(hover: none)').matches || 'ontouchstart' in window;
+    this.touchEnabled = this.nativeTouch;
     this.attach();
   }
 
@@ -78,8 +94,15 @@ export class InputManager {
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', this.onBlurBound);
 
-    this.canvas.addEventListener('mousedown', () => {
+    this.canvas.addEventListener('mousedown', (e) => {
       this.mouseDown = true;
+      if (this.forceOnScreen && this.inStickZone(e.clientX, e.clientY)) {
+        this.mouseStick = true;
+        this.stickId = MOUSE_STICK_ID;
+        this.stickOrigin = { x: e.clientX, y: e.clientY };
+        this.stickPos = { x: e.clientX, y: e.clientY };
+        return;
+      }
       // Pointer lock is the good experience, but it is unavailable in some
       // embedded contexts. Falling back to drag-to-look keeps the camera
       // usable instead of dead.
@@ -90,7 +113,10 @@ export class InputManager {
         }
       }
     });
-    window.addEventListener('mouseup', () => { this.mouseDown = false; });
+    window.addEventListener('mouseup', () => {
+      this.mouseDown = false;
+      if (this.mouseStick) { this.mouseStick = false; this.stickId = -1; }
+    });
     document.addEventListener('pointerlockerror', () => { this.pointerLockBlocked = true; });
     document.addEventListener('pointerlockchange', () => {
       this.pointerLocked = document.pointerLockElement === this.canvas;
@@ -98,6 +124,7 @@ export class InputManager {
     });
     window.addEventListener('mousemove', (e) => {
       if (this.suspended) return;
+      if (this.mouseStick) { this.stickPos = { x: e.clientX, y: e.clientY }; return; }
       const dragging = this.mouseDown && !this.pointerLocked;
       if (!this.pointerLocked && !dragging) return;
       this.intent.lookX += e.movementX * this.mouseSensitivity;
@@ -150,15 +177,42 @@ export class InputManager {
     e.preventDefault();
   }
 
+  /**
+   * Forces the on-screen controls on a device that has a mouse.
+   * The stick then also accepts mouse drags, but only ones that start inside
+   * its own zone - everywhere else keeps driving the camera.
+   */
+  setOnScreenControls(on: boolean): void {
+    this.forceOnScreen = on;
+    this.touchEnabled = on || this.nativeTouch;
+  }
+
+  /** True when a pointer is inside the stick's grab zone. */
+  private inStickZone(x: number, y: number): boolean {
+    const a = touchStickAnchor();
+    const r = touchStickRadius() * 1.9;
+    return Math.hypot(x - a.x, y - a.y) <= r;
+  }
+
   /** On-screen buttons call these. */
   setTouchButton(name: string, down: boolean): void {
     if (down) this.touchButtons.add(name); else this.touchButtons.delete(name);
   }
 
-  /** Where to draw the virtual stick, or null when it is not in use. */
-  getStick(): { ox: number; oy: number; x: number; y: number } | null {
-    if (this.stickId === -1) return null;
-    return { ox: this.stickOrigin.x, oy: this.stickOrigin.y, x: this.stickPos.x, y: this.stickPos.y };
+  /**
+   * Where to draw the virtual stick.
+   * `active` is false when nobody is touching it - the caller still draws it,
+   * parked at its resting anchor, so the control is visible before first use.
+   */
+  getStick(): { ox: number; oy: number; x: number; y: number; active: boolean } {
+    if (this.stickId === -1) {
+      const a = touchStickAnchor();
+      return { ox: a.x, oy: a.y, x: a.x, y: a.y, active: false };
+    }
+    return {
+      ox: this.stickOrigin.x, oy: this.stickOrigin.y,
+      x: this.stickPos.x, y: this.stickPos.y, active: true,
+    };
   }
 
   private held(action: ActionName): boolean {
@@ -180,11 +234,17 @@ export class InputManager {
 
     // Virtual stick overrides keys when it is active.
     if (this.stickId !== -1) {
-      const dx = this.stickPos.x - this.stickOrigin.x;
-      const dy = this.stickPos.y - this.stickOrigin.y;
-      const radius = touchStickRadius();
-      i.moveX = clamp(dx / radius, -1, 1);
-      i.moveZ = clamp(dy / radius, -1, 1);
+      let nx = (this.stickPos.x - this.stickOrigin.x) / touchStickRadius();
+      let ny = (this.stickPos.y - this.stickOrigin.y) / touchStickRadius();
+      // Clamp the magnitude, not each axis: a square clamp lets a diagonal push
+      // reach 1.41 while a straight one reaches 1, so diagonals feel faster and
+      // fine analog control disappears.
+      const len = Math.hypot(nx, ny);
+      if (len > 1) { nx /= len; ny /= len; }
+      // A small dead zone stops a resting thumb from drifting the character.
+      if (len < 0.14) { nx = 0; ny = 0; }
+      i.moveX = nx;
+      i.moveZ = ny;
     }
 
     const gp = this.pollGamepad();

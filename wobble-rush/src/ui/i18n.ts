@@ -51,6 +51,9 @@ const EN: Dict = {
   'phase.midfall.sub': 'Only the core remains',
   'hud.objective.survive': 'STAY ON YOUR FEET',
   'hud.survivors': 'SURVIVORS {n}/{total}',
+  'touch.jump': 'JUMP',
+  'touch.dive': 'DASH',
+  'touch.hint': 'DRAG HERE TO RUN',
   'mode.race': 'RACE',
   'mode.survival': 'SURVIVAL',
   'mode.team': 'TEAMS',
@@ -124,6 +127,9 @@ const PT: Dict = {
   'phase.midfall.sub': 'Só resta o núcleo',
   'hud.objective.survive': 'FIQUE DE PÉ',
   'hud.survivors': 'SOBREVIVENTES {n}/{total}',
+  'touch.jump': 'PULO',
+  'touch.dive': 'AVANÇO',
+  'touch.hint': 'ARRASTE AQUI PARA CORRER',
   'mode.race': 'CORRIDA',
   'mode.survival': 'SOBREVIVÊNCIA',
   'mode.team': 'EQUIPES',
@@ -166,6 +172,9 @@ const ES: Dict = {
   'round.qualified': '¡CLASIFICADO!',
   'round.eliminated': 'ELIMINADO',
   'map.sky_foundry.name': 'FUNDICIÓN CELESTE',
+  'touch.jump': 'SALTO',
+  'touch.dive': 'IMPULSO',
+  'touch.hint': 'ARRASTRA AQUÍ PARA CORRER',
 };
 
 const DICTS: Record<LangCode, Dict> = { 'pt-BR': PT, en: EN, es: ES };
