@@ -12,6 +12,27 @@ export type ChatReply = {
   offline?: boolean
 }
 
+const KEY_STORE = 'voca-ia:key'
+
+/** Chave da Anthropic que a propria pessoa colou no app (fica so no navegador). */
+export function getUserKey(): string {
+  try {
+    return localStorage.getItem(KEY_STORE) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function setUserKey(k: string) {
+  try {
+    if (k.trim()) localStorage.setItem(KEY_STORE, k.trim())
+    else localStorage.removeItem(KEY_STORE)
+  } catch {
+    /* navegador sem storage */
+  }
+  online = null
+}
+
 let online: boolean | null = null
 
 export async function checkServer(): Promise<boolean> {
@@ -19,7 +40,8 @@ export async function checkServer(): Promise<boolean> {
   try {
     const r = await fetch('/api/health', { method: 'GET' })
     const j = await r.json()
-    online = !!j.ok && !!j.key
+    // tem chave no servidor, ou a pessoa colou a dela no app
+    online = !!j.ok && (!!j.key || (!!j.byok && !!getUserKey()))
   } catch {
     online = false
   }
@@ -42,13 +64,15 @@ export type ChatRequest = {
   history: ChatTurn[]
   message: string
   weakSpots: string[]
+  /** true = e a IA quem abre a conversa */
+  opening?: boolean
 }
 
 export async function sendChat(req: ChatRequest): Promise<ChatReply> {
   const r = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
+    body: JSON.stringify({ ...req, apiKey: getUserKey() || undefined }),
   })
   if (!r.ok) throw new Error(`servidor respondeu ${r.status}`)
   return (await r.json()) as ChatReply
@@ -70,7 +94,7 @@ export async function sendReport(req: {
   const r = await fetch('/api/report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
+    body: JSON.stringify({ ...req, apiKey: getUserKey() || undefined }),
   })
   if (!r.ok) throw new Error(`servidor respondeu ${r.status}`)
   return (await r.json()) as Report

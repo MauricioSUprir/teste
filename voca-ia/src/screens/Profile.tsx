@@ -4,6 +4,7 @@ import { useStore, levelOf, ACHIEVEMENTS } from '../state/store'
 import { LANGUAGES, getLang } from '../content/languages'
 import { MOODS, getMood } from '../content/moods'
 import { voicesFor, voicesReady, speak } from '../lib/speech'
+import { checkServer, getUserKey, setUserKey, resetServerCheck } from '../lib/api'
 import { mastered } from '../lib/srs'
 import { Voca } from '../components/Voca'
 
@@ -13,6 +14,20 @@ export function Profile({ onExit }: { onExit: () => void }) {
   const mood = getMood(save.profile.mood)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [confirmReset, setConfirmReset] = useState(false)
+  const [key, setKey] = useState(() => getUserKey())
+  const [aiStatus, setAiStatus] = useState<'checando' | 'ligada' | 'servidor' | 'desligada'>('checando')
+
+  useEffect(() => {
+    resetServerCheck()
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.key) setAiStatus('servidor')
+        else if (j?.byok && getUserKey()) setAiStatus('ligada')
+        else setAiStatus('desligada')
+      })
+      .catch(() => setAiStatus('desligada'))
+  }, [key])
 
   useEffect(() => {
     voicesReady(() => setVoices(voicesFor(lang.locale)))
@@ -59,6 +74,44 @@ export function Profile({ onExit }: { onExit: () => void }) {
             </div>
           )
         })}
+      </div>
+
+      <h3 className="sec">Modo IA</h3>
+      <div className={`ai-box ${aiStatus === 'desligada' ? 'off' : 'on'}`}>
+        <p className="ai-status">
+          {aiStatus === 'checando' && '⏳ verificando…'}
+          {aiStatus === 'servidor' && '🤖 IA ligada — a chave está no servidor do app.'}
+          {aiStatus === 'ligada' && '🤖 IA ligada com a sua chave.'}
+          {aiStatus === 'desligada' && '📴 Sem IA: a conversa roda no modo offline (perguntas do próprio curso).'}
+        </p>
+        {aiStatus !== 'servidor' && (
+          <>
+            <p className="muted small">
+              Para o Voca virar um agente de verdade — escutar, entender e responder qualquer coisa —
+              cole aqui uma chave da Anthropic (console.anthropic.com). Ela fica salva só neste
+              navegador e é usada apenas para falar com a Anthropic.
+            </p>
+            <div className="type-row">
+              <input
+                type="password"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="sk-ant-..."
+                autoComplete="off"
+              />
+              <button
+                className="btn primary"
+                onClick={() => {
+                  setUserKey(key)
+                  checkServer()
+                  setAiStatus(key.trim() ? 'ligada' : 'desligada')
+                }}
+              >
+                salvar
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <h3 className="sec">Ajustes</h3>

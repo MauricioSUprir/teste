@@ -319,3 +319,10 @@ textarea { resize: none; }
 @media (min-width: 620px) {
   .lessons, .scen-grid, .ach-grid, .lang-grid, .mood-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ------------------------------------------------------------- modo IA */
+.ai-box { background: var(--card); border: 2px solid var(--green); border-radius: var(--r); padding: 12px 14px; }
+.ai-box.off { border-color: var(--yellow); }
+.ai-status { font-weight: 700; margin-bottom: 6px; }
+.ai-box .type-row { margin-top: 8px; }
+.offline-warn { background: #2A2412; border: 2px solid #5C4E1F; border-radius: 14px; padding: 10px 12px; font-size: 14px; }

@@ -118,12 +118,13 @@ const REPORT_TOOL = {
   },
 }
 
-async function callClaude({ model, system, messages, tool, maxTokens = 700 }) {
+async function callClaude({ model, system, messages, tool, maxTokens = 700, apiKey }) {
+  const key = apiKey || API_KEY
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-api-key': API_KEY,
+      'x-api-key': key,
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
@@ -146,21 +147,28 @@ async function callClaude({ model, system, messages, tool, maxTokens = 700 }) {
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, key: !!API_KEY, chatModel: CHAT_MODEL, reportModel: REPORT_MODEL })
+  res.json({ ok: true, key: !!API_KEY, byok: true, chatModel: CHAT_MODEL, reportModel: REPORT_MODEL })
 })
 
 app.post('/api/chat', async (req, res) => {
-  if (!API_KEY) return res.status(503).json({ error: 'sem ANTHROPIC_API_KEY' })
+  const { apiKey } = req.body
+  if (!API_KEY && !apiKey) return res.status(503).json({ error: 'sem ANTHROPIC_API_KEY' })
   try {
-    const { langName, mood, scenarioTitle, situation, level, userName, history = [], message, weakSpots = [] } = req.body
+    const { langName, mood, scenarioTitle, situation, level, userName, history = [], message, weakSpots = [], opening } = req.body
     const messages = history
       .slice(-12)
       .map((t) => ({ role: t.role === 'user' ? 'user' : 'assistant', content: t.text }))
       .filter((m) => m.content && m.content.trim())
-    messages.push({ role: 'user', content: message })
+    messages.push({
+      role: 'user',
+      content: opening
+        ? '[O aluno acabou de entrar na cena e ainda nao falou nada. Abra voce a conversa, no personagem, com uma fala curta que ja obrigue o aluno a responder. Em "corrections" devolva lista vazia.]'
+        : message,
+    })
     if (messages[0]?.role !== 'user') messages.shift()
 
     const out = await callClaude({
+      apiKey,
       model: CHAT_MODEL,
       system: systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots }),
       messages,
@@ -181,7 +189,8 @@ app.post('/api/chat', async (req, res) => {
 })
 
 app.post('/api/report', async (req, res) => {
-  if (!API_KEY) return res.status(503).json({ error: 'sem ANTHROPIC_API_KEY' })
+  const { apiKey } = req.body
+  if (!API_KEY && !apiKey) return res.status(503).json({ error: 'sem ANTHROPIC_API_KEY' })
   try {
     const { langName, turns = [], userName } = req.body
     const transcript = turns
@@ -189,6 +198,7 @@ app.post('/api/report', async (req, res) => {
       .join('\n')
       .slice(-6000)
     const out = await callClaude({
+      apiKey,
       model: REPORT_MODEL,
       system: `Voce e um professor de ${langName} avaliando uma conversa de um aluno brasileiro chamado ${userName || 'aluno'}.
 Escreva TUDO em portugues do Brasil, direto e sem enrolacao.

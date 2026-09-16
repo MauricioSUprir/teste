@@ -69,6 +69,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
 
   function startMic() {
     if (!speechOk) return
+    stopSpeaking() // se ele ainda estiver falando, cala a boca e escuta
     stopMic()
     setPartial('')
     setState('listening')
@@ -163,9 +164,35 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     sayOut(reply)
   }
 
-  function begin() {
+  async function begin() {
     setStage('live')
     startedAt.current = Date.now()
+    if (online) {
+      // quem abre a cena e a propria IA, no personagem escolhido
+      setState('thinking')
+      try {
+        const hi = await sendChat({
+          langId: lang.id,
+          langName: lang.name,
+          mood: moodRef.current,
+          scenarioId: scenario.id,
+          scenarioTitle: scenario.title,
+          situation: scenario.situation,
+          level: levelLabel(save.xp),
+          userName: save.profile.name,
+          history: [],
+          message: '',
+          weakSpots: [],
+          opening: true,
+        })
+        setTurns([{ role: 'grimm', text: hi.reply, pt: hi.replyPt, roast: hi.roast, suggestion: hi.suggestion, at: Date.now() }])
+        setLast(hi)
+        sayOut(hi)
+        return
+      } catch {
+        /* cai para a abertura offline */
+      }
+    }
     const hello = offlineGreeting({ lang, mood: save.profile.mood as never, history: [] })
     setTurns([{ role: 'grimm', text: hello.reply, pt: hello.replyPt, roast: hello.roast, at: Date.now() }])
     setLast(hello)
@@ -214,8 +241,13 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           {speechOk
             ? 'Fale no microfone; ele responde em voz alta e volta a escutar sozinho.'
             : 'Seu navegador não tem reconhecimento de fala — dá para conversar digitando (no Chrome funciona por voz).'}
-          {online === false && ' · Sem servidor de IA: rodando no modo offline, com perguntas do próprio curso.'}
         </p>
+        {online === false && (
+          <p className="offline-warn">
+            📴 <b>Modo offline</b> — o Voca ainda responde, mas com perguntas do próprio curso.
+            Para ele virar agente de IA de verdade, ligue a IA no seu perfil (ícone no canto da tela inicial).
+          </p>
+        )}
 
         <h3 className="sec">Humor do Voca</h3>
         <MoodRow current={save.profile.mood} onPick={switchMood} />
@@ -274,7 +306,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
       <header className="conv-top">
         <button className="x" onClick={finish}>✕</button>
         <span className="scen-chip">{scenario.emoji} {scenario.title}</span>
-        <span className="mode-chip">{online ? '🤖 IA' : '📴 offline'}</span>
+        <span className="mode-chip">{online ? '🤖 IA ao vivo' : '📴 modo offline'}</span>
       </header>
 
       <MoodRow current={save.profile.mood} onPick={switchMood} compact />
