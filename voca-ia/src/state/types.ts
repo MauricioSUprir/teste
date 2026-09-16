@@ -103,6 +103,8 @@ export type Profile = {
   /** o Voca fala tambem em portugues (a bronca, a traducao) */
   ptVoice: boolean
   ptVoiceName: string | null
+  /** usar a voz natural (ElevenLabs) quando o servidor tiver */
+  naturalVoice: boolean
   sound: boolean
   /** conversa continua: volta a escutar sozinho depois que o Voca fala */
   autoListen: boolean

@@ -31,8 +31,8 @@ export const PROVIDERS = {
     label: 'Groq',
     kind: 'openai',
     base: 'https://api.groq.com/openai/v1',
-    chat: 'llama-3.3-70b-versatile',
-    report: 'llama-3.3-70b-versatile',
+    chat: 'openai/gpt-oss-120b',
+    report: 'openai/gpt-oss-120b',
   },
   openrouter: {
     label: 'OpenRouter',
@@ -428,6 +428,72 @@ const HINT_TOOL = {
   },
 }
 
+// ------------------------------------------------------------ voz natural
+// A voz do navegador é robótica. Quando existe chave do ElevenLabs, a fala em
+// português passa por aqui. Tudo é guardado em cache: a mesma bronca nunca é
+// gerada duas vezes, o que segura o consumo de créditos.
+const XI_KEY = process.env.ELEVENLABS_API_KEY || ''
+const XI_VOICE = process.env.ELEVENLABS_VOICE_ID || 'SOYHLrjzK2X1ezoPC6cr' // Harry - Fierce Warrior
+const XI_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_flash_v2_5'
+const XI_LIMITE_CACHE = 300
+
+const cacheVoz = new Map()
+
+/** Quanto mais bravo o humor, menos "estável" e mais teatral a leitura. */
+function ajustesDeVoz(nivel = 2) {
+  if (nivel >= 3) return { stability: 0.18, similarity_boost: 0.75, style: 0.85, use_speaker_boost: true }
+  if (nivel === 2) return { stability: 0.28, similarity_boost: 0.75, style: 0.7, use_speaker_boost: true }
+  if (nivel === 1) return { stability: 0.45, similarity_boost: 0.75, style: 0.45, use_speaker_boost: true }
+  return { stability: 0.6, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true }
+}
+
+app.post('/api/tts', async (req, res) => {
+  if (!XI_KEY) return res.status(503).json({ error: 'voz natural não configurada', code: 'sem_tts' })
+  const { text, nivel = 2, voiceId } = req.body || {}
+  const limpo = String(text || '').trim().slice(0, 500)
+  if (!limpo) return res.status(400).json({ error: 'texto vazio' })
+
+  const voz = voiceId || XI_VOICE
+  const chave = `${voz}|${XI_MODEL}|${nivel}|${limpo}`
+  const guardado = cacheVoz.get(chave)
+  if (guardado) {
+    res.set('content-type', 'audio/mpeg')
+    res.set('x-voca-cache', 'hit')
+    return res.send(guardado)
+  }
+
+  try {
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voz}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'xi-api-key': XI_KEY, accept: 'audio/mpeg' },
+      body: JSON.stringify({
+        text: limpo,
+        model_id: XI_MODEL,
+        language_code: 'pt',
+        voice_settings: ajustesDeVoz(nivel),
+      }),
+    })
+    if (!r.ok) {
+      const corpo = await r.text()
+      const semCota = r.status === 401 || r.status === 429 || /quota|credit/i.test(corpo)
+      console.warn('[tts]', r.status, corpo.slice(0, 200))
+      return res.status(semCota ? 429 : 502).json({
+        error: semCota ? 'créditos de voz esgotados' : `ElevenLabs ${r.status}`,
+        code: semCota ? 'sem_creditos' : 'erro_tts',
+      })
+    }
+    const audio = Buffer.from(await r.arrayBuffer())
+    if (cacheVoz.size >= XI_LIMITE_CACHE) cacheVoz.delete(cacheVoz.keys().next().value)
+    cacheVoz.set(chave, audio)
+    res.set('content-type', 'audio/mpeg')
+    res.set('x-voca-cache', 'miss')
+    res.send(audio)
+  } catch (e) {
+    console.error('[tts]', e.message)
+    res.status(502).json({ error: e.message, code: 'erro_tts' })
+  }
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
@@ -436,6 +502,7 @@ app.get('/api/health', (_req, res) => {
     serverProviders: SERVER_SLOTS.map((s) => s.provider),
     turbo: SERVER_SLOTS.length >= 2,
     byok: true,
+    tts: !!XI_KEY,
     providers: Object.fromEntries(
       Object.entries(PROVIDERS).map(([id, p]) => [id, { label: p.label, chat: p.chat }]),
     ),
@@ -634,4 +701,5 @@ app.listen(PORT, () => {
       ? `IA do servidor: ${SERVER_SLOTS.map((s) => s.provider).join(' + ')}${SERVER_SLOTS.length >= 2 ? ' (modo turbo)' : ''}`
       : 'sem IA no servidor — cada pessoa liga a dela no app, ou fica no modo offline',
   )
+  console.log(XI_KEY ? `voz natural: ElevenLabs (${XI_MODEL})` : 'voz natural desligada — usando a voz do navegador')
 })

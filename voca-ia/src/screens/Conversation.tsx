@@ -113,6 +113,8 @@ export function Conversation({ onExit }: { onExit: () => void }) {
             rate: mood.voz.rate,
             pitch: mood.voz.pitch,
             voiceName: save.profile.ptVoiceName,
+            nivel: mood.nivel,
+            semIa: !save.profile.naturalVoice,
             onEnd: terminar,
           })
         } else {
@@ -338,7 +340,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
                 <p className="said-pt">
                   <button
                     className="mini-speak"
-                    onClick={() => speakPt(lastTurn.pt!, { rate: 1, pitch: 1, voiceName: save.profile.ptVoiceName })}
+                    onClick={() => speakPt(lastTurn.pt!, { rate: 1, pitch: 1, voiceName: save.profile.ptVoiceName, nivel: 0, semIa: !save.profile.naturalVoice })}
                     aria-label="Ouvir em português"
                   >
                     🔊
@@ -353,7 +355,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         <p className="roast-line">
           <button
             className="mini-speak"
-            onClick={() => speakPt(last.roast!, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName })}
+            onClick={() => speakPt(last.roast!, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName, nivel: mood.nivel, semIa: !save.profile.naturalVoice })}
             aria-label="Ouvir a bronca"
           >
             🔊

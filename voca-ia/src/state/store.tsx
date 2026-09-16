@@ -25,6 +25,7 @@ function emptySave(): SaveData {
       voiceName: null,
       ptVoice: true,
       ptVoiceName: null,
+      naturalVoice: true,
       sound: true,
       autoListen: true,
       showPt: true,

@@ -8,7 +8,7 @@ import { Profile } from './screens/Profile'
 import { Placement } from './screens/Placement'
 import { Account } from './screens/Account'
 import { Subscribe } from './screens/Subscribe'
-import { voicesReady } from './lib/speech'
+import { voicesReady, setNaturalVoiceAvailable } from './lib/speech'
 import { LimitNotice } from './components/LimitNotice'
 import { currentSession, merge, pull, push, accountsEnabled } from './lib/account'
 import type { ProFeature } from './lib/plan'
@@ -30,6 +30,10 @@ export function App() {
 
   useEffect(() => {
     voicesReady(() => {})
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((j) => setNaturalVoiceAvailable(!!j?.tts))
+      .catch(() => setNaturalVoiceAvailable(false))
   }, [])
 
   // conta: ao abrir, traz o progresso da nuvem e junta com o daqui

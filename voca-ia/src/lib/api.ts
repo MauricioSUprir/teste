@@ -42,9 +42,9 @@ export const PROVIDERS: ProviderInfo[] = [
     id: 'groq',
     label: 'Groq',
     free: 'Tem plano gratuito (com limite de uso).',
-    quality: 'Bom em inglês e nas línguas latinas; erra mais nuance de japonês, coreano e árabe.',
-    speed: 'Absurdamente rápido — é o que deixa a conversa por voz mais natural.',
-    model: 'llama-3.3-70b-versatile',
+    quality: 'Boa e muito constante; erra mais nuance de japonês, coreano e árabe.',
+    speed: 'Rápido e regular — quase sempre responde em ~2s.',
+    model: 'openai/gpt-oss-120b',
     signup: 'https://console.groq.com/keys',
   },
   {

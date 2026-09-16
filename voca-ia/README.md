@@ -72,14 +72,31 @@ Criar conta com e-mail guarda XP, ofensiva, lições e revisões no servidor
 igual**, só fica preso ao navegador. O merge é sempre a favor de quem tem mais
 progresso: ninguém perde ofensiva por ter entrado em outro aparelho.
 
-### 7. Limite diário das IAs
+### 7. Voz natural (ElevenLabs)
+A voz do navegador é robótica. Com uma chave do ElevenLabs no servidor, a fala
+em português (a bronca e a tradução) passa a vir de uma voz de verdade, com o
+tom ajustado pelo humor: quanto mais bravo, menos estável e mais teatral.
+
+```bash
+ELEVENLABS_API_KEY=...
+ELEVENLABS_VOICE_ID=SOYHLrjzK2X1ezoPC6cr   # opcional (padrão: Harry, bem intenso)
+ELEVENLABS_MODEL=eleven_flash_v2_5         # opcional (o mais barato e rápido)
+```
+
+**Cache dos dois lados**, porque crédito de voz acaba: o servidor guarda o áudio
+de cada frase já gerada e o navegador guarda o da sessão. As falas fixas das
+lições (o banco de broncas em `content/moods.ts`) são geradas **uma vez cada** e
+depois saem de graça para sempre. Sem chave, sem crédito ou com erro, cai
+sozinho na voz do navegador — nunca fica mudo.
+
+### 8. Limite diário das IAs
 Os planos grátis têm cota por dia. Quando **as duas** IAs recusam, o app não dá
 erro seco: mostra um aviso explicando que acabou por hoje, quanto falta para
 virar o dia, e o que continua funcionando (lições, revisão, vídeos, modo
 offline). Uma faixa discreta fica na home até a virada. Detecção por HTTP 429 e
 pelas mensagens de cota de cada serviço.
 
-### 8. VOCA PRO — pagamento por Pix
+### 9. VOCA PRO — pagamento por Pix
 Três planos, **só Pix**, sem gateway no meio (o dinheiro cai direto na conta):
 
 | Plano | Preço | Sai por |
@@ -115,7 +132,7 @@ VITE_PAYWALL=on     # só quando quiser de fato travar as funções de IA
 Enquanto `VITE_PAYWALL` não for `on`, **tudo fica liberado** e a página de planos
 serve só para quem quiser apoiar.
 
-### 9. O que faz voltar todo dia
+### 10. O que faz voltar todo dia
 Ofensiva 🔥 (com 1 congelamento), 5 vidas que voltam sozinhas, XP e níveis, meta
 diária, 12 conquistas, e **revisão espaçada** (SM-2): cada frase volta no dia em que
 você está prestes a esquecê-la.

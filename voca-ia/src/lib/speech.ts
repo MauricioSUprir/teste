@@ -64,26 +64,119 @@ export function speak(text: string, opts: SpeakOpts) {
   return stopSpeaking
 }
 
+// ------------------------------------------------------- voz natural (IA)
+// Quando o servidor tem ElevenLabs, a fala em portugues vem de la — bem menos
+// robotica. O audio fica guardado nesta sessao, entao a mesma frase nao e
+// pedida duas vezes. Falhou, sem chave ou sem credito? Cai na voz do navegador.
+let audioAtual: HTMLAudioElement | null = null
+const cacheAudio = new Map<string, string>()
+let ttsDisponivel: boolean | null = null
+
+export function setNaturalVoiceAvailable(v: boolean | null) {
+  ttsDisponivel = v
+}
+
+export function naturalVoiceAvailable() {
+  return ttsDisponivel
+}
+
+export function stopAudio() {
+  if (audioAtual) {
+    audioAtual.pause()
+    audioAtual.currentTime = 0
+    audioAtual = null
+  }
+}
+
+type PtOpts = {
+  rate?: number
+  pitch?: number
+  voiceName?: string | null
+  /** nivel do humor: 0 calmo ... 3 insuportavel */
+  nivel?: number
+  /** desliga a voz natural e usa a do navegador */
+  semIa?: boolean
+  onStart?: () => void
+  onEnd?: () => void
+}
+
 /**
- * Fala em portugues do Brasil — usado para a bronca e para a traducao.
- * rate/pitch vem do humor: no modo bravo a voz fica mais grave e acelerada.
+ * Fala em portugues do Brasil — a bronca e a traducao.
+ * Tenta a voz natural primeiro; se nao der, usa a do navegador com o tom do humor.
  */
-export function speakPt(
-  text: string,
-  opts: { rate?: number; pitch?: number; voiceName?: string | null; onEnd?: () => void } = {},
-) {
-  return speak(text, {
-    locale: 'pt-BR',
-    rate: opts.rate ?? 1.1,
-    pitch: opts.pitch ?? 0.85,
-    voiceName: opts.voiceName ?? null,
-    onEnd: opts.onEnd,
+export function speakPt(text: string, opts: PtOpts = {}) {
+  const limpo = text.trim()
+  if (!limpo) {
+    opts.onEnd?.()
+    return () => {}
+  }
+
+  const navegador = () =>
+    speak(limpo, {
+      locale: 'pt-BR',
+      rate: opts.rate ?? 1.1,
+      pitch: opts.pitch ?? 0.85,
+      voiceName: opts.voiceName ?? null,
+      onStart: opts.onStart,
+      onEnd: opts.onEnd,
+    })
+
+  if (opts.semIa || ttsDisponivel === false) return navegador()
+
+  const nivel = opts.nivel ?? 2
+  const chave = `${nivel}|${limpo}`
+  const tocar = (url: string) => {
+    stopSpeaking()
+    stopAudio()
+    const a = new Audio(url)
+    audioAtual = a
+    a.onplay = () => opts.onStart?.()
+    a.onended = () => {
+      audioAtual = null
+      opts.onEnd?.()
+    }
+    a.onerror = () => {
+      audioAtual = null
+      navegador()
+    }
+    a.play().catch(() => {
+      audioAtual = null
+      navegador()
+    })
+  }
+
+  const pronto = cacheAudio.get(chave)
+  if (pronto) {
+    tocar(pronto)
+    return stopAudio
+  }
+
+  fetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: limpo, nivel }),
   })
+    .then(async (r) => {
+      if (!r.ok) {
+        // sem chave ou sem credito: nao insiste mais nesta sessao
+        if (r.status === 503 || r.status === 429) ttsDisponivel = false
+        throw new Error(String(r.status))
+      }
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      cacheAudio.set(chave, url)
+      ttsDisponivel = true
+      tocar(url)
+    })
+    .catch(() => navegador())
+
+  return stopAudio
 }
 
 export function stopSpeaking() {
   if ('speechSynthesis' in window) window.speechSynthesis.cancel()
   currentUtterance = null
+  stopAudio()
 }
 
 export function isSpeaking() {

@@ -188,7 +188,14 @@ export function Lesson({
           onExplain={() => setExplicando(true)}
           falarBronca={
             save.profile.ptVoice
-              ? (texto: string) => speakPt(texto, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName })
+              ? (texto: string) =>
+                  speakPt(texto, {
+                    rate: mood.voz.rate,
+                    pitch: mood.voz.pitch,
+                    voiceName: save.profile.ptVoiceName,
+                    nivel: mood.nivel,
+                    semIa: !save.profile.naturalVoice,
+                  })
               : undefined
           }
         />

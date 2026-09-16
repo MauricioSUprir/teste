@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useStore, levelOf, ACHIEVEMENTS } from '../state/store'
 import { LANGUAGES, getLang } from '../content/languages'
 import { MOODS, getMood } from '../content/moods'
-import { voicesFor, voicesReady, speak, speakPt } from '../lib/speech'
+import { voicesFor, voicesReady, speak, speakPt, naturalVoiceAvailable } from '../lib/speech'
 import { AiSetup } from '../components/AiSetup'
 import { mastered } from '../lib/srs'
 import { Voca } from '../components/Voca'
@@ -171,6 +171,24 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
 
       <h3 className="sec">Voz em português</h3>
       <div className="acc-box">
+        <p className="ai-status">
+          {naturalVoiceAvailable() === true
+            ? '🎙️ Voz natural ligada (ElevenLabs) — nada de voz robótica.'
+            : naturalVoiceAvailable() === false
+              ? '🤖 Usando a voz do navegador. A voz natural precisa de chave do ElevenLabs no servidor.'
+              : '⏳ verificando a voz…'}
+        </p>
+        <label className="linha">
+          <input
+            type="checkbox"
+            checked={save.profile.naturalVoice}
+            onChange={(e) => patchProfile({ naturalVoice: e.target.checked })}
+          />
+          <span>
+            <b>Usar a voz natural quando existir</b>
+            <small className="muted"> — desmarque para economizar créditos e usar a do navegador.</small>
+          </span>
+        </label>
         <label className="linha">
           <input
             type="checkbox"
@@ -193,7 +211,15 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
         </label>
         <button
           className="btn ghost sm"
-          onClick={() => speakPt(mood.wrong[0], { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName })}
+          onClick={() =>
+            speakPt(mood.wrong[0], {
+              rate: mood.voz.rate,
+              pitch: mood.voz.pitch,
+              voiceName: save.profile.ptVoiceName,
+              nivel: mood.nivel,
+              semIa: !save.profile.naturalVoice,
+            })
+          }
         >
           🔊 ouvir ele bravo
         </button>
