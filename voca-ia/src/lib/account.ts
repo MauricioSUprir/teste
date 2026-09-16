@@ -140,7 +140,7 @@ export function merge(local: SaveData, cloud: SaveData): SaveData {
   }
 }
 
-export type NovoPagamento = { plan: string; amount: number; months: number; txid: string; email: string }
+export type NovoPagamento = { plan: string; amount: number; days: number; txid: string; email: string }
 
 /** Registra a intencao de pagamento. Quem libera o plano e o dono, ao conferir o Pix. */
 export async function registrarPagamento(userId: string, p: NovoPagamento) {
@@ -151,7 +151,9 @@ export async function registrarPagamento(userId: string, p: NovoPagamento) {
     email: p.email,
     plan: p.plan,
     amount: p.amount,
-    months: p.months,
+    days: p.days,
+    // months continua preenchido por causa dos pagamentos antigos
+    months: Math.max(1, Math.round(p.days / 30)),
     txid: p.txid,
   })
   if (error) throw new Error(error.message)

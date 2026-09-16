@@ -57,6 +57,9 @@ export function Subscribe({ feature, onExit }: { feature?: ProFeature; onExit: (
             </div>
             <p className="price">{reais(p.price)}</p>
             <p className="per-month">{p.perMonth}</p>
+            <p className="per-day">
+              {reais(p.price / p.days)} por dia · {p.days === 7 ? '7 dias' : p.days === 30 ? '30 dias' : '365 dias'} de acesso
+            </p>
             <ul>
               {p.perks.map((x) => (
                 <li key={x}>✓ {x}</li>
@@ -126,7 +129,7 @@ function CheckoutPix({ plano, onVoltar, onExit }: { plano: Plano; onVoltar: () =
       await registrarPagamento(save.account.id, {
         plan: plano.id,
         amount: plano.price,
-        months: plano.months,
+        days: plano.days,
         txid,
         email: save.account.email,
       })

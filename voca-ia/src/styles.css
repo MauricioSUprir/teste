@@ -566,3 +566,4 @@ textarea { resize: none; }
 .ctl.on { border-color: var(--yellow); color: var(--yellow); }
 .ctl.desligar { background: linear-gradient(180deg, #FF8A8A, #E14B4B); color: #2A0606; border-color: #9E2E2E; }
 .ctl:active { transform: translateY(2px); border-bottom-width: 2px; }
+.per-day { font-size: 12px; color: var(--muted); margin: -6px 0 8px; }

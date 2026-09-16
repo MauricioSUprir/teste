@@ -59,7 +59,8 @@ export type Plano = {
   title: string
   /** valor cheio, em reais */
   price: number
-  months: number
+  /** quantos dias de acesso o pagamento libera */
+  days: number
   /** quanto sai por mes, so para comparar */
   perMonth: string
   badge?: string
@@ -70,31 +71,31 @@ export type Plano = {
 /** Tres planos, pagamento so por Pix. */
 export const PLANS: Plano[] = [
   {
-    id: 'mensal',
-    title: 'Mensal',
-    price: 14.9,
-    months: 1,
-    perMonth: 'R$ 14,90 por mês',
+    id: 'semanal',
+    title: '1 semana',
+    price: 14.99,
+    days: 7,
+    perMonth: 'para experimentar sem compromisso',
     perks: ['Conversa contínua ilimitada', 'Explicação de cada erro', 'Chat de dúvidas', 'Ajuda do Voca nas questões'],
   },
   {
-    id: 'trimestral',
-    title: '3 meses',
-    price: 37.9,
-    months: 3,
-    perMonth: 'sai por R$ 12,63 por mês',
-    badge: 'economiza 15%',
-    perks: ['Tudo do mensal', 'Um mês sai de graça na conta', 'Bom para fechar um semestre de estudo'],
+    id: 'mensal',
+    title: '1 mês',
+    price: 29.99,
+    days: 30,
+    perMonth: 'R$ 29,99 por mês',
+    badge: 'o mais escolhido',
+    perks: ['Tudo do semanal', 'Um mês inteiro para criar o hábito', 'Sai menos da metade do preço por dia'],
   },
   {
     id: 'anual',
     title: '1 ano',
-    price: 119.9,
-    months: 12,
-    perMonth: 'sai por R$ 9,99 por mês',
-    badge: 'economiza 33%',
+    price: 149.99,
+    days: 365,
+    perMonth: 'sai por R$ 12,50 por mês',
+    badge: 'economiza 58%',
     destaque: true,
-    perks: ['Tudo do mensal', 'Quase 4 meses de graça', 'O preço trava: reajuste não pega você'],
+    perks: ['Tudo do mensal', 'Mais de 7 meses de graça na conta', 'O preço trava: reajuste não pega você'],
   },
 ]
 

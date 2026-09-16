@@ -127,11 +127,15 @@ pelas mensagens de cota de cada serviço.
 ### 9. VOCA PRO — pagamento por Pix
 Três planos, **só Pix**, sem gateway no meio (o dinheiro cai direto na conta):
 
-| Plano | Preço | Sai por |
-|---|---|---|
-| Mensal | R$ 14,90 | R$ 14,90/mês |
-| 3 meses | R$ 37,90 | R$ 12,63/mês — economiza 15% |
-| 1 ano | R$ 119,90 | R$ 9,99/mês — economiza 33% |
+| Plano | Preço | Acesso | Sai por |
+|---|---|---|---|
+| 1 semana | R$ 14,99 | 7 dias | para experimentar |
+| 1 mês | R$ 29,99 | 30 dias | R$ 1,00 por dia |
+| 1 ano | R$ 149,99 | 365 dias | R$ 12,50/mês — economiza 58% |
+
+O tempo pago é contado em **dias** (por causa do plano semanal) e **soma** em
+cima do que ainda falta, então renovar antes do vencimento nunca faz perder
+dia nenhum.
 
 O app gera o **Pix copia-e-cola e o QR** na hora (BR Code EMV montado em
 `src/lib/pix.ts`, com CRC16 validado contra o vetor padrão). Cada cobrança leva
