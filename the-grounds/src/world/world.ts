@@ -519,6 +519,46 @@ export class World {
    * É onde o jogador deve nascer: de pé, na calçada, de frente para a via — e
    * não dentro de um lote ou em cima de uma laje.
    */
+  /**
+   * Ponto de partida do jogo: calçada de uma rua de verdade, de pé, de frente
+   * para a via.
+   *
+   * Varre as linhas da malha viária em vez de procurar calçada ao redor de uma
+   * coordenada escolhida a dedo — a casa inicial ficava a mais de sessenta
+   * metros de qualquer rua, e a busca por proximidade nunca achava nada.
+   * `perto` apenas ordena a busca: a rua mais próxima dele vem primeiro.
+   */
+  pontoInicial(perto: THREE.Vector3 | { x: number; z: number }): { x: number; z: number; yaw: number } {
+    const linhas = [...this.layout.xLines, ...this.layout.zLines]
+      .map((line) => ({ line, d: Math.abs((line.axis === 'x' ? perto.x : perto.z) - line.pos) }))
+      .sort((a, b) => a.d - b.d)
+
+    for (const { line } of linhas) {
+      const hw = CityLayout.halfWidth(line)
+      const recuo = hw + SIDEWALK * 0.55
+      for (const [de, ate] of line.spans) {
+        if (ate - de < 40) continue
+        // Longe das pontas do trecho, que são cruzamentos.
+        for (const frac of [0.5, 0.35, 0.65, 0.25, 0.75]) {
+          const t = de + (ate - de) * frac
+          for (const lado of [1, -1] as const) {
+            const px = line.axis === 'x' ? line.pos + lado * recuo : t
+            const pz = line.axis === 'x' ? t : line.pos + lado * recuo
+            if (Math.abs(px) > MAP_HALF || Math.abs(pz) > MAP_HALF) continue
+            const h = terrainHeight(px, pz)
+            if (h < WATER_LEVEL + 0.5) continue
+            if (this.collision.query(px, pz, 1.2).some((c) => c.solid && c.y + c.hy > h + 0.5)) continue
+            // Olhando para o eixo da via.
+            const yaw = line.axis === 'x' ? Math.atan2(-lado, 0) : Math.atan2(0, -lado)
+            return { x: px, z: pz, yaw }
+          }
+        }
+      }
+    }
+    const s = this.findSafeSpot(perto.x, perto.z)
+    return { x: s.x, z: s.z, yaw: 0 }
+  }
+
   dispose(): void {
     for (const key of [...this.sectors.keys()]) this.unloadSector(key)
     for (const c of this.terrainChunks.values()) c.mesh.geometry.dispose()
