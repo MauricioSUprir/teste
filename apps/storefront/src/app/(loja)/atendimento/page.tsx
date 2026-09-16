@@ -128,7 +128,7 @@ export default function PaginaAtendimento() {
               . Tem gente atendendo {NEGOCIO.horario.toLowerCase()}.
             </p>
           )}
-          <p>Atendemos {NEGOCIO.regiao.toLowerCase()}.</p>
+          <p>Atendemos {NEGOCIO.regiao}.</p>
         </div>
       </section>
 
