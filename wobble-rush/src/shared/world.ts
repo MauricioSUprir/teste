@@ -282,6 +282,7 @@ export class MatchSim {
       emote: 0,
       emoteTime: 0,
       idleTicks: 0,
+      stallTicks: 0,
       connected: true,
       lastSeq: 0,
     };
@@ -494,7 +495,21 @@ export class MatchSim {
     // Live progress for the ranking board.
     const prog = this.computeProgress(p);
     p.progress = prog;
-    if (prog > p.bestProgress) p.bestProgress = prog;
+    if (prog > p.bestProgress + 0.25) {
+      p.bestProgress = prog;
+      p.stallTicks = 0;
+    } else if (this.phase === RoundPhase.Running && p.finishTick < 0 && !p.eliminated) {
+      p.stallTicks++;
+    }
+
+    // Anti-stall, bots only. A bot wedged in scenery for a quarter of a minute
+    // makes the whole race look broken, so it resets to its own checkpoint -
+    // the same thing a fall would do, with no advantage gained. Human players
+    // are never moved: being stuck is their business to solve.
+    if (p.isBot && p.stallTicks > BOT_STALL_TICKS && p.state !== MoveState.Respawning) {
+      p.stallTicks = 0;
+      this.respawn(p);
+    }
     void dt;
   }
 
@@ -657,5 +672,8 @@ export class MatchSim {
 }
 
 const EMPTY_INPUT: InputCmd = makeInput();
+
+/** 15 seconds without forward progress. */
+const BOT_STALL_TICKS = 15 * 60;
 
 export { applyImpulse, capsuleSegment, clamp, lerp, v3copy, _tmp, _capA, _capB };

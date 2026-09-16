@@ -349,28 +349,149 @@ export class CollisionWorld {
     return out;
   }
 
-  /** Downward ray used by bots and spawn-safety checks. Returns hit distance or -1. */
+  /**
+   * Downward ray used by bots, spawn safety and the editor.
+   * Returns the distance to the first surface below, or -1.
+   */
   raycastDown(x: number, y: number, z: number, maxDist: number, scratch: Collider[] = []): number {
-    this.query(x - 0.2, y - maxDist, z - 0.2, x + 0.2, y, z + 0.2, scratch);
+    this.query(x - 0.05, y - maxDist, z - 0.05, x + 0.05, y, z + 0.05, scratch);
     let best = -1;
-    const origin = v3set(_tmp2, x, y, z);
     for (let i = 0; i < scratch.length; i++) {
       const c = scratch[i];
       if (c.noStand) continue;
-      // Approximate: sample the shape's surface directly beneath the origin.
-      const localP = isIdentity(c.rot)
-        ? v3set(_local, origin.x - c.pos.x, origin.y - c.pos.y, origin.z - c.pos.z)
-        : qRotateInv(_local, c.rot, v3set(_tmp, origin.x - c.pos.x, origin.y - c.pos.y, origin.z - c.pos.z));
-      const d = closestPointLocal(c, localP, _localClosest);
-      if (d > 0.6) continue;
-      const surfaceY = isIdentity(c.rot)
-        ? c.pos.y + _localClosest.y
-        : c.pos.y + qRotate(_world, c.rot, _localClosest).y;
-      const dist = y - surfaceY;
-      if (dist >= -0.05 && dist <= maxDist && (best < 0 || dist < best)) best = dist;
+      const t = rayVsCollider(x, y, z, 0, -1, 0, maxDist, c);
+      if (t >= 0 && (best < 0 || t < best)) best = t;
     }
     return best;
   }
+
+  /** General ray query against everything in the world. */
+  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number,
+          maxDist: number, scratch: Collider[] = []): number {
+    const ex = ox + dx * maxDist, ey = oy + dy * maxDist, ez = oz + dz * maxDist;
+    this.query(
+      Math.min(ox, ex) - 0.05, Math.min(oy, ey) - 0.05, Math.min(oz, ez) - 0.05,
+      Math.max(ox, ex) + 0.05, Math.max(oy, ey) + 0.05, Math.max(oz, ez) + 0.05, scratch);
+    let best = -1;
+    for (let i = 0; i < scratch.length; i++) {
+      const t = rayVsCollider(ox, oy, oz, dx, dy, dz, maxDist, scratch[i]);
+      if (t >= 0 && (best < 0 || t < best)) best = t;
+    }
+    return best;
+  }
+}
+
+const _rayO = v3();
+const _rayD = v3();
+
+/**
+ * Ray vs one collider. Returns the hit distance along the ray, or -1.
+ * Analytic per shape - approximations here would make bots jump at ghosts.
+ */
+export function rayVsCollider(
+  ox: number, oy: number, oz: number,
+  dx: number, dy: number, dz: number,
+  maxDist: number, c: Collider,
+): number {
+  if (!c.enabled) return -1;
+  const identity = isIdentity(c.rot);
+  v3set(_tmp, ox - c.pos.x, oy - c.pos.y, oz - c.pos.z);
+  const o = identity ? v3copy(_rayO, _tmp) : qRotateInv(_rayO, c.rot, _tmp);
+  v3set(_tmp, dx, dy, dz);
+  const d = identity ? v3copy(_rayD, _tmp) : qRotateInv(_rayD, c.rot, _tmp);
+
+  switch (c.kind) {
+    case ShapeKind.Box: {
+      let tmin = 0, tmax = maxDist;
+      const bo = [o.x, o.y, o.z];
+      const bd = [d.x, d.y, d.z];
+      const bh = [c.half.x, c.half.y, c.half.z];
+      for (let a = 0; a < 3; a++) {
+        if (Math.abs(bd[a]) < 1e-8) {
+          if (bo[a] < -bh[a] || bo[a] > bh[a]) return -1;
+          continue;
+        }
+        const inv = 1 / bd[a];
+        let t1 = (-bh[a] - bo[a]) * inv;
+        let t2 = (bh[a] - bo[a]) * inv;
+        if (t1 > t2) { const tt = t1; t1 = t2; t2 = tt; }
+        if (t1 > tmin) tmin = t1;
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) return -1;
+      }
+      return tmin <= maxDist ? tmin : -1;
+    }
+    case ShapeKind.Sphere:
+      return raySphere(o.x, o.y, o.z, d.x, d.y, d.z, c.half.x, maxDist);
+    case ShapeKind.Cylinder: {
+      const r = c.half.x, hy = c.half.y;
+      let best = -1;
+      // Side wall.
+      const a2 = d.x * d.x + d.z * d.z;
+      if (a2 > 1e-9) {
+        const b = 2 * (o.x * d.x + o.z * d.z);
+        const cc = o.x * o.x + o.z * o.z - r * r;
+        const disc = b * b - 4 * a2 * cc;
+        if (disc >= 0) {
+          const sq = Math.sqrt(disc);
+          for (const t of [(-b - sq) / (2 * a2), (-b + sq) / (2 * a2)]) {
+            if (t < 0 || t > maxDist) continue;
+            const yy = o.y + d.y * t;
+            if (yy >= -hy && yy <= hy && (best < 0 || t < best)) best = t;
+          }
+        }
+      }
+      // Caps.
+      if (Math.abs(d.y) > 1e-8) {
+        for (const capY of [hy, -hy]) {
+          const t = (capY - o.y) / d.y;
+          if (t < 0 || t > maxDist) continue;
+          const px = o.x + d.x * t, pz = o.z + d.z * t;
+          if (px * px + pz * pz <= r * r && (best < 0 || t < best)) best = t;
+        }
+      }
+      return best;
+    }
+    case ShapeKind.Capsule: {
+      const r = c.half.x, hl = c.half.y;
+      let best = -1;
+      const a2 = d.x * d.x + d.z * d.z;
+      if (a2 > 1e-9) {
+        const b = 2 * (o.x * d.x + o.z * d.z);
+        const cc = o.x * o.x + o.z * o.z - r * r;
+        const disc = b * b - 4 * a2 * cc;
+        if (disc >= 0) {
+          const sq = Math.sqrt(disc);
+          for (const t of [(-b - sq) / (2 * a2), (-b + sq) / (2 * a2)]) {
+            if (t < 0 || t > maxDist) continue;
+            const yy = o.y + d.y * t;
+            if (yy >= -hl && yy <= hl && (best < 0 || t < best)) best = t;
+          }
+        }
+      }
+      for (const capY of [hl, -hl]) {
+        const t = raySphere(o.x, o.y - capY, o.z, d.x, d.y, d.z, r, maxDist);
+        if (t >= 0 && (best < 0 || t < best)) best = t;
+      }
+      return best;
+    }
+  }
+}
+
+function raySphere(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number,
+                   r: number, maxDist: number): number {
+  const a = dx * dx + dy * dy + dz * dz;
+  if (a < 1e-9) return -1;
+  const b = 2 * (ox * dx + oy * dy + oz * dz);
+  const c = ox * ox + oy * oy + oz * oz - r * r;
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return -1;
+  const sq = Math.sqrt(disc);
+  const t1 = (-b - sq) / (2 * a);
+  const t2 = (-b + sq) / (2 * a);
+  if (t1 >= 0 && t1 <= maxDist) return t1;
+  if (t2 >= 0 && t2 <= maxDist) return t2;
+  return -1;
 }
 
 export function makeContact(): Contact {

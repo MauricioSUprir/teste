@@ -156,6 +156,8 @@ export interface PlayerSim {
 
   /** Ticks with no meaningful input, used by AFK handling. */
   idleTicks: number;
+  /** Ticks without forward progress - drives the bot anti-stall reset. */
+  stallTicks: number;
   connected: boolean;
   /** Last input sequence acknowledged - echoed back for reconciliation. */
   lastSeq: number;

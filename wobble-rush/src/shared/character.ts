@@ -46,6 +46,8 @@ const _candidates: Collider[] = [];
 const _normals: Vec3[] = [v3(), v3(), v3(), v3(), v3(), v3()];
 const _capA = v3();
 const _capB = v3();
+const _groundN = v3(0, 1, 0);
+const _stepDelta = v3();
 
 /** Capsule segment endpoints for a player, honouring the prone states. */
 export function capsuleSegment(p: PlayerSim, scale: number, outA: Vec3, outB: Vec3): number {
@@ -415,25 +417,54 @@ export function stepCharacter(p: PlayerSim, cmd: InputCmd, ctx: SimContext, dt: 
   // --- integrate ----------------------------------------------------------
   p.vel.y = Math.max(p.vel.y, -JUMP.maxFall);
 
-  // Carry by the surface underneath before integrating our own velocity.
+  // Integrate. Horizontal platform motion is already folded into p.vel by the
+  // surface-relative friction in groundMove, so only the vertical component of
+  // a moving surface needs an explicit carry (grounded players have vel.y ~ 0).
   v3scale(_delta, p.vel, dt);
-  if (p.grounded) {
-    _delta.x += p.groundVel.x * dt;
-    _delta.y += p.groundVel.y * dt;
-    _delta.z += p.groundVel.z * dt;
-  }
+  if (p.grounded && p.groundVel.y !== 0) _delta.y += p.groundVel.y * dt;
 
   const wasGrounded = p.grounded;
   const prevVelY = p.vel.y;
+  const preX = p.pos.x, preZ = p.pos.z;
   const res = moveAndCollide(p, _delta, ctx, scale, dt);
 
+  // The shared result object is reused by nested calls, so snapshot it.
+  let resGrounded = res.grounded;
+  let resCollider = res.groundCollider;
+  v3copy(_groundN, res.groundNormal);
+
+  // --- step up ------------------------------------------------------------
+  // Without this, a two-centimetre lip where a ramp meets a deck stops a
+  // sprinting player dead. Try lifting over the obstruction and settling back
+  // down; keep the result only if it genuinely made progress onto solid ground.
+  const wantedH = Math.hypot(_delta.x, _delta.z);
+  const movedH = Math.hypot(p.pos.x - preX, p.pos.z - preZ);
+  if (res.hitWall && (wasGrounded || resGrounded) && wantedH > 0.004 && movedH < wantedH * 0.72 &&
+      p.state !== MoveState.Ragdoll) {
+    const sx = p.pos.x, sy = p.pos.y, sz = p.pos.z;
+    const step = MOVE.stepHeight * scale;
+    p.pos.y += step;
+    v3set(_stepDelta, _delta.x - (p.pos.x - preX), 0, _delta.z - (p.pos.z - preZ));
+    moveAndCollide(p, _stepDelta, ctx, scale, dt);
+    v3set(_stepDelta, 0, -(step + 0.03), 0);
+    const down = moveAndCollide(p, _stepDelta, ctx, scale, dt);
+    const gainedH = Math.hypot(p.pos.x - sx, p.pos.z - sz);
+    if (down.grounded && gainedH > 0.012) {
+      resGrounded = true;
+      resCollider = down.groundCollider;
+      v3copy(_groundN, down.groundNormal);
+    } else {
+      v3set(p.pos, sx, sy, sz);
+    }
+  }
+
   // --- ground state -------------------------------------------------------
-  p.grounded = res.grounded;
-  if (res.grounded && res.groundCollider) {
-    v3copy(p.groundNormal, res.groundNormal);
-    p.groundColliderId = res.groundCollider.id;
-    p.groundSurface = res.groundCollider.surface;
-    colliderPointVelocity(p.groundVel, res.groundCollider, p.pos);
+  p.grounded = resGrounded;
+  if (resGrounded && resCollider) {
+    v3copy(p.groundNormal, _groundN);
+    p.groundColliderId = resCollider.id;
+    p.groundSurface = resCollider.surface;
+    colliderPointVelocity(p.groundVel, resCollider, p.pos);
     p.coyote = JUMP.coyoteTime;
     p.airJumpsUsed = 0;
   } else {
@@ -548,7 +579,6 @@ function groundMove(p: PlayerSim, wish: Vec3, hasInput: boolean, maxSpeed: numbe
       p.vel.x = p.groundVel.x + rvx * s;
       p.vel.z = p.groundVel.z + rvz * s;
     }
-    if (p.vel.y > 0) p.vel.y = 0;
     return;
   }
 
@@ -566,7 +596,9 @@ function groundMove(p: PlayerSim, wish: Vec3, hasInput: boolean, maxSpeed: numbe
     p.vel.x += (dx / dLen) * step;
     p.vel.z += (dz / dLen) * step;
   }
-  if (p.vel.y > 0) p.vel.y = 0;
+  // Upward velocity is deliberately left alone: ground contact already clamps
+  // it, and zeroing it here would mean an updraft could never lift a player
+  // who is standing on something.
 }
 
 function airMove(p: PlayerSim, wish: Vec3, hasInput: boolean, maxSpeed: number, dt: number, controlScale = 1): void {

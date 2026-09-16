@@ -113,30 +113,51 @@ cp(1, 0, 0, 50, 11, 3);
 // fastest way through is a dive between two press cycles.
 // ══════════════════════════════════════════════════════════════════════════
 floor(0, 55, 9, 4);
+// Full-width belt: the floor before it and the belt itself line up exactly, so
+// nobody is eaten by an invisible edge.
 obs({
   kind: 'conveyor', id: nid('belt'), group: 'always', pos: [0, 0, 66],
-  size: [7, 0.4, 7], dir: [0, 0, -3.1], surface: Surface.Conveyor, color: 0x2f3b52,
+  size: [9, 0.4, 7], dir: [0, 0, -1.9], surface: Surface.Conveyor, color: 0x2f3b52,
 });
-for (let i = 0; i < 4; i++) {
-  const x = -4.5 + i * 3;
+// Three presses, widely spaced and on a readable rhythm. Force is tuned to
+// *stumble*, not to flatten: being shoved back onto a belt is already a
+// punishment, and a ragdoll here would feel unfair.
+for (let i = 0; i < 3; i++) {
+  const x = -5.6 + i * 5.6;
+  const pz = 61.5 + (i % 2) * 7.5;
   obs({
-    kind: 'piston', id: nid('press'), group: 'always', pos: [x, 4.6, 62 + (i % 2) * 7],
-    size: [1.1, 1.1, 1.1], dir: [0, -1, 0], range: 3.6, speed: 1.05 + (i % 3) * 0.14,
-    phase: i * 0.55, force: 15, dwell: 0.32, surface: Surface.Padded, color: 0xff5470,
+    kind: 'piston', id: nid('press'), group: 'always', pos: [x, 4.8, pz],
+    size: [1.4, 1.2, 1.4], dir: [0, -1, 0], range: 3.9, speed: 0.92 + (i % 2) * 0.12,
+    phase: i * 0.85, force: 9.5, dwell: 0.55, surface: Surface.Padded, color: 0xff5470,
   });
-  cyl(x, 7.4, 62 + (i % 2) * 7, 0.35, 2.4, { style: 'pipe', decorOnly: true });
+  cyl(x, 7.6, pz, 0.4, 2.4, { style: 'pipe', decorOnly: true });
 }
-floor(0, 76, 9, 3);
-// Gap crossed by two platforms sliding on opposite phases.
-obs({
-  kind: 'platform', id: nid('plat'), group: 'always', pos: [-5, 0, 83],
-  size: [2.6, 0.4, 2.6], dir: [1, 0, 0], range: 10, speed: 0.85, dwell: 0.7, surface: Surface.Grate,
-});
-obs({
-  kind: 'platform', id: nid('plat'), group: 'always', pos: [5, 0, 88],
-  size: [2.6, 0.4, 2.6], dir: [-1, 0, 0], range: 10, speed: 0.85, phase: 1.9, dwell: 0.7, surface: Surface.Grate,
-});
-floor(0, 95, 10, 4);
+floor(0, 77, 9, 3.5);
+rail(-9, 77, 0.4, 3.5);
+rail(9, 77, 0.4, 3.5);
+// Two ferries shuttle across the drop on opposite phases: wait for yours, or
+// gamble on a dive. They are wide enough for a crowd to share and quick enough
+// that 32 players are not queueing.
+for (let i = 0; i < 2; i++) {
+  obs({
+    kind: 'platform', id: nid('ferry'), group: 'always', pos: [i === 0 ? -4.6 : 4.6, 0, 81],
+    size: [3.8, 0.4, 3.4], dir: [0, 0, 1], range: 8.2, speed: 1.15, phase: i * 1.7,
+    dwell: 0.55, surface: Surface.Grate,
+  });
+}
+// Salvage deck. Missing the ferry drops you one level, not out of the round:
+// you lose ~6 seconds jogging up the ramp while everyone laughs. A pit that
+// only ever means "respawn" turns crowd chaos into frustration.
+floor(0, 78, 8, 4, -6.5, { style: 'accent' });
+rail(-8, 78, 0.4, 4, -6.5);
+rail(8, 78, 0.4, 4, -6.5);
+// 37 degree climb back to the course - steep enough to cost time, shallow
+// enough to run up without fighting the controller.
+// Both ends are buried into their decks: a ramp whose tip rests *on* the floor
+// presents its end face as a wall, and players walk straight underneath it.
+ramp(0, -3.35, 85.75, 8, 6.34, -0.595);
+box(0, -5.6, 78, 5.5, 0.5, 0.3, { style: 'lightPanel', decorOnly: true, color: 0xffcf5c });
+floor(0, 95, 10, 4.5);
 cp(2, 0, 0, 95, 10, 4);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -159,21 +180,23 @@ for (let i = 0; i < 2; i++) {
   box(-8.4, 2.4, 112 + i * 16, 0.4, 2.6, 0.5, { group: 'routeL', style: 'metal' });
 }
 // -- CENTRE: spinning discs over the drop. The default line. ---------------
-floor(0, 99, 5, 4, 0, { group: 'routeC' });
+floor(0, 99, 8.5, 4, 0, { group: 'routeC' });
+rail(-6.6, 103, 1.9, 0.4, 0, { group: 'routeC' });
+rail(6.6, 103, 1.9, 0.4, 0, { group: 'routeC' });
 for (let i = 0; i < 4; i++) {
   obs({
-    kind: 'spinner', id: nid('disc'), group: 'routeC', pos: [i % 2 === 0 ? -2.6 : 2.6, 0, 108 + i * 8],
-    size: [3.4, 0.4, 3.4], speed: 0.6 + i * 0.1, phase: i * 1.3,
+    kind: 'spinner', id: nid('disc'), group: 'routeC', pos: [i % 2 === 0 ? -2.2 : 2.2, 0, 108 + i * 7.6],
+    size: [4.5, 0.4, 4.5], speed: 0.3 + i * 0.07, phase: i * 1.3,
     meta: { reverse: i % 2 === 1 }, surface: Surface.Grate,
   });
 }
 for (let i = 0; i < 2; i++) {
   obs({
-    kind: 'pendulum', id: nid('hammer'), group: 'routeC', pos: [0, 9.5, 112 + i * 16],
-    range: 6.2, size: [1.25, 1.25, 1.25], speed: 0.95, phase: i * 1.05, force: 17,
+    kind: 'pendulum', id: nid('hammer'), group: 'routeC', pos: [0, 7.9, 111.5 + i * 15.5],
+    range: 6.2, size: [1.25, 1.25, 1.25], speed: 0.95, phase: i * 1.05, force: 12,
     meta: { amp: 1.0 }, color: 0xff5470,
   });
-  cyl(0, 9.6, 112 + i * 16, 0.3, 0.35, { group: 'routeC', style: 'metal', decorOnly: true });
+  cyl(0, 8.0, 111.5 + i * 15.5, 0.3, 0.35, { group: 'routeC', style: 'metal', decorOnly: true });
 }
 floor(0, 141, 5, 4, 0, { group: 'routeC' });
 // -- RIGHT: the gamble. Crumbling tiles and a trampoline skip. -------------
@@ -193,7 +216,7 @@ obs({
   size: [2.1, 0.35, 2.1], range: 1.55, color: 0x5cf2c8,
 });
 floor(12, 128, 2.6, 2.6, 0, { group: 'routeR' });
-floor(8, 141, 5, 4, 0, { group: 'routeR' });
+floor(9, 137, 5, 5, 0, { group: 'routeR' });
 // -- Upper catwalk: only in the 'highroad' layout. --------------------------
 floor(0, 120, 3, 20, 7.5, { group: 'upper', style: 'accent' });
 ramp(0, 3.9, 103, 3, 6.5, -0.55, { group: 'upper' });
@@ -249,6 +272,7 @@ for (let i = 0; i < 3; i++) {
   });
 }
 cp(4, 0, 0, 190, 13, 4);
+cp(5, 0, -5.2, 214, 9, 6);
 
 // ══════════════════════════════════════════════════════════════════════════
 // SECTION 5 - DROP RUN  (z 190 .. 232)
@@ -259,15 +283,20 @@ obs({
   kind: 'rotator', id: nid('rot'), group: 'always', pos: [0, -2.6, 202],
   size: [6.2, 0.36, 0.5], speed: 1.25, count: 3, force: 12,
 });
-floor(0, 214, 9, 5, -5.2);
+floor(0, 214, 9, 6, -5.2);
+// Optional launch pad: dropping onto it from the ramp throws you over the gap
+// with room to spare. Ignore it and you still make the jump - if you commit.
 obs({
-  kind: 'trampoline', id: nid('tramp'), group: 'always', pos: [0, -5.2, 215],
-  size: [2.6, 0.35, 2.6], range: 1.72, color: 0x5cf2c8,
+  kind: 'trampoline', id: nid('tramp'), group: 'always', pos: [0, -5.2, 217.5],
+  size: [2.4, 0.35, 2.4], range: 1.72, color: 0x5cf2c8,
 });
-// Final gap: reachable from the trampoline, or with a committed dive.
-floor(0, 228, 11, 6, -1.2);
-box(0, 1.2, 231.5, 11, 1.6, 0.4, { style: 'accent', decorOnly: true, color: 0x5cf2c8 });
-vol({ kind: 'finish', id: 'finish', pos: [0, 0.6, 228], size: [11, 4, 6] });
+// The last gap is 4.5 m: a running jump clears it, a stumble does not. This is
+// where photo finishes come from.
+floor(0, 230, 11, 6, -5.2);
+box(0, -2.8, 233.5, 11, 1.6, 0.4, { style: 'accent', decorOnly: true, color: 0x5cf2c8 });
+cyl(-10.5, -3.2, 224.5, 0.5, 2, { style: 'accent' });
+cyl(10.5, -3.2, 224.5, 0.5, 2, { style: 'accent' });
+vol({ kind: 'finish', id: 'finish', pos: [0, -3.4, 230], size: [11, 4, 6] });
 
 // Decorative skyline: the map should feel like a working factory, not a box.
 for (let i = 0; i < 14; i++) {
@@ -305,16 +334,19 @@ const routes: RouteDef[] = [
     startDist: 96, endDist: 152, risk: 0.15, width: 4,
   },
   {
+    // Waypoints sit on the actual discs - a route that does not match the
+    // geometry is just an instruction to walk into the void.
     id: 'r_centre', group: 'routeC',
-    points: [[0, 0.6, 96], [0, 0.6, 104], [-2.6, 0.6, 112], [2.6, 0.6, 120], [-2.6, 0.6, 128],
-      [0, 0.6, 138], [0, 0.6, 148]],
-    startDist: 96, endDist: 152, risk: 0.5, width: 3.2,
+    points: [[0, 0.6, 97], [0, 0.6, 102], [-2.2, 0.6, 108], [2.2, 0.6, 115.6], [-2.2, 0.6, 123.2],
+      [2.2, 0.6, 130.8], [0, 0.6, 138], [0, 0.6, 148]],
+    startDist: 96, endDist: 152, risk: 0.5, width: 3.0,
   },
   {
     id: 'r_right', group: 'routeR',
-    points: [[4, 0.6, 96], [12, 0.6, 102], [12, 0.6, 114], [12, 0.6, 126], [12, 2.4, 130],
-      [8, 0.6, 142], [0, 0.6, 148]],
-    startDist: 96, endDist: 152, risk: 0.85, width: 2.6,
+    points: [[6, 0.6, 97], [12, 0.6, 101], [10.4, 0.6, 106], [13.6, 0.6, 110.2],
+      [10.4, 0.6, 114.4], [13.6, 0.6, 118.6], [10.4, 0.6, 122.8], [12, 0.6, 128],
+      [9, 0.6, 138], [4, 0.6, 144], [0, 0.6, 148]],
+    startDist: 96, endDist: 152, risk: 0.85, width: 2.4,
   },
   {
     id: 'r_upper', group: 'upper',
@@ -322,10 +354,29 @@ const routes: RouteDef[] = [
     startDist: 96, endDist: 152, risk: 0.35, width: 2.8,
   },
   {
+    // Salvage deck -> ramp -> back on course. Bots pick this only when they are
+    // actually down there, because route choice weighs 3D proximity.
+    id: 'r_salvage',
+    points: [[0, -6.1, 76], [0, -6.1, 81], [0, -4, 85], [0, -1.6, 89], [0, 0.6, 93], [0, 0.6, 97]],
+    startDist: 78, endDist: 99, risk: 0, width: 7,
+  },
+  {
+    // Round the turbine pit on the rim walkway. Routing straight through the
+    // fan shaft is exactly how you send a whole bot field into a hole.
     id: 'r_end',
-    points: [[0, 0.6, 152], [0, 0.6, 162], [6, 0.6, 172], [0, 0.6, 184], [0, 0.6, 192],
-      [0, -1, 200], [0, -4.6, 212], [0, -4.6, 218], [0, -0.6, 228]],
+    points: [[0, 0.6, 152], [0, 0.6, 161], [11.5, 0.6, 166], [11.5, 0.6, 178],
+      [0, 0.6, 184], [0, 0.6, 191], [0, -1.4, 200], [0, -4.6, 210], [0, -4.6, 219],
+      [0, -4.6, 226], [0, -4.6, 231]],
     startDist: 152, endDist: 240, risk: 0.2, width: 7,
+  },
+  {
+    // The updraft line: ride the fan, cross the shaft on air. Shorter, and far
+    // more likely to end with you in the basement.
+    id: 'r_updraft', group: 'always',
+    points: [[0, 0.6, 152], [0, 0.6, 162], [0, 2, 170], [0, 4, 176], [0, 0.6, 184],
+      [0, 0.6, 191], [0, -1.4, 200], [0, -4.6, 210], [0, -4.6, 219],
+      [0, -4.6, 226], [0, -4.6, 231]],
+    startDist: 152, endDist: 240, risk: 0.8, width: 4,
   },
 ];
 
