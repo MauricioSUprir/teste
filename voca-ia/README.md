@@ -72,22 +72,50 @@ Criar conta com e-mail guarda XP, ofensiva, lições e revisões no servidor
 igual**, só fica preso ao navegador. O merge é sempre a favor de quem tem mais
 progresso: ninguém perde ofensiva por ter entrado em outro aparelho.
 
-### 7. VOCA PRO (ainda não cobrando)
-As funções de IA — conversa contínua, explicação, chat de dúvidas e ajuda nas
-questões — são as que entrarão no plano pago. A estrutura já está pronta:
-`src/lib/plan.ts` controla tudo e a página de assinatura existe. Enquanto
-`VITE_PAYWALL` não for `on`, **tudo fica liberado**. Para ligar a cobrança:
+### 7. Limite diário das IAs
+Os planos grátis têm cota por dia. Quando **as duas** IAs recusam, o app não dá
+erro seco: mostra um aviso explicando que acabou por hoje, quanto falta para
+virar o dia, e o que continua funcionando (lições, revisão, vídeos, modo
+offline). Uma faixa discreta fica na home até a virada. Detecção por HTTP 429 e
+pelas mensagens de cota de cada serviço.
 
-```bash
-VITE_PAYWALL=on
-VITE_CHECKOUT_URL=https://seu-checkout   # Stripe, Mercado Pago, etc.
+### 8. VOCA PRO — pagamento por Pix
+Três planos, **só Pix**, sem gateway no meio (o dinheiro cai direto na conta):
+
+| Plano | Preço | Sai por |
+|---|---|---|
+| Mensal | R$ 14,90 | R$ 14,90/mês |
+| 3 meses | R$ 37,90 | R$ 12,63/mês — economiza 15% |
+| 1 ano | R$ 119,90 | R$ 9,99/mês — economiza 33% |
+
+O app gera o **Pix copia-e-cola e o QR** na hora (BR Code EMV montado em
+`src/lib/pix.ts`, com CRC16 validado contra o vetor padrão). Cada cobrança leva
+um identificador único (`VOCAANU7K2Q`), que é como você encontra o pagamento.
+
+Fluxo: escolhe o plano → paga no banco → toca em "já paguei" → o app registra em
+`payments` com status `aguardando`. Quando o Pix cair, você confirma:
+
+```sql
+select public.aprovar_pagamento('VOCAANU7K2Q');
 ```
 
-O plano vive na conta (`progress.plan` / `progress.pro_until` no banco) e é
-protegido por trigger: o app nunca consegue se promover sozinho a PRO — só o
-servidor de pagamento.
+Isso marca o pagamento e libera o PRO na conta, somando o tempo em cima do que
+ainda restava. O app **nunca** consegue se promover: um trigger no banco recusa
+qualquer mudança de plano vinda de requisição autenticada do app.
 
-### 8. O que faz voltar todo dia
+Configure a sua conta Pix no build:
+
+```bash
+VITE_PIX_KEY=sua-chave-pix
+VITE_PIX_NAME="NOME COMO ESTA NO BANCO"
+VITE_PIX_CITY="SUA CIDADE"
+VITE_PAYWALL=on     # só quando quiser de fato travar as funções de IA
+```
+
+Enquanto `VITE_PAYWALL` não for `on`, **tudo fica liberado** e a página de planos
+serve só para quem quiser apoiar.
+
+### 9. O que faz voltar todo dia
 Ofensiva 🔥 (com 1 congelamento), 5 vidas que voltam sozinhas, XP e níveis, meta
 diária, 12 conquistas, e **revisão espaçada** (SM-2): cada frase volta no dia em que
 você está prestes a esquecê-la.

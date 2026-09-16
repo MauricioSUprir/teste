@@ -25,23 +25,50 @@ export function canUse(save: SaveData, _f: ProFeature) {
   return !PAYWALL_ON || isPro(save)
 }
 
-export const PLANS = [
+export type Plano = {
+  id: string
+  title: string
+  /** valor cheio, em reais */
+  price: number
+  months: number
+  /** quanto sai por mes, so para comparar */
+  perMonth: string
+  badge?: string
+  destaque?: boolean
+  perks: string[]
+}
+
+/** Tres planos, pagamento so por Pix. */
+export const PLANS: Plano[] = [
   {
     id: 'mensal',
-    title: 'VOCA PRO mensal',
-    price: 'R$ 19,90',
-    period: '/mês',
+    title: 'Mensal',
+    price: 14.9,
+    months: 1,
+    perMonth: 'R$ 14,90 por mês',
     perks: ['Conversa contínua ilimitada', 'Explicação de cada erro', 'Chat de dúvidas', 'Ajuda do Voca nas questões'],
   },
   {
+    id: 'trimestral',
+    title: '3 meses',
+    price: 37.9,
+    months: 3,
+    perMonth: 'sai por R$ 12,63 por mês',
+    badge: 'economiza 15%',
+    perks: ['Tudo do mensal', 'Um mês sai de graça na conta', 'Bom para fechar um semestre de estudo'],
+  },
+  {
     id: 'anual',
-    title: 'VOCA PRO anual',
-    price: 'R$ 149',
-    period: '/ano',
-    badge: 'economiza 37%',
-    perks: ['Tudo do mensal', '2 meses de graça', 'Prioridade nas novidades'],
+    title: '1 ano',
+    price: 119.9,
+    months: 12,
+    perMonth: 'sai por R$ 9,99 por mês',
+    badge: 'economiza 33%',
+    destaque: true,
+    perks: ['Tudo do mensal', 'Quase 4 meses de graça', 'O preço trava: reajuste não pega você'],
   },
 ]
 
-/** Link de checkout (Stripe, Mercado Pago...). Vazio = pagamento ainda nao ligado. */
-export const CHECKOUT_URL = import.meta.env.VITE_CHECKOUT_URL ?? ''
+export function reais(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}

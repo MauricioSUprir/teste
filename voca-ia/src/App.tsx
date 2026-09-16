@@ -9,6 +9,7 @@ import { Placement } from './screens/Placement'
 import { Account } from './screens/Account'
 import { Subscribe } from './screens/Subscribe'
 import { voicesReady } from './lib/speech'
+import { LimitNotice } from './components/LimitNotice'
 import { currentSession, merge, pull, push, accountsEnabled } from './lib/account'
 import type { ProFeature } from './lib/plan'
 
@@ -63,22 +64,31 @@ export function App() {
 
   if (!save.profile.onboarded) return <Onboarding go={setView} />
 
-  switch (view.name) {
-    case 'lesson':
-      return <Lesson lessonId={view.lessonId} onExit={() => setView({ name: 'home' })} onPaywall={() => setView({ name: 'assinar', feature: 'explicacao' })} />
-    case 'review':
-      return <Lesson review onExit={() => setView({ name: 'home' })} onPaywall={() => setView({ name: 'assinar', feature: 'explicacao' })} />
-    case 'conversa':
-      return <Conversation onExit={() => setView({ name: 'home' })} />
-    case 'perfil':
-      return <Profile go={setView} onExit={() => setView({ name: 'home' })} />
-    case 'nivelamento':
-      return <Placement langId={view.langId} onDone={() => setView({ name: 'home' })} />
-    case 'conta':
-      return <Account onExit={() => setView({ name: 'perfil' })} />
-    case 'assinar':
-      return <Subscribe feature={view.feature} onExit={() => setView({ name: 'home' })} />
-    default:
-      return <Home go={setView} />
+  return (
+    <>
+      <LimitNotice />
+      {tela()}
+    </>
+  )
+
+  function tela() {
+    switch (view.name) {
+      case 'lesson':
+        return <Lesson lessonId={view.lessonId} onExit={() => setView({ name: 'home' })} onPaywall={() => setView({ name: 'assinar', feature: 'explicacao' })} />
+      case 'review':
+        return <Lesson review onExit={() => setView({ name: 'home' })} onPaywall={() => setView({ name: 'assinar', feature: 'explicacao' })} />
+      case 'conversa':
+        return <Conversation onExit={() => setView({ name: 'home' })} />
+      case 'perfil':
+        return <Profile go={setView} onExit={() => setView({ name: 'home' })} />
+      case 'nivelamento':
+        return <Placement langId={view.langId} onDone={() => setView({ name: 'home' })} />
+      case 'conta':
+        return <Account onExit={() => setView({ name: 'perfil' })} />
+      case 'assinar':
+        return <Subscribe feature={view.feature} onExit={() => setView({ name: 'home' })} />
+      default:
+        return <Home go={setView} />
+    }
   }
 }

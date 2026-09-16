@@ -172,7 +172,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
           <button className="btn ghost" onClick={() => setConfirmReset(false)}>cancelar</button>
         </div>
       ) : (
-        <button className="btn ghost" onClick={() => setConfirmReset(true)}>Apagar meu progresso</button>
+        <button className="btn ghost perigo" onClick={() => setConfirmReset(true)}>Apagar meu progresso</button>
       )}
 
       <p className="muted small">

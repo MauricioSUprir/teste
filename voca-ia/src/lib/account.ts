@@ -139,3 +139,32 @@ export function merge(local: SaveData, cloud: SaveData): SaveData {
     },
   }
 }
+
+export type NovoPagamento = { plan: string; amount: number; months: number; txid: string; email: string }
+
+/** Registra a intencao de pagamento. Quem libera o plano e o dono, ao conferir o Pix. */
+export async function registrarPagamento(userId: string, p: NovoPagamento) {
+  const c = db()
+  if (!c) throw new Error('contas não estão configuradas neste servidor')
+  const { error } = await c.from('payments').insert({
+    user_id: userId,
+    email: p.email,
+    plan: p.plan,
+    amount: p.amount,
+    months: p.months,
+    txid: p.txid,
+  })
+  if (error) throw new Error(error.message)
+}
+
+/** Pagamentos da pessoa, do mais novo para o mais antigo. */
+export async function meusPagamentos() {
+  const c = db()
+  if (!c) return []
+  const { data } = await c
+    .from('payments')
+    .select('plan, amount, txid, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5)
+  return data ?? []
+}

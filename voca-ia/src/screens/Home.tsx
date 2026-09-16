@@ -8,6 +8,7 @@ import { dueCards } from '../lib/srs'
 import { Voca } from '../components/Voca'
 import { today } from '../lib/util'
 import { canUse } from '../lib/plan'
+import { LimitBanner } from '../components/LimitNotice'
 
 export function Home({ go }: { go: (v: View) => void }) {
   const { save, patchProfile, minutesToHeart } = useStore()
@@ -48,6 +49,8 @@ export function Home({ go }: { go: (v: View) => void }) {
           <span className="stat" title="Nível">⚡ {save.xp}</span>
         </div>
       </header>
+
+      <LimitBanner />
 
       <div className="lang-strip">
         {LANGUAGES.map((l) => (

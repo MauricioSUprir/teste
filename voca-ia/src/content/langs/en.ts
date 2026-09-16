@@ -18,12 +18,12 @@ export const EN_UNITS: Unit[] = [
           ["I'm fine, thanks. And you?", "Estou bem, obrigado(a). E você?", undefined, "I am fine, thanks. And you?"],
           ["Nice to meet you.", "Prazer em te conhecer.", "Só se usa no PRIMEIRO encontro."],
           ["What's your name?", "Qual e o seu nome?", undefined, "What is your name?"],
-          ["My name is Ana.", "Meu nome e Ana.", undefined, "I'm Ana | I am Ana"],
+          ["My name is Ana.", "Meu nome é Ana.", undefined, "I'm Ana | I am Ana"],
           ["See you later!", "Até mais tarde!", undefined, "See you!"],
           ["Good morning, everyone.", "Bom dia, pessoal.", "Morning até o almoco, afternoon até ~18h, evening depois."],
           ["Have a good day!", "Tenha um bom dia!"],
         ]),
-      lesson('u1l2', '🪪', 'Quem e voce', 'Falar de si mesma sem soar um robo', 
+      lesson('u1l2', '🪪', 'Quem é você', 'Falar de si mesma sem soar um robo', 
         { title: "Have x Be", body: "Idade em inglês usa TO BE: \"I am 15 years old\". \"I have 15 years\" não existe — isso é tradução direta do português e o Grimm vai rir de você." },
         [
           ["I'm 16 years old.", "Eu tenho 16 anos.", "Idade: I AM, nunca I have.", "I am 16 years old | I'm 16"],
@@ -35,7 +35,7 @@ export const EN_UNITS: Unit[] = [
           ["I don't speak English very well yet.", "Eu ainda não falo inglês muito bem.", "\"yet\" vai no fim da frase.", "I do not speak English very well yet"],
           ["Can you repeat that, please?", "Você pode repetir, por favor?", "Sua frase mais útil no mundo real."],
         ]),
-      lesson('u1l3', '🔢', 'Numeros e horas', 'Numero, telefone, hora e preco', undefined,
+      lesson('u1l3', '🔢', 'Números e horas', 'Número, telefone, hora e preço', undefined,
         [
           ["What time is it?", "Que horas são?"],
           ["It's half past seven.", "São sete e meia.", "half past = e meia; quarter past = e quinze.", "It is half past seven | It's seven thirty"],
@@ -79,7 +79,7 @@ export const EN_UNITS: Unit[] = [
           ["What time do you go to bed?", "Que horas você vai dormir?"],
           ["I'm always tired on Sunday night.", "Eu estou sempre cansada no domingo à noite.", undefined, "I am always tired on Sunday night"],
         ]),
-      lesson('u2l2', '👨‍👩‍👧', 'Familia e gente', 'Falar dos outros (e reclamar deles)', undefined,
+      lesson('u2l2', '👨‍👩‍👧', 'Família e gente', 'Falar dos outros (e reclamar deles)', undefined,
         [
           ["This is my mom.", "Essa e minha mãe.", undefined, "This is my mother"],
           ["My sister is older than me.", "Minha irma e mais velha que eu.", "Adjetivo curto + -er + than."],
@@ -90,7 +90,7 @@ export const EN_UNITS: Unit[] = [
           ["My cousin lives abroad.", "Meu primo mora no exterior."],
           ["People are complicated.", "As pessoas são complicadas.", "\"people\" e plural: people ARE, nunca people is."],
         ]),
-      lesson('u2l3', '🍔', 'Pedindo comida', 'Restaurante, lanchonete e cafe', 
+      lesson('u2l3', '🍔', 'Pedindo comida', 'Restaurante, lanchonete e café', 
         { title: "I'd like", body: "\"I want\" soa grosseiro pedindo algo. Use \"I'd like\" (I would like) — educado e universal." },
         [
           ["I'd like a coffee, please.", "Eu queria um café, por favor.", "I'd like = versao educada de I want.", "I would like a coffee, please"],
@@ -102,7 +102,7 @@ export const EN_UNITS: Unit[] = [
           ["It was delicious, thank you.", "Estava delicioso, obrigada."],
           ["Can I get this to go?", "Posso levar pra viagem?"],
         ]),
-      lesson('u2l4', '🏠', 'Em casa agora', 'Present continuous: o que esta rolando',
+      lesson('u2l4', '🏠', 'Em casa agora', 'Present continuous: o que está rolando',
         { title: 'Present continuous', body: "Acontecendo AGORA: be + verbo-ING. \"I am watching a series.\"\nNao use com verbos de estado: \"I am liking\" não — e \"I like\"." },
         [
           ["I'm watching a series.", "Estou assistindo uma serie.", undefined, "I am watching a series"],
@@ -123,7 +123,7 @@ export const EN_UNITS: Unit[] = [
     cefr: 'A2',
     color: '#F4A259',
     lessons: [
-      lesson('u3l1', '🧭', 'Achar o caminho', 'Pedir e entender direcoes',
+      lesson('u3l1', '🧭', 'Achar o caminho', 'Pedir e entender direções',
         { title: 'Preposições de lugar', body: "in front of (em frente), next to (ao lado), across from (do outro lado), between (entre), on the corner (na esquina)." },
         [
           ["Excuse me, where is the bathroom?", "Com licenca, onde fica o banheiro?", "\"Excuse me\" abre; \"Sorry\" pede desculpa."],
@@ -135,7 +135,7 @@ export const EN_UNITS: Unit[] = [
           ["I think I'm lost.", "Acho que estou perdida.", undefined, "I think I am lost"],
           ["Can you show me on the map?", "Você pode me mostrar no mapa?"],
         ]),
-      lesson('u3l2', '🛍️', 'Comprando', 'Loja, tamanho, preco e devolucao', undefined,
+      lesson('u3l2', '🛍️', 'Comprando', 'Loja, tamanho, preço e devolução', undefined,
         [
           ["I'm just looking, thanks.", "Só estou olhando, obrigada.", undefined, "I am just looking, thanks"],
           ["Do you have this in a smaller size?", "Você tem isso num tamanho menor?"],
@@ -157,7 +157,7 @@ export const EN_UNITS: Unit[] = [
           ["How much is a ticket to the airport?", "Quanto custa uma passagem pro aeroporto?"],
           ["I'm here on vacation.", "Estou aqui de férias.", "vacation (EUA) / holiday (UK).", "I am here on vacation"],
         ]),
-      lesson('u3l4', '🆘', 'Deu ruim', 'Pedir ajuda quando algo da errado', undefined,
+      lesson('u3l4', '🆘', 'Deu ruim', 'Pedir ajuda quando algo dá errado', undefined,
         [
           ["I need help, please.", "Preciso de ajuda, por favor."],
           ["I lost my phone.", "Perdi meu celular."],
@@ -200,7 +200,7 @@ export const EN_UNITS: Unit[] = [
           ["Nothing special happened.", "Nada de especial aconteceu."],
           ["I wish I could do it again.", "Queria poder fazer de novo."],
         ]),
-      lesson('u4l3', '📖', 'Contando uma historia', 'Ligar as frases: then, so, but', 
+      lesson('u4l3', '📖', 'Contando uma história', 'Ligar as frases: then, so, but', 
         { title: 'Conectores', body: "then (então/depois), só (então/por isso), because (porque), but (mas), after that (depois disso), suddenly (de repente). Sem conector, sua história soa como lista de compras." },
         [
           ["First, we met at the mall.", "Primeiro, a gente se encontrou no shopping."],
@@ -283,11 +283,11 @@ export const EN_UNITS: Unit[] = [
   {
     id: 'u6',
     title: 'Conversa de Verdade',
-    subtitle: 'Opinião, sentimento, giria e internet',
+    subtitle: 'Opinião, sentimento, gíria e internet',
     cefr: 'B1',
     color: '#FF6B6B',
     lessons: [
-      lesson('u6l1', '💭', 'Dar opiniao', 'Concordar, discordar, sem briga', undefined,
+      lesson('u6l1', '💭', 'Dar opinião', 'Concordar, discordar, sem briga', undefined,
         [
           ["In my opinion, that's a bad idea.", "Na minha opinião, isso e uma ma ideia.", undefined, "In my opinion, that is a bad idea"],
           ["I totally agree with you.", "Concordo totalmente com você.", "agree WITH pessoa, agree ON assunto."],
@@ -298,9 +298,9 @@ export const EN_UNITS: Unit[] = [
           ["You have a point there.", "Você tem razão nisso."],
           ["Let's agree to disagree.", "Vamos concordar em discordar."],
         ]),
-      lesson('u6l2', '🫀', 'Sentimentos', 'Dizer o que ta rolando por dentro', undefined,
+      lesson('u6l2', '🫀', 'Sentimentos', 'Dizer o que tá rolando por dentro', undefined,
         [
-          ["I'm so tired of this.", "Estou tão cansada disso.", undefined, "I am só tired of this"],
+          ["I'm so tired of this.", "Estou tão cansada disso.", undefined, "I am so tired of this"],
           ["That makes me really happy.", "Isso me deixa muito feliz.", "make + pessoa + adjetivo, sem to."],
           ["I'm nervous about the test.", "Estou nervosa por causa da prova.", "nervous ABOUT.", "I am nervous about the test"],
           ["It's not a big deal.", "Não e grande coisa.", undefined, "It is not a big deal"],
@@ -309,7 +309,7 @@ export const EN_UNITS: Unit[] = [
           ["That scared me to death.", "Isso me matou de susto."],
           ["I'm over it.", "Já superei.", undefined, "I am over it"],
         ]),
-      lesson('u6l3', '🔗', 'Phrasal verbs', 'Os que aparecem em toda serie',
+      lesson('u6l3', '🔗', 'Phrasal verbs', 'Os que aparecem em toda série',
         { title: 'Phrasal verbs', body: "Verbo + preposição muda tudo: give up (desistir), figure out (descobrir), show up (aparecer), run out of (ficar sem), put up with (aturar), look forward to (estar ansioso por)." },
         [
           ["Don't give up now.", "Não desista agora.", undefined, "Do not give up now"],
@@ -321,7 +321,7 @@ export const EN_UNITS: Unit[] = [
           ["Calm down and think it over.", "Se acalme e pense bem."],
           ["Hold on, I'll be back.", "Espera ai, já volto.", undefined, "Hold on, I will be back"],
         ]),
-      lesson('u6l4', '😎', 'Giria e internet', 'Falar como gente da sua idade', undefined,
+      lesson('u6l4', '😎', 'Gíria e internet', 'Falar como gente da sua idade', undefined,
         [
           ["That's so cringe.", "Isso e tão vergonha alheia.", undefined, "That is só cringe"],
           ["No way, seriously?", "Sem chance, sério?"],

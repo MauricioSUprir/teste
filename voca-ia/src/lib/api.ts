@@ -1,6 +1,7 @@
 // Cliente do servidor. Se o servidor nao estiver de pe (ou sem chave),
 // tudo cai no modo offline — o app inteiro continua funcionando.
 import type { ChatTurn, Correction } from '../state/types'
+import { LimitError, reportLimit } from './limits'
 
 export type ChatReply = {
   /** qual servico respondeu (quando ha mais de um configurado) */
@@ -205,7 +206,7 @@ export async function sendChat(req: ChatRequest): Promise<ChatReply> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...req, ...aiFields('fast') }),
   })
-  if (!r.ok) throw new Error(await errorText(r))
+  if (!r.ok) await lancarErro(r)
   return (await r.json()) as ChatReply
 }
 
@@ -227,7 +228,7 @@ export async function sendReport(req: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...req, ...aiFields('smart') }),
   })
-  if (!r.ok) throw new Error(await errorText(r))
+  if (!r.ok) await lancarErro(r)
   return (await r.json()) as Report
 }
 
@@ -243,6 +244,16 @@ async function errorText(r: Response) {
   } catch {
     return `servidor respondeu ${r.status}`
   }
+}
+
+/** Levanta o erro certo: cota estourada tem tratamento proprio na interface. */
+async function lancarErro(r: Response): Promise<never> {
+  const texto = await errorText(r)
+  if (r.status === 429) {
+    reportLimit()
+    throw new LimitError(texto)
+  }
+  throw new Error(texto)
 }
 
 /** Testa a configuracao atual e devolve a primeira fala da IA, ou o erro. */

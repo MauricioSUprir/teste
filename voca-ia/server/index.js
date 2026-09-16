@@ -70,12 +70,24 @@ export const PROVIDERS = {
   },
 }
 
-// Configuracao do servidor (opcional): se existir, vale para todo mundo que
-// abrir o app, sem ninguem precisar colar chave nenhuma.
-const SERVER_PROVIDER = process.env.VOCA_PROVIDER || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : '')
-const SERVER_KEY = process.env.VOCA_API_KEY || process.env.ANTHROPIC_API_KEY || ''
-const CHAT_MODEL = process.env.VOCA_CHAT_MODEL || ''
-const REPORT_MODEL = process.env.VOCA_REPORT_MODEL || ''
+// ---------------------------------------------------------------- servidor
+// As chaves ficam AQUI: quem abre o app nao precisa configurar nada.
+// Dois postos, para o modo turbo funcionar sozinho:
+//   RAPIDO  -> conversa por voz e dicas (latencia e o que importa)
+//   ESPERTO -> explicacao, duvidas e relatorio (acertar e o que importa)
+// Se um estourar o limite, o outro assume. Se os dois estourarem, o app avisa.
+const FAST = {
+  provider: process.env.VOCA_FAST_PROVIDER || process.env.VOCA_PROVIDER || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : ''),
+  key: process.env.VOCA_FAST_KEY || process.env.VOCA_API_KEY || process.env.ANTHROPIC_API_KEY || '',
+  model: process.env.VOCA_FAST_MODEL || process.env.VOCA_CHAT_MODEL || '',
+}
+const SMART = {
+  provider: process.env.VOCA_SMART_PROVIDER || '',
+  key: process.env.VOCA_SMART_KEY || '',
+  model: process.env.VOCA_SMART_MODEL || process.env.VOCA_REPORT_MODEL || '',
+}
+const SERVER_SLOTS = [FAST, SMART].filter((s) => s.provider && (s.key || s.provider === 'ollama'))
+const SERVER_READY = SERVER_SLOTS.length > 0
 
 /** Monta um "slot": provedor + chave + modelo prontos para uso. */
 function slot(id, apiKey, model, task) {
@@ -105,12 +117,47 @@ function resolveChain(body, task) {
     const s = slot(body.provider, body.apiKey, body.model, task)
     if (s) chain.push(s)
   }
-  // provedor do servidor, se houver, sempre como ultima rede de seguranca
-  if (SERVER_PROVIDER) {
-    const s = slot(SERVER_PROVIDER, SERVER_KEY, task === 'report' ? REPORT_MODEL : CHAT_MODEL, task)
+  // provedores do servidor: para tarefa rapida vai o rapido na frente; para
+  // tarefa "esperta", o esperto. O outro fica atras como reserva.
+  const ordem = task === 'fast' ? [FAST, SMART] : [SMART, FAST]
+  for (const cfg of ordem) {
+    if (!cfg.provider) continue
+    const s = slot(cfg.provider, cfg.key, cfg.model, task)
     if (s && !chain.some((c) => c.id === s.id)) chain.push(s)
   }
   return chain
+}
+
+/**
+ * O erro foi "acabou a cota" ou foi outra coisa? Cada servico avisa de um
+ * jeito, entao olhamos o codigo HTTP e o texto.
+ */
+function ehLimite(msg = '') {
+  const m = String(msg).toLowerCase()
+  return (
+    / 429[:\s]/.test(m) ||
+    m.includes('rate limit') ||
+    m.includes('rate_limit') ||
+    m.includes('quota') ||
+    m.includes('resource_exhausted') ||
+    m.includes('resource exhausted') ||
+    m.includes('too many requests') ||
+    m.includes('insufficient_quota') ||
+    m.includes('limit exceeded')
+  )
+}
+
+/** Resposta padrao de erro: separa "acabou a cota" de "deu pau". */
+function responderErro(res, e) {
+  const msg = e?.message || 'erro'
+  if (ehLimite(msg)) {
+    return res.status(429).json({
+      error: 'limite diario das IAs atingido',
+      code: 'limite_diario',
+      detail: msg.slice(0, 300),
+    })
+  }
+  return res.status(500).json({ error: msg })
 }
 
 const MOOD_STYLE = {
@@ -363,8 +410,9 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     // true = o servidor ja tem chave propria e ninguem precisa colar nada
-    key: !!(SERVER_PROVIDER && (SERVER_KEY || SERVER_PROVIDER === 'ollama')),
-    serverProvider: SERVER_PROVIDER || null,
+    key: SERVER_READY,
+    serverProviders: SERVER_SLOTS.map((s) => s.provider),
+    turbo: SERVER_SLOTS.length >= 2,
     byok: true,
     providers: Object.fromEntries(
       Object.entries(PROVIDERS).map(([id, p]) => [id, { label: p.label, chat: p.chat }]),
@@ -406,7 +454,7 @@ app.post('/api/chat', async (req, res) => {
     })
   } catch (e) {
     console.error('[chat]', e.message)
-    res.status(500).json({ error: e.message })
+    responderErro(res, e)
   }
 })
 
@@ -434,7 +482,7 @@ Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
     res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[report]', e.message)
-    res.status(500).json({ error: e.message })
+    responderErro(res, e)
   }
 })
 
@@ -473,7 +521,7 @@ O que a aluna respondeu: "${given || '(deixou em branco)'}"`,
     res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[explain]', e.message)
-    res.status(500).json({ error: e.message })
+    responderErro(res, e)
   }
 })
 
@@ -509,7 +557,7 @@ Em "examples" (opcional) devolva ate 3 frases de exemplo.`,
     res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[ask]', e.message)
-    res.status(500).json({ error: e.message })
+    responderErro(res, e)
   }
 })
 
@@ -541,7 +589,7 @@ O que ela escreveu ate agora: "${given || '(nada)'}"`,
     res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[hint]', e.message)
-    res.status(500).json({ error: e.message })
+    responderErro(res, e)
   }
 })
 
@@ -555,8 +603,8 @@ if (fs.existsSync(dist)) {
 app.listen(PORT, () => {
   console.log(`VOCA IA — servidor em http://localhost:${PORT}`)
   console.log(
-    SERVER_PROVIDER
-      ? `provedor do servidor: ${SERVER_PROVIDER}${SERVER_KEY ? ' (com chave)' : ''}`
-      : 'sem provedor no servidor — cada pessoa liga a IA no proprio app, ou fica no modo offline',
+    SERVER_READY
+      ? `IA do servidor: ${SERVER_SLOTS.map((s) => s.provider).join(' + ')}${SERVER_SLOTS.length >= 2 ? ' (modo turbo)' : ''}`
+      : 'sem IA no servidor — cada pessoa liga a dela no app, ou fica no modo offline',
   )
 })

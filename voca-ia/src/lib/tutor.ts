@@ -17,6 +17,7 @@ export type Explanation = {
 export type AskReply = { answer: string; examples?: string[]; offline?: boolean }
 
 import { chainFor } from './api'
+import { LimitError, reportLimit } from './limits'
 
 async function post<T>(path: string, body: unknown, task: 'fast' | 'smart' = 'smart'): Promise<T> {
   const chain = chainFor(task)
@@ -32,6 +33,10 @@ async function post<T>(path: string, body: unknown, task: 'fast' | 'smart' = 'sm
       if (j.error) msg = String(j.error)
     } catch {
       /* resposta sem json */
+    }
+    if (r.status === 429) {
+      reportLimit()
+      throw new LimitError(msg)
     }
     throw new Error(msg)
   }
