@@ -35,7 +35,7 @@ const _partPos = new THREE.Vector3();
 export class CharacterBatch {
   readonly root = new THREE.Group();
   private slots: (Slot | null)[] = [];
-  private batches = new Map<string, Batch>();
+  batches = new Map<string, Batch>();
   private materials = new Map<PartMaterial, THREE.Material>();
   private capacity: number;
   private dirtyColors = true;
@@ -150,6 +150,18 @@ export class CharacterBatch {
         if (!s || !s.wobbler.root.visible) { b.mesh.setMatrixAt(i, _hide); continue; }
         const part = s.wobbler.parts[ref.partIndex];
 
+        // Colour first, unconditionally. Writing it after the LOD test means a
+        // part that happens to be culled on the one frame colours were dirty
+        // keeps the default white forever - which is exactly what happened
+        // when the round started with the camera 150 m away on a flyover.
+        // Rebuilds also reshuffle instance indices, so a colour written for an
+        // old index means nothing: re-upload whenever the table changed.
+        if ((this.dirtyColors || s.colorVersion !== s.wobbler.colorVersion) && b.mesh.instanceColor) {
+          _color.setHex(b.material === 'accent' ? s.wobbler.accentColor : s.wobbler.skinColor);
+          b.mesh.setColorAt(i, _color);
+          colorDirty = true;
+        }
+
         // Distance LOD: skip fine detail that is a few pixels tall anyway.
         if (part.lod > 0) {
           _partPos.setFromMatrixPosition(s.wobbler.root.matrixWorld);
@@ -161,14 +173,6 @@ export class CharacterBatch {
         }
         _m.copy(part.node.matrixWorld);
         b.mesh.setMatrixAt(i, _m);
-
-        // Rebuilds reshuffle instance indices, so a colour written for an old
-        // index means nothing: re-upload whenever the table changed.
-        if ((this.dirtyColors || s.colorVersion !== s.wobbler.colorVersion) && b.mesh.instanceColor) {
-          _color.setHex(b.material === 'accent' ? s.wobbler.accentColor : s.wobbler.skinColor);
-          b.mesh.setColorAt(i, _color);
-          colorDirty = true;
-        }
       }
       b.mesh.instanceMatrix.needsUpdate = true;
       if (colorDirty && b.mesh.instanceColor) b.mesh.instanceColor.needsUpdate = true;

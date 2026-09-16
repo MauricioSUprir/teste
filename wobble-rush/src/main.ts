@@ -346,6 +346,13 @@ export class App {
     this.match.onFinished = (r) => this.showResults(r);
 
     this.rig.setNight(0);
+    // Short flyover down the course while the countdown runs: it sells the map
+    // and costs no extra time, because the countdown had to happen anyway.
+    if (!practice) {
+      this.camera.startIntro([
+        [0, 26, 150], [0, 18, 110], [0, 12, 62], [0, 7, 22], [0, 4, -2],
+      ], 3.0);
+    }
     this.showRoundIntro(practice);
     this.screen = 'match';
     this.touchEl.classList.toggle('active', this.input.touchEnabled);
@@ -409,7 +416,7 @@ export class App {
     if (levels > 0) rows.push(['Nível', `${d.level} (+${levels})`]);
 
     this.setScreen(`
-      <div class="screen results">
+      <div class="results-wrap">
         <div class="results-card">
           <div class="results-place ${r.qualified ? '' : 'bad'}">${ordinal(r.position)}</div>
           <div class="results-sub">${r.qualified ? t('round.qualified') : t('round.eliminated')}</div>
