@@ -8,8 +8,11 @@ import { Profile } from './screens/Profile'
 import { Placement } from './screens/Placement'
 import { Account } from './screens/Account'
 import { Subscribe } from './screens/Subscribe'
+import { Translator } from './screens/Translator'
+import { Ranking } from './screens/Ranking'
 import { voicesReady, setNaturalVoiceAvailable } from './lib/speech'
 import { LimitNotice } from './components/LimitNotice'
+import { SubscriptionNotice } from './components/SubscriptionNotice'
 import { currentSession, merge, pull, push, accountsEnabled } from './lib/account'
 import type { ProFeature } from './lib/plan'
 
@@ -22,6 +25,8 @@ export type View =
   | { name: 'nivelamento'; langId: string }
   | { name: 'conta' }
   | { name: 'assinar'; feature?: ProFeature }
+  | { name: 'tradutor' }
+  | { name: 'ranking' }
 
 export function App() {
   const { save, replaceAll } = useStore()
@@ -71,6 +76,7 @@ export function App() {
   return (
     <>
       <LimitNotice />
+      <SubscriptionNotice go={setView} />
       {tela()}
     </>
   )
@@ -91,6 +97,10 @@ export function App() {
         return <Account onExit={() => setView({ name: 'perfil' })} />
       case 'assinar':
         return <Subscribe feature={view.feature} onExit={() => setView({ name: 'home' })} />
+      case 'tradutor':
+        return <Translator onExit={() => setView({ name: 'home' })} />
+      case 'ranking':
+        return <Ranking onExit={() => setView({ name: 'home' })} go={setView} />
       default:
         return <Home go={setView} />
     }

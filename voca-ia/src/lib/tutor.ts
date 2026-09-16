@@ -103,3 +103,21 @@ export function offlineHint(correct: string, strength: number, tip?: string) {
   }
   return `💡 Começa com “${palavras[0]}” e tem ${palavras.length} ${palavras.length === 1 ? 'palavra' : 'palavras'}.`
 }
+
+export type Traducao = {
+  translation: string
+  alternatives?: string[]
+  note: string
+  literal?: string
+  by?: string
+}
+
+export async function translate(body: {
+  text: string
+  langName: string
+  direcao: 'pt-alvo' | 'alvo-pt'
+  level: string
+  serie?: string
+}): Promise<Traducao> {
+  return post<Traducao>('/api/translate', body, 'fast')
+}

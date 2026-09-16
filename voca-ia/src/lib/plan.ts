@@ -15,9 +15,38 @@ export const PRO_FEATURES: Record<ProFeature, { title: string; desc: string }> =
 /** Liga/desliga a cobranca inteira. Enquanto for false, todo mundo tem tudo. */
 export const PAYWALL_ON = import.meta.env.VITE_PAYWALL === 'on'
 
+/** Quantos dias a pessoa tem para pagar depois do vencimento antes de cancelar. */
+export const DIAS_DE_CARENCIA = 7
+const DIA = 86400000
+
+export type EstadoPlano =
+  | 'free' // nunca assinou
+  | 'ativo' // em dia
+  | 'vencendo' // vence em 3 dias ou menos
+  | 'carencia' // venceu, mas ainda dá para pagar
+  | 'cancelado' // passou da carência
+
+export function estadoPlano(save: SaveData): EstadoPlano {
+  if (save.plan !== 'pro' || !save.proUntil) return save.plan === 'pro' ? 'ativo' : 'free'
+  const agora = Date.now()
+  if (agora < save.proUntil) {
+    return save.proUntil - agora <= 3 * DIA ? 'vencendo' : 'ativo'
+  }
+  return agora < save.proUntil + DIAS_DE_CARENCIA * DIA ? 'carencia' : 'cancelado'
+}
+
+/** Dias que faltam para vencer (positivo) ou para cancelar de vez (na carência). */
+export function diasRestantes(save: SaveData) {
+  if (!save.proUntil) return 0
+  const estado = estadoPlano(save)
+  const alvo = estado === 'carencia' ? save.proUntil + DIAS_DE_CARENCIA * DIA : save.proUntil
+  return Math.max(0, Math.ceil((alvo - Date.now()) / DIA))
+}
+
+/** Na carência o acesso continua: ninguém perde o estudo por causa de um boleto. */
 export function isPro(save: SaveData) {
-  if (save.plan !== 'pro') return false
-  return !save.proUntil || save.proUntil > Date.now()
+  const e = estadoPlano(save)
+  return e === 'ativo' || e === 'vencendo' || e === 'carencia'
 }
 
 /** Pode usar a funcao agora? */

@@ -80,6 +80,9 @@ export type LessonProgress = {
 
 export type DayLog = { day: string; xp: number; minutes: number }
 
+/** Desafio do dia em andamento. */
+export type Daily = { day: string; id: string; progresso: number; resgatado: boolean }
+
 export type Difficulty = 'facil' | 'medio' | 'dificil'
 export type Cefr = 'A1' | 'A2' | 'B1' | 'B2'
 
@@ -105,6 +108,10 @@ export type Profile = {
   ptVoiceName: string | null
   /** usar a voz natural (ElevenLabs) quando o servidor tiver */
   naturalVoice: boolean
+  /** qual voz natural usar (id do ElevenLabs); vazio = a padrao do servidor */
+  naturalVoiceId: string | null
+  /** serie escolar, para o conteudo acompanhar o ano da pessoa */
+  schoolYear: string | null
   sound: boolean
   /** conversa continua: volta a escutar sozinho depois que o Voca fala */
   autoListen: boolean
@@ -146,6 +153,8 @@ export type SaveData = {
   proUntil: number | null
   /** ultima sincronizacao com a nuvem */
   syncedAt: number | null
+  /** desafio do dia */
+  daily: Daily | null
 }
 
 export type Correction = { wrong: string; right: string; why: string }

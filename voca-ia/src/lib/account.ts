@@ -168,3 +168,22 @@ export async function meusPagamentos() {
     .limit(5)
   return data ?? []
 }
+
+export type LinhaRanking = { posicao: number; nome: string; xp: number; ofensiva: number; eu: boolean }
+
+/** Ranking por XP entre as contas. Devolve só nome e pontos — nada pessoal. */
+export async function buscarRanking(limite = 20): Promise<LinhaRanking[]> {
+  const c = db()
+  if (!c) return []
+  const { data, error } = await c.rpc('ranking', { p_limite: limite })
+  if (error || !data) return []
+  return data as LinhaRanking[]
+}
+
+export async function minhaPosicao(): Promise<{ posicao: number; total: number } | null> {
+  const c = db()
+  if (!c) return null
+  const { data, error } = await c.rpc('minha_posicao')
+  if (error || !data?.length) return null
+  return { posicao: Number(data[0].posicao), total: Number(data[0].total) }
+}

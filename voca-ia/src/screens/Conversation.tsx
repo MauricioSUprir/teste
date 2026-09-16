@@ -11,13 +11,15 @@ import { Voca, type VocaState } from '../components/Voca'
 import { listen, speak, speakPt, stopSpeaking, sttSupported } from '../lib/speech'
 import { checkServer, sendChat, sendReport, type ChatReply, type Report } from '../lib/api'
 import { offlineGreeting, offlineReply } from '../content/offlineChat'
+import { contextoDaSerie } from '../content/series'
+import { avaliarFala, mediaDeFala, palavrasDificeis, type Avaliacao } from '../lib/pronuncia'
 import type { ChatTurn, Correction } from '../state/types'
 import { words } from '../lib/util'
 
 type Stage = 'setup' | 'live' | 'report'
 
 export function Conversation({ onExit }: { onExit: () => void }) {
-  const { save, patchProfile, addXp, addConversationCard, noteWeakSpot, logConversation } = useStore()
+  const { save, patchProfile, addXp, addConversationCard, noteWeakSpot, logConversation, bumpDaily } = useStore()
   const lang = getLang(save.profile.lang)
   const mood = getMood(save.profile.mood)
 
@@ -36,6 +38,13 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   const [report, setReport] = useState<Report | null>(null)
   const [busyReport, setBusyReport] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  // ---- treino de fala
+  const [modo, setModo] = useState<'livre' | 'treino'>('treino')
+  const [drill, setDrill] = useState<{ text: string; pt?: string; why?: string } | null>(null)
+  const [nota, setNota] = useState<Avaliacao | null>(null)
+  const [ouvindoDrill, setOuvindoDrill] = useState(false)
+  const notas = useRef<number[]>([])
+  const errosFala = useRef<string[][]>([])
 
   const micCtl = useRef<{ stop: () => void } | null>(null)
   const startedAt = useRef(Date.now())
@@ -115,6 +124,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
             voiceName: save.profile.ptVoiceName,
             nivel: mood.nivel,
             semIa: !save.profile.naturalVoice,
+            voiceId: save.profile.naturalVoiceId,
             onEnd: terminar,
           })
         } else {
@@ -147,6 +157,8 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           history: turnsRef.current,
           message: clean,
           weakSpots: Object.entries(save.weakSpots).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => k),
+          treino: modo === 'treino',
+          serie: contextoDaSerie(save.profile.schoolYear),
         })
       } else {
         reply = offlineReply(clean, { lang, mood: moodRef.current as never, history: turnsRef.current })
@@ -164,6 +176,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
       }
     }
     addXp(3)
+    bumpDaily('conversa')
 
     const his: ChatTurn = {
       role: 'grimm',
@@ -177,6 +190,8 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     }
     setLast(reply)
     setTurns((t) => [...t, his])
+    setNota(null)
+    setDrill(reply.drill ? { text: reply.drill, pt: reply.drillPt, why: reply.drillWhy } : null)
     sayOut(reply)
   }
 
@@ -200,9 +215,12 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           message: '',
           weakSpots: [],
           opening: true,
+          treino: modo === 'treino',
+          serie: contextoDaSerie(save.profile.schoolYear),
         })
         setTurns([{ role: 'grimm', text: hi.reply, pt: hi.replyPt, roast: hi.roast, suggestion: hi.suggestion, at: Date.now() }])
         setLast(hi)
+        setDrill(hi.drill ? { text: hi.drill, pt: hi.drillPt, why: hi.drillWhy } : null)
         sayOut(hi)
         return
       } catch {
@@ -221,6 +239,39 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     const m = getMood(id)
     setNotice(m.onSwitch)
     setTimeout(() => setNotice(null), 3500)
+  }
+
+  /** No treino, ela repete a frase e o app mede o quanto deu para entender. */
+  function ouvirDrill() {
+    if (!drill || !speechOk) return
+    stopSpeaking()
+    stopMic()
+    setNota(null)
+    setOuvindoDrill(true)
+    setState('listening')
+    micCtl.current = listen(
+      lang.locale,
+      {
+        onPartial: (t) => setPartial(t),
+        onFinal: (t) => {
+          stopMic()
+          setPartial('')
+          setOuvindoDrill(false)
+          setState('idle')
+          const a = avaliarFala(drill.text, t)
+          setNota(a)
+          notas.current.push(a.score)
+          if (a.erradas.length) errosFala.current.push(a.erradas)
+          addXp(a.score >= 80 ? 4 : 2)
+          bumpDaily('falas')
+        },
+        onError: () => {
+          setOuvindoDrill(false)
+          setState('idle')
+        },
+      },
+      false,
+    )
   }
 
   async function finish() {
@@ -293,6 +344,27 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           <div><b>{Math.round((Date.now() - startedAt.current) / 1000)}s</b><small>de conversa</small></div>
           <div><b>{allCorrections.length}</b><small>correções</small></div>
         </div>
+
+        {notas.current.length > 0 && (
+          <div className="report">
+            <h3>Como foi sua pronúncia</h3>
+            <div className="result-grid">
+              <div><b>{mediaDeFala(notas.current)}</b><small>nota média</small></div>
+              <div><b>{notas.current.length}</b><small>frases repetidas</small></div>
+              <div><b>{notas.current.filter((n) => n >= 80).length}</b><small>saíram limpas</small></div>
+            </div>
+            {palavrasDificeis(errosFala.current).length > 0 && (
+              <>
+                <h3>Palavras para treinar</h3>
+                <ul>
+                  {palavrasDificeis(errosFala.current).map((p) => (
+                    <li key={p.palavra}>🔁 <b>{p.palavra}</b> — travou {p.vezes}x</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
         {busyReport && <p className="muted">montando seu diagnóstico…</p>}
         {report && (
           <div className="report">
@@ -325,6 +397,15 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         <span className="mode-chip">{online ? '🤖 IA ao vivo' : '📴 modo offline'}</span>
       </header>
 
+      <div className="modo-row">
+        <button className={modo === 'treino' ? 'on' : ''} onClick={() => setModo('treino')}>
+          🎤 treino de fala
+        </button>
+        <button className={modo === 'livre' ? 'on' : ''} onClick={() => setModo('livre')}>
+          💬 conversa livre
+        </button>
+      </div>
+
       <MoodRow current={save.profile.mood} onPick={switchMood} compact />
       {notice && <div className="notice">{notice}</div>}
 
@@ -340,7 +421,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
                 <p className="said-pt">
                   <button
                     className="mini-speak"
-                    onClick={() => speakPt(lastTurn.pt!, { rate: 1, pitch: 1, voiceName: save.profile.ptVoiceName, nivel: 0, semIa: !save.profile.naturalVoice })}
+                    onClick={() => speakPt(lastTurn.pt!, { rate: 1, pitch: 1, voiceName: save.profile.ptVoiceName, nivel: 0, semIa: !save.profile.naturalVoice, voiceId: save.profile.naturalVoiceId })}
                     aria-label="Ouvir em português"
                   >
                     🔊
@@ -355,7 +436,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         <p className="roast-line">
           <button
             className="mini-speak"
-            onClick={() => speakPt(last.roast!, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName, nivel: mood.nivel, semIa: !save.profile.naturalVoice })}
+            onClick={() => speakPt(last.roast!, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName, nivel: mood.nivel, semIa: !save.profile.naturalVoice, voiceId: save.profile.naturalVoiceId })}
             aria-label="Ouvir a bronca"
           >
             🔊
@@ -378,6 +459,53 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         </div>
       )}
 
+      {drill && (
+        <div className={`drill ${nota ? nota.veredito : ''}`}>
+          <div className="drill-top">
+            <b>🎤 repete em voz alta</b>
+            <button className="mini-speak" onClick={() => speak(drill.text, { locale: lang.locale, rate: 0.9, voiceName: save.profile.voiceName })}>🔊</button>
+            <button className="mini-speak" onClick={() => speak(drill.text, { locale: lang.locale, rate: 0.6 })}>🐢</button>
+          </div>
+          <p className="drill-text" lang={lang.locale} dir={lang.rtl ? 'rtl' : 'ltr'}>{drill.text}</p>
+          {drill.pt && <p className="drill-pt">{drill.pt}</p>}
+          {drill.why && <p className="drill-why">👂 {drill.why}</p>}
+
+          {nota ? (
+            <div className="drill-nota">
+              <div className="nota-num">
+                <b>{nota.score}</b>
+                <small>/100</small>
+              </div>
+              <div className="nota-txt">
+                <b>
+                  {nota.veredito === 'perfeito' && 'Saiu perfeito.'}
+                  {nota.veredito === 'bom' && 'Deu para entender bem.'}
+                  {nota.veredito === 'quase' && 'Quase — travou em algumas palavras.'}
+                  {nota.veredito === 'refaz' && 'Não deu para entender. De novo.'}
+                </b>
+                <small>ouvi: “{nota.ouvido}”</small>
+                {nota.erradas.length > 0 && (
+                  <small>
+                    treina: <b>{nota.erradas.join(', ')}</b>
+                  </small>
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="drill-btns">
+            <button className={`mic ${ouvindoDrill ? 'rec' : ''}`} onClick={ouvirDrill} disabled={!speechOk}>
+              {ouvindoDrill ? '🎙️ pode falar' : nota ? '🎤 falar de novo' : '🎤 falar'}
+            </button>
+            {nota && nota.score >= 55 && (
+              <button className="btn ghost sm" onClick={() => { setDrill(null); setNota(null) }}>
+                seguir a conversa →
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {last?.suggestion && state === 'idle' && (
         <button className="suggestion" onClick={() => send(last.suggestion!)}>
           💬 responder: “{last.suggestion}”
@@ -396,6 +524,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
             {state === 'listening' ? '🎙️ pode falar' : '🎤 falar'}
           </button>
         ) : null}
+        {modo === 'livre' && (
         <form
           className="type-row"
           onSubmit={(e) => {
@@ -408,6 +537,12 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={`escreva em ${lang.name}…`} lang={lang.locale} />
           <button className="btn primary" disabled={!typed.trim() || state === 'thinking'}>enviar</button>
         </form>
+        )}
+        {modo === 'treino' && (
+          <p className="muted small center">
+            No treino de fala é só voz: fale, ele corrige e devolve outra frase para repetir.
+          </p>
+        )}
         <div className="toggles">
           <label>
             <input type="checkbox" checked={save.profile.autoListen} onChange={(e) => patchProfile({ autoListen: e.target.checked })} />

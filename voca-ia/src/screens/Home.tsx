@@ -9,9 +9,12 @@ import { Voca } from '../components/Voca'
 import { today } from '../lib/util'
 import { canUse } from '../lib/plan'
 import { LimitBanner } from '../components/LimitNotice'
+import { SubscriptionBanner } from '../components/SubscriptionNotice'
+import { desafioDoDia } from '../content/desafios'
+import { getSerie } from '../content/series'
 
 export function Home({ go }: { go: (v: View) => void }) {
-  const { save, patchProfile, minutesToHeart } = useStore()
+  const { save, patchProfile, minutesToHeart, resgatarDesafio } = useStore()
   const lang = getLang(save.profile.lang)
   const mood = getMood(save.profile.mood)
   const due = useMemo(
@@ -19,6 +22,7 @@ export function Home({ go }: { go: (v: View) => void }) {
     [save.srs, lang.id],
   )
   const hoje = save.history.find((h) => h.day === today())?.xp ?? 0
+  const serie = getSerie(save.profile.schoolYear)
   const metaPct = Math.min(1, hoje / save.profile.dailyGoal)
 
   // trilha: a licao seguinte so abre quando a anterior termina
@@ -51,6 +55,7 @@ export function Home({ go }: { go: (v: View) => void }) {
       </header>
 
       <LimitBanner />
+      <SubscriptionBanner go={go} />
 
       <div className="lang-strip">
         {LANGUAGES.map((l) => (
@@ -79,6 +84,21 @@ export function Home({ go }: { go: (v: View) => void }) {
             <i style={{ width: `${levelProgress(save.xp) * 100}%` }} />
           </div>
         </div>
+      </div>
+
+      <Desafio onResgatar={resgatarDesafio} />
+
+      <div className="acoes">
+        <button className="acao" onClick={() => go({ name: 'tradutor' })}>
+          <span>🔁</span>
+          <b>Tradutor</b>
+          <small>traduz e explica a pegadinha</small>
+        </button>
+        <button className="acao" onClick={() => go({ name: 'ranking' })}>
+          <span>🏆</span>
+          <b>Ranking</b>
+          <small>quem estuda mais</small>
+        </button>
       </div>
 
       <button
@@ -158,8 +178,46 @@ export function Home({ go }: { go: (v: View) => void }) {
         })}
       </div>
       <footer className="home-foot">
-        <p>VOCA IA · {lang.units.reduce((n, u) => n + u.lessons.length, 0)} lições em {lang.name}</p>
+        <p>
+          VOCA IA · {lang.units.reduce((n, u) => n + u.lessons.length, 0)} lições em {lang.name}
+          {serie ? ` · trilha do ${serie.label}` : ''}
+        </p>
       </footer>
     </div>
+  )
+}
+
+/** Cartão do desafio do dia, com barra de progresso e resgate do XP. */
+function Desafio({ onResgatar }: { onResgatar: () => void }) {
+  const { save } = useStore()
+  const dia = today()
+  const d = desafioDoDia(dia)
+  const estado = save.daily && save.daily.day === dia ? save.daily : { day: dia, id: d.id, progresso: 0, resgatado: false }
+  const pronto = estado.progresso >= d.meta && !estado.resgatado
+  if (estado.resgatado)
+    return (
+      <div className="desafio">
+        <div className="desafio-topo">
+          <span>✅</span>
+          <b>Desafio de hoje concluído</b>
+          <span className="desafio-xp">+{d.xp} XP</span>
+        </div>
+        <p className="muted small">Amanhã tem outro.</p>
+      </div>
+    )
+  return (
+    <button className={`desafio ${pronto ? 'pronto' : ''}`} onClick={() => pronto && onResgatar()}>
+      <div className="desafio-topo">
+        <span>{d.emoji}</span>
+        <b>{d.titulo}</b>
+        <span className="desafio-xp">+{d.xp} XP</span>
+      </div>
+      <div className="bar sm">
+        <i style={{ width: `${Math.min(100, (estado.progresso / d.meta) * 100)}%` }} />
+      </div>
+      <p className="muted small">
+        {pronto ? 'toque para pegar seu XP 🎉' : `${estado.progresso} de ${d.meta}`}
+      </p>
+    </button>
   )
 }

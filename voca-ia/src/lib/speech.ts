@@ -96,6 +96,8 @@ type PtOpts = {
   nivel?: number
   /** desliga a voz natural e usa a do navegador */
   semIa?: boolean
+  /** voz escolhida no perfil */
+  voiceId?: string | null
   onStart?: () => void
   onEnd?: () => void
 }
@@ -124,7 +126,7 @@ export function speakPt(text: string, opts: PtOpts = {}) {
   if (opts.semIa || ttsDisponivel === false) return navegador()
 
   const nivel = opts.nivel ?? 2
-  const chave = `${nivel}|${limpo}`
+  const chave = `${opts.voiceId ?? ''}|${nivel}|${limpo}`
   const tocar = (url: string) => {
     stopSpeaking()
     stopAudio()
@@ -154,7 +156,7 @@ export function speakPt(text: string, opts: PtOpts = {}) {
   fetch('/api/tts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: limpo, nivel }),
+    body: JSON.stringify({ text: limpo, nivel, voiceId: opts.voiceId || undefined }),
   })
     .then(async (r) => {
       if (!r.ok) {

@@ -150,7 +150,7 @@ function ehLimite(msg = '') {
 /** Resposta padrao de erro: separa "acabou a cota" de "deu pau". */
 function responderErro(res, e) {
   const msg = e?.message || 'erro'
-  if (ehLimite(msg)) {
+  if (e?.limiteDeCota ?? ehLimite(msg)) {
     return res.status(429).json({
       error: 'limite diario das IAs atingido',
       code: 'limite_diario',
@@ -201,11 +201,12 @@ so do not water it down, but never cross these lines):
 - Never refuse to teach: every single reply must still carry the correction and move the conversation on.
 `
 
-function systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots }) {
+function systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots, treino, serie }) {
   return `You are "Voca", the AI conversation partner inside VOCA IA, a language-learning app made for a Brazilian learner who speaks Portuguese.
 
 TARGET LANGUAGE: ${langName}. The learner is practising ${langName} at roughly ${level} level.
 LEARNER NAME: ${userName || 'a learner'}.
+${serie || ''}
 SCENE: ${scenarioTitle} — ${situation}
 
 PERSONA / MOOD: ${MOOD_STYLE[mood] || MOOD_STYLE.neutro}
@@ -222,7 +223,16 @@ HOW TO REPLY (use the "responder" tool, always):
 - "suggestion": a short sentence in ${langName} the learner could say next, so they never get stuck.
 - "score": 0-100 for the quality of their last message (grammar + how natural it was).
 
-${weakSpots?.length ? `The learner keeps making these mistakes — bring them up when relevant: ${weakSpots.join('; ')}.` : ''}`
+${weakSpots?.length ? `The learner keeps making these mistakes — bring them up when relevant: ${weakSpots.join('; ')}.` : ''}
+${treino ? `
+SPEAKING DRILL MODE IS ON. This is a SPEAKING workout, not a chat:
+- Keep "reply" even shorter (1 to 2 sentences) so she spends the time TALKING, not listening.
+- Always fill "drill": one sentence in ${langName} for her to say OUT LOUD, at her level, 5 to 12 words,
+  built from the conversation so far. Prefer sentences that train the sounds Brazilians struggle with
+  (th, ed endings, final consonants, r/h, i/ee) or the mistake she just made.
+- "drill_pt": the Portuguese meaning. "drill_why": in Portuguese, one short line saying what to watch
+  out for when saying it (which sound, which stress).
+- Demand that she answers by SPEAKING, not by typing.` : ''}`
 }
 
 const REPLY_TOOL = {
@@ -244,6 +254,9 @@ const REPLY_TOOL = {
       roast: { type: 'string' },
       suggestion: { type: 'string' },
       score: { type: 'number' },
+      drill: { type: 'string' },
+      drill_pt: { type: 'string' },
+      drill_why: { type: 'string' },
     },
     required: ['reply', 'reply_pt', 'corrections', 'roast'],
   },
@@ -295,16 +308,23 @@ function jsonSpec(tool) {
 /** Tenta cada provedor da corrente, em ordem, ate um responder. */
 async function callChain({ chain, system, messages, tool, maxTokens = 700, task = 'fast' }) {
   const erros = []
+  // "estourou o limite de tokens" nao e cota acabada: e so uma resposta longa
+  // demais. Quem decide isso e ehLimite(), mais abaixo.
   for (const ai of chain) {
     try {
       const out = await callOne({ ai, system, messages, tool, maxTokens, task })
       return { out, usado: ai.id, tentativas: erros }
     } catch (e) {
-      erros.push(`${ai.id}: ${e.message}`)
+      erros.push({ id: ai.id, msg: e.message, limite: ehLimite(e.message) })
       console.warn('[ia] falhou em', ai.id, '-', e.message.slice(0, 160))
     }
   }
-  throw new Error(erros.join(' | ') || 'nenhum provedor de IA configurado')
+  const texto = erros.map((x) => `${x.id}: ${x.msg}`).join(' | ') || 'nenhum provedor de IA configurado'
+  const erro = new Error(texto)
+  // so e "acabou a cota" quando TODOS estouraram. Um provedor fora do ar com o
+  // outro sem cota nao pode virar "limite diario" para a pessoa.
+  erro.limiteDeCota = erros.length > 0 && erros.every((x) => x.limite)
+  throw erro
 }
 
 async function callOne({ ai, system, messages, tool, maxTokens = 700, task = 'fast' }) {
@@ -418,6 +438,21 @@ const ASK_TOOL = {
   },
 }
 
+const TRANSLATE_TOOL = {
+  name: 'traduzir',
+  description: 'Traduz e explica, no nivel da pessoa.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      translation: { type: 'string' },
+      alternatives: { type: 'array', items: { type: 'string' } },
+      note: { type: 'string' },
+      literal: { type: 'string' },
+    },
+    required: ['translation', 'note'],
+  },
+}
+
 const HINT_TOOL = {
   name: 'dica',
   description: 'Da uma pista sem entregar a resposta.',
@@ -434,7 +469,7 @@ const HINT_TOOL = {
 // gerada duas vezes, o que segura o consumo de créditos.
 const XI_KEY = process.env.ELEVENLABS_API_KEY || ''
 const XI_VOICE = process.env.ELEVENLABS_VOICE_ID || 'SOYHLrjzK2X1ezoPC6cr' // Harry - Fierce Warrior
-const XI_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_flash_v2_5'
+const XI_MODEL = process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2'
 const XI_LIMITE_CACHE = 300
 
 const cacheVoz = new Map()
@@ -447,14 +482,39 @@ function ajustesDeVoz(nivel = 2) {
   return { stability: 0.6, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true }
 }
 
+// Vozes que a conta pode usar — para escolher dentro do app, sem redeploy.
+app.get('/api/voices', async (_req, res) => {
+  if (!XI_KEY) return res.json({ voices: [] })
+  try {
+    const r = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': XI_KEY } })
+    if (!r.ok) return res.json({ voices: [] })
+    const data = await r.json()
+    res.json({
+      atual: XI_VOICE,
+      voices: (data.voices || [])
+        .map((v) => ({
+          id: v.voice_id,
+          name: v.name,
+          // marca as que falam portugues de verdade
+          pt: /pt|portug|brazil/i.test(JSON.stringify(v.labels || {})),
+          preview: v.preview_url,
+        }))
+        .slice(0, 60),
+    })
+  } catch {
+    res.json({ voices: [] })
+  }
+})
+
 app.post('/api/tts', async (req, res) => {
   if (!XI_KEY) return res.status(503).json({ error: 'voz natural não configurada', code: 'sem_tts' })
-  const { text, nivel = 2, voiceId } = req.body || {}
+  const { text, nivel = 2, voiceId, model } = req.body || {}
   const limpo = String(text || '').trim().slice(0, 500)
   if (!limpo) return res.status(400).json({ error: 'texto vazio' })
 
   const voz = voiceId || XI_VOICE
-  const chave = `${voz}|${XI_MODEL}|${nivel}|${limpo}`
+  const modelo = model || XI_MODEL
+  const chave = `${voz}|${modelo}|${nivel}|${limpo}`
   const guardado = cacheVoz.get(chave)
   if (guardado) {
     res.set('content-type', 'audio/mpeg')
@@ -468,7 +528,7 @@ app.post('/api/tts', async (req, res) => {
       headers: { 'content-type': 'application/json', 'xi-api-key': XI_KEY, accept: 'audio/mpeg' },
       body: JSON.stringify({
         text: limpo,
-        model_id: XI_MODEL,
+        model_id: modelo,
         language_code: 'pt',
         voice_settings: ajustesDeVoz(nivel),
       }),
@@ -513,7 +573,7 @@ app.post('/api/chat', async (req, res) => {
   const chain = resolveChain(req.body, 'chat')
   if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
-    const { langName, mood, scenarioTitle, situation, level, userName, history = [], message, weakSpots = [], opening } = req.body
+    const { langName, mood, scenarioTitle, situation, level, userName, history = [], message, weakSpots = [], opening, treino, serie } = req.body
     const messages = history
       .slice(-12)
       .map((t) => ({ role: t.role === 'user' ? 'user' : 'assistant', content: t.text }))
@@ -528,10 +588,11 @@ app.post('/api/chat', async (req, res) => {
 
     const { out, usado } = await callChain({
       chain,
-      system: systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots }),
+      system: systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots, treino, serie }),
       messages,
       tool: REPLY_TOOL,
       task: 'fast',
+      maxTokens: 1600,
     })
     res.json({
       reply: out.reply,
@@ -540,6 +601,9 @@ app.post('/api/chat', async (req, res) => {
       roast: out.roast,
       suggestion: out.suggestion,
       score: out.score,
+      drill: out.drill,
+      drillPt: out.drill_pt,
+      drillWhy: out.drill_why,
       by: usado,
     })
   } catch (e) {
@@ -677,12 +741,41 @@ O que ela escreveu ate agora: "${given || '(nada)'}"`,
         },
       ],
       tool: HINT_TOOL,
-      maxTokens: 400,
+      maxTokens: 900,
       task: 'fast',
     })
     res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[hint]', e.message)
+    responderErro(res, e)
+  }
+})
+
+// ------------------------------------------------------------- tradutor
+app.post('/api/translate', async (req, res) => {
+  const chain = resolveChain(req.body, 'fast')
+  if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  try {
+    const { text, langName, direcao = 'pt-alvo', level, serie } = req.body
+    const { out, usado } = await callChain({
+      chain,
+      task: 'fast',
+      system: `Voce traduz para uma aluna brasileira que estuda ${langName} (nivel ${level || 'A1'}).
+${serie || ''}
+Direcao: ${direcao === 'pt-alvo' ? `do portugues para ${langName}` : `de ${langName} para o portugues`}.
+
+- "translation": a traducao que uma pessoa de verdade usaria nessa situacao (nao a literal).
+- "alternatives": ate 3 outros jeitos de dizer, do mais informal ao mais formal.
+- "note": em PORTUGUES, uma frase curta sobre a pegadinha dessa traducao (ordem das palavras, falso amigo,
+  preposicao, formalidade). Se nao houver pegadinha, diga o que muda de registro.
+- "literal": a traducao ao pe da letra, so quando ela for MUITO diferente da natural e ajudar a entender.`,
+      messages: [{ role: 'user', content: String(text || '').slice(0, 600) }],
+      tool: TRANSLATE_TOOL,
+      maxTokens: 1200,
+    })
+    res.json({ ...out, by: usado })
+  } catch (e) {
+    console.error('[translate]', e.message)
     responderErro(res, e)
   }
 })

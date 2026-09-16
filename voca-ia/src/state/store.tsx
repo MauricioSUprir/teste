@@ -1,7 +1,8 @@
 // Estado global + persistencia no localStorage. Um objeto so, salvo a cada
 // mudanca; nada sai do dispositivo.
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Phrase, SaveData, SrsCard, LessonProgress } from './types'
+import type { Phrase, SaveData, SrsCard, LessonProgress, Daily } from './types'
+import { desafioDoDia, type TipoDesafio } from '../content/desafios'
 import { makeCard, review as reviewCard, cardId } from '../lib/srs'
 import { today, daysBetween, clamp } from '../lib/util'
 
@@ -26,6 +27,8 @@ function emptySave(): SaveData {
       ptVoice: true,
       ptVoiceName: null,
       naturalVoice: true,
+      naturalVoiceId: null,
+      schoolYear: null,
       sound: true,
       autoListen: true,
       showPt: true,
@@ -48,6 +51,7 @@ function emptySave(): SaveData {
     plan: 'free',
     proUntil: null,
     syncedAt: null,
+    daily: null,
   }
 }
 
@@ -99,6 +103,10 @@ type Ctx = {
   gradeCard: (id: string, quality: 0 | 1 | 2 | 3) => void
   addConversationCard: (p: Phrase, langId: string) => void
   noteWeakSpot: (what: string) => void
+  /** soma progresso no desafio do dia */
+  bumpDaily: (tipo: TipoDesafio, n?: number) => void
+  /** pega o XP do desafio concluido */
+  resgatarDesafio: () => void
   logConversation: (turns: number, seconds: number, words: number) => string[]
   reset: () => void
   /** troca o save inteiro (usado ao trazer o progresso da nuvem) */
@@ -187,10 +195,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })),
       refillHearts: () => set((s) => ({ ...s, hearts: MAX_HEARTS, heartsAt: Date.now() })),
       recordAnswer: (correct) =>
-        set((s) => ({
-          ...s,
-          stats: { ...s.stats, answers: s.stats.answers + 1, correct: s.stats.correct + (correct ? 1 : 0) },
-        })),
+        set((s) => {
+          const base = {
+            ...s,
+            stats: { ...s.stats, answers: s.stats.answers + 1, correct: s.stats.correct + (correct ? 1 : 0) },
+          }
+          if (!correct) return base
+          // acerto conta para o desafio do dia
+          const d = today()
+          const desafio = desafioDoDia(d)
+          const atual: Daily =
+            base.daily && base.daily.day === d ? base.daily : { day: d, id: desafio.id, progresso: 0, resgatado: false }
+          if (desafio.tipo !== 'acertos' || atual.resgatado) return { ...base, daily: atual }
+          return { ...base, daily: { ...atual, progresso: Math.min(desafio.meta, atual.progresso + 1) } }
+        }),
       finishLesson: (langId, lessonId, accuracy, xp, phrases) => {
         let novos: string[] = []
         set((s) => {
@@ -251,6 +269,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }),
       noteWeakSpot: (what) =>
         set((s) => ({ ...s, weakSpots: { ...s.weakSpots, [what]: (s.weakSpots[what] ?? 0) + 1 } })),
+      bumpDaily: (tipo, n = 1) =>
+        set((s) => {
+          const d = today()
+          const desafio = desafioDoDia(d)
+          const atual: Daily =
+            s.daily && s.daily.day === d ? s.daily : { day: d, id: desafio.id, progresso: 0, resgatado: false }
+          if (desafio.tipo !== tipo || atual.resgatado) return { ...s, daily: atual }
+          return { ...s, daily: { ...atual, progresso: Math.min(desafio.meta, atual.progresso + n) } }
+        }),
+      resgatarDesafio: () =>
+        set((s) => {
+          const d = today()
+          const desafio = desafioDoDia(d)
+          if (!s.daily || s.daily.day !== d || s.daily.resgatado || s.daily.progresso < desafio.meta) return s
+          const next = touchDay({ ...s, xp: s.xp + desafio.xp }, desafio.xp)
+          return { ...next, daily: { ...s.daily, resgatado: true } }
+        }),
       logConversation: (turns, seconds, words) => {
         let novos: string[] = []
         set((s) => {

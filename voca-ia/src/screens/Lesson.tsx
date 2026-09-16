@@ -195,6 +195,7 @@ export function Lesson({
                     voiceName: save.profile.ptVoiceName,
                     nivel: mood.nivel,
                     semIa: !save.profile.naturalVoice,
+                    voiceId: save.profile.naturalVoiceId,
                   })
               : undefined
           }

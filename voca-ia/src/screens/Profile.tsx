@@ -10,6 +10,7 @@ import { Voca } from '../components/Voca'
 import type { View } from '../App'
 import type { Difficulty } from '../state/types'
 import { isPro, PAYWALL_ON } from '../lib/plan'
+import { SERIES, getSerie } from '../content/series'
 
 const DIFICULDADES: { id: Difficulty; emoji: string; title: string; desc: string }[] = [
   { id: 'facil', emoji: '🐣', title: 'Leve', desc: 'Mais escolher e montar; perdoa typo.' },
@@ -23,6 +24,14 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
   const mood = getMood(save.profile.mood)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [vozesPt, setVozesPt] = useState<SpeechSynthesisVoice[]>([])
+  const [vozesIa, setVozesIa] = useState<{ id: string; name: string; pt: boolean }[]>([])
+
+  useEffect(() => {
+    fetch('/api/voices')
+      .then((r) => r.json())
+      .then((j) => setVozesIa(j?.voices ?? []))
+      .catch(() => setVozesIa([]))
+  }, [])
   const [confirmReset, setConfirmReset] = useState(false)
 
   useEffect(() => {
@@ -78,6 +87,32 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
           </button>
           <button className="btn ghost" onClick={() => go({ name: 'assinar' })}>ver o VOCA PRO</button>
         </div>
+      </div>
+
+      <h3 className="sec">Ano escolar</h3>
+      <div className="acc-box">
+        <p className="ai-status">
+          {getSerie(save.profile.schoolYear)
+            ? `📓 ${getSerie(save.profile.schoolYear)!.label} — ${getSerie(save.profile.schoolYear)!.meta}`
+            : '📓 Você ainda não disse em que ano está.'}
+        </p>
+        <label className="field">
+          <span>Trocar de ano</span>
+          <select
+            value={save.profile.schoolYear ?? ''}
+            onChange={(e) => patchProfile({ schoolYear: e.target.value || null })}
+          >
+            <option value="">não informar</option>
+            {SERIES.map((x) => (
+              <option key={x.id} value={x.id}>{x.label}</option>
+            ))}
+          </select>
+        </label>
+        {getSerie(save.profile.schoolYear) && (
+          <p className="muted small">
+            <b>O Voca cobra:</b> {getSerie(save.profile.schoolYear)!.focos.join(' · ')}
+          </p>
+        )}
       </div>
 
       <h3 className="sec">Nível e dificuldade</h3>
@@ -200,8 +235,26 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
             <small className="muted"> — a bronca e a tradução saem faladas, não só escritas.</small>
           </span>
         </label>
+        {vozesIa.length > 0 && (
+          <label className="field">
+            <span>Qual voz natural ({vozesIa.length} disponíveis · ⭐ = fala português nativo)</span>
+            <select
+              value={save.profile.naturalVoiceId ?? ''}
+              onChange={(e) => patchProfile({ naturalVoiceId: e.target.value || null })}
+            >
+              <option value="">a padrão do servidor</option>
+              {vozesIa.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.pt ? '⭐ ' : ''}
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <label className="field">
-          <span>Voz brasileira ({vozesPt.length} disponíveis)</span>
+          <span>Voz do navegador ({vozesPt.length} disponíveis, usada quando a natural não dá)</span>
           <select value={save.profile.ptVoiceName ?? ''} onChange={(e) => patchProfile({ ptVoiceName: e.target.value || null })}>
             <option value="">padrão do sistema</option>
             {vozesPt.map((v) => (
@@ -218,6 +271,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
               voiceName: save.profile.ptVoiceName,
               nivel: mood.nivel,
               semIa: !save.profile.naturalVoice,
+              voiceId: save.profile.naturalVoiceId,
             })
           }
         >

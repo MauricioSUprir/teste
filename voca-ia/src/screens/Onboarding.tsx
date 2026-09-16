@@ -7,6 +7,7 @@ import { Voca } from '../components/Voca'
 import { getMood } from '../content/moods'
 import type { View } from '../App'
 import type { Difficulty } from '../state/types'
+import { SERIES, getSerie } from '../content/series'
 
 const NIVEIS: { id: Difficulty; emoji: string; title: string; desc: string }[] = [
   { id: 'facil', emoji: '🐣', title: 'Leve', desc: 'Mais escolher e montar do que escrever. Perdoa erro de digitação.' },
@@ -21,18 +22,24 @@ export function Onboarding({ go }: { go: (v: View) => void }) {
   const [lang, setLang] = useState('en')
   const [mood, setMood] = useState('brutal')
   const [dif, setDif] = useState<Difficulty>('medio')
+  const [serie, setSerie] = useState<string | null>(null)
   const m = getMood(mood)
 
-  function entrar(comTeste: boolean) {
+  function entrar(destino: 'teste' | 'conta' | 'app') {
+    const s = getSerie(serie)
     patchProfile({
       name: name.trim() || 'você',
       lang,
       langs: [lang],
       mood,
       difficulty: dif,
+      schoolYear: serie,
+      // a série já dá um palpite de nível antes mesmo do teste
+      levels: s ? { [lang]: s.cefr } : {},
       onboarded: true,
     })
-    if (comTeste) go({ name: 'nivelamento', langId: lang })
+    if (destino === 'teste') go({ name: 'nivelamento', langId: lang })
+    if (destino === 'conta') go({ name: 'conta' })
   }
 
   return (
@@ -82,7 +89,40 @@ export function Onboarding({ go }: { go: (v: View) => void }) {
               </button>
             ))}
           </div>
-          <button className="btn primary big" onClick={() => setStep(2)}>
+          <button className="btn primary big" onClick={() => setStep(15)}>
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {step === 15 && (
+        <div className="ob-step">
+          <h2>Em que ano você está?</h2>
+          <p className="ob-lead">
+            O conteúdo passa a seguir o que a sua escola está cobrando — e o Voca fala no seu nível.
+          </p>
+          <div className="serie-grid">
+            {SERIES.map((x) => (
+              <button
+                key={x.id}
+                className={`serie ${serie === x.id ? 'on' : ''}`}
+                onClick={() => {
+                  setSerie(x.id)
+                  setDif(x.dificuldade)
+                }}
+              >
+                <b>{x.label}</b>
+                <small>{x.etapa === 'Livre' ? x.idade : `${x.etapa} · ${x.idade}`}</small>
+                <small className="serie-meta">{x.meta}</small>
+              </button>
+            ))}
+          </div>
+          {serie && (
+            <p className="disclaimer">
+              <b>O que entra:</b> {getSerie(serie)?.focos.join(' · ')}
+            </p>
+          )}
+          <button className="btn primary big" disabled={!serie} onClick={() => setStep(2)}>
             Continuar
           </button>
         </div>
@@ -145,10 +185,13 @@ export function Onboarding({ go }: { go: (v: View) => void }) {
             <li><b>Não tem como ir mal</b><small>Se não souber, responde "não sei" — é isso que o teste quer saber.</small></li>
             <li><b>Abre as lições do seu nível</b><small>Nada de começar do "oi, tudo bem" se você já passou disso.</small></li>
           </ul>
-          <button className="btn primary big" onClick={() => entrar(true)}>
+          <button className="btn primary big" onClick={() => entrar('teste')}>
             Fazer o teste de nível
           </button>
-          <button className="btn ghost big" onClick={() => entrar(false)}>
+          <button className="btn ghost big" onClick={() => entrar('conta')}>
+            Criar conta com e-mail (salva o progresso)
+          </button>
+          <button className="btn ghost big" onClick={() => entrar('app')}>
             Pular e começar do começo
           </button>
         </div>

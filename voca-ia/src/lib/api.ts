@@ -12,6 +12,10 @@ export type ChatReply = {
   roast?: string
   suggestion?: string
   score?: number
+  /** frase para repetir em voz alta (modo treino de fala) */
+  drill?: string
+  drillPt?: string
+  drillWhy?: string
   offline?: boolean
 }
 
@@ -198,6 +202,10 @@ export type ChatRequest = {
   weakSpots: string[]
   /** true = e a IA quem abre a conversa */
   opening?: boolean
+  /** modo treino de fala: respostas curtas e uma frase para repetir */
+  treino?: boolean
+  /** contexto da serie escolar */
+  serie?: string
 }
 
 export async function sendChat(req: ChatRequest): Promise<ChatReply> {

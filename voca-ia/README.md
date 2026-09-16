@@ -11,7 +11,18 @@ uma **conversa contínua por voz com uma IA que muda de humor** — do gentil ao
 
 ## O que tem dentro
 
-### 1. Conversa contínua (a parte principal)
+### 1. Conversa contínua — treino de conversação E de fala
+Dois modos, trocáveis a qualquer momento:
+
+- **🎤 Treino de fala** (padrão): ele fala pouco e devolve **uma frase para você
+  repetir em voz alta**, escolhida a partir do que você acabou de errar e dos sons
+  que brasileiro erra (th, -ed, consoante final, r/h). Você repete, o app compara
+  o que o microfone entendeu com o que era para sair e dá **nota de 0 a 100**,
+  dizendo **quais palavras não saíram**. Sem digitação: é só voz.
+- **💬 Conversa livre**: papo normal, sem drill.
+
+No fim, o relatório traz nota média de pronúncia, quantas frases saíram limpas e
+**as palavras que mais travaram** — que viram treino do próximo dia.
 - Você fala no microfone → ele transcreve → a IA responde → **o Voca fala em voz alta**
   → o microfone volta a escutar sozinho. Sem apertar botão a cada frase.
 - **Um bonequinho animado** no lugar do círculo de ondas: ele pisca, respira, inclina a
@@ -29,7 +40,24 @@ uma **conversa contínua por voz com uma IA que muda de humor** — do gentil ao
 > Nada de ofensa a aparência, família, inteligência ou identidade — e se a pessoa
 > ficar chateada ou pedir, ele sai do personagem na hora.
 
-### 2. Curso completo
+### 2. Conteúdo que segue o ano escolar
+Do 6º ano ao 3º do Ensino Médio (ou "não estou na escola"). A série define o
+nível de partida, a dificuldade sugerida e **entra no prompt da IA**: ela fala no
+vocabulário da idade e cobra o que a escola está cobrando naquele ano — no 3º do
+EM, por exemplo, ela puxa interpretação de texto e falsos cognatos de ENEM.
+
+### 3. Tradutor que explica
+Português ↔ idioma estudado, mas sem cara de Google Tradutor: além da frase
+natural, ele mostra a versão ao pé da letra (quando ela engana), **a pegadinha**
+(ordem, falso amigo, formalidade) e outros jeitos de dizer. Um toque guarda a
+frase na sua revisão.
+
+### 4. Desafio do dia e ranking
+Um desafio novo por dia (acertos, lições, falas em voz alta, revisões,
+traduções) valendo XP extra, e um **ranking por XP entre as contas** — só nome e
+pontos, nada pessoal, garantido por função no banco.
+
+### 5. Curso completo
 - **Inglês:** 6 unidades / 24 lições (A1 → B1).
   Outros 9 idiomas: 3 unidades / 9 lições cada (A1 → A2).
 - 8 tipos de exercício: traduzir nos dois sentidos, escutar e escrever, montar a

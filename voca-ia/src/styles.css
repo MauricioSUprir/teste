@@ -450,3 +450,77 @@ textarea { resize: none; }
 .linha input { width: auto; margin-top: 3px; }
 .linha small { font-weight: 400; }
 .roast-line .mini-speak, .fb-roast + .mini-speak { margin-right: 4px; }
+
+/* ------------------------------------------------------- avisos do plano */
+.plano-banner { width: 100%; border: 2px solid; border-radius: 12px; padding: 9px 12px; font-size: 13px; font-weight: 600; margin-bottom: 10px; cursor: pointer; text-align: left; }
+.plano-banner.vencendo { background: #2A2412; border-color: #5C4E1F; color: var(--yellow); }
+.plano-banner.carencia { background: #2A1E12; border-color: #6B4A1F; color: #FFB870; }
+.plano-banner.cancelado { background: #2A1414; border-color: #5C2A2A; color: #FF9B9B; }
+.limit.plano-vencendo { border-color: var(--yellow); }
+.limit.plano-carencia { border-color: #FFB870; }
+.limit.plano-cancelado { border-color: var(--red); }
+
+/* -------------------------------------------------------------- tradutor */
+.tr-dir { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.tr-dir button { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 9px; font-size: 12px; cursor: pointer; }
+.tr-dir button.on { border-color: var(--green); background: #16251F; }
+.tr-out { margin-top: 16px; display: grid; gap: 10px; }
+.tr-main { background: var(--card); border: 2px solid var(--green); border-radius: var(--r); padding: 14px; display: flex; gap: 8px; align-items: flex-start; }
+.tr-text { font-size: 21px; font-weight: 600; margin: 0; flex: 1; overflow-wrap: anywhere; }
+.tr-literal { font-size: 13px; color: var(--muted); font-style: italic; }
+.tr-note { background: #2A2412; border-left: 4px solid var(--yellow); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.tr-alts { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.tr-alts li { background: var(--card); border-radius: 12px; padding: 9px 11px; font-size: 15px; }
+.tr-vazio { display: grid; justify-items: center; gap: 6px; margin-top: 24px; }
+
+/* --------------------------------------------------------------- ranking */
+.meu-lugar { background: var(--card); border: 2px solid var(--green); border-radius: 14px; padding: 11px 13px; margin-bottom: 12px; }
+.rank { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; }
+.rank li { display: flex; gap: 9px; align-items: center; background: var(--card); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.rank li.eu { border: 2px solid var(--green); background: #16251F; }
+.rank .pos { width: 30px; font-weight: 800; color: var(--muted); }
+.rank .nome { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank .of { color: var(--muted); font-size: 12px; }
+
+/* ---------------------------------------------------------- desafio do dia */
+.desafio { width: 100%; background: linear-gradient(135deg, #2A2412, var(--card)); border: 2px solid #5C4E1F; border-radius: var(--r); padding: 13px; margin-bottom: 12px; display: grid; gap: 7px; text-align: left; cursor: default; }
+.desafio.pronto { border-color: var(--green); background: linear-gradient(135deg, #16251F, var(--card)); cursor: pointer; }
+.desafio-topo { display: flex; gap: 9px; align-items: center; }
+.desafio-topo span { font-size: 22px; }
+.desafio-topo b { flex: 1; font-size: 15px; }
+.desafio-xp { font-size: 12px; font-weight: 800; color: var(--yellow); }
+.acoes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 14px; }
+.acao { background: var(--card); border: 2px solid var(--line); border-bottom-width: 4px; border-radius: 16px; padding: 12px 10px; display: grid; gap: 3px; justify-items: center; cursor: pointer; }
+.acao span { font-size: 22px; }
+.acao b { font-size: 13px; }
+.acao small { font-size: 11px; color: var(--muted); text-align: center; }
+
+/* --------------------------------------------------- treino de fala */
+.modo-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.modo-row button { flex: 1; background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.modo-row button.on { border-color: var(--green); background: #16251F; }
+.drill { background: var(--card); border: 2px solid var(--blue); border-radius: var(--r); padding: 13px; margin: 10px 0; display: grid; gap: 7px; }
+.drill.perfeito, .drill.bom { border-color: var(--green); }
+.drill.quase { border-color: var(--yellow); }
+.drill.refaz { border-color: var(--red); }
+.drill-top { display: flex; align-items: center; gap: 6px; }
+.drill-top b { flex: 1; font-size: 13px; color: var(--blue); }
+.drill-text { font-size: 21px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.drill-pt { font-size: 14px; color: var(--muted); margin: 0; }
+.drill-why { font-size: 13px; background: var(--bg2); border-radius: 10px; padding: 8px 10px; margin: 0; }
+.drill-nota { display: flex; gap: 12px; align-items: center; background: var(--bg2); border-radius: 12px; padding: 10px 12px; }
+.nota-num { text-align: center; }
+.nota-num b { font-size: 30px; font-family: Fredoka, sans-serif; display: block; line-height: 1; }
+.nota-num small { color: var(--muted); font-size: 11px; }
+.nota-txt { display: grid; gap: 2px; }
+.nota-txt b { font-size: 14px; }
+.nota-txt small { font-size: 12px; color: var(--muted); }
+.drill-btns { display: grid; gap: 8px; }
+.drill-btns .mic { padding: 13px; font-size: 16px; }
+
+/* ---------------------------------------------------------- ano escolar */
+.serie-grid { display: grid; gap: 8px; }
+.serie { background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 11px 13px; text-align: left; cursor: pointer; display: grid; gap: 2px; }
+.serie.on { border-color: var(--green); background: #16251F; }
+.serie small { font-size: 12px; color: var(--muted); }
+.serie-meta { font-style: italic; }
