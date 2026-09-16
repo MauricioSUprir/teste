@@ -27,6 +27,7 @@ import { t, setLanguage, LangCode } from './ui/i18n';
 import { fmtTime, ordinal } from './ui/hud';
 import { MoveState } from './shared/types';
 import { clamp } from './shared/math';
+import { touchStickRadius } from './game/input';
 import { BotDifficulty, makeBotRoster } from './shared/bots';
 
 type Screen = 'loading' | 'menu' | 'draw' | 'intro' | 'match' | 'results';
@@ -64,9 +65,12 @@ export class App {
   private screenEl: HTMLElement;
   private touchEl!: HTMLElement;
   private stickEl!: HTMLElement;
+  private hintEl!: HTMLElement;
   private devEl: HTMLElement;
   private showDev = false;
   private menuTime = 0;
+  private isMobile = false;
+  private fullscreenTried = false;
   private drawTimer = 0;
   private lastMapId = '';
   private frameTimes: number[] = [];
@@ -104,13 +108,19 @@ export class App {
     this.ui.appendChild(this.devEl);
 
     this.buildTouchControls();
+    this.buildRotateHint();
+    this.applyMobileDefaults();
 
     audio.applySettings({ master: s.master, music: s.music, sfx: s.sfx });
 
     window.addEventListener('resize', () => this.rig.resize());
     window.addEventListener('keydown', (e) => this.onKey(e));
     // Any first gesture unlocks audio.
-    const unlock = () => { audio.resume(); window.removeEventListener('pointerdown', unlock); };
+    const unlock = () => {
+      audio.resume();
+      this.goFullscreen();
+      window.removeEventListener('pointerdown', unlock);
+    };
     window.addEventListener('pointerdown', unlock);
 
     this.rig.resize();
@@ -151,7 +161,7 @@ export class App {
       this.menuBatch.add(this.menuWobbler);
       this.rig.scene.add(this.menuBatch.root);
       this.rig.scene.add(this.menuRoot);
-      this.menuRoot.position.set(2.9, 0, 0);
+      this.menuRoot.position.set(this.input.touchEnabled ? 3.4 : 2.9, 0, 0);
     }
     this.menuRoot.visible = true;
     this.menuBatch.root.visible = true;
@@ -159,8 +169,9 @@ export class App {
     // Plain blue behind the character: no horizon, no clouds, no platform.
     this.rig.setFlatBackground(MENU_BLUE);
     this.rig.setNight(0);
-    this.camera.setOrbit(new THREE.Vector3(2.9, 0.85, 0), 4.2, 0.75);
-    this.rig.followShadow(2.9, 0, 0);
+    const menuX = this.input.touchEnabled ? 3.4 : 2.9;
+    this.camera.setOrbit(new THREE.Vector3(menuX, 0.85, 0), this.input.touchEnabled ? 5 : 4.2, 0.75);
+    this.rig.followShadow(menuX, 0, 0);
 
     const need = xpForLevel(d.level);
     const pct = clamp(d.xp / need, 0, 1) * 100;
@@ -290,6 +301,7 @@ export class App {
     const qualitySel = panel.querySelector('#quality') as HTMLSelectElement;
     qualitySel.addEventListener('change', () => {
       s.quality = qualitySel.value as typeof s.quality;
+      s.qualityTouched = true;
       this.rig.setAutoQuality(s.quality === 'auto');
       if (s.quality !== 'auto') this.rig.setQuality(s.quality);
       saveManager.markDirty();
@@ -546,16 +558,65 @@ export class App {
     this.touchEl.classList.remove('active');
   }
 
+  /**
+   * Phone defaults. A mid-range handset cannot hold 60 fps at desktop settings,
+   * and finding that out through a stuttery first match is a bad introduction -
+   * so mobile starts conservative and the adaptive controller climbs from there
+   * if the device turns out to have headroom.
+   */
+  private applyMobileDefaults(): void {
+    if (!this.input.touchEnabled) return;
+    this.isMobile = true;
+    const s = saveManager.data.settings;
+    if (!s.qualityTouched) {
+      s.quality = 'auto';
+      this.rig.setQuality('low');
+      this.rig.setAutoQuality(true);
+      saveManager.markDirty();
+    }
+    this.vfx.setBudget(0.6);
+    // Touch look is a thumb on glass: it needs less gain than a mouse.
+    this.camera.settings.sensitivity = s.sensitivity * 0.9;
+    document.body.classList.add('is-touch');
+  }
+
+  private buildRotateHint(): void {
+    const el = document.createElement('div');
+    el.className = 'rotate-hint';
+    el.innerHTML = `
+      <div class="glyph"></div>
+      <b>GIRE O APARELHO</b>
+      <span>WOBBLE RUSH foi feito para ser jogado deitado, com os dois polegares.</span>`;
+    this.ui.appendChild(el);
+  }
+
+  /** Fullscreen on the first tap: a phone browser's chrome eats the HUD. */
+  private goFullscreen(): void {
+    if (!this.isMobile || this.fullscreenTried) return;
+    this.fullscreenTried = true;
+    const el = document.documentElement as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void>;
+    };
+    const req = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el);
+    void req?.().catch(() => { /* denied is fine - the game still plays */ });
+    const orientation = screen.orientation as ScreenOrientation & {
+      lock?: (o: string) => Promise<void>;
+    };
+    void orientation?.lock?.('landscape').catch(() => { /* not supported everywhere */ });
+  }
+
   // ── touch ───────────────────────────────────────────────────────────────
   private buildTouchControls(): void {
     this.touchEl = document.createElement('div');
     this.touchEl.className = 'touch-controls';
     this.touchEl.innerHTML = `
       <div class="touch-stick"><i></i></div>
-      <button class="touch-btn jump">PULO</button>
-      <button class="touch-btn dive">MERGULHO</button>`;
+      <button class="touch-btn jump" aria-label="Pular">PULO</button>
+      <button class="touch-btn dive" aria-label="Dash">DASH</button>
+      <div class="touch-hint">ARRASTE AQUI PARA CORRER</div>`;
     this.ui.appendChild(this.touchEl);
     this.stickEl = this.touchEl.querySelector('.touch-stick') as HTMLElement;
+    this.hintEl = this.touchEl.querySelector('.touch-hint') as HTMLElement;
 
     const bind = (sel: string, action: string) => {
       const el = this.touchEl.querySelector(sel) as HTMLElement;
@@ -574,11 +635,13 @@ export class App {
   private updateTouchVisuals(): void {
     const stick = this.input.getStick();
     if (!stick) { this.stickEl.classList.remove('on'); return; }
+    // Once they have used it, the hint is just clutter over the game.
+    if (this.hintEl && this.hintEl.style.opacity !== '0') this.hintEl.style.opacity = '0';
     this.stickEl.classList.add('on');
     this.stickEl.style.left = `${stick.ox}px`;
     this.stickEl.style.top = `${stick.oy}px`;
     const knob = this.stickEl.firstElementChild as HTMLElement;
-    const radius = Math.min(window.innerWidth, window.innerHeight) * 0.11;
+    const radius = touchStickRadius();
     const dx = clamp(stick.x - stick.ox, -radius, radius);
     const dy = clamp(stick.y - stick.oy, -radius, radius);
     knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;

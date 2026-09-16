@@ -127,8 +127,8 @@ html, body {
 
 .menu-bottom { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 /* Wide screens: content hugs the left so the 3D character owns the right half. */
-@media (min-width: 900px) {
-  .menu-split .menu-bottom { align-items: flex-start; max-width: 46vw; }
+@media (min-width: 680px) {
+  .menu-split .menu-bottom { align-items: flex-start; max-width: 52vw; }
   .menu-split .menu-actions { justify-content: flex-start; }
   .menu-split .menu-top { max-width: 100%; }
 }
@@ -184,23 +184,23 @@ html, body {
   padding: 0 clamp(14px, 3vw, 34px);
 }
 .hud-pos { display: flex; align-items: baseline; text-shadow: 0 3px 0 rgba(0,0,0,0.4); }
-.hud-pos-value { font-size: clamp(2rem, 6vw, 3.2rem); line-height: 1; letter-spacing: 0.02em; }
-.hud-pos-total { font-size: clamp(0.9rem, 2.2vw, 1.3rem); color: var(--ink-dim); margin-left: 4px; }
+.hud-pos-value { font-size: clamp(1.5rem, 7vmin, 3.2rem); line-height: 1; letter-spacing: 0.02em; }
+.hud-pos-total { font-size: clamp(0.75rem, 2.6vmin, 1.3rem); color: var(--ink-dim); margin-left: 4px; }
 .pulse-up { animation: pulseUp 420ms ease; color: var(--good); }
 .pulse-down { animation: pulseDown 420ms ease; color: var(--bad); }
 @keyframes pulseUp { 0% { transform: scale(1);} 35% { transform: scale(1.28);} 100% { transform: scale(1);} }
 @keyframes pulseDown { 0% { transform: scale(1);} 35% { transform: scale(0.86);} 100% { transform: scale(1);} }
 .hud-objective {
-  font-size: clamp(0.7rem, 1.8vw, 0.95rem); letter-spacing: 0.22em;
+  font-size: clamp(0.62rem, 2.1vmin, 0.95rem); letter-spacing: 0.22em;
   color: var(--ink-dim); text-align: center; padding-top: 8px;
 }
-.hud-clock { font-size: clamp(1.2rem, 3.4vw, 2rem); text-shadow: 0 3px 0 rgba(0,0,0,0.4); }
+.hud-clock { font-size: clamp(1rem, 4vmin, 2rem); text-shadow: 0 3px 0 rgba(0,0,0,0.4); }
 .hud-clock.urgent { color: var(--bad); animation: tick 1s steps(2) infinite; }
 @keyframes tick { 50% { opacity: 0.55; } }
 
 .hud-qualify {
-  position: absolute; top: clamp(58px, 11vh, 96px); left: 50%; transform: translateX(-50%);
-  width: min(320px, 56vw); text-align: center;
+  position: absolute; top: clamp(42px, 13vh, 96px); left: 50%; transform: translateX(-50%);
+  width: min(320px, 46vw); text-align: center;
 }
 .hud-qualify-bar { height: 9px; background: rgba(0,0,0,0.42); border-radius: 99px; overflow: hidden; }
 .hud-qualify-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent-2), var(--warn)); border-radius: 99px; transition: width 300ms; }
@@ -216,7 +216,7 @@ html, body {
 
 .hud-countdown {
   position: absolute; inset: 0 0 18% 0; display: flex; align-items: center; justify-content: center;
-  font-size: clamp(3rem, 11vw, 7rem); font-weight: 900; text-shadow: 0 10px 0 rgba(0,0,0,0.35);
+  font-size: clamp(2.4rem, 13vmin, 7rem); font-weight: 900; text-shadow: 0 10px 0 rgba(0,0,0,0.35);
   color: var(--warn);
 }
 .hud-countdown.pop { animation: cdPop 520ms cubic-bezier(.34,1.56,.64,1); }
@@ -229,7 +229,7 @@ html, body {
   backdrop-filter: blur(6px); border: 2px solid rgba(255,255,255,0.1);
 }
 .hud-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-.hud-banner b { display: block; font-size: clamp(1.3rem, 4.4vw, 2.3rem); letter-spacing: 0.1em; color: var(--warn); }
+.hud-banner b { display: block; font-size: clamp(1.05rem, 5vmin, 2.3rem); letter-spacing: 0.1em; color: var(--warn); }
 .hud-banner span { display: block; font-size: 0.85rem; color: var(--ink-dim); font-weight: 600; margin-top: 4px; letter-spacing: 0.08em; }
 
 .hud-toasts { position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; align-items: center; }
@@ -244,29 +244,70 @@ html, body {
 @keyframes toastIn { from { opacity: 0; transform: translateY(14px) scale(.9);} to { opacity:1; transform: none; } }
 
 /* ---------- touch controls ---------- */
+/* Sized off the short axis and the safe area: a phone held in landscape has
+   very little height, and the thumbs live in the bottom corners. */
 .touch-controls { position: absolute; inset: 0; pointer-events: none; display: none; }
 .touch-controls.active { display: block; }
 .touch-stick {
-  position: absolute; width: 132px; height: 132px; border-radius: 50%;
-  border: 3px solid rgba(255,255,255,0.22); background: rgba(10,16,30,0.22);
+  position: absolute; width: clamp(96px, 34vmin, 150px); height: clamp(96px, 34vmin, 150px);
+  border-radius: 50%; border: 3px solid rgba(255,255,255,0.28); background: rgba(10,16,30,0.22);
   transform: translate(-50%, -50%); pointer-events: none; opacity: 0; transition: opacity 140ms;
 }
 .touch-stick.on { opacity: 1; }
 .touch-stick i {
-  position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%;
-  background: rgba(255,255,255,0.5); transform: translate(-50%,-50%);
+  position: absolute; left: 50%; top: 50%;
+  width: 44%; height: 44%; border-radius: 50%;
+  background: rgba(255,255,255,0.55); transform: translate(-50%,-50%);
+}
+  /* Fades out for good once the player has found the stick. */
+.touch-hint {
+  transition: opacity 400ms;
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  font-size: 0.7rem; letter-spacing: 0.16em; color: rgba(255,255,255,0.45);
+  pointer-events: none; font-weight: 700;
 }
 .touch-btn {
   position: absolute; border-radius: 50%; border: 0; pointer-events: auto;
-  font-weight: 900; letter-spacing: 0.06em; color: #06121f;
+  font-weight: 900; letter-spacing: 0.04em; color: #06121f;
   background: linear-gradient(180deg, var(--accent-2), var(--accent));
-  box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+  box-shadow: 0 6px 0 rgba(0,0,0,0.32);
   display: flex; align-items: center; justify-content: center;
-  user-select: none; font-size: 0.9rem;
+  user-select: none; -webkit-user-select: none; touch-action: none;
+  font-size: clamp(0.62rem, 2.4vmin, 0.95rem);
 }
 .touch-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
-.touch-btn.jump { right: 22px; bottom: 30px; width: 96px; height: 96px; font-size: 1.05rem; }
-.touch-btn.dive { right: 128px; bottom: 74px; width: 78px; height: 78px; background: linear-gradient(180deg, #ffd166, #ff8a3d); }
+.touch-btn.jump {
+  right: max(18px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  width: clamp(72px, 24vmin, 108px); height: clamp(72px, 24vmin, 108px);
+}
+.touch-btn.dive {
+  right: calc(max(18px, env(safe-area-inset-right, 0px)) + clamp(78px, 26vmin, 116px));
+  bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + clamp(30px, 10vmin, 52px));
+  width: clamp(62px, 20vmin, 92px); height: clamp(62px, 20vmin, 92px);
+  background: linear-gradient(180deg, #ffd166, #ff8a3d);
+}
+
+/* Portrait on a touch device: ask for landscape rather than shipping a
+   letterboxed, unplayable view. */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    position: fixed; inset: 0; z-index: 50; display: flex;
+    flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    background: var(--bg); color: var(--ink); text-align: center; padding: 24px;
+  }
+  .rotate-hint .glyph {
+    width: 84px; height: 130px; border: 4px solid var(--accent); border-radius: 14px;
+    animation: tilt 1.8s ease-in-out infinite;
+  }
+  .rotate-hint b { letter-spacing: 0.2em; font-size: 1.05rem; }
+  .rotate-hint span { color: var(--ink-dim); font-size: 0.9rem; max-width: 26ch; }
+}
+@keyframes tilt {
+  0%, 40% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(-90deg); }
+}
 
 /* ---------- results ---------- */
 .results-wrap {
@@ -354,3 +395,33 @@ html, body {
 }
 .draw-status { letter-spacing: 0.26em; font-weight: 800; color: var(--warn); font-size: 0.9rem; }
 .draw-foot { color: var(--ink-dim); font-size: 0.82rem; }
+
+/* ---------- landscape phones ---------- */
+@media (max-height: 560px) {
+  .menu { padding: 10px 14px; }
+  .brand { font-size: clamp(1.3rem, 7vmin, 2.1rem); text-shadow: 0 3px 0 rgba(0,0,0,0.3); }
+  .brand small { text-shadow: none; }
+  .brand small { font-size: 0.24em; letter-spacing: 0.26em; margin-top: 0.3em; }
+  .profile-chip { padding: 6px 12px; gap: 8px; }
+  .profile-chip .xpbar { width: 64px; }
+  .menu-bottom { gap: 8px; }
+  .map-card { padding: 7px 14px; gap: 10px; }
+  .map-card b { font-size: 0.85rem; }
+  .map-card small { font-size: 0.7rem; }
+  .btn { padding: 0.6em 1.3em; min-height: 40px; }
+  .btn.big { font-size: 1.1rem; padding: 0.6em 2em; }
+  .menu-actions { gap: 8px; }
+  .draw-head h2 { font-size: clamp(1.2rem, 7vmin, 2rem); margin: 2px 0; }
+  .draw-cards { gap: 8px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .draw-card { padding: 9px 11px; }
+  .draw-card b { font-size: 0.82rem; }
+  .draw-card span { font-size: 0.68rem; }
+  .draw { gap: 8px; }
+  .panel { padding: 14px 16px; max-height: 92vh; }
+  .row { padding: 7px 0; }
+  .results-card { padding: 14px 18px; }
+  .results-place { font-size: clamp(1.8rem, 9vmin, 3rem); }
+  .results-row { padding: 4px 0; font-size: 0.85rem; }
+  .round-intro .name { font-size: clamp(1.4rem, 8vmin, 2.6rem); }
+  .round-intro .goal { margin-top: 10px; padding: 7px 18px; font-size: 0.8rem; }
+}

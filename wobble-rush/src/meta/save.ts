@@ -43,6 +43,8 @@ export interface SaveData {
   records: Record<string, MapRecord>;
   settings: {
     quality: 'low' | 'medium' | 'high' | 'ultra' | 'auto';
+    /** Set once the player picks a quality themselves - stops mobile defaults. */
+    qualityTouched: boolean;
     master: number;
     music: number;
     sfx: number;
@@ -76,6 +78,7 @@ function defaults(): SaveData {
     records: {},
     settings: {
       quality: 'auto',
+      qualityTouched: false,
       master: 0.85, music: 0.5, sfx: 0.85,
       sensitivity: 1, invertY: false, shake: 1,
       showTimer: false, language: '', reducedMotion: false,

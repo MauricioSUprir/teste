@@ -30,6 +30,17 @@ export const DEFAULT_BINDINGS: Record<ActionName, string[]> = {
   emote: ['KeyT'],
 };
 
+/**
+ * Radius of the virtual stick, in CSS pixels.
+ * Derived from the short axis but floored: on a landscape phone the viewport is
+ * barely 300 px tall, and a radius scaled purely off that makes the stick so
+ * twitchy that small thumb movements peg the input.
+ */
+export function touchStickRadius(): number {
+  const short = Math.min(window.innerWidth, window.innerHeight);
+  return Math.max(52, Math.min(short * 0.22, 96));
+}
+
 export class InputManager {
   readonly intent: InputIntent = { moveX: 0, moveZ: 0, buttons: 0, lookX: 0, lookY: 0 };
   bindings: Record<ActionName, string[]> = JSON.parse(JSON.stringify(DEFAULT_BINDINGS));
@@ -171,7 +182,7 @@ export class InputManager {
     if (this.stickId !== -1) {
       const dx = this.stickPos.x - this.stickOrigin.x;
       const dy = this.stickPos.y - this.stickOrigin.y;
-      const radius = Math.min(window.innerWidth, window.innerHeight) * 0.11;
+      const radius = touchStickRadius();
       i.moveX = clamp(dx / radius, -1, 1);
       i.moveZ = clamp(dy / radius, -1, 1);
     }

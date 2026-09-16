@@ -1,0 +1,20 @@
+import { chromium, devices } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--no-sandbox'] });
+// A mid-range phone in landscape, which is how this game is meant to be held.
+const ctx = await b.newContext({ ...devices['Pixel 5 landscape'], hasTouch: true, isMobile: true });
+const p = await ctx.newPage();
+const errs = [];
+p.on('pageerror', (e) => errs.push('PAGEERROR: ' + e.message));
+p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto('http://localhost:5190/', { waitUntil: 'networkidle' });
+await p.waitForTimeout(2200);
+await p.screenshot({ path: '/tmp/claude-0/m-menu.png' });
+await p.tap('#play').catch(async () => { await p.click('#play'); });
+await p.waitForTimeout(2500);
+await p.screenshot({ path: '/tmp/claude-0/m-draw.png' });
+await p.waitForTimeout(7000);
+await p.touchscreen.tap(200, 250).catch(() => {});
+await p.waitForTimeout(3500);
+await p.screenshot({ path: '/tmp/claude-0/m-match.png' });
+console.log('viewport', JSON.stringify(p.viewportSize()), '| errors:', errs.length ? errs.slice(0, 5).join(' | ') : 'none');
+await b.close();
