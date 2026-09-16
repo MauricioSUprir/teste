@@ -15,11 +15,83 @@ const app = express()
 app.use(express.json({ limit: '1mb' }))
 
 const PORT = process.env.PORT || 8787
-const API_KEY = process.env.ANTHROPIC_API_KEY
-// Modelos: o de conversa precisa ser rapido (e voz, em tempo real);
-// o do relatorio final pode ser mais forte. Da para trocar por variavel.
-const CHAT_MODEL = process.env.VOCA_CHAT_MODEL || 'claude-haiku-4-5-20251001'
-const REPORT_MODEL = process.env.VOCA_REPORT_MODEL || 'claude-sonnet-5'
+
+// ---------------------------------------------------------------- provedores
+// O app nao depende de um fornecedor so. Qualquer um destes serve — varios tem
+// plano gratuito. A pessoa escolhe no proprio app (a chave fica no navegador
+// dela) ou o dono do servidor define por variavel de ambiente.
+export const PROVIDERS = {
+  gemini: {
+    label: 'Google Gemini',
+    kind: 'gemini',
+    chat: 'gemini-2.5-flash',
+    report: 'gemini-2.5-flash',
+  },
+  groq: {
+    label: 'Groq',
+    kind: 'openai',
+    base: 'https://api.groq.com/openai/v1',
+    chat: 'llama-3.3-70b-versatile',
+    report: 'llama-3.3-70b-versatile',
+  },
+  openrouter: {
+    label: 'OpenRouter',
+    kind: 'openai',
+    base: 'https://openrouter.ai/api/v1',
+    chat: 'meta-llama/llama-3.3-70b-instruct:free',
+    report: 'meta-llama/llama-3.3-70b-instruct:free',
+  },
+  cerebras: {
+    label: 'Cerebras',
+    kind: 'openai',
+    base: 'https://api.cerebras.ai/v1',
+    chat: 'llama-3.3-70b',
+    report: 'llama-3.3-70b',
+  },
+  mistral: {
+    label: 'Mistral',
+    kind: 'openai',
+    base: 'https://api.mistral.ai/v1',
+    chat: 'mistral-small-latest',
+    report: 'mistral-small-latest',
+  },
+  ollama: {
+    label: 'Ollama (no seu computador)',
+    kind: 'openai',
+    base: process.env.OLLAMA_URL || 'http://localhost:11434/v1',
+    chat: 'qwen3:8b',
+    report: 'qwen3:8b',
+  },
+  anthropic: {
+    label: 'Anthropic',
+    kind: 'anthropic',
+    chat: 'claude-haiku-4-5-20251001',
+    report: 'claude-sonnet-5',
+  },
+}
+
+// Configuracao do servidor (opcional): se existir, vale para todo mundo que
+// abrir o app, sem ninguem precisar colar chave nenhuma.
+const SERVER_PROVIDER = process.env.VOCA_PROVIDER || (process.env.ANTHROPIC_API_KEY ? 'anthropic' : '')
+const SERVER_KEY = process.env.VOCA_API_KEY || process.env.ANTHROPIC_API_KEY || ''
+const CHAT_MODEL = process.env.VOCA_CHAT_MODEL || ''
+const REPORT_MODEL = process.env.VOCA_REPORT_MODEL || ''
+
+/** Decide qual provedor/chave/modelo usar nesta requisicao. */
+function resolveAi(body, task) {
+  const id = (body?.provider || SERVER_PROVIDER || '').trim()
+  const p = PROVIDERS[id]
+  if (!p) return null
+  const key = (body?.apiKey || (id === SERVER_PROVIDER ? SERVER_KEY : '')).trim()
+  // Ollama roda local e nao pede chave
+  if (!key && p.kind !== 'openai') return null
+  if (!key && id !== 'ollama') return null
+  const model =
+    (body?.model || '').trim() ||
+    (id === SERVER_PROVIDER ? (task === 'report' ? REPORT_MODEL : CHAT_MODEL) : '') ||
+    (task === 'report' ? p.report : p.chat)
+  return { id, provider: p, key, model }
+}
 
 const MOOD_STYLE = {
   gentil:
@@ -118,41 +190,109 @@ const REPORT_TOOL = {
   },
 }
 
-async function callClaude({ model, system, messages, tool, maxTokens = 700, apiKey }) {
-  const key = apiKey || API_KEY
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+/** Le o JSON da resposta mesmo quando o modelo enfeita com texto em volta. */
+function parseJson(text) {
+  const t = String(text || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '')
+  try {
+    return JSON.parse(t)
+  } catch {
+    const a = t.indexOf('{')
+    const b = t.lastIndexOf('}')
+    if (a >= 0 && b > a) return JSON.parse(t.slice(a, b + 1))
+    throw new Error('o modelo nao devolveu JSON')
+  }
+}
+
+/** Descricao do formato, usada pelos provedores que nao tem tool use. */
+function jsonSpec(tool) {
+  const keys = Object.keys(tool.input_schema.properties)
+  return `\n\nResponda SOMENTE com um objeto JSON valido, sem texto em volta e sem markdown, com exatamente estas chaves: ${keys.join(', ')}. ` +
+    `"corrections" e uma lista de objetos {wrong, right, why} (lista vazia quando nao houver erro).` +
+    (keys.includes('fix') ? ' "fix" e uma lista de objetos {what, example}. "strengths" e uma lista de textos.' : '')
+}
+
+async function callAi({ ai, system, messages, tool, maxTokens = 700 }) {
+  const { provider, key, model } = ai
+
+  if (provider.kind === 'anthropic') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        system,
+        messages,
+        tools: [tool],
+        tool_choice: { type: 'tool', name: tool.name },
+      }),
+    })
+    if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 300)}`)
+    const data = await res.json()
+    const use = (data.content || []).find((c) => c.type === 'tool_use')
+    if (!use) throw new Error('resposta sem tool_use')
+    return use.input
+  }
+
+  if (provider.kind === 'gemini') {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system + jsonSpec(tool) }] },
+          contents: messages.map((m) => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }],
+          })),
+          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: maxTokens, temperature: 0.9 },
+        }),
+      },
+    )
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`)
+    const data = await res.json()
+    const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? ''
+    return parseJson(text)
+  }
+
+  // qualquer servico compativel com a API da OpenAI (Groq, OpenRouter,
+  // Cerebras, Mistral, Ollama...)
+  const res = await fetch(`${provider.base}/chat/completions`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
+      ...(key ? { authorization: `Bearer ${key}` } : {}),
     },
     body: JSON.stringify({
       model,
       max_tokens: maxTokens,
-      system,
-      messages,
-      tools: [tool],
-      tool_choice: { type: 'tool', name: tool.name },
+      temperature: 0.9,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: system + jsonSpec(tool) }, ...messages],
     }),
   })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Anthropic ${res.status}: ${body.slice(0, 400)}`)
-  }
+  if (!res.ok) throw new Error(`${provider.label} ${res.status}: ${(await res.text()).slice(0, 300)}`)
   const data = await res.json()
-  const use = (data.content || []).find((c) => c.type === 'tool_use')
-  if (!use) throw new Error('resposta sem tool_use')
-  return use.input
+  return parseJson(data?.choices?.[0]?.message?.content ?? '')
 }
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, key: !!API_KEY, byok: true, chatModel: CHAT_MODEL, reportModel: REPORT_MODEL })
+  res.json({
+    ok: true,
+    // true = o servidor ja tem chave propria e ninguem precisa colar nada
+    key: !!(SERVER_PROVIDER && (SERVER_KEY || SERVER_PROVIDER === 'ollama')),
+    serverProvider: SERVER_PROVIDER || null,
+    byok: true,
+    providers: Object.fromEntries(
+      Object.entries(PROVIDERS).map(([id, p]) => [id, { label: p.label, chat: p.chat }]),
+    ),
+  })
 })
 
 app.post('/api/chat', async (req, res) => {
-  const { apiKey } = req.body
-  if (!API_KEY && !apiKey) return res.status(503).json({ error: 'sem ANTHROPIC_API_KEY' })
+  const ai = resolveAi(req.body, 'chat')
+  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, mood, scenarioTitle, situation, level, userName, history = [], message, weakSpots = [], opening } = req.body
     const messages = history
@@ -167,9 +307,8 @@ app.post('/api/chat', async (req, res) => {
     })
     if (messages[0]?.role !== 'user') messages.shift()
 
-    const out = await callClaude({
-      apiKey,
-      model: CHAT_MODEL,
+    const out = await callAi({
+      ai,
       system: systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots }),
       messages,
       tool: REPLY_TOOL,
@@ -189,17 +328,16 @@ app.post('/api/chat', async (req, res) => {
 })
 
 app.post('/api/report', async (req, res) => {
-  const { apiKey } = req.body
-  if (!API_KEY && !apiKey) return res.status(503).json({ error: 'sem ANTHROPIC_API_KEY' })
+  const ai = resolveAi(req.body, 'report')
+  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, turns = [], userName } = req.body
     const transcript = turns
       .map((t) => `${t.role === 'user' ? 'ALUNO' : 'VOCA'}: ${t.text}`)
       .join('\n')
       .slice(-6000)
-    const out = await callClaude({
-      apiKey,
-      model: REPORT_MODEL,
+    const out = await callAi({
+      ai,
       system: `Voce e um professor de ${langName} avaliando uma conversa de um aluno brasileiro chamado ${userName || 'aluno'}.
 Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
 - "summary": 2 frases sobre como foi a conversa, honestas mas encorajadoras.
@@ -226,5 +364,9 @@ if (fs.existsSync(dist)) {
 
 app.listen(PORT, () => {
   console.log(`VOCA IA — servidor em http://localhost:${PORT}`)
-  console.log(API_KEY ? `chave carregada · chat: ${CHAT_MODEL}` : 'SEM ANTHROPIC_API_KEY — o app roda em modo offline')
+  console.log(
+    SERVER_PROVIDER
+      ? `provedor do servidor: ${SERVER_PROVIDER}${SERVER_KEY ? ' (com chave)' : ''}`
+      : 'sem provedor no servidor — cada pessoa liga a IA no proprio app, ou fica no modo offline',
+  )
 })

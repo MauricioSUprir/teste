@@ -326,3 +326,17 @@ textarea { resize: none; }
 .ai-status { font-weight: 700; margin-bottom: 6px; }
 .ai-box .type-row { margin-top: 8px; }
 .offline-warn { background: #2A2412; border: 2px solid #5C4E1F; border-radius: 14px; padding: 10px 12px; font-size: 14px; }
+
+.prov-list { display: grid; gap: 8px; margin: 10px 0; }
+.prov { text-align: left; background: var(--bg2); border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; cursor: pointer; display: grid; gap: 3px; }
+.prov.on { border-color: var(--green); background: #16251F; }
+.prov-head { display: flex; align-items: center; gap: 8px; }
+.prov-head b { flex: 1; }
+.pill { font-size: 11px; font-weight: 800; border-radius: 99px; padding: 2px 8px; }
+.pill.free { background: #1E3A2E; color: #7FE3B8; }
+.pill.paid { background: #3A2B1E; color: #F4C95D; }
+.prov small { font-size: 12px; color: var(--muted); }
+.prov-setup { border-top: 1px solid var(--line); padding-top: 10px; }
+.prov-setup a { color: var(--blue); }
+.test-ok { color: var(--green); font-size: 14px; margin-top: 8px; }
+.test-fail { color: var(--red); font-size: 14px; margin-top: 8px; word-break: break-word; }
