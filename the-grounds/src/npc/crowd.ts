@@ -166,9 +166,11 @@ export class Crowd {
       if (rng() < 0.4) app.torso = 'jaqueta'
     }
 
-    const lodDist = Math.hypot(node.x, node.z)
-    void lodDist
-    const character = new Character(app, { castShadow: true, lod: 'medio' })
+    // Construir um personagem custa alguns milissegundos de geometria. Quem
+    // saiu do raio volta reaproveitado: a cidade continua variada porque o
+    // reservatório guarda aparências diferentes, e o quadro deixa de engasgar.
+    const character = this.reserva.pop() ?? new Character(app, { castShadow: true, lod: 'medio' })
+    character.setVisible(true)
     character.setPosition(node.x, this.world.surfaceHeight(node.x, node.z, 1e4), node.z)
     this.group.add(character.group)
 
@@ -193,10 +195,20 @@ export class Crowd {
     })
   }
 
+  /** Personagens prontos, guardados para reaproveitar em vez de reconstruir. */
+  private reserva: Character[] = []
+  /** Quantos personagens o reservatório guarda antes de começar a descartar. */
+  private readonly reservaMax = 14
+
   private despawn(index: number): void {
     const p = this.people[index]
     this.group.remove(p.character.group)
-    p.character.dispose()
+    if (this.reserva.length < this.reservaMax) {
+      p.character.setVisible(false)
+      this.reserva.push(p.character)
+    } else {
+      p.character.dispose()
+    }
     this.people.splice(index, 1)
   }
 
@@ -376,6 +388,8 @@ export class Crowd {
 
   dispose(): void {
     for (const p of this.people) p.character.dispose()
+    for (const c of this.reserva) c.dispose()
+    this.reserva = []
     this.people = []
     this.world.root.remove(this.group)
   }

@@ -96,6 +96,10 @@ export class Game {
   private raf = 0
   private cpuMs = 0
   private envTimer = 0
+  /** Cache dos edifícios ao redor, recalculado por tempo e por deslocamento. */
+  private vizinhos: import('../world/buildings').BuildingSpec[] = []
+  private vizinhosTimer = 0
+  private readonly vizinhosOnde = new THREE.Vector3(1e6, 0, 1e6)
   /** Luz e direção do sol da última atualização do mapa de ambiente. */
   private envLuz = -1
   private readonly envSol = new THREE.Vector3()
@@ -279,7 +283,7 @@ export class Game {
   /** Média móvel do custo de cada etapa do quadro, em ms. */
   private readonly perfil: Record<string, number> = {
     mundo: 0, jogador: 0, stream: 0, transito: 0, gente: 0,
-    futebol: 0, interior: 0, audio: 0, sombra: 0, render: 0,
+    futebol: 0, vizinhos: 0, interior: 0, audio: 0, sombra: 0, render: 0,
   }
 
   /** Pior quadro visto em cada etapa nos últimos segundos. */
@@ -313,12 +317,14 @@ export class Game {
         this.world.processBuildQueue(this.orcamentoConstrucao)
       })
 
+      const folgadoParaNovos = this.engine.perf.frameMs
+        < (1000 / Math.max(30, this.settings.graphics.targetFps)) * 1.25
+      this.traffic.permitirNovos = folgadoParaNovos
       this.medir('transito', () => this.traffic.update(
         dt, this.player.position, this.settings.graphics.trafficDensity,
         this.world.trafficPhase, this.world.trafficAmber,
       ))
-      this.crowd.permitirNovos = this.engine.perf.frameMs
-        < (1000 / Math.max(30, this.settings.graphics.targetFps)) * 1.25
+      this.crowd.permitirNovos = folgadoParaNovos
       this.medir('gente', () => this.crowd.update(
         dt, this.player.position, this.settings.graphics.pedestrianDensity,
         this.world.trafficPhase, this.world.hour,
@@ -330,17 +336,23 @@ export class Game {
           this.bolaLivre.update(dt, this.world.collision, this.superficieBola)
         }
       })
+      this.medir('vizinhos', () => {
+        // A lista de edifícios ao redor muda pouco: refazê-la a cada quadro é
+        // trabalho jogado fora.
+        this.vizinhosTimer -= dt
+        const p2 = this.player.position
+        if (this.vizinhosTimer <= 0 || this.vizinhosOnde.distanceToSquared(p2) > 64) {
+          this.vizinhosTimer = 0.5
+          this.vizinhosOnde.copy(p2)
+          this.vizinhos = this.world.buildingsNear(p2.x, p2.z, 48)
+        }
+      })
       this.medir('interior', () => {
-        // Quando o quadro está caro, nem um interior por quadro: zero, até
-        // sobrar folga. O jogador está andando, não entrando em tudo ao mesmo
-        // tempo — o interior chega um instante depois e ninguém percebe.
+        // Quando o quadro está caro o orçamento encolhe: o interior chega um
+        // instante depois e ninguém percebe, mas a imagem não tranca.
         const alvo = 1000 / Math.max(30, this.settings.graphics.targetFps)
-        const porQuadro = this.engine.perf.frameMs < alvo * 1.2 ? 1 : 0
-        this.interiores.atualizar(
-          this.player.position,
-          this.world.buildingsNear(this.player.position.x, this.player.position.z, 48),
-          26, 44, 6, porQuadro,
-        )
+        const orcamento = this.engine.perf.frameMs < alvo * 1.2 ? 2.5 : 0.8
+        this.interiores.atualizar(this.player.position, this.vizinhos, 26, 44, 6, orcamento)
         this.interiores.atualizarLuzes(this.world.sky.daylight)
       })
       this.atualizarInteracoes(dt)
@@ -887,6 +899,10 @@ export class Game {
           + ` bola=(${b.position.x.toFixed(1)},${b.position.y.toFixed(1)},${b.position.z.toFixed(1)})`
           + ` v=${b.velocity.length().toFixed(1)} posse=${dono} dJog=${dh.toFixed(1)}`
           + ` jogadores=${m.jogadores.length} aviso="${s2.aviso}"`
+          + (m.treino
+            ? ` treino=${m.resumoTreino.gols}/${m.resumoTreino.chutes}`
+              + ` def=${m.resumoTreino.defesas} maior=${Math.round(m.resumoTreino.maiorKmh)}km/h`
+            : '')
       })(),
       perfil: Object.entries(this.perfil)
         .sort((a, b) => b[1] - a[1])

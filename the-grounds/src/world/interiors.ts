@@ -126,9 +126,22 @@ export class InteriorBuilder {
   constructor(private readonly materials: MaterialLibrary) {}
 
   /** Constrói o interior de um edifício e registra colisores e interações. */
-  construir(
+  /** Constrói de uma vez só (usado fora do laço de jogo). */
+  construir(spec: BuildingSpec, collision: CollisionWorld, owner: string): InteriorConstruido {
+    const g = this.construirEmEtapas(spec, collision, owner)
+    let r = g.next()
+    while (!r.done) r = g.next()
+    return r.value
+  }
+
+  /**
+   * Constrói o interior em etapas. Um interior mobiliado custa dezenas de
+   * milissegundos; entregue de uma vez, isso é um tranco na imagem bem na hora
+   * em que o jogador chega na porta.
+   */
+  *construirEmEtapas(
     spec: BuildingSpec, collision: CollisionWorld, owner: string,
-  ): InteriorConstruido {
+  ): Generator<void, InteriorConstruido, void> {
     const rng = makeRng(spec.seed ^ 0x1717)
     const batcher = new GeometryBatcher()
     const pontos: PontoInterativo[] = []
@@ -170,12 +183,15 @@ export class InteriorBuilder {
 
     // --- Cômodos -----------------------------------------------------------
     const comodos = planejarComodos(w, d, spec.interior, rng)
+    yield
     for (let i = 1; i < comodos.length; i++) {
       this.divisoria(comodos[i], comodos[0], batcher, put, colisor, alturaTeto, corParede, rng)
     }
+    yield
 
     for (const c of comodos) {
       this.mobiliar(c, spec, batcher, put, colisor, pontos, luzes, paraMundo, rng, alturaTeto, corParede)
+      yield
     }
 
     // --- Iluminação --------------------------------------------------------
@@ -218,6 +234,7 @@ export class InteriorBuilder {
       })
     }
 
+    yield
     const meshes = batcher.build((k) => this.materials.get(k as WorldMaterialKey))
     const group = new THREE.Group()
     group.name = `interior-${spec.id}`
@@ -527,20 +544,25 @@ export class InteriorManager {
    * Monta interiores de edifícios próximos e remove os distantes.
    * `candidatos` são os edifícios já conhecidos ao redor do jogador.
    */
+  /** Interior sendo montado em etapas, entre quadros. */
+  private emConstrucao: Generator<void, InteriorConstruido, void> | null = null
+  private idEmConstrucao = -1
+
   atualizar(
     posicao: THREE.Vector3, candidatos: BuildingSpec[],
     distanciaMontar = 26, distanciaSoltar = 44, limite = 6,
     /**
-     * Quantos interiores podem ser montados neste quadro. Montar seis de uma
-     * vez ao virar numa rua cheia trava a imagem por décimos de segundo; um por
-     * quadro entra sem que ninguém perceba.
+     * Quanto tempo, em milissegundos, este quadro pode gastar montando
+     * interiores. Contar etapas não serve: uma etapa pesada sozinha já estoura
+     * o quadro. O relógio é o único limite honesto.
      */
-    porQuadro = 1,
+    orcamentoMs = 2.5,
   ): void {
-    // Remove os que ficaram longe.
-    for (const [id, interior] of [...this.ativos]) {
+    // Remove os que ficaram longe — um por quadro. Descartar a geometria de
+    // vários interiores de uma vez custa o mesmo tranco que montá-los.
+    for (const [id, interior] of this.ativos) {
       const d = Math.hypot(interior.spec.x - posicao.x, interior.spec.z - posicao.z)
-      if (d > distanciaSoltar) this.remover(id)
+      if (d > distanciaSoltar) { this.remover(id); break }
     }
 
     // Monta os mais próximos, respeitando o limite simultâneo.
@@ -549,14 +571,29 @@ export class InteriorManager {
       .filter((x) => x.d <= distanciaMontar)
       .sort((a, b) => a.d - b.d)
 
-    let montados = 0
-    for (const { b } of ordenados) {
-      if (this.ativos.size >= limite || montados >= porQuadro) break
-      if (this.ativos.has(b.id)) continue
-      const interior = this.builder.construir(b, this.collision, `interior-${b.id}`)
-      this.raiz.add(interior.group)
-      this.ativos.set(b.id, interior)
-      montados++
+    // Uma etapa por volta, enquanto couber no orçamento do quadro. Um interior
+    // já começado avança pelo menos uma etapa mesmo em quadro apertado:
+    // deixá-lo pela metade seria pior do que terminá-lo devagar.
+    const t0 = performance.now()
+    let primeira = true
+    while (primeira || performance.now() - t0 < orcamentoMs) {
+      if (!this.emConstrucao) {
+        if (this.ativos.size >= limite || orcamentoMs <= 0) break
+        const proximo = ordenados.find((x) => !this.ativos.has(x.b.id) && x.b.id !== this.idEmConstrucao)
+        if (!proximo) break
+        this.idEmConstrucao = proximo.b.id
+        this.emConstrucao = this.builder.construirEmEtapas(
+          proximo.b, this.collision, `interior-${proximo.b.id}`,
+        )
+      }
+      primeira = false
+      const r = this.emConstrucao.next()
+      if (r.done) {
+        this.raiz.add(r.value.group)
+        this.ativos.set(r.value.spec.id, r.value)
+        this.emConstrucao = null
+        this.idEmConstrucao = -1
+      }
     }
 
     // Determina em qual interior o jogador está.

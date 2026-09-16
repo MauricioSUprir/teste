@@ -283,7 +283,9 @@ export class Match {
     h.speed = 0
     const alvo = this.golAdversario(h.team)
     h.yaw = Math.atan2(alvo.x - pos.x, alvo.z - pos.z)
-    const frente = this.paraMundo(lado * (p.halfLength - dist + 1.6), desvio)
+    // 1,2 m: dentro do alcance de toque, para o primeiro chute sair sem que o
+    // jogador precise caminhar até a bola.
+    const frente = this.paraMundo(lado * (p.halfLength - dist + 1.2), desvio)
     this.ball.reset(frente.x, frente.y + BALL_RADIUS + 0.02, frente.z)
     this.ball.ultimoToque = 0
     this.devolverEm = 0
@@ -297,9 +299,9 @@ export class Match {
     const dx = alvo.x - h.position.x
     const dz = alvo.z - h.position.z
     const n = Math.hypot(dx, dz) || 1
-    const y = this.world.surfaceHeight(h.position.x + (dx / n) * 1.5, h.position.z + (dz / n) * 1.5,
+    const y = this.world.surfaceHeight(h.position.x + (dx / n) * 1.2, h.position.z + (dz / n) * 1.2,
       h.position.y + 1.2)
-    this.ball.reset(h.position.x + (dx / n) * 1.5, y + BALL_RADIUS + 0.02, h.position.z + (dz / n) * 1.5)
+    this.ball.reset(h.position.x + (dx / n) * 1.2, y + BALL_RADIUS + 0.02, h.position.z + (dz / n) * 1.2)
     this.ball.ultimoToque = 0
     this.devolverEm = 0
   }

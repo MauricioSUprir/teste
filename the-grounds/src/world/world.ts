@@ -62,6 +62,8 @@ export class World {
   private sectors = new Map<string, Sector>()
   private terrainChunks = new Map<string, { mesh: THREE.Mesh; lod: number }>()
   private buildQueue: { sx: number; sz: number; detail: 'alto' | 'baixo'; priority: number }[] = []
+  /** Setor sendo construído em etapas, entre quadros. */
+  private emConstrucao: Generator<void, void, void> | null = null
   private terrainGroup = new THREE.Group()
   private sectorGroup = new THREE.Group()
   private settings: GraphicsSettings
@@ -210,20 +212,33 @@ export class World {
   processBuildQueue(budgetMs: number): number {
     const t0 = performance.now()
     let built = 0
-    while (this.buildQueue.length > 0 && performance.now() - t0 < budgetMs) {
-      const job = this.buildQueue.shift()!
-      const key = this.sectorKey(job.sx, job.sz)
-      if (this.sectors.has(key)) continue
-      this.buildSector(job.sx, job.sz, job.detail)
-      built++
+    while (performance.now() - t0 < budgetMs) {
+      if (!this.emConstrucao) {
+        const job = this.buildQueue.shift()
+        if (!job) break
+        const key = this.sectorKey(job.sx, job.sz)
+        if (this.sectors.has(key)) continue
+        this.emConstrucao = this.construirSetor(job.sx, job.sz, job.detail)
+      }
+      // Uma etapa por volta: a checagem de tempo acontece entre etapas, então
+      // o pior caso do quadro é o custo de uma etapa, não o do setor inteiro.
+      if (this.emConstrucao.next().done) {
+        this.emConstrucao = null
+        built++
+      }
     }
     return built
   }
 
-  get pendingSectors(): number { return this.buildQueue.length }
+  get pendingSectors(): number { return this.buildQueue.length + (this.emConstrucao ? 1 : 0) }
   get loadedSectors(): number { return this.sectors.size }
 
-  private buildSector(sx: number, sz: number, detail: 'alto' | 'baixo'): void {
+  /**
+   * Constrói um setor em etapas. Um setor do centro leva mais de cem
+   * milissegundos de uma vez só, o que aparece como um tranco na imagem; aqui
+   * o trabalho é cortado em pedaços e o laço decide quantos cabem no quadro.
+   */
+  private *construirSetor(sx: number, sz: number, detail: 'alto' | 'baixo'): Generator<void, void, void> {
     const key = this.sectorKey(sx, sz)
     const x0 = sx * SECTOR_SIZE
     const z0 = sz * SECTOR_SIZE
@@ -239,6 +254,7 @@ export class World {
     const pitchesOut: PitchSpec[] = []
 
     const roads = buildRoadsForSector(this.layout, { x0, z0, x1, z1 }, batcher, this.collision, key, propCtx, detail)
+    yield
 
     for (const block of this.layout.blocksInRect(x0, z0, x1, z1)) {
       if (block.kind === 'edificado') {
@@ -246,15 +262,19 @@ export class World {
           if (detail === 'alto') buildBuilding(spec, batcher, this.collision, key, 'alto')
           else buildBuildingLod(spec, batcher)
           buildings.push(spec)
+          yield
         }
       } else {
         buildBlockContent(block, batcher, this.collision, key, propCtx, detail, pitchesOut)
+        yield
       }
     }
 
     const meshes = batcher.build((k) => this.materials.get(k as WorldMaterialKey))
     for (const m of meshes) {
-      m.castShadow = detail === 'alto'
+      // Superfícies rasas já vêm marcadas para não projetar sombra; setores de
+      // baixo detalhe não projetam nada.
+      m.castShadow = m.castShadow && detail === 'alto'
       m.receiveShadow = true
       group.add(m)
     }

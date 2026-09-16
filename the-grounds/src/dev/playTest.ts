@@ -152,6 +152,12 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
       game.iniciarTreino(alvo.id)
       return { id: alvo.id, nome: alvo.name }
     },
+    /** Dispara um chute do jogador com a potência dada (0..1). */
+    chute: (potencia = 0.8) => {
+      game.player.potenciaChute = Math.max(0, Math.min(1, potencia))
+      game.player.playAction(potencia > 0.6 ? 'chuteForte' : 'chute')
+      return { potencia: game.player.potenciaChute }
+    },
     /** Estado do menu contextual aberto. */
     menu: () => (game.escolha
       ? { titulo: game.escolha.titulo, indice: game.escolha.indice,

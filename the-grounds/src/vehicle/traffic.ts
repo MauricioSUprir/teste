@@ -165,14 +165,14 @@ export class Traffic {
       const c = this.cars[i]
       const d = Math.hypot(c.vehicle.position.x - center.x, c.vehicle.position.z - center.z)
       if (d > this.radius * 1.35) {
-        c.vehicle.dispose(this.scene, this.collision, c.owner)
+        this.guardar(c.vehicle, c.owner)
         this.cars.splice(i, 1)
       }
     }
 
     // Repõe gradualmente.
     this.spawnTimer -= dt
-    if (this.cars.length < alvo && this.spawnTimer <= 0) {
+    if (this.cars.length < alvo && this.spawnTimer <= 0 && this.permitirNovos) {
       this.spawnTimer = 0.25
       const node = this.findSpawn(center, this.detailRadius * 0.9, this.radius)
       if (node) this.spawn(node)
@@ -250,11 +250,32 @@ export class Traffic {
     return best
   }
 
+  /**
+   * Quando false, nenhum carro novo é montado neste quadro. Montar um veículo
+   * gera geometria; num quadro já apertado isso vira tranco na imagem.
+   */
+  permitirNovos = true
+
+  /** Carros prontos guardados para reaproveitar em vez de reconstruir. */
+  private reserva: Vehicle[] = []
+  private readonly reservaMax = 10
+
+  /** Tira o carro de cena, guardando-o se ainda houver espaço na reserva. */
+  private guardar(v: Vehicle, owner: string): void {
+    if (this.reserva.length < this.reservaMax) {
+      this.scene.remove(v.group)
+      this.collision.removeOwner(owner)
+      this.reserva.push(v)
+    } else {
+      v.dispose(this.scene, this.collision, owner)
+    }
+  }
+
   private spawn(node: RouteNode): void {
     const classe = pick(this.rng, CLASSES)
     const seed = randInt(this.rng, 1, 1e9)
     const owner = `traf-${this.nextId++}`
-    const v = new Vehicle(classe, seed, this.materials, { comLuzes: false })
+    const v = this.reserva.pop() ?? new Vehicle(classe, seed, this.materials, { comLuzes: false })
     v.place(node.x, node.z, node.yaw, this.surfaces)
     v.attachCollider(this.collision, owner)
     this.scene.add(v.group)
@@ -285,6 +306,8 @@ export class Traffic {
 
   dispose(): void {
     for (const c of this.cars) c.vehicle.dispose(this.scene, this.collision, c.owner)
+    for (const v of this.reserva) v.dispose(this.scene)
+    this.reserva = []
     this.cars = []
   }
 }
