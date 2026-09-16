@@ -524,3 +524,45 @@ textarea { resize: none; }
 .serie.on { border-color: var(--green); background: #16251F; }
 .serie small { font-size: 12px; color: var(--muted); }
 .serie-meta { font-style: italic; }
+
+/* ------------------------------------------------------------- a ligação */
+.btn.ligar {
+  width: 100%; margin-top: 14px; padding: 17px; font-size: 18px; font-weight: 800;
+  border-radius: 20px; border: none; border-bottom: 5px solid #1E7A55;
+  background: linear-gradient(180deg, #45D6A0, #27A87A); color: #04231A; cursor: pointer;
+}
+.btn.ligar:active { transform: translateY(2px); border-bottom-width: 3px; }
+.chamada-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.chamada-scen { flex: 1; font-size: 13px; color: var(--muted); }
+.chamada-tempo { font-family: Fredoka, sans-serif; font-size: 15px; font-variant-numeric: tabular-nums; }
+.status {
+  margin-top: 10px; font-weight: 700; font-size: 15px; border-radius: 99px;
+  padding: 7px 16px; background: var(--card); border: 2px solid var(--line);
+}
+.status.ouvindo { border-color: var(--green); color: #7FE3B8; animation: pulse 1.4s ease-in-out infinite; }
+.status.falando { border-color: var(--mood); color: var(--mood); }
+.status.pensando { color: var(--muted); }
+.status.pausado { border-color: var(--yellow); color: var(--yellow); }
+.voce-falando { margin-top: 10px; color: var(--blue); font-style: italic; text-align: center; }
+.nota-flutuante {
+  display: flex; gap: 12px; align-items: center; background: var(--card);
+  border: 2px solid var(--line); border-radius: 14px; padding: 10px 13px; margin: 10px 0;
+  animation: up .2s ease-out;
+}
+.nota-flutuante b { font-size: 28px; font-family: Fredoka, sans-serif; line-height: 1; }
+.nota-flutuante span { font-size: 14px; font-weight: 600; display: block; }
+.nota-flutuante small { font-size: 12px; color: var(--muted); }
+.nota-flutuante.perfeito, .nota-flutuante.bom { border-color: var(--green); }
+.nota-flutuante.perfeito b, .nota-flutuante.bom b { color: var(--green); }
+.nota-flutuante.quase { border-color: var(--yellow); }
+.nota-flutuante.quase b { color: var(--yellow); }
+.nota-flutuante.refaz { border-color: var(--red); }
+.nota-flutuante.refaz b { color: var(--red); }
+.chamada-controles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 14px; }
+.ctl {
+  background: var(--card); border: 2px solid var(--line); border-bottom-width: 4px;
+  border-radius: 16px; padding: 14px 6px; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.ctl.on { border-color: var(--yellow); color: var(--yellow); }
+.ctl.desligar { background: linear-gradient(180deg, #FF8A8A, #E14B4B); color: #2A0606; border-color: #9E2E2E; }
+.ctl:active { transform: translateY(2px); border-bottom-width: 2px; }

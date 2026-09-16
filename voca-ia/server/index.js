@@ -231,7 +231,9 @@ SPEAKING DRILL MODE IS ON. This is a SPEAKING workout, not a chat:
   built from the conversation so far. Prefer sentences that train the sounds Brazilians struggle with
   (th, ed endings, final consonants, r/h, i/ee) or the mistake she just made.
 - "drill_pt": the Portuguese meaning. "drill_why": in Portuguese, one short line saying what to watch
-  out for when saying it (which sound, which stress).
+  out for when saying it. CHECK THE SENTENCE FIRST: only mention a sound that actually appears in it
+  (do not say "the TH in Saturday" — Saturday has no TH). If you are not sure, talk about word stress
+  or about the ending of a word that is really there.
 - Demand that she answers by SPEAKING, not by typing.` : ''}`
 }
 
