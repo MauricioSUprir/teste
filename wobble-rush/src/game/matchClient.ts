@@ -12,12 +12,12 @@ import { MatchSim, RoundPhase } from '../shared/world';
 import { MapDef } from '../shared/mapdef';
 import { makeRules, RuleSet, TICK_DT } from '../shared/config';
 import { InputCmd, makeInput, MoveState, SimEventKind, PlayerSim, Btn } from '../shared/types';
-import { BotBrain, makeBotRoster, BotDifficulty } from '../shared/bots';
+import { BotBrain, BotDifficulty, BotPersonality } from '../shared/bots';
 import { SceneRig } from '../render/scene';
 import { MapRenderer } from '../render/mapBuilder';
 import { VFX } from '../render/vfx';
 import { CharacterBatch } from '../render/characterBatch';
-import { SKIN_COLORS } from '../render/palette';
+
 import { PlayerView } from './playerView';
 import { CameraController } from './camera';
 import { InputManager } from './input';
@@ -27,19 +27,45 @@ import { t } from '../ui/i18n';
 import { clamp, damp, Rng, hashString } from '../shared/math';
 import { Surface } from '../shared/collision';
 
+/** One competitor. A session carries these between rounds. */
+export interface RosterEntry {
+  id: number;
+  name: string;
+  isBot: boolean;
+  difficulty: BotDifficulty;
+  personality: BotPersonality;
+  look: { skin: number; accent: number };
+}
+
 export interface MatchOptions {
   map: MapDef;
   seed: number;
-  botCount: number;
-  botDifficulty: BotDifficulty;
+  /** Everyone in this round, local player included. */
+  roster: RosterEntry[];
+  /** Id of the player this client controls. */
+  localId: number;
+  /** How many places qualify. 1 means "this is the final". */
+  qualifyCount: number;
   rules?: Partial<RuleSet>;
   variantId?: string;
   /** Practice mode: no bots, instant restart, timer shown. */
   practice?: boolean;
-  playerName: string;
-  playerLook: { skin: number; accent: number };
   showTimer?: boolean;
   personalBest?: number;
+  /** Round number within a session, for the HUD. */
+  roundIndex?: number;
+  roundCount?: number;
+}
+
+export interface Standing {
+  id: number;
+  name: string;
+  isBot: boolean;
+  rank: number;
+  qualified: boolean;
+  finished: boolean;
+  time: number;
+  look: { skin: number; accent: number };
 }
 
 export interface MatchResult {
@@ -51,6 +77,9 @@ export interface MatchResult {
   variantId: string;
   mapId: string;
   newRecord: boolean;
+  /** Full field, ordered. Drives the qualification screen. */
+  standings: Standing[];
+  isFinal: boolean;
 }
 
 const SURFACE_COLORS: Record<number, number> = {
@@ -105,20 +134,18 @@ export class MatchClient {
       countdownTime: opts.practice ? 1.2 : 3.4,
     });
 
-    // Local player first so they get the front-centre spawn slot.
-    const me = this.sim.addPlayer(this.localId, opts.playerName);
-    this.addView(me, opts.playerLook.skin, opts.playerLook.accent, true);
+    this.localId = opts.localId;
+    this.sim.qualifyCount = Math.max(1, opts.qualifyCount);
 
-    if (!opts.practice) {
-      const roster = makeBotRoster(opts.botCount, opts.seed, opts.botDifficulty);
-      roster.forEach((r, i) => {
-        const id = i + 2;
-        const p = this.sim.addPlayer(id, r.name, { isBot: true });
-        this.brains.set(id, new BotBrain(id, r.difficulty, r.personality, opts.seed + id * 31));
-        const skin = SKIN_COLORS[(i + 3) % SKIN_COLORS.length];
-        const accent = SKIN_COLORS[(i + 7) % SKIN_COLORS.length];
-        this.addView(p, skin, accent, false);
-      });
+    // The local player is added first so they take the front-centre grid slot.
+    const ordered = [...opts.roster].sort((a, b) =>
+      (a.id === opts.localId ? -1 : 0) - (b.id === opts.localId ? -1 : 0));
+    for (const r of ordered) {
+      const p = this.sim.addPlayer(r.id, r.name, { isBot: r.isBot });
+      if (r.isBot) {
+        this.brains.set(r.id, new BotBrain(r.id, r.difficulty, r.personality, opts.seed + r.id * 31));
+      }
+      this.addView(p, r.look.skin, r.look.accent, r.id === opts.localId);
     }
 
     this.rig.scene.add(this.batch.root);
@@ -128,7 +155,8 @@ export class MatchClient {
 
     this.hud = new Hud(hudParent);
     this.camera.setFollow();
-    this.camera.snapBehind(me.pos.x, me.pos.y, me.pos.z);
+    const localStart = this.sim.byId.get(this.localId);
+    if (localStart) this.camera.snapBehind(localStart.pos.x, localStart.pos.y, localStart.pos.z);
 
     audio.startMusic(0);
     audio.setIntensity(0.3);
@@ -356,7 +384,7 @@ export class MatchClient {
       position: pos,
       total,
       qualified: this.sim.qualifiedCount,
-      qualifyTarget: this.opts.practice ? 1 : this.sim.qualifyCount,
+      qualifyTarget: this.opts.practice ? 1 : this.opts.qualifyCount,
       timeLeft,
       countdown: -this.sim.runTime,
       showCountdown: this.sim.phase === RoundPhase.Countdown ||
@@ -419,15 +447,34 @@ export class MatchClient {
     const newRecord = pb > 0
       ? this.localFinishTime > 0 && this.localFinishTime < pb
       : this.localFinishTime > 0;
+    const ranked = this.sim.liveRanking();
+    const lookup = new Map(this.opts.roster.map((r) => [r.id, r]));
+    const qualifyCount = this.opts.qualifyCount;
+    const standings: Standing[] = ranked.map((p, i) => ({
+      id: p.id,
+      name: p.name,
+      isBot: p.isBot,
+      rank: i + 1,
+      // Finishing always qualifies you; otherwise the qualifying places are
+      // filled by course progress, which is how a timed-out round resolves.
+      qualified: p.finishTick >= 0 || i < qualifyCount,
+      finished: p.finishTick >= 0,
+      time: p.finishTick >= 0 ? p.finishTick * TICK_DT : 0,
+      look: lookup.get(p.id)?.look ?? { skin: 0xffffff, accent: 0xffffff },
+    }));
+    const myStanding = standings.find((s2) => s2.id === this.localId);
+
     this.result = {
-      position: pos,
+      position: myStanding?.rank ?? pos,
       total: this.sim.players.length,
-      qualified,
+      qualified: myStanding?.qualified ?? qualified,
       time: this.localFinishTime || this.runClock,
       falls: me.falls,
       variantId: this.sim.director.variantId,
       mapId: this.opts.map.id,
       newRecord,
+      standings,
+      isFinal: qualifyCount <= 1,
     };
     if (newRecord && this.localFinishTime > 0) this.hud.toast(t('round.newRecord'), 'good');
     this.onFinished?.(this.result);

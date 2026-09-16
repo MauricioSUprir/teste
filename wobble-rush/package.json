@@ -10,7 +10,8 @@
     "preview": "vite preview --host",
     "server": "tsx server/index.ts",
     "test:sim": "tsx tools/simTest.ts",
-    "typecheck": "tsc -b --force"
+    "typecheck": "tsc -b --force",
+    "test:bots": "tsx tools/botTest.ts"
   },
   "dependencies": {
     "three": "^0.169.0",

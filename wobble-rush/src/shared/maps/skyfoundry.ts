@@ -23,6 +23,25 @@ const checkpoints: CheckpointDef[] = [];
 let uid = 0;
 const nid = (p: string) => `${p}_${uid++}`;
 
+/**
+ * Section colours. Beyond looking better than grey concrete, they tell a player
+ * mid-scramble exactly which part of the course they are in.
+ */
+const C = {
+  start: 0xffb347,
+  span: 0x4fd1b5,
+  press: 0xff9e7a,
+  salvage: 0x8b7fd6,
+  left: 0xa78bfa,
+  centre: 0x5ba8f5,
+  right: 0xf472b6,
+  upper: 0x7ee8c8,
+  merge: 0xffc65c,
+  turbine: 0xffd166,
+  drop: 0x2fd4bf,
+  finish: 0xffe066,
+} as const;
+
 type Opt = Partial<Omit<PropDef, 'shape' | 'pos' | 'size'>>;
 
 /** Solid box. Half-extents, like every collider in the game. */
@@ -60,7 +79,7 @@ const cp = (index: number, x: number, y: number, z: number, hx: number, hz: numb
 // Wide and calm: 32 players need room to not shove each other into the void
 // before the race even begins.
 // ══════════════════════════════════════════════════════════════════════════
-floor(0, -4, 15, 12);
+floor(0, -4, 15, 12, 0, { color: C.start });
 rail(-15, -4, 0.5, 12);
 rail(15, -4, 0.5, 12);
 rail(0, -16, 15, 0.5);
@@ -82,7 +101,7 @@ cp(0, 0, 0, -4, 15, 12);
 // First contact with hazards. Everything here is survivable: the sweepers are
 // slow, the bridge is wide, the edges are safe lanes for the cautious.
 // ══════════════════════════════════════════════════════════════════════════
-floor(0, 30, 11, 22);
+floor(0, 30, 11, 22, 0, { color: C.span });
 rail(-11, 30, 0.4, 22, 0, { style: 'trim' });
 rail(11, 30, 0.4, 22, 0, { style: 'trim' });
 for (let i = 0; i < 3; i++) {
@@ -112,7 +131,7 @@ cp(1, 0, 0, 50, 11, 3);
 // The belt pushes you back while presses punch down. Teaches the dive: the
 // fastest way through is a dive between two press cycles.
 // ══════════════════════════════════════════════════════════════════════════
-floor(0, 55, 9, 4);
+floor(0, 55, 9, 4, 0, { color: C.press });
 // Full-width belt: the floor before it and the belt itself line up exactly, so
 // nobody is eaten by an invisible edge.
 obs({
@@ -132,7 +151,7 @@ for (let i = 0; i < 3; i++) {
   });
   cyl(x, 7.6, pz, 0.4, 2.4, { style: 'pipe', decorOnly: true });
 }
-floor(0, 77, 9, 3.5);
+floor(0, 77, 9, 3.5, 0, { color: C.press });
 rail(-9, 77, 0.4, 3.5);
 rail(9, 77, 0.4, 3.5);
 // Two ferries shuttle across the drop on opposite phases: wait for yours, or
@@ -148,16 +167,16 @@ for (let i = 0; i < 2; i++) {
 // Salvage deck. Missing the ferry drops you one level, not out of the round:
 // you lose ~6 seconds jogging up the ramp while everyone laughs. A pit that
 // only ever means "respawn" turns crowd chaos into frustration.
-floor(0, 78, 8, 4, -6.5, { style: 'accent' });
+floor(0, 78, 8, 4, -6.5, { color: C.salvage });
 rail(-8, 78, 0.4, 4, -6.5);
 rail(8, 78, 0.4, 4, -6.5);
 // 37 degree climb back to the course - steep enough to cost time, shallow
 // enough to run up without fighting the controller.
 // Both ends are buried into their decks: a ramp whose tip rests *on* the floor
 // presents its end face as a wall, and players walk straight underneath it.
-ramp(0, -3.35, 85.75, 8, 6.34, -0.595);
+ramp(0, -3.35, 85.75, 8, 6.34, -0.595, { color: C.salvage });
 box(0, -5.6, 78, 5.5, 0.5, 0.3, { style: 'lightPanel', decorOnly: true, color: 0xffcf5c });
-floor(0, 95, 10, 4.5);
+floor(0, 95, 10, 4.5, 0, { color: C.merge });
 cp(2, 0, 0, 95, 10, 4);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -166,10 +185,10 @@ cp(2, 0, 0, 95, 10, 4);
 // and closes these, so the same map plays differently round to round.
 // ══════════════════════════════════════════════════════════════════════════
 // -- LEFT: the long way round. Safe, wide, gated. ---------------------------
-floor(-13, 106, 4.5, 12, 0, { group: 'routeL' });
+floor(-13, 106, 4.5, 12, 0, { group: 'routeL', color: C.left });
 rail(-17.5, 106, 0.4, 12, 0, { group: 'routeL', style: 'trim' });
-floor(-13, 128, 4.5, 11, 0, { group: 'routeL' });
-floor(-7, 141, 6, 4, 0, { group: 'routeL' });
+floor(-13, 128, 4.5, 11, 0, { group: 'routeL', color: C.left });
+floor(-7, 141, 6, 4, 0, { group: 'routeL', color: C.left });
 for (let i = 0; i < 2; i++) {
   obs({
     kind: 'gate', id: nid('gate'), group: 'routeL', pos: [-13, 2.4, 112 + i * 16],
@@ -180,7 +199,7 @@ for (let i = 0; i < 2; i++) {
   box(-8.4, 2.4, 112 + i * 16, 0.4, 2.6, 0.5, { group: 'routeL', style: 'metal' });
 }
 // -- CENTRE: spinning discs over the drop. The default line. ---------------
-floor(0, 99, 8.5, 4, 0, { group: 'routeC' });
+floor(0, 99, 8.5, 4, 0, { group: 'routeC', color: C.centre });
 rail(-6.6, 103, 1.9, 0.4, 0, { group: 'routeC' });
 rail(6.6, 103, 1.9, 0.4, 0, { group: 'routeC' });
 for (let i = 0; i < 4; i++) {
@@ -198,9 +217,9 @@ for (let i = 0; i < 2; i++) {
   });
   cyl(0, 8.0, 111.5 + i * 15.5, 0.3, 0.35, { group: 'routeC', style: 'metal', decorOnly: true });
 }
-floor(0, 141, 5, 4, 0, { group: 'routeC' });
+floor(0, 141, 5, 4, 0, { group: 'routeC', color: C.centre });
 // -- RIGHT: the gamble. Crumbling tiles and a trampoline skip. -------------
-floor(12, 99, 4, 4, 0, { group: 'routeR' });
+floor(12, 99, 4, 4, 0, { group: 'routeR', color: C.right });
 for (let i = 0; i < 5; i++) {
   obs({
     kind: 'crumble', id: nid('tile'), group: 'routeR_tiles',
@@ -210,23 +229,23 @@ for (let i = 0; i < 5; i++) {
   });
 }
 // Fallback island that only exists once the tiles collapse for good.
-floor(12, 116, 2.4, 9, -0.2, { group: 'routeR_broken', style: 'accent' });
+floor(12, 116, 2.4, 9, -0.2, { group: 'routeR_broken', color: C.right });
 obs({
   kind: 'trampoline', id: nid('tramp'), group: 'routeR', pos: [12, 0, 128],
   size: [2.1, 0.35, 2.1], range: 1.55, color: 0x5cf2c8,
 });
-floor(12, 128, 2.6, 2.6, 0, { group: 'routeR' });
-floor(9, 137, 5, 5, 0, { group: 'routeR' });
+floor(12, 128, 2.6, 2.6, 0, { group: 'routeR', color: C.right });
+floor(9, 137, 5, 5, 0, { group: 'routeR', color: C.right });
 // -- Upper catwalk: only in the 'highroad' layout. --------------------------
-floor(0, 120, 3, 20, 7.5, { group: 'upper', style: 'accent' });
-ramp(0, 3.9, 103, 3, 6.5, -0.55, { group: 'upper' });
-ramp(0, 3.9, 137, 3, 6.5, 0.55, { group: 'upper' });
+floor(0, 120, 3, 20, 7.5, { group: 'upper', color: C.upper });
+ramp(0, 3.9, 103, 3, 6.5, -0.55, { group: 'upper', color: C.upper });
+ramp(0, 3.9, 137, 3, 6.5, 0.55, { group: 'upper', color: C.upper });
 obs({
   kind: 'sweeper', id: nid('sweep'), group: 'upper', pos: [0, 8.6, 120],
   size: [4.6, 0.28, 0.35], speed: 1.35, count: 3, force: 10,
 });
 // Merge deck.
-floor(0, 148, 12, 5);
+floor(0, 148, 12, 5, 0, { color: C.merge });
 cp(3, 0, 0, 148, 12, 5);
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -234,11 +253,11 @@ cp(3, 0, 0, 148, 12, 5);
 // The set piece. A giant updraft in the middle, hammers on the flanks, and a
 // heavy ball patrolling the only comfortable line.
 // ══════════════════════════════════════════════════════════════════════════
-floor(0, 160, 13, 8);
-floor(0, 184, 13, 8);
+floor(0, 160, 13, 8, 0, { color: C.turbine });
+floor(0, 184, 13, 8, 0, { color: C.turbine });
 // The pit between them: cross it on the updraft, the rim, or a long dive.
-floor(-11.5, 172, 1.6, 8, 0, { style: 'accent' });
-floor(11.5, 172, 1.6, 8, 0, { style: 'accent' });
+floor(-11.5, 172, 1.6, 8, 0, { style: 'grate', color: 0x6fc6d9 });
+floor(11.5, 172, 1.6, 8, 0, { style: 'grate', color: 0x6fc6d9 });
 cyl(0, -2.2, 172, 7.5, 0.6, { style: 'metal' });
 vol({
   kind: 'wind', id: nid('updraft'), group: 'always',
@@ -278,12 +297,12 @@ cp(5, 0, -5.2, 214, 9, 6);
 // SECTION 5 - DROP RUN  (z 190 .. 232)
 // Downhill, fast, and finished with a jump you can win or lose by 10 cm.
 // ══════════════════════════════════════════════════════════════════════════
-ramp(0, -1.4, 200, 9, 9, 0.22);
+ramp(0, -1.4, 200, 9, 9, 0.22, { color: C.drop });
 obs({
   kind: 'rotator', id: nid('rot'), group: 'always', pos: [0, -2.6, 202],
   size: [6.2, 0.36, 0.5], speed: 1.25, count: 3, force: 12,
 });
-floor(0, 214, 9, 6, -5.2);
+floor(0, 214, 9, 6, -5.2, { color: C.drop });
 // Optional launch pad: dropping onto it from the ramp throws you over the gap
 // with room to spare. Ignore it and you still make the jump - if you commit.
 obs({
@@ -292,7 +311,7 @@ obs({
 });
 // The last gap is 4.5 m: a running jump clears it, a stumble does not. This is
 // where photo finishes come from.
-floor(0, 230, 11, 6, -5.2);
+floor(0, 230, 11, 6, -5.2, { color: C.finish });
 box(0, -2.8, 233.5, 11, 1.6, 0.4, { style: 'accent', decorOnly: true, color: 0x5cf2c8 });
 cyl(-10.5, -3.2, 224.5, 0.5, 2, { style: 'accent' });
 cyl(10.5, -3.2, 224.5, 0.5, 2, { style: 'accent' });

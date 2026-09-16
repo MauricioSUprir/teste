@@ -12,7 +12,7 @@ import { SceneRig, QualityLevel } from './render/scene';
 import { VFX } from './render/vfx';
 import { CameraController } from './game/camera';
 import { InputManager } from './game/input';
-import { MatchClient, MatchResult } from './game/matchClient';
+import { MatchClient, MatchResult, RosterEntry } from './game/matchClient';
 import { SKY_FOUNDRY } from './shared/maps/skyfoundry';
 import { Wobbler } from './render/character';
 import { CharacterBatch } from './render/characterBatch';
@@ -23,7 +23,7 @@ import { t, setLanguage, LangCode } from './ui/i18n';
 import { fmtTime, ordinal } from './ui/hud';
 import { MoveState } from './shared/types';
 import { clamp } from './shared/math';
-import { BotDifficulty } from './shared/bots';
+import { BotDifficulty, makeBotRoster } from './shared/bots';
 
 type Screen = 'loading' | 'menu' | 'intro' | 'match' | 'results';
 
@@ -332,14 +332,31 @@ export class App {
     const seed = (Math.random() * 0xffffffff) >>> 0;
     const rec = d.records[SKY_FOUNDRY.id];
 
+    // Build the field: the local player plus a varied bot roster.
+    const roster: RosterEntry[] = [{
+      id: 1, name: d.playerName || 'Runner', isBot: false,
+      difficulty: 'normal', personality: 'speedrunner', look: { ...d.look },
+    }];
+    if (!practice) {
+      makeBotRoster(31, seed, this.pickBotDifficulty()).forEach((r, i) => {
+        roster.push({
+          id: i + 2, name: r.name, isBot: true,
+          difficulty: r.difficulty, personality: r.personality,
+          look: {
+            skin: SKIN_COLORS[(i + 3) % SKIN_COLORS.length],
+            accent: SKIN_COLORS[(i + 7) % SKIN_COLORS.length],
+          },
+        });
+      });
+    }
+
     this.match = new MatchClient(this.rig, this.vfx, this.camera, this.input, this.screenEl, {
       map: SKY_FOUNDRY,
       seed,
-      botCount: practice ? 0 : 31,
-      botDifficulty: this.pickBotDifficulty(),
+      roster,
+      localId: 1,
+      qualifyCount: practice ? 1 : 16,
       practice,
-      playerName: d.playerName || 'Runner',
-      playerLook: d.look,
       showTimer: d.settings.showTimer || practice,
       personalBest: rec?.bestTime ?? 0,
     });

@@ -29,10 +29,11 @@ O núcleo vem primeiro. Cada fase seguinte só começa sem P0/P1 pendentes.
 | Mapa completo (SKY FOUNDRY) com rotas e atalhos | OK | 240 m, 3 rotas, 6 checkpoints |
 | Checkpoints, respawn seguro, invulnerabilidade | OK | escolhe ponto livre |
 | Linha de chegada, photo finish autoritativo | OK | |
-| Bots com rota, dificuldade e personalidade | OK | 4 dificuldades × 5 perfis |
+| Bots com rota, dificuldade e personalidade | PARCIAL | 4 dificuldades × 5 perfis, navegam o percurso inteiro e terminam; ainda caem demais (~12 quedas por bot em 180 s), então só ~1/3 do grid chega perto do fim. Não bloqueia a rodada (a classificação é por posição), mas é a próxima dívida de balanceamento |
 | HUD enxuto, menu, resultados, progressão | OK | |
 | Áudio 3D sintetizado + música em camadas | OK | |
 | VFX em pool, iluminação, qualidade adaptativa | OK | |
+| Texturas procedurais e identidade de cor por setor | OK | painéis, chapa, listras de perigo, grade, borracha, vidro, esteira — todas desenhadas em canvas |
 | i18n (pt-BR / en / es) | OK | nenhuma string fixa no código |
 | Save versionado com merge campo a campo | OK | compatível com updates futuros |
 | Modo treino | PARCIAL | funciona; falta reinício instantâneo e ghost |
@@ -75,6 +76,14 @@ O núcleo vem primeiro. Cada fase seguinte só começa sem P0/P1 pendentes.
 | Música dinâmica por intensidade | OK | camadas, sem reiniciar a faixa |
 
 ---
+
+## Dívidas conhecidas
+
+- **Balanceamento dos bots**: terminam o percurso, mas caem com frequência alta.
+  O heatmap (`npm run test:bots`) mostra as quedas hoje distribuídas, sem um
+  ponto único culpado — é trabalho de ajuste fino, não um bug estrutural.
+- O `MatchClient` já aceita um roster e devolve a classificação completa, então
+  o encadeamento de rodadas é ligação de telas, não refactor.
 
 ## Próxima fase planejada
 

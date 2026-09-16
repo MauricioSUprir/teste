@@ -14,7 +14,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { MapDef, PropDef } from '../shared/mapdef';
 import { ObstacleRuntime } from '../shared/obstacles';
 import { ShapeKind, Surface } from '../shared/collision';
-import { styleMaterial, StyleKey, PALETTES } from './palette';
+import { styleMaterial, StyleKey, PALETTES, TEXTURE_TILE } from './palette';
 import { MatchSim } from '../shared/world';
 
 interface GroupMeshes {
@@ -27,32 +27,56 @@ const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _m = new THREE.Matrix4();
 
-function geometryFor(p: PropDef): THREE.BufferGeometry {
-  switch (p.shape) {
-    case 'cylinder':
-      return new THREE.CylinderGeometry(p.size[0], p.size[0], p.size[1] * 2, 20);
-    case 'sphere':
-      return new THREE.SphereGeometry(p.size[0], 18, 14);
-    case 'capsule':
-      return new THREE.CapsuleGeometry(p.size[0], p.size[1] * 2, 6, 14);
-    default:
-      return new THREE.BoxGeometry(p.size[0] * 2, p.size[1] * 2, p.size[2] * 2);
+/**
+ * Rescales UVs so one texture tile always covers the same world distance.
+ * Without this a 30 m floor and a 2 m crate get the same single tile stretched
+ * across them, which is what makes untextured-looking "programmer art".
+ */
+function retileUVs(geo: THREE.BufferGeometry, shape: string, size: [number, number, number]): void {
+  const uv = geo.getAttribute('uv') as THREE.BufferAttribute | undefined;
+  if (!uv) return;
+  const T = TEXTURE_TILE;
+  if (shape === 'box') {
+    // BoxGeometry emits faces in the order +X, -X, +Y, -Y, +Z, -Z, 4 verts each.
+    const dims: [number, number][] = [
+      [size[2], size[1]], [size[2], size[1]],
+      [size[0], size[2]], [size[0], size[2]],
+      [size[0], size[1]], [size[0], size[1]],
+    ];
+    for (let f = 0; f < 6; f++) {
+      const [du, dv] = dims[f];
+      const su = (du * 2) / T;
+      const sv = (dv * 2) / T;
+      for (let i = 0; i < 4; i++) {
+        const idx = f * 4 + i;
+        uv.setXY(idx, uv.getX(idx) * su, uv.getY(idx) * sv);
+      }
+    }
+  } else if (shape === 'cylinder' || shape === 'capsule') {
+    const su = (2 * Math.PI * size[0]) / T;
+    const sv = (size[1] * 2) / T;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
+  } else {
+    const s = (size[0] * 2) / T;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * s, uv.getY(i) * s);
   }
+  uv.needsUpdate = true;
 }
 
-/** Scrolling stripe texture for conveyor belts - cheap and instantly readable. */
-function beltTexture(): THREE.Texture {
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 64;
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#2f3b52';
-  g.fillRect(0, 0, 64, 64);
-  g.fillStyle = '#5cf2c8';
-  for (let i = 0; i < 4; i++) g.fillRect(0, i * 16, 64, 5);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(2, 4);
-  return tex;
+function geometryFor(p: PropDef): THREE.BufferGeometry {
+  let geo: THREE.BufferGeometry;
+  switch (p.shape) {
+    case 'cylinder':
+      geo = new THREE.CylinderGeometry(p.size[0], p.size[0], p.size[1] * 2, 20); break;
+    case 'sphere':
+      geo = new THREE.SphereGeometry(p.size[0], 18, 14); break;
+    case 'capsule':
+      geo = new THREE.CapsuleGeometry(p.size[0], p.size[1] * 2, 6, 14); break;
+    default:
+      geo = new THREE.BoxGeometry(p.size[0] * 2, p.size[1] * 2, p.size[2] * 2); break;
+  }
+  retileUVs(geo, p.shape, p.size);
+  return geo;
 }
 
 export class MapRenderer {
@@ -127,15 +151,20 @@ export class MapRenderer {
       for (const c of rt.colliders) {
         let geo: THREE.BufferGeometry;
         let style: StyleKey = 'metal';
+        const half: [number, number, number] = [c.half.x, c.half.y, c.half.z];
         switch (c.kind) {
           case ShapeKind.Sphere:
-            geo = new THREE.SphereGeometry(c.half.x, 20, 16); break;
+            geo = new THREE.SphereGeometry(c.half.x, 20, 16);
+            retileUVs(geo, 'sphere', half); break;
           case ShapeKind.Cylinder:
-            geo = new THREE.CylinderGeometry(c.half.x, c.half.x, c.half.y * 2, 24); break;
+            geo = new THREE.CylinderGeometry(c.half.x, c.half.x, c.half.y * 2, 24);
+            retileUVs(geo, 'cylinder', half); break;
           case ShapeKind.Capsule:
-            geo = new THREE.CapsuleGeometry(c.half.x, c.half.y * 2, 8, 16); break;
+            geo = new THREE.CapsuleGeometry(c.half.x, c.half.y * 2, 8, 16);
+            retileUVs(geo, 'capsule', half); break;
           default:
-            geo = new THREE.BoxGeometry(c.half.x * 2, c.half.y * 2, c.half.z * 2); break;
+            geo = new THREE.BoxGeometry(c.half.x * 2, c.half.y * 2, c.half.z * 2);
+            retileUVs(geo, 'box', half); break;
         }
         if (c.surface === Surface.Rubber) style = 'rubber';
         else if (c.surface === Surface.Grate) style = 'grate';
@@ -146,10 +175,13 @@ export class MapRenderer {
 
         let mat: THREE.Material;
         if (c.surface === Surface.Conveyor) {
-          const tex = beltTexture();
-          const bm = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 });
+          // Belts need their own material instance: the texture offset scrolls.
+          const shared = styleMaterial(this.palette, 'conveyor', color) as THREE.MeshStandardMaterial;
+          const bm = shared.clone();
+          bm.map = shared.map ? shared.map.clone() : null;
+          if (bm.map) { bm.map.needsUpdate = true; bm.map.wrapS = bm.map.wrapT = THREE.RepeatWrapping; }
           this.beltMaterials.push(bm);
-          this.disposables.push(tex, bm);
+          this.disposables.push(bm);
           mat = bm;
         } else {
           mat = styleMaterial(this.palette, style, color);
@@ -162,14 +194,8 @@ export class MapRenderer {
         objs.push(mesh);
         this.disposables.push(geo);
 
-        // A warning stripe on anything that hits you.
-        if (c.impact > 0 && c.kind === ShapeKind.Box) {
-          const stripe = new THREE.Mesh(
-            new THREE.BoxGeometry(c.half.x * 2 * 0.28, c.half.y * 2 * 1.06, c.half.z * 2 * 1.06),
-            styleMaterial(this.palette, 'lightPanel', 0xffd166),
-          );
-          mesh.add(stripe);
-        }
+        // Hazards already carry caution stripes in their texture; an extra
+        // emissive band on top just made them read as solid black bricks.
       }
 
       // Force-only obstacles have no collider but still need to be visible.
