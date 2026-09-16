@@ -11,7 +11,8 @@
     "server": "tsx server/index.ts",
     "test:sim": "tsx tools/simTest.ts",
     "typecheck": "tsc -b --force",
-    "test:bots": "tsx tools/botTest.ts"
+    "test:bots": "tsx tools/botTest.ts",
+    "build:single": "vite build --config vite.single.config.ts && node tools/makeSingleFile.mjs"
   },
   "dependencies": {
     "three": "^0.169.0",

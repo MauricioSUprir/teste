@@ -3,3 +3,5 @@ dist/
 *.tsbuildinfo
 tools/scratch/
 artifact/
+dist-single/
+wobble-rush.html

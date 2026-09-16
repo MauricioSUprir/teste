@@ -11,8 +11,16 @@ npm install
 npm run dev        # http://localhost:5180
 npm run build      # build de produção
 npm run test:sim   # 21 verificações de física e game feel (headless)
+npm run build:single  # gera wobble-rush.html — o jogo inteiro num arquivo só
 npm run test:bots  # partidas completas com 32 bots + heatmap de quedas
 ```
+
+### Arquivo único
+
+`npm run build:single` gera `wobble-rush.html` (~650 KB): abre com duplo clique,
+funciona offline, e pode ser jogado de qualquer host estático sem configuração.
+Tudo cabe num arquivo porque nada aqui é um asset baixado — personagem, mapas,
+texturas e áudio são gerados em código.
 
 **Controles** — WASD mover · SPACE pular · SHIFT/CTRL/E mergulhar · mouse câmera
 · `[` `]` trocar de espectador · ESC sair · F3 painel de depuração.
