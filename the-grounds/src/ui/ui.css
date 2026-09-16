@@ -589,3 +589,60 @@ input.slider::-moz-range-thumb {
 }
 .mapa-legenda span { display: flex; align-items: center; gap: 8px; }
 .mapa-legenda i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* ---------------------------------------------------------------- */
+/* Menu contextual: escolher entre jogar, treinar, bater uma bola…   */
+/* ---------------------------------------------------------------- */
+.hud-escolha {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  transform: translateX(-50%);
+  min-width: min(430px, 86vw);
+  padding: 16px 18px 12px;
+  border-radius: 14px;
+  background: rgba(8,11,15,0.88);
+  border: 1px solid var(--borda);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.55);
+  backdrop-filter: blur(9px);
+}
+.hud-escolha h3 {
+  margin: 0 0 10px;
+  font: 800 15px/1.2 var(--fonte);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cal-3);
+}
+.hud-escolha .opcao {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.hud-escolha .opcao.ativa {
+  background: rgba(242,194,48,0.13);
+  border-color: rgba(242,194,48,0.55);
+}
+.hud-escolha .num {
+  flex: 0 0 auto;
+  width: 21px; height: 21px;
+  display: grid; place-items: center;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.09);
+  font: 700 12px/1 var(--mono);
+}
+.hud-escolha .opcao.ativa .num { background: var(--destaque); color: #101216; }
+.hud-escolha .txt { display: flex; flex-direction: column; gap: 2px; }
+.hud-escolha .txt b { font: 700 14px/1.2 var(--fonte); }
+.hud-escolha .txt small { font: 400 12px/1.35 var(--fonte); color: var(--cal-3); }
+.hud-escolha .dica {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--borda);
+  font: 500 11px/1 var(--mono);
+  color: #6c7784;
+  letter-spacing: 0.02em;
+}

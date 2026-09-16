@@ -196,6 +196,15 @@ export class GeometryBatcher {
 
   get isEmpty(): boolean { return this.groups.size === 0 }
 
+  /**
+   * Superfícies coladas ao chão. Elas recebem sombra, mas projetar sombra a
+   * partir delas não muda nada na imagem e dobra o número de desenhos do mapa
+   * de sombras — que é justamente onde a cidade fica cara.
+   */
+  private static readonly SEM_SOMBRA = new Set([
+    'asfalto', 'calcada', 'faixa', 'grama', 'gramado', 'terra', 'paralelepipedo',
+  ])
+
   /** Constrói as malhas finais. `resolve` devolve o material de cada chave. */
   build(resolve: (key: string) => THREE.Material): THREE.Mesh[] {
     const out: THREE.Mesh[] = []
@@ -204,7 +213,7 @@ export class GeometryBatcher {
       if (!merged) continue
       merged.computeBoundingSphere()
       const mesh = new THREE.Mesh(merged, resolve(key))
-      mesh.castShadow = true
+      mesh.castShadow = !GeometryBatcher.SEM_SOMBRA.has(key)
       mesh.receiveShadow = true
       mesh.name = key
       out.push(mesh)

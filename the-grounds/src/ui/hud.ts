@@ -26,6 +26,7 @@ export class Hud {
   private velocidade: HTMLElement
   private nomeCarro: HTMLElement
   private placar: HTMLElement
+  private escolha: HTMLElement
   private avisoPartida: HTMLElement
   private minimapa: HTMLElement
   private minimapaCtx: CanvasRenderingContext2D | null = null
@@ -54,6 +55,8 @@ export class Hud {
 
     this.placar = el('div', { class: 'hud-placar' })
     this.placar.style.display = 'none'
+    this.escolha = el('div', { class: 'hud-escolha' })
+    this.escolha.style.display = 'none'
     this.avisoPartida = el('div', { class: 'hud-aviso-partida' })
 
     const canvas = el('canvas')
@@ -70,6 +73,7 @@ export class Hud {
       this.minimapa,
       this.placar,
       this.avisoPartida,
+      this.escolha,
       this.interacao,
       this.mensagem,
       this.folego,
@@ -96,6 +100,22 @@ export class Hud {
     this.clima.textContent = chuva > 0.55 ? 'Chuva forte'
       : chuva > 0.15 ? 'Garoa'
         : g.world.weather.cloudCover > 0.6 ? 'Nublado' : 'Céu limpo'
+
+    // Menu contextual (jogar / treinar)
+    const esc = g.escolha
+    if (esc) {
+      this.escolha.style.display = ''
+      const teclaOk = keyLabel(g.settings.bindings.interagir)
+      this.escolha.innerHTML = `<h3>${esc.titulo}</h3>`
+        + esc.opcoes.map((o, i) => `
+          <div class="opcao${i === esc.indice ? ' ativa' : ''}">
+            <span class="num">${i + 1}</span>
+            <span class="txt"><b>${o.rotulo}</b>${o.descricao ? `<small>${o.descricao}</small>` : ''}</span>
+          </div>`).join('')
+        + `<div class="dica">W/S ou setas para escolher · ${teclaOk} confirma · Esc cancela</div>`
+    } else if (this.escolha.style.display !== 'none') {
+      this.escolha.style.display = 'none'
+    }
 
     // Interação
     const alvo = g.interacoes.atual
@@ -132,7 +152,24 @@ export class Hud {
 
     // Placar
     const m = g.partida
-    if (m) {
+    if (m && m.treino) {
+      // No treino não há placar nem relógio: o que interessa é o aproveitamento.
+      this.placar.style.display = ''
+      const r = m.resumoTreino
+      const aprov = r.chutes > 0 ? Math.round((r.gols / r.chutes) * 100) : 0
+      this.placar.innerHTML = `
+        <span class="time">Treino livre</span>
+        <span class="gols">${r.gols}/${r.chutes}</span>
+        <span class="time">${aprov}% no gol</span>
+        <span class="tempo">defesas ${r.defesas}`
+        + `${r.maiorKmh > 0 ? ` · mais forte ${Math.round(r.maiorKmh)} km/h` : ''}</span>`
+      if (m.state.avisoTimer > 0) {
+        this.avisoPartida.textContent = m.state.aviso
+        this.avisoPartida.classList.add('visivel')
+      } else {
+        this.avisoPartida.classList.remove('visivel')
+      }
+    } else if (m) {
       this.placar.style.display = ''
       const restante = Math.max(0, m.config.duracao - m.state.tempo)
       this.placar.innerHTML = `
@@ -172,10 +209,11 @@ export class Hud {
     if (this.mostrarDebug) {
       const s = g.stats()
       this.debug.textContent =
-        `${s.fps} fps · ${s.frameMs} ms · ${s.resolucao} (x${s.escala})\n`
+        `${s.fps} fps · quadro ${s.quadroMs} ms · ${s.resolucao} (x${s.escala})\n`
         + `desenhos ${s.draws} · ${(s.tris / 1000).toFixed(0)}k tri · setores ${s.setores}(+${s.pendentes})\n`
         + `carros ${g.traffic.count} · pessoas ${g.crowd.count} · colisores ${s.colisores}\n`
-        + `${s.posicao} · ${s.estado} · texturas ${s.cdn}`
+        + `${s.posicao} · ${s.estado} · texturas ${s.cdn}\n`
+        + `${s.perfil}`
     }
   }
 }

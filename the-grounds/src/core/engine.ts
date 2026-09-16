@@ -21,6 +21,8 @@ const SHADOW_RANGE: Record<ShadowQuality, number> = { off: 0, baixo: 60, medio: 
 export interface PerfSample {
   fps: number
   frameMs: number
+  /** Intervalo real medido entre dois quadros, em ms. */
+  realMs: number
   cpuMs: number
   drawCalls: number
   triangles: number
@@ -51,7 +53,7 @@ export class Engine {
   private cssHeight = 1
   private frameTimes: number[] = []
   private lastPerf: PerfSample = {
-    fps: 0, frameMs: 0, cpuMs: 0, drawCalls: 0, triangles: 0, programs: 0,
+    fps: 0, frameMs: 0, realMs: 0, cpuMs: 0, drawCalls: 0, triangles: 0, programs: 0,
     renderScale: 1, width: 0, height: 0,
   }
   private scaleCooldown = 0
@@ -62,6 +64,9 @@ export class Engine {
   private envCamera: THREE.CubeCamera | null = null
   private envTarget: THREE.Texture | null = null
   private envTimer = 0
+  /** Relógio do quadro anterior e média do intervalo real entre quadros. */
+  private ultimoQuadro = 0
+  private msReais = 0
 
   constructor(canvas: HTMLCanvasElement, settings: GraphicsSettings) {
     this.canvas = canvas
@@ -326,6 +331,14 @@ export class Engine {
   render(dt: number, cpuMs: number): void {
     this.renderer.info.reset()
     const t0 = performance.now()
+    // `dt` chega limitado pelo laço (para a física não explodir após uma
+    // pausa), então medir fps a partir dele satura o número. O relógio real
+    // entre dois quadros é a única leitura honesta.
+    if (this.ultimoQuadro > 0) {
+      const real = t0 - this.ultimoQuadro
+      if (real > 0.5) this.msReais = this.msReais > 0 ? this.msReais * 0.85 + real * 0.15 : real
+    }
+    this.ultimoQuadro = t0
     if (this.composer) this.composer.render(dt)
     else this.renderer.render(this.scene, this.camera)
     const gpuIssueMs = performance.now() - t0
@@ -340,7 +353,8 @@ export class Engine {
     const info = this.renderer.info
     this.lastPerf.frameMs = avg
     this.lastPerf.cpuMs = cpuMs
-    this.lastPerf.fps = dt > 0 ? 1 / dt : 0
+    this.lastPerf.fps = this.msReais > 0 ? 1000 / this.msReais : 0
+    this.lastPerf.realMs = this.msReais
     this.lastPerf.drawCalls = info.render.calls
     this.lastPerf.triangles = info.render.triangles
     this.lastPerf.programs = info.programs?.length ?? 0

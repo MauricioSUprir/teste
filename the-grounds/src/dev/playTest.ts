@@ -1,4 +1,5 @@
 /** Cena de teste jogável: mundo + personagem + controle + câmera. */
+import * as THREE from 'three'
 import { Game } from '../game/game'
 import { defaultAppearance, randomAppearance } from '../character/appearance'
 
@@ -61,7 +62,7 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
   setInterval(() => {
     const s = game.stats()
     hud.innerHTML = `
-      <b>${s.fps} fps</b> · ${s.frameMs} ms · ${s.resolucao} (x${s.escala})<br>
+      <b>${s.fps} fps</b> · quadro ${s.quadroMs} ms · cpu+gpu ${s.frameMs} ms · ${s.resolucao} (x${s.escala})<br>
       desenhos ${s.draws} · triângulos ${(s.tris / 1000).toFixed(0)}k<br>
       setores ${s.setores} (+${s.pendentes}) · colisores ${s.colisores}<br>
       ${s.bairro} · ${s.posicao}<br>
@@ -72,6 +73,9 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
       obst: ${s.obstaculos}<br>
       ${s.entrada}<br>
       ocl: ${s.oclusao}<br>
+      perfil: ${s.perfil}<br>
+      futebol: ${s.futebol}<br>
+      erro: ${game.ultimoErro || '—'}<br>
       carros ${game.traffic.count} · pessoas ${game.crowd.count} · interiores ${game.interiores.count}<br>
       interação: ${game.interacoes.atual?.rotulo ?? '—'} · dentro: ${game.interiores.atual ? 'sim' : 'não'}
     `
@@ -106,7 +110,67 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
       game.player.rig.yaw = melhor.yaw + Math.PI
       return { nome: melhor.label ?? melhor.type, tipo: melhor.interior, x: melhor.x, z: melhor.z }
     },
-    partida: (id?: string) => game.iniciarPartida(id ?? game.world.pitches[0]?.id ?? ''),
+    /** Censo de malhas visíveis: quem realmente custa desenhos. */
+    censo: () => {
+      const cat = new Map<string, { n: number; tris: number; sombra: number }>()
+      const cam = game.engine.camera
+      cam.updateMatrixWorld()
+      const frustum = new THREE.Frustum().setFromProjectionMatrix(
+        new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse),
+      )
+      game.engine.scene.traverseVisible((o: THREE.Object3D) => {
+        const m = o as THREE.Mesh
+        if (!m.isMesh || !m.geometry?.attributes?.position) return
+        if (m.geometry.boundingSphere == null) m.geometry.computeBoundingSphere()
+        const bs = m.geometry.boundingSphere!.clone().applyMatrix4(m.matrixWorld)
+        if (!frustum.intersectsSphere(bs)) return
+        const nome = m.name || m.type
+        const chave = nome.replace(/[0-9_.:-]+$/, '') || nome
+        const idx = m.geometry.index
+        const tris = (idx ? idx.count : m.geometry.attributes.position.count) / 3
+        const e = cat.get(chave) ?? { n: 0, tris: 0, sombra: 0 }
+        e.n += 1
+        e.tris += tris
+        if (m.castShadow) e.sombra += 1
+        cat.set(chave, e)
+      })
+      return [...cat.entries()]
+        .sort((a, b) => b[1].n - a[1].n)
+        .slice(0, 28)
+        .map(([k, v]) => `${k}: ${v.n} malhas, ${(v.tris / 1000).toFixed(0)}k tris, ${v.sombra} c/sombra`)
+    },
+    /** Abre treino livre no campo mais próximo. */
+    treino: () => {
+      const p = game.player.position
+      let alvo = null as null | typeof game.world.pitches[number]
+      let d = Infinity
+      for (const c of game.world.pitches) {
+        const dd = Math.hypot(c.x - p.x, c.z - p.z)
+        if (dd < d) { d = dd; alvo = c }
+      }
+      if (!alvo) return null
+      game.iniciarTreino(alvo.id)
+      return { id: alvo.id, nome: alvo.name }
+    },
+    /** Estado do menu contextual aberto. */
+    menu: () => (game.escolha
+      ? { titulo: game.escolha.titulo, indice: game.escolha.indice,
+          opcoes: game.escolha.opcoes.map((o) => o.rotulo) }
+      : null),
+    partida: (id?: string) => {
+      let alvo = id ? game.world.pitches.find((x) => x.id === id) : undefined
+      if (!alvo) {
+        const p = game.player.position
+        let d = Infinity
+        for (const c of game.world.pitches) {
+          const dd = Math.hypot(c.x - p.x, c.z - p.z)
+          if (dd < d) { d = dd; alvo = c }
+        }
+      }
+      if (!alvo) return null
+      game.iniciarPartida(alvo.id)
+      return { id: alvo.id, nome: alvo.name, x: alvo.x, z: alvo.z, tipo: alvo.kind }
+    },
     carro: () => {
       const v = game.traffic.veiculoProximo(game.player.position.x, game.player.position.z, 40)
       if (v) { game.traffic.liberar(v); game.player.entrarNoVeiculo(v) }

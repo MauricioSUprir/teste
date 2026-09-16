@@ -50,6 +50,10 @@ export interface GameplaySettings {
   units: 'metrico'
   language: 'pt-BR'
   subtitles: boolean
+  /** Perfil do apontador: 'auto' detecta trackpad pelo padrão do movimento. */
+  pointerProfile: 'auto' | 'mouse' | 'trackpad'
+  /** Suavização da câmera (0 = crua, 1 = bem suave). Não perde rotação. */
+  lookSmoothing: number
 }
 
 export type ActionName =
@@ -140,6 +144,7 @@ export function defaultSettings(): Settings {
     gameplay: {
       fov: 60, sensitivity: 1, invertY: false, reduceCameraMotion: false,
       showMinimap: true, showHud: true, units: 'metrico', language: 'pt-BR', subtitles: true,
+      pointerProfile: 'auto', lookSmoothing: 0.35,
     },
     bindings: { ...DEFAULT_BINDINGS },
   }
@@ -186,6 +191,10 @@ export function sanitizeSettings(s: Settings): Settings {
   g.targetFps = clamp(g.targetFps, 30, 240)
   s.gameplay.fov = clamp(s.gameplay.fov, 45, 100)
   s.gameplay.sensitivity = clamp(s.gameplay.sensitivity, 0.1, 5)
+  s.gameplay.lookSmoothing = clamp(s.gameplay.lookSmoothing ?? 0.35, 0, 0.95)
+  if (s.gameplay.pointerProfile !== 'mouse' && s.gameplay.pointerProfile !== 'trackpad') {
+    s.gameplay.pointerProfile = 'auto'
+  }
   for (const k of Object.keys(s.audio) as (keyof AudioSettings)[]) {
     s.audio[k] = clamp(s.audio[k], 0, 1)
   }

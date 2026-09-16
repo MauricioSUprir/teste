@@ -200,6 +200,13 @@ export class Crowd {
     this.people.splice(index, 1)
   }
 
+  /**
+   * Quando false, nenhum pedestre novo é criado neste quadro. Construir um
+   * personagem custa alguns milissegundos; fazer isso num quadro já apertado é
+   * exatamente o que produz o engasgo que se sente ao virar uma esquina.
+   */
+  permitirNovos = true
+
   update(dt: number, center: THREE.Vector3, densidade: number, trafficPhase: 0 | 1, hora: number): void {
     const alvo = Math.round(clamp(densidade, 0, 1) * this.maxPeople * horaFator(hora))
 
@@ -210,7 +217,7 @@ export class Crowd {
     }
 
     this.spawnTimer -= dt
-    if (this.people.length < alvo && this.spawnTimer <= 0) {
+    if (this.people.length < alvo && this.spawnTimer <= 0 && this.permitirNovos) {
       this.spawnTimer = 0.18
       const node = this.findSpawn(center, this.detailRadius * 0.8, this.radius)
       if (node) this.spawn(node, hora)
@@ -353,6 +360,8 @@ export class Crowd {
     inp.actionProgress = p.action ? (p.actionTime % 1.6) / 1.6 : 0
     inp.lookYaw = 0
     inp.lookPitch = 0
+
+    ch.ajustarDetalhe(distToPlayer)
 
     // Distantes atualizam menos vezes por segundo.
     if (p.lod === 'baixo') {

@@ -231,30 +231,57 @@ export class CharacterTextureLibrary {
     return maps
   }
 
+  /**
+   * Variantes por repetição, compartilhadas entre todos os personagens.
+   *
+   * Clonar as texturas por material faria cada habitante da cidade enviar o
+   * próprio conjunto para a placa de vídeo — dezenas de personagens esgotariam
+   * a memória e derrubariam o contexto. Aqui só existe uma cópia por
+   * combinação de tipo e repetição.
+   */
+  private variantes = new Map<string, MapaPersonagem>()
+
+  private variante(tipo: TipoMapaPersonagem, repeatX: number, repeatY: number): MapaPersonagem {
+    const chave = `${tipo}:${repeatX}x${repeatY}`
+    const hit = this.variantes.get(chave)
+    if (hit) return hit
+    const m = this.get(tipo)
+    const clonar = (t: THREE.Texture): THREE.Texture => {
+      const c = t.clone()
+      c.wrapS = c.wrapT = THREE.RepeatWrapping
+      c.repeat.set(repeatX, repeatY)
+      c.anisotropy = this.aniso
+      c.needsUpdate = true
+      return c
+    }
+    const v: MapaPersonagem = {
+      map: clonar(m.map),
+      normalMap: clonar(m.normalMap),
+      roughnessMap: clonar(m.roughnessMap),
+    }
+    this.variantes.set(chave, v)
+    return v
+  }
+
   /** Aplica os mapas a um material, com repetição própria. */
   aplicar(
     mat: THREE.MeshStandardMaterial, tipo: TipoMapaPersonagem,
     repeatX: number, repeatY = repeatX, forcaNormal = 1,
   ): void {
-    const m = this.get(tipo)
-    mat.map = m.map.clone()
-    mat.normalMap = m.normalMap.clone()
-    mat.roughnessMap = m.roughnessMap.clone()
-    for (const t of [mat.map, mat.normalMap, mat.roughnessMap]) {
-      t.wrapS = t.wrapT = THREE.RepeatWrapping
-      t.repeat.set(repeatX, repeatY)
-      t.anisotropy = this.aniso
-      t.needsUpdate = true
-    }
+    const v = this.variante(tipo, repeatX, repeatY)
+    mat.map = v.map
+    mat.normalMap = v.normalMap
+    mat.roughnessMap = v.roughnessMap
     mat.normalScale = new THREE.Vector2(forcaNormal, forcaNormal)
     mat.needsUpdate = true
   }
 
   dispose(): void {
-    for (const m of this.cache.values()) {
+    for (const m of [...this.cache.values(), ...this.variantes.values()]) {
       m.map.dispose(); m.normalMap.dispose(); m.roughnessMap.dispose()
     }
     this.cache.clear()
+    this.variantes.clear()
   }
 }
 

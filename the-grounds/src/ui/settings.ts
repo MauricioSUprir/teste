@@ -202,6 +202,14 @@ export class SettingsScreen {
         slider('Campo de visão', 45, 100, 1, j.fov, (v) => { j.fov = v; this.aplicar() }, (v) => `${Math.round(v)}°`),
         slider('Sensibilidade', 0.1, 5, 0.05, j.sensitivity, (v) => { j.sensitivity = v; this.aplicar() }),
         alternador('Inverter eixo vertical', j.invertY, (v) => { j.invertY = v; this.aplicar() }),
+        opcoes('Apontador', [
+          { valor: 'auto', texto: 'Automático' },
+          { valor: 'mouse', texto: 'Mouse' },
+          { valor: 'trackpad', texto: 'Trackpad' },
+        ], j.pointerProfile, (v) => { j.pointerProfile = v; this.aplicar() }),
+        slider('Suavização da câmera', 0, 0.9, 0.05, j.lookSmoothing,
+          (v) => { j.lookSmoothing = v; this.aplicar() },
+          (v) => (v < 0.05 ? 'crua' : `${Math.round(v * 100)}%`)),
         alternador('Reduzir movimento de câmera', j.reduceCameraMotion, (v) => { j.reduceCameraMotion = v; this.aplicar() }),
       ]),
       secao('Interface', [
@@ -211,8 +219,10 @@ export class SettingsScreen {
       ]),
       el('div', {
         class: 'aviso-indisponivel',
-        text: 'Reduzir movimento de câmera desliga o balanço em primeira pessoa, o tremor por impacto '
-          + 'e a variação de campo de visão com a velocidade.',
+        text: 'No trackpad a câmera ganha uma curva de aceleração e mais suavização, para que '
+          + 'passadas curtas continuem precisas e passadas longas virem depressa. As setas do '
+          + 'teclado também giram a câmera. Reduzir movimento de câmera desliga o balanço em '
+          + 'primeira pessoa, o tremor por impacto e a variação de campo de visão com a velocidade.',
       }),
     )
   }

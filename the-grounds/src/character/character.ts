@@ -89,6 +89,10 @@ export class Character {
   private bones: THREE.Bone[] = []
   private skeleton!: THREE.Skeleton
   private meshes: THREE.SkinnedMesh[] = []
+  /** Recortes finos do rosto e da roupa, desligados à distância. */
+  private detalhes: THREE.SkinnedMesh[] = []
+  private detalheLigado = true
+  private sombraLigada = true
   private materials!: CharacterMaterials
   private appearance: Appearance
   private options: CharacterOptions
@@ -128,17 +132,27 @@ export class Character {
     const parts = buildAppearanceParts(appearance)
     const lod = this.options.lod ?? 'alto'
 
-    const add = (geo: THREE.BufferGeometry | null, mat: THREE.Material, name: string) => {
+    const add = (geo: THREE.BufferGeometry | null, mat: THREE.Material, name: string,
+                 detalhe = false) => {
       if (!geo) return
       const m = new THREE.SkinnedMesh(geo, mat)
       m.name = name
-      m.castShadow = this.options.castShadow ?? true
+      // Só o corpo projeta sombra: recortes de rosto, íris e sobrancelha
+      // dobrariam o número de desenhos sem mudar nada na imagem.
+      m.castShadow = (this.options.castShadow ?? true) && !detalhe
       m.receiveShadow = true
-      m.frustumCulled = false
+      // A pele deformada sai da caixa de repouso, então inflamos a esfera
+      // limite em vez de desligar o descarte: assim o personagem fora da tela
+      // não custa nada e mesmo assim nunca some em quadro.
+      geo.computeBoundingSphere()
+      const bs = geo.boundingSphere
+      if (bs) { bs.center.set(0, shape.altura * 0.5, 0); bs.radius = Math.max(bs.radius * 1.35, shape.altura * 0.62) }
+      m.frustumCulled = true
       // A raiz do esqueleto já está no grupo; a malha apenas se vincula a ele.
       m.bind(this.skeleton)
       this.group.add(m)
       this.meshes.push(m)
+      if (detalhe) this.detalhes.push(m)
     }
 
     add(parts.pele, this.materials.pele, 'pele')
@@ -156,15 +170,15 @@ export class Character {
     lib.aplicar(matBarba, 'cabelo', 3, 3, 0.9)
     add(parts.barba, matBarba, 'barba')
     if (lod !== 'baixo') {
-      add(parts.rosto, this.materials.pele, 'rosto')
-      add(parts.acessorios, this.materials.acessorio, 'acessorios')
-      add(parts.detalheRoupa, this.materials.roupaBrilho, 'detalheRoupa')
+      add(parts.rosto, this.materials.pele, 'rosto', true)
+      add(parts.acessorios, this.materials.acessorio, 'acessorios', true)
+      add(parts.detalheRoupa, this.materials.roupaBrilho, 'detalheRoupa', true)
       const face = buildFaceDetails(appearance, shape)
-      add(face.esclera, this.materials.olho, 'olhos')
+      add(face.esclera, this.materials.olho, 'olhos', true)
       const matSobr = new THREE.MeshStandardMaterial({ color: appearance.corCabelo, roughness: 1, vertexColors: true })
       lib.aplicar(matSobr, 'cabelo', 2, 2, 0.8)
-      add(face.sobrancelhas, matSobr, 'sobrancelhas')
-      add(face.iris, this.materials.iris, 'iris')
+      add(face.sobrancelhas, matSobr, 'sobrancelhas', true)
+      add(face.iris, this.materials.iris, 'iris', true)
     }
 
     // Referências úteis
@@ -173,6 +187,26 @@ export class Character {
     this.height = shape.altura
     this.radius = clamp(0.26 * shape.corpo * Math.max(shape.ombros, shape.quadril), 0.22, 0.45)
     this.animator.reset()
+  }
+
+  /**
+   * Liga ou desliga os recortes finos (rosto, íris, sobrancelha, acessórios) e
+   * a projeção de sombra conforme a distância da câmera. São dezenas de
+   * desenhos por personagem que ninguém enxerga a partir de poucos metros.
+   */
+  ajustarDetalhe(distancia: number): void {
+    const mostrar = distancia < 14
+    if (mostrar !== this.detalheLigado) {
+      this.detalheLigado = mostrar
+      for (const m of this.detalhes) m.visible = mostrar
+    }
+    const sombra = distancia < 28 && (this.options.castShadow ?? true)
+    if (sombra !== this.sombraLigada) {
+      this.sombraLigada = sombra
+      for (const m of this.meshes) {
+        if (!this.detalhes.includes(m)) m.castShadow = sombra
+      }
+    }
   }
 
   get bonesRef(): THREE.Bone[] { return this.bones }
@@ -324,12 +358,17 @@ export class Character {
   dispose(full = true): void {
     for (const m of this.meshes) {
       m.geometry.dispose()
+      // As texturas são compartilhadas pela biblioteca; só o material
+      // (que é por personagem) é descartado aqui.
       const mat = m.material as THREE.Material | THREE.Material[]
       if (Array.isArray(mat)) mat.forEach((x) => x.dispose())
       else mat.dispose()
       this.group.remove(m)
     }
     this.meshes = []
+    this.detalhes = []
+    this.detalheLigado = true
+    this.sombraLigada = true
     if (this.bones[0]) this.group.remove(this.bones[0])
     this.skeleton?.dispose?.()
     if (full) this.group.clear()

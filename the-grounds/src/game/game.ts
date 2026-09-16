@@ -25,6 +25,8 @@ import { InteriorManager } from '../world/interiors'
 export interface GameStats {
   fps: number
   frameMs: number
+  /** Intervalo real entre quadros, em ms — a leitura honesta de fluidez. */
+  quadroMs: number
   setores: number
   pendentes: number
   colisores: number
@@ -50,6 +52,23 @@ export interface GameStats {
   entrada: string
   /** O que a câmera enxerga no caminho até os pés (diagnóstico de oclusão). */
   oclusao: string
+  /** Estado da partida em andamento (diagnóstico). */
+  futebol: string
+  /** Custo em ms por subsistema, média móvel (diagnóstico de fluidez). */
+  perfil: string
+}
+
+/** Uma escolha contextual apresentada no HUD (ex.: jogar ou treinar). */
+export interface OpcaoContexto {
+  rotulo: string
+  descricao?: string
+  executar: () => string | void
+}
+
+export interface EscolhaContexto {
+  titulo: string
+  opcoes: OpcaoContexto[]
+  indice: number
 }
 
 export class Game {
@@ -77,6 +96,9 @@ export class Game {
   private raf = 0
   private cpuMs = 0
   private envTimer = 0
+  /** Luz e direção do sol da última atualização do mapa de ambiente. */
+  private envLuz = -1
+  private readonly envSol = new THREE.Vector3()
   /** Congela o tempo do mundo e a entrada (menus). */
   paused = false
   /** Câmera cinematográfica usada como fundo do menu. */
@@ -100,6 +122,8 @@ export class Game {
     this.input = new Input(this.settings.bindings, canvas)
     this.input.sensitivity = this.settings.gameplay.sensitivity
     this.input.invertY = this.settings.gameplay.invertY
+    this.input.perfilApontador = this.settings.gameplay.pointerProfile
+    this.input.suavizacaoOlhar = this.settings.gameplay.lookSmoothing
 
     this.materials = new MaterialLibrary(this.settings.graphics.textureQuality, this.engine.maxAnisotropy)
     this.world = new World(this.materials, this.settings.graphics)
@@ -184,43 +208,143 @@ export class Game {
     cancelAnimationFrame(this.raf)
   }
 
+  /** Erros capturados no laço, expostos no diagnóstico. */
+  ultimoErro = ''
+
   private loop = (): void => {
     if (!this.running) return
     this.raf = requestAnimationFrame(this.loop)
     const dt = Math.min(0.05, this.clock.getDelta())
     const t0 = performance.now()
+    try {
+      this.passo(dt, t0)
+    } catch (e) {
+      // Um sistema com defeito não pode derrubar o jogo inteiro: registra,
+      // segue renderizando e deixa o problema visível no diagnóstico.
+      this.ultimoErro = e instanceof Error ? `${e.message}` : String(e)
+      console.error('[the-grounds] falha no laço:', e)
+      try { this.engine.render(dt, performance.now() - t0) } catch { /* ignora */ }
+      this.input.endFrame()
+    }
+  }
+
+  /** Menu contextual aberto (jogar/treinar, por exemplo), ou null. */
+  escolha: EscolhaContexto | null = null
+
+  /** Abre um menu de escolha; o movimento fica suspenso enquanto ele estiver aberto. */
+  abrirEscolha(titulo: string, opcoes: OpcaoContexto[]): void {
+    if (opcoes.length === 0) return
+    this.escolha = { titulo, opcoes, indice: 0 }
+  }
+
+  fecharEscolha(): void { this.escolha = null }
+
+  /**
+   * Navegação do menu contextual. Aceita as teclas de movimento, as setas e os
+   * números; confirma em E/Enter e cancela em Esc.
+   */
+  private atualizarEscolha(): boolean {
+    const e = this.escolha
+    if (!e) return false
+    const inp = this.input
+    const desce = inp.isPressed('tras') || inp.teclaPressionada('ArrowDown')
+    const sobe = inp.isPressed('frente') || inp.teclaPressionada('ArrowUp')
+    if (desce) { e.indice = (e.indice + 1) % e.opcoes.length; this.audio.interface('mover') }
+    if (sobe) { e.indice = (e.indice - 1 + e.opcoes.length) % e.opcoes.length; this.audio.interface('mover') }
+    for (let i = 0; i < e.opcoes.length && i < 9; i++) {
+      if (inp.teclaPressionada(`Digit${i + 1}`)) e.indice = i
+    }
+    if (inp.teclaPressionada('Escape')) {
+      this.fecharEscolha()
+      this.audio.interface('voltar')
+      return true
+    }
+    if (inp.isPressed('interagir') || inp.teclaPressionada('Enter')) {
+      const op = e.opcoes[e.indice]
+      this.fecharEscolha()
+      this.audio.interface('confirmar')
+      const msg = op?.executar()
+      if (msg) this.interacoes.notificar(msg)
+    }
+    return true
+  }
+
+  /**
+   * Orçamento de construção de setores por quadro, em ms. Ele encolhe quando o
+   * quadro está caro e volta a crescer quando sobra folga, para que o
+   * carregamento do mundo nunca provoque engasgos visíveis.
+   */
+  private orcamentoConstrucao = 4.5
+
+  /** Média móvel do custo de cada etapa do quadro, em ms. */
+  private readonly perfil: Record<string, number> = {
+    mundo: 0, jogador: 0, stream: 0, transito: 0, gente: 0,
+    futebol: 0, interior: 0, audio: 0, sombra: 0, render: 0,
+  }
+
+  /** Pior quadro visto em cada etapa nos últimos segundos. */
+  private readonly picos: Record<string, number> = {}
+  private picoDecay = 0
+
+  /** Mede `fn`, acumula na média móvel e guarda o pico recente de `chave`. */
+  private medir(chave: string, fn: () => void): void {
+    const a = performance.now()
+    fn()
+    const d = performance.now() - a
+    this.perfil[chave] = this.perfil[chave] * 0.9 + d * 0.1
+    if (d > (this.picos[chave] ?? 0)) this.picos[chave] = d
+  }
+
+  private passo(dt: number, t0: number): void {
 
     this.input.update()
-    const allow = !this.paused && this.input.pointerLocked
+    const emMenu = this.atualizarEscolha()
+    const allow = !this.paused && this.input.pointerLocked && !emMenu
 
     if (this.cinematica) {
       this.world.update(dt, this.cineAlvo, this.engine.fog, this.engine.sun, this.engine.hemi)
     } else if (!this.paused) {
-      this.world.update(dt, this.player.position, this.engine.fog, this.engine.sun, this.engine.hemi)
-      this.player.update(dt, this.input, allow)
-      this.world.updateStreaming(this.player.position)
-      this.world.processBuildQueue(4.5)
+      this.medir('mundo', () => {
+        this.world.update(dt, this.player.position, this.engine.fog, this.engine.sun, this.engine.hemi)
+      })
+      this.medir('jogador', () => this.player.update(dt, this.input, allow))
+      this.medir('stream', () => {
+        this.world.updateStreaming(this.player.position)
+        this.world.processBuildQueue(this.orcamentoConstrucao)
+      })
 
-      this.traffic.update(
+      this.medir('transito', () => this.traffic.update(
         dt, this.player.position, this.settings.graphics.trafficDensity,
         this.world.trafficPhase, this.world.trafficAmber,
-      )
-      this.crowd.update(
+      ))
+      this.crowd.permitirNovos = this.engine.perf.frameMs
+        < (1000 / Math.max(30, this.settings.graphics.targetFps)) * 1.25
+      this.medir('gente', () => this.crowd.update(
         dt, this.player.position, this.settings.graphics.pedestrianDensity,
         this.world.trafficPhase, this.world.hour,
-      )
-      this.sincronizarJogadorNaPartida()
-      this.partida?.update(dt)
-      if (this.bolaLivre.mesh.visible && !this.partida) {
-        this.bolaLivre.update(dt, this.world.collision, this.superficieBola)
-      }
-      this.interiores.atualizar(
-        this.player.position,
-        this.world.buildingsNear(this.player.position.x, this.player.position.z, 48),
-      )
-      this.interiores.atualizarLuzes(this.world.sky.daylight)
+      ))
+      this.medir('futebol', () => {
+        this.sincronizarJogadorNaPartida()
+        this.partida?.update(dt)
+        if (this.bolaLivre.mesh.visible && !this.partida) {
+          this.bolaLivre.update(dt, this.world.collision, this.superficieBola)
+        }
+      })
+      this.medir('interior', () => {
+        // Quando o quadro está caro, nem um interior por quadro: zero, até
+        // sobrar folga. O jogador está andando, não entrando em tudo ao mesmo
+        // tempo — o interior chega um instante depois e ninguém percebe.
+        const alvo = 1000 / Math.max(30, this.settings.graphics.targetFps)
+        const porQuadro = this.engine.perf.frameMs < alvo * 1.2 ? 1 : 0
+        this.interiores.atualizar(
+          this.player.position,
+          this.world.buildingsNear(this.player.position.x, this.player.position.z, 48),
+          26, 44, 6, porQuadro,
+        )
+        this.interiores.atualizarLuzes(this.world.sky.daylight)
+      })
       this.atualizarInteracoes(dt)
-      this.atualizarAudio(dt)
+      this.medir('audio', () => this.atualizarAudio(dt))
 
       // Rede de segurança: fora do mapa ou preso, volta para um ponto seguro.
       const p = this.player.position
@@ -234,19 +358,46 @@ export class Game {
 
     if (this.cinematica) this.atualizarCinematica(dt)
 
-    this.engine.updateSunShadow(
+    this.medir('sombra', () => this.engine.updateSunShadow(
       this.cinematica ? this.cineAlvo : this.player.position,
       this.world.sky.sunDirection,
-    )
+    ))
+    // O mapa de ambiente é caro (render de cubo + convolução). Refazê-lo num
+    // relógio fixo cria um engasgo periódico; aqui ele só é refeito quando a
+    // luz mudou de verdade e o quadro tem folga para pagar a conta.
     this.envTimer -= dt
     if (this.envTimer <= 0) {
-      this.envTimer = 3
-      const env = this.engine.refreshEnvironment(this.world.sky.mesh, dt, true)
-      if (env) this.materials.setEnvironment(env)
+      const luzAtual = this.world.sky.daylight
+      const sol = this.world.sky.sunDirection
+      const mudou = Math.abs(luzAtual - this.envLuz) > 0.02
+        || sol.dot(this.envSol) < 0.9986
+      const folgado = this.engine.perf.frameMs < (1000 / Math.max(30, this.settings.graphics.targetFps)) * 1.15
+      if (mudou && (folgado || this.envTimer < -6)) {
+        this.envLuz = luzAtual
+        this.envSol.copy(sol)
+        this.envTimer = 2.5
+        const env = this.engine.refreshEnvironment(this.world.sky.mesh, dt, true)
+        if (env) this.materials.setEnvironment(env)
+      } else if (!mudou) {
+        this.envTimer = 1
+      }
     }
 
+    // Os picos envelhecem: interessa o pior quadro recente, não o da abertura.
+    this.picoDecay -= dt
+    if (this.picoDecay <= 0) {
+      this.picoDecay = 4
+      for (const k of Object.keys(this.picos)) this.picos[k] *= 0.5
+    }
+
+    // Ajusta o orçamento de streaming pela folga real do quadro anterior.
+    const alvoMs = 1000 / Math.max(30, this.settings.graphics.targetFps)
+    const folga = alvoMs - this.engine.perf.frameMs
+    this.orcamentoConstrucao = Math.min(6, Math.max(0.6,
+      this.orcamentoConstrucao + (folga > 1 ? 0.4 : -0.8)))
+
     this.cpuMs = performance.now() - t0
-    this.engine.render(dt, this.cpuMs)
+    this.medir('render', () => this.engine.render(dt, this.cpuMs))
     this.input.endFrame()
   }
 
@@ -405,15 +556,47 @@ export class Game {
       // Campo de futebol próximo
       const campo = this.world.nearestPitch(p.x, p.z)
       if (campo && campo.dist < 26) {
+        const emTreino = this.partida?.treino === true
         this.interacoes.registrar({
-          kind: 'campo', rotulo: this.partida ? 'Encerrar partida' : `Jogar em ${campo.pitch.name}`,
+          kind: 'campo',
+          rotulo: this.partida
+            ? (emTreino ? 'Encerrar treino' : 'Encerrar partida')
+            : `Entrar em ${campo.pitch.name}`,
           raio: 26, prioridade: 0,
           position: new THREE.Vector3(campo.pitch.x, campo.pitch.y, campo.pitch.z),
           executar: () => {
-            if (this.partida) { this.encerrarPartida(); return 'Partida encerrada' }
-            this.iniciarPartida(campo.pitch.id)
-            return `${campo.pitch.name}`
+            if (this.partida) {
+              const r = emTreino ? this.resumoDoTreino() : 'Partida encerrada'
+              this.encerrarPartida()
+              return r
+            }
+            this.abrirEscolha(campo.pitch.name, [
+              {
+                rotulo: 'Partida 5 contra 5',
+                descricao: 'Dois tempos de 3 minutos, com placar, goleiros e adversários.',
+                executar: () => { this.iniciarPartida(campo.pitch.id, 5); return `${campo.pitch.name}` },
+              },
+              {
+                rotulo: 'Treino livre',
+                descricao: 'Campo só seu e o goleiro no gol. Sem relógio, bola sempre de volta ao pé.',
+                executar: () => { this.iniciarTreino(campo.pitch.id); return 'Treino livre' },
+              },
+              {
+                rotulo: 'Bater uma bola sozinho',
+                descricao: 'Só a bola no gramado, sem goleiro e sem contagem.',
+                executar: () => { this.soltarBola(); return 'Bola no gramado' },
+              },
+            ])
           },
+        })
+      }
+
+      // No treino, E longe da bola traz a bola de volta ao pé.
+      if (this.partida?.treino && this.partida.distanciaHumanoBola() > 4) {
+        this.interacoes.registrar({
+          kind: 'campo', rotulo: 'Trazer a bola', raio: 99, prioridade: 4,
+          position: p.clone(),
+          executar: () => { this.partida?.devolverBola() },
         })
       }
     }
@@ -531,19 +714,41 @@ export class Game {
   }
 
   /** Inicia uma partida no campo indicado. */
-  iniciarPartida(pitchId: string, porLado = 5): void {
+  iniciarPartida(pitchId: string, porLado = 5, modo: 'partida' | 'treino' = 'partida'): void {
     if (this.partida) this.encerrarPartida()
     const pitch = this.world.pitches.find((x) => x.id === pitchId)
     if (!pitch) return
     const cfg: MatchConfig = {
-      pitch, porLado, duracao: 180, timeDoJogador: 0, dificuldade: 0.55,
+      pitch, porLado, duracao: 180, timeDoJogador: 0, dificuldade: 0.55, modo,
     }
     this.partida = new Match(cfg, this.world, this.world.collision, makeBallMaterial())
     this.partida.montar(this.player.character.aparencia, this.player.position.clone())
+    // Leva o jogador para a posição de saída do time dele, olhando para o gol adversário.
+    const h = this.partida.humano
+    if (h) {
+      const alvo = this.partida.golAdversario(h.team)
+      const yaw = Math.atan2(alvo.x - h.position.x, alvo.z - h.position.z)
+      this.player.teleport(h.position.x, h.position.z, yaw, pitch.y + 0.6)
+      this.player.rig.yaw = yaw
+    }
     this.player.mode = 'futebol'
     this.player.rig.setMode('futebol')
     this.bolaLivre.mesh.visible = false
     this.audio.apito()
+  }
+
+  /** Abre uma sessão de treino livre no campo indicado. */
+  iniciarTreino(pitchId: string): void {
+    this.iniciarPartida(pitchId, 5, 'treino')
+  }
+
+  /** Texto final de uma sessão de treino, para a mensagem do HUD. */
+  private resumoDoTreino(): string {
+    const r = this.partida?.resumoTreino
+    if (!r) return 'Treino encerrado'
+    if (r.chutes === 0) return 'Treino encerrado — nenhum chute'
+    return `Treino: ${r.gols} gol(s) em ${r.chutes} chute(s)`
+      + `, ${r.defesas} defesa(s), mais forte ${Math.round(r.maiorKmh)} km/h`
   }
 
   encerrarPartida(): void {
@@ -570,6 +775,8 @@ export class Game {
     this.input.setBindings(this.settings.bindings)
     this.input.sensitivity = this.settings.gameplay.sensitivity
     this.input.invertY = this.settings.gameplay.invertY
+    this.input.perfilApontador = this.settings.gameplay.pointerProfile
+    this.input.suavizacaoOlhar = this.settings.gameplay.lookSmoothing
     this.player.rig.settings = {
       sensitivity: this.settings.gameplay.sensitivity,
       invertY: this.settings.gameplay.invertY,
@@ -586,6 +793,7 @@ export class Game {
     return {
       fps: Math.round(p.fps),
       frameMs: Number(p.frameMs.toFixed(2)),
+      quadroMs: Number(p.realMs.toFixed(2)),
       setores: this.world.loadedSectors,
       pendentes: this.world.pendingSectors,
       colisores: this.world.collision.count,
@@ -604,7 +812,9 @@ export class Game {
         return `t=${this.world.groundHeight(pos.x, pos.z).toFixed(2)} s=${this.world.surfaceHeight(pos.x, pos.z, pos.y + 1).toFixed(2)}`
           + ` base=${ch.group.position.y.toFixed(2)} coxa=${coxa.y.toFixed(2)} joelho=${joelho.y.toFixed(2)}`
           + ` pe=${pe.y.toFixed(2)} cab=${cab.y.toFixed(2)}`
-          + ` cam=${this.engine.camera.position.y.toFixed(2)}`
+          + ` cam=(${this.engine.camera.position.x.toFixed(1)},${this.engine.camera.position.y.toFixed(1)},${this.engine.camera.position.z.toFixed(1)})`
+          + ` fov=${this.engine.camera.fov.toFixed(1)} modoCam=${this.player.rig.mode}`
+          + ` sol=${this.engine.sun.intensity.toFixed(2)}`
       })(),
       estado: this.player.controller.state,
       hora: formatHour(this.world.hour),
@@ -664,6 +874,25 @@ export class Game {
           .map((h) => `${h.object.name || h.object.type}@${h.distance.toFixed(1)}y=${h.point.y.toFixed(2)}`)
           .join(' | ')
       })(),
+      futebol: (() => {
+        const m = this.partida
+        if (!m) return 'sem partida'
+        const s2 = m.state
+        const b = m.ball
+        const h = m.humano
+        const ult = m.jogadores.find((j) => j.id === m.ball.ultimoToque)
+        const dono = ult ? `${ult.nome}(t${ult.team})` : '-'
+        const dh = h ? Math.hypot(b.position.x - h.position.x, b.position.z - h.position.z) : -1
+        return `${s2.fase} ${s2.placar[0]}x${s2.placar[1]} t=${s2.tempo.toFixed(0)}s p${s2.periodo}`
+          + ` bola=(${b.position.x.toFixed(1)},${b.position.y.toFixed(1)},${b.position.z.toFixed(1)})`
+          + ` v=${b.velocity.length().toFixed(1)} posse=${dono} dJog=${dh.toFixed(1)}`
+          + ` jogadores=${m.jogadores.length} aviso="${s2.aviso}"`
+      })(),
+      perfil: Object.entries(this.perfil)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `${k}=${v.toFixed(1)}${(this.picos[k] ?? 0) > v * 2 + 1
+          ? `(pico ${this.picos[k].toFixed(0)})` : ''}`)
+        .join(' '),
     }
   }
 

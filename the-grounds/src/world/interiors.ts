@@ -530,6 +530,12 @@ export class InteriorManager {
   atualizar(
     posicao: THREE.Vector3, candidatos: BuildingSpec[],
     distanciaMontar = 26, distanciaSoltar = 44, limite = 6,
+    /**
+     * Quantos interiores podem ser montados neste quadro. Montar seis de uma
+     * vez ao virar numa rua cheia trava a imagem por décimos de segundo; um por
+     * quadro entra sem que ninguém perceba.
+     */
+    porQuadro = 1,
   ): void {
     // Remove os que ficaram longe.
     for (const [id, interior] of [...this.ativos]) {
@@ -543,12 +549,14 @@ export class InteriorManager {
       .filter((x) => x.d <= distanciaMontar)
       .sort((a, b) => a.d - b.d)
 
+    let montados = 0
     for (const { b } of ordenados) {
-      if (this.ativos.size >= limite) break
+      if (this.ativos.size >= limite || montados >= porQuadro) break
       if (this.ativos.has(b.id)) continue
       const interior = this.builder.construir(b, this.collision, `interior-${b.id}`)
       this.raiz.add(interior.group)
       this.ativos.set(b.id, interior)
+      montados++
     }
 
     // Determina em qual interior o jogador está.

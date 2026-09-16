@@ -58,6 +58,24 @@ export interface MatchConfig {
   timeDoJogador: Team
   /** Dificuldade 0..1. */
   dificuldade: number
+  /**
+   * 'partida' é o jogo disputado com placar e tempo. 'treino' é a sessão livre
+   * no campo: sem relógio, sem adversários de linha, bola sempre de volta ao
+   * pé e um resumo do que você acertou.
+   */
+  modo?: 'partida' | 'treino'
+}
+
+/** Números de uma sessão de treino livre. */
+export interface TreinoResumo {
+  chutes: number
+  gols: number
+  /** Velocidade do chute mais forte que entrou, em km/h. */
+  melhorKmh: number
+  /** Chute mais forte tentado, em km/h. */
+  maiorKmh: number
+  /** Defesas do goleiro. */
+  defesas: number
 }
 
 export interface MatchState {
@@ -79,6 +97,19 @@ const CORES_TIME: [number, number][] = [
 ]
 
 export class Match {
+  /** True quando a sessão é treino livre em vez de partida disputada. */
+  get treino(): boolean { return this.config.modo === 'treino' }
+
+  /** Números acumulados da sessão de treino. */
+  readonly resumoTreino: TreinoResumo = {
+    chutes: 0, gols: 0, melhorKmh: 0, maiorKmh: 0, defesas: 0,
+  }
+
+  /** Velocidade da bola no quadro anterior, para detectar um chute novo. */
+  private velAnterior = 0
+  /** Espera antes de devolver a bola ao jogador no treino. */
+  private devolverEm = 0
+
   readonly state: MatchState = {
     fase: 'aquecimento', placar: [0, 0], tempo: 0, periodo: 1,
     saidaDe: 0, aviso: '', avisoTimer: 0, ultimoGoleador: '',
@@ -168,8 +199,13 @@ export class Match {
   montar(aparenciaHumano?: Appearance, posicaoHumano?: THREE.Vector3): void {
     const { porLado, timeDoJogador } = this.config
     for (const team of [0, 1] as Team[]) {
-      for (let i = 0; i < porLado; i++) {
-        const humano = team === timeDoJogador && i === 1 && !!aparenciaHumano
+      // No treino o campo fica livre: só você e o goleiro do outro lado.
+      const nesteTime = this.treino ? (team === timeDoJogador ? 2 : 1) : porLado
+      // Você joga na frente: começar como zagueiro deixaria a partida inteira
+      // acontecendo a trinta metros de distância.
+      const idxHumano = Math.max(1, nesteTime - 1)
+      for (let i = 0; i < nesteTime; i++) {
+        const humano = team === timeDoJogador && i === idxHumano && !!aparenciaHumano
         const role: Role = i === 0 ? 'goleiro'
           : i <= Math.ceil((porLado - 1) / 3) ? 'zagueiro'
             : i <= Math.ceil(((porLado - 1) * 2) / 3) ? 'meia' : 'atacante'
@@ -187,7 +223,7 @@ export class Match {
         if (role === 'goleiro') { app.corTorso = 0x2fa85a; app.corTorsoSec = 0x1a1a1a }
 
         const character = new Character(app, { castShadow: true, lod: 'medio' })
-        const home = this.formacao(team, i, porLado)
+        const home = this.formacao(team, i, this.treino ? Math.max(2, nesteTime) : porLado)
         const pos = this.paraMundo(home.x, home.y)
         character.setPosition(pos.x, pos.y, pos.z)
         this.group.add(character.group)
@@ -218,8 +254,54 @@ export class Match {
       }
     }
     this.reposicionar(0)
-    this.state.fase = 'saida'
-    this.aviso('Bola ao centro', 2)
+    if (this.treino) {
+      this.state.fase = 'jogando'
+      this.posicionarTreino()
+      this.aviso('Treino livre — chute à vontade', 3)
+    } else {
+      this.state.fase = 'saida'
+      this.aviso('Bola ao centro', 2)
+    }
+  }
+
+  /**
+   * Coloca a bola e o jogador numa posição de finalização: bola à frente, gol
+   * adversário na direção do olhar. É o que o treino repete a cada gol ou a
+   * cada bola perdida.
+   */
+  private posicionarTreino(): void {
+    const h = this.humano
+    if (!h) return
+    const p = this.config.pitch
+    const lado = h.team === 0 ? 1 : -1
+    // Distância de finalização sorteada, entre a entrada da área e o meio.
+    const dist = p.halfLength * (0.30 + this.rng() * 0.34)
+    const desvio = (this.rng() - 0.5) * p.halfWidth * 1.1
+    const pos = this.paraMundo(lado * (p.halfLength - dist), desvio)
+    h.position.copy(pos)
+    h.velocity.set(0, 0, 0)
+    h.speed = 0
+    const alvo = this.golAdversario(h.team)
+    h.yaw = Math.atan2(alvo.x - pos.x, alvo.z - pos.z)
+    const frente = this.paraMundo(lado * (p.halfLength - dist + 1.6), desvio)
+    this.ball.reset(frente.x, frente.y + BALL_RADIUS + 0.02, frente.z)
+    this.ball.ultimoToque = 0
+    this.devolverEm = 0
+  }
+
+  /** Recoloca só a bola à frente do jogador, sem mover ninguém. */
+  devolverBola(): void {
+    const h = this.humano
+    if (!h) return
+    const alvo = this.golAdversario(h.team)
+    const dx = alvo.x - h.position.x
+    const dz = alvo.z - h.position.z
+    const n = Math.hypot(dx, dz) || 1
+    const y = this.world.surfaceHeight(h.position.x + (dx / n) * 1.5, h.position.z + (dz / n) * 1.5,
+      h.position.y + 1.2)
+    this.ball.reset(h.position.x + (dx / n) * 1.5, y + BALL_RADIUS + 0.02, h.position.z + (dz / n) * 1.5)
+    this.ball.ultimoToque = 0
+    this.devolverEm = 0
   }
 
   /** Coloca todos na formação e a bola no centro. */
@@ -239,6 +321,24 @@ export class Match {
     const c = this.paraMundo(0, 0)
     this.ball.reset(c.x, c.y + BALL_RADIUS + 0.02, c.z)
     this.state.saidaDe = saidaDe
+
+    // Quem bate a saída fica atrás da bola. Sem isso o jogador humano nasce na
+    // própria linha defensiva e a partida começa com uma corrida de trinta
+    // metros atrás de uma bola que os bots já pegaram.
+    const batedor = this.humano && this.humano.team === saidaDe
+      ? this.humano
+      : this.jogadores.find((j) => j.team === saidaDe && j.role !== 'goleiro')
+    if (batedor) {
+      const golAdv = this.golAdversario(batedor.team)
+      const dx = golAdv.x - c.x
+      const dz = golAdv.z - c.z
+      const n = Math.hypot(dx, dz) || 1
+      const pos = new THREE.Vector3(c.x - (dx / n) * 1.9, c.y, c.z - (dz / n) * 1.9)
+      pos.y = this.world.surfaceHeight(pos.x, pos.z, pos.y + 1.2)
+      batedor.position.copy(pos)
+      batedor.destino.copy(pos)
+      batedor.yaw = Math.atan2(dx, dz)
+    }
     this.goalGuard = 1.2
   }
 
@@ -268,7 +368,10 @@ export class Match {
     s.avisoTimer = Math.max(0, s.avisoTimer - dt)
     this.goalGuard = Math.max(0, this.goalGuard - dt)
 
-    if (s.fase === 'jogando') {
+    if (this.treino) {
+      s.tempo += dt
+      this.atualizarTreino(dt)
+    } else if (s.fase === 'jogando') {
       s.tempo += dt
       if (s.tempo >= this.config.duracao) {
         if (s.periodo === 1) {
@@ -304,6 +407,42 @@ export class Match {
     this.checarLimites()
   }
 
+  /**
+   * Contabiliza a sessão de treino: conta cada chute pela aceleração súbita da
+   * bola, marca a defesa quando o goleiro devolve e traz a bola de volta ao pé
+   * quando ela morre longe.
+   */
+  private atualizarTreino(dt: number): void {
+    const v = this.ball.velocity.length()
+    const h = this.humano
+    if (h) {
+      // Um salto grande de velocidade com a bola perto do jogador é um chute.
+      const perto = this.ball.position.distanceTo(h.position) < 2.6
+      if (perto && v > this.velAnterior + 4 && v > 7) {
+        this.resumoTreino.chutes++
+        this.resumoTreino.maiorKmh = Math.max(this.resumoTreino.maiorKmh, v * 3.6)
+      }
+    }
+    // Defesa: o goleiro adversário tocou na bola depois de um chute forte.
+    const ult = this.jogadores.find((j) => j.id === this.ball.ultimoToque)
+    if (ult && ult.role === 'goleiro' && h && ult.team !== h.team && this.velAnterior > 9 && v < this.velAnterior) {
+      this.resumoTreino.defesas++
+      this.ball.ultimoToque = 0
+      this.aviso('Defesa do goleiro', 1.4)
+    }
+    this.velAnterior = v
+
+    if (this.devolverEm > 0) {
+      this.devolverEm -= dt
+      if (this.devolverEm <= 0) this.posicionarTreino()
+      return
+    }
+    // Bola parada e longe: devolve sozinha, ninguém quer correr atrás.
+    if (h && v < 0.6 && this.ball.position.distanceTo(h.position) > 22) {
+      this.devolverEm = 0.6
+    }
+  }
+
   /** Impede que a bola saia do mundo do campo (linhas laterais suaves). */
   private checarLimites(): void {
     const p = this.config.pitch
@@ -313,6 +452,11 @@ export class Match {
     if (Math.abs(b.x) > margemL || Math.abs(b.y) > margemW) {
       const cx = clamp(b.x, -p.halfLength * 0.8, p.halfLength * 0.8)
       const cz = clamp(b.y, -p.halfWidth * 0.8, p.halfWidth * 0.8)
+      if (this.treino) {
+        this.devolverBola()
+        this.aviso('Bola de volta', 1.2)
+        return
+      }
       const w = this.paraMundo(cx, cz)
       this.ball.reset(w.x, w.y + BALL_RADIUS + 0.02, w.z)
       this.aviso('Bola fora — reposição', 1.4)
@@ -332,6 +476,20 @@ export class Match {
   }
 
   private marcarGol(team: Team): void {
+    if (this.treino) {
+      const h = this.humano
+      if (h && team === h.team) {
+        this.resumoTreino.gols++
+        this.resumoTreino.melhorKmh = Math.max(this.resumoTreino.melhorKmh, this.velAnterior * 3.6)
+        this.aviso(`Gol! ${this.resumoTreino.gols} de ${this.resumoTreino.chutes}`
+          + ` · ${Math.round(this.velAnterior * 3.6)} km/h`, 2.4)
+      } else {
+        this.aviso('Gol contra — bola de volta', 2)
+      }
+      this.goalGuard = 1.2
+      this.devolverEm = 1.1
+      return
+    }
     this.state.placar[team]++
     this.state.fase = 'gol'
     this.state.saidaDe = team === 0 ? 1 : 0
@@ -666,6 +824,7 @@ export class Match {
     inp.actionProgress = f.action ? clamp(f.actionTime / ACTION_DURATION[f.action], 0, 1) : 0
     inp.comBola = this.ball.position.distanceTo(f.position) < 1.4
     if (!f.humano) {
+      ch.ajustarDetalhe(this.humano ? f.position.distanceTo(this.humano.position) : 0)
       ch.update(dt, (x, z) => this.world.surfaceHeight(x, z, f.position.y + 0.8))
     }
   }

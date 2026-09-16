@@ -46,6 +46,23 @@ export class Input {
   pointerLocked = false
   sensitivity = 1
   invertY = false
+  /**
+   * Perfil do apontador. O trackpad entrega poucos eventos por segundo, com
+   * passadas curtas e degraus grandes: sem ganho extra a câmera fica pesada e
+   * sem suavização ela fica aos trancos.
+   */
+  perfilApontador: 'mouse' | 'trackpad' | 'auto' = 'auto'
+  /** 0 = sem suavização (cru), 1 = bem suave. Não perde rotação, só espalha. */
+  suavizacaoOlhar = 0.35
+  /** Perfil efetivo quando `perfilApontador` é 'auto'. */
+  private perfilDetectado: 'mouse' | 'trackpad' = 'mouse'
+  private amostrasApontador = 0
+  private amostrasCurtas = 0
+  /** Resto de rotação ainda não entregue, usado pela suavização. */
+  private restoOlhar = { x: 0, y: 0 }
+  private ultimoUpdate = 0
+  /** Acumulador de rolagem contínua (trackpad manda dezenas de eventos). */
+  private rolagemBruta = 0
   /** Quando true, o próximo evento de tecla é capturado para remapeamento. */
   private captureResolve: ((code: string) => void) | null = null
   /**
@@ -87,15 +104,40 @@ export class Input {
     }
     this.onMouseMove = (e) => {
       if (!this.pointerLocked) return
-      this.mouseDelta.x += e.movementX
-      this.mouseDelta.y += e.movementY
+      // O travamento de ponteiro ocasionalmente entrega um salto absurdo em um
+      // único evento; sem limite isso vira um giro de 180° sem motivo.
+      const dx = Math.max(-180, Math.min(180, e.movementX))
+      const dy = Math.max(-180, Math.min(180, e.movementY))
+      // Detecção de trackpad: passadas curtas e constantes, sem cauda longa.
+      const m = Math.abs(dx) + Math.abs(dy)
+      if (m > 0) {
+        this.amostrasApontador++
+        if (m <= 6) this.amostrasCurtas++
+        if (this.amostrasApontador >= 60) {
+          this.perfilDetectado = this.amostrasCurtas / this.amostrasApontador > 0.82
+            ? 'trackpad' : 'mouse'
+          this.amostrasApontador = 0
+          this.amostrasCurtas = 0
+        }
+      }
+      this.mouseDelta.x += dx
+      this.mouseDelta.y += dy
     }
     this.onMouseDown = (e) => {
       this.mouseButtons.add(e.button)
       this.mousePressed.add(e.button)
     }
     this.onMouseUp = (e) => this.mouseButtons.delete(e.button)
-    this.onWheel = (e) => { this.wheel += Math.sign(e.deltaY) }
+    this.onWheel = (e) => {
+      // No trackpad a rolagem chega em dezenas de eventos pequenos; acumulamos
+      // e só emitimos um passo a cada limiar, senão o zoom dispara.
+      this.rolagemBruta += e.deltaY
+      while (Math.abs(this.rolagemBruta) >= 48) {
+        const passo = Math.sign(this.rolagemBruta)
+        this.wheel += passo
+        this.rolagemBruta -= passo * 48
+      }
+    }
     this.onPointerLockChange = () => {
       this.pointerLocked = document.pointerLockElement === this.element
     }
@@ -150,6 +192,11 @@ export class Input {
     if (this.override && action === 'correr') return this.override.sprint
     return this.down.has(this.bindings[action]) || this.padDown.has(action)
   }
+  /** True se esta tecla física foi pressionada neste quadro (menus). */
+  teclaPressionada(code: string): boolean {
+    return this.enabled && this.pressedThisFrame.has(code)
+  }
+
   isPressed(action: ActionName): boolean {
     return this.pressedThisFrame.has(this.bindings[action]) || this.padPressed.has(action)
   }
@@ -159,6 +206,71 @@ export class Input {
   isKeyDown(code: string): boolean { return this.down.has(code) }
   isKeyPressed(code: string): boolean { return this.pressedThisFrame.has(code) }
   isMousePressed(button: number): boolean { return this.mousePressed.has(button) }
+  /** Perfil de apontador realmente em uso neste quadro. */
+  get perfilEmUso(): 'mouse' | 'trackpad' {
+    return this.perfilApontador === 'auto' ? this.perfilDetectado : this.perfilApontador
+  }
+
+  /**
+   * Converte o deslocamento bruto do apontador em rotação do quadro.
+   *
+   * A suavização não descarta rotação: ela guarda o resto e entrega numa taxa
+   * exponencial, então o total girado é exatamente o total movido — só deixa
+   * de chegar em degraus. É o que torna o trackpad utilizável sem criar
+   * aquela sensação de câmera "escorregando" depois que o dedo para.
+   */
+  private montarOlhar(f: InputFrame): void {
+    const agora = performance.now()
+    const dt = this.ultimoUpdate === 0
+      ? 1 / 60
+      : Math.min(0.1, (agora - this.ultimoUpdate) / 1000)
+    this.ultimoUpdate = agora
+
+    let dx = this.mouseDelta.x
+    let dy = this.mouseDelta.y
+    this.mouseDelta.x = 0
+    this.mouseDelta.y = 0
+
+    const trackpad = this.perfilEmUso === 'trackpad'
+    if (trackpad) {
+      // Curva suave: passadas curtas mantêm a precisão, passadas longas viram
+      // o personagem depressa sem precisar de várias repetições do gesto.
+      const m = Math.hypot(dx, dy)
+      if (m > 0.0001) {
+        const ganho = 1 + 1.25 * Math.min(1, m / 38)
+        dx *= ganho
+        dy *= ganho
+      }
+    }
+
+    this.restoOlhar.x += dx
+    this.restoOlhar.y += dy
+
+    const suav = Math.max(0, Math.min(0.95, this.suavizacaoOlhar + (trackpad ? 0.18 : 0)))
+    // Meia-vida constante em segundos: independe da taxa de quadros.
+    const taxa = suav <= 0.001 ? 1 : 1 - Math.exp(-dt / (0.006 + suav * 0.052))
+    const libX = this.restoOlhar.x * taxa
+    const libY = this.restoOlhar.y * taxa
+    this.restoOlhar.x -= libX
+    this.restoOlhar.y -= libY
+    // Evita resto residual infinitesimal preso no acumulador.
+    if (Math.abs(this.restoOlhar.x) < 0.01) this.restoOlhar.x = 0
+    if (Math.abs(this.restoOlhar.y) < 0.01) this.restoOlhar.y = 0
+
+    const base = trackpad ? 0.0030 : 0.0022
+    f.lookX = libX * base * this.sensitivity
+    f.lookY = libY * base * this.sensitivity * (this.invertY ? -1 : 1)
+
+    // Setas viram a câmera sem apontador, útil em notebook.
+    const setas = (this.enabled ? 1 : 0) * 2.1 * dt * this.sensitivity
+    if (setas > 0) {
+      if (this.down.has('ArrowLeft')) f.lookX -= setas
+      if (this.down.has('ArrowRight')) f.lookX += setas
+      if (this.down.has('ArrowUp')) f.lookY -= setas * (this.invertY ? -1 : 1)
+      if (this.down.has('ArrowDown')) f.lookY += setas * (this.invertY ? -1 : 1)
+    }
+  }
+
   takeWheel(): number { const w = this.wheel; this.wheel = 0; return w }
 
   private pollGamepad(): void {
@@ -200,10 +312,7 @@ export class Input {
     f.throttle = this.isDown('frente') ? 1 : 0
     f.brake = this.isDown('tras') ? 1 : 0
 
-    f.lookX = this.mouseDelta.x * 0.0022 * this.sensitivity
-    f.lookY = this.mouseDelta.y * 0.0022 * this.sensitivity * (this.invertY ? -1 : 1)
-    this.mouseDelta.x = 0
-    this.mouseDelta.y = 0
+    this.montarOlhar(f)
 
     this.pollGamepad()
 
