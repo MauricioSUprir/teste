@@ -80,7 +80,7 @@ export const KO_UNITS: Unit[] = [
       [
         ['화장실이 어디예요?', 'Onde fica o banheiro?', undefined, undefined, 'hwajangsiri eodiyeyo'],
         ['역까지 어떻게 가요?', 'Como eu chego na estação?', undefined, undefined, 'yeokkaji eotteoke gayo'],
-        ['직진하고 왼쪽으로 가세요.', 'Siga reto e vá para a esquerda.', undefined, undefined, 'jikjinhago oenjjogeuro gaseyo'],
+        ['직진하고 왼쪽으로 가세요.', 'Siga reto e vá para à esquerda.', undefined, undefined, 'jikjinhago oenjjogeuro gaseyo'],
         ['은행 옆에 있어요.', 'Fica ao lado do banco.', undefined, undefined, 'eunhaeng yeope isseoyo'],
         ['여기서 멀어요?', 'É longe daqui?', undefined, undefined, 'yeogiseo meoreoyo'],
         ['걸어서 십 분이에요.', 'São dez minutos a pé.', undefined, undefined, 'georeoseo sip bunieyo'],

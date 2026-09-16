@@ -20,7 +20,7 @@ export const AR_UNITS: Unit[] = [
       [
         ['عمري ستة عشر سنة.', 'Eu tenho dezesseis anos.', 'Literal: "minha idade é 16 anos".', undefined, 'umri sittata ashara sana'],
         ['أنا من البرازيل.', 'Eu sou do Brasil.', undefined, undefined, 'ana min al-brazil'],
-        ['أسكن في ساو باولو.', 'Eu moro em São Paulo.', undefined, undefined, 'askunu fi sao paulo'],
+        ['أسكن في ساو باولو.', 'Eu moro em São Paulo.', undefined, undefined, 'askunu fi são paulo'],
         ['أنا طالبة.', 'Eu sou estudante. (mulher)', 'O ـة final marca o feminino.', undefined, 'ana taliba'],
         ['عندي أخوان.', 'Eu tenho dois irmãos.', undefined, undefined, 'indi akhawan'],
         ['هذا صديقي لوكاس.', 'Esse é meu amigo Lucas.', undefined, undefined, 'hadha sadiqi lucas'],

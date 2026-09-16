@@ -44,7 +44,7 @@ export const DE_UNITS: Unit[] = [
     lesson('u2l1', '⏰', 'Zahlen und Uhrzeit', 'Hora, preço e número', undefined,
       [
         ['Wie spät ist es?', 'Que horas são?', undefined, 'Wie spaet ist es?'],
-        ['Es ist halb acht.', 'São sete e meia.', 'ATENÇÃO: "halb acht" = meia PARA as oito = 7h30.'],
+        ['Es ist halb acht.', 'São sete e meia.', 'ATENÇÃO: "halb acht" = meia PARA às oito = 7h30.'],
         ['Der Unterricht beginnt um acht.', 'A aula começa às oito.'],
         ['Wie viel kostet das?', 'Quanto custa?'],
         ['Das macht zwanzig Euro.', 'Dá vinte euros.'],
