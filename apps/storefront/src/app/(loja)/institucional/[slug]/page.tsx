@@ -17,7 +17,7 @@ const contato = NEGOCIO.whatsappVisivel
 
 const quemSomos = LOJA.b2b
   ? [
-      `A ${LOJA.nome} é o braço de venda para empresas de uma operação com 15 anos de estrada na distribuição de cosméticos. ${NEGOCIO.regiao}.`,
+      `A ${LOJA.nome} é o braço de venda para empresas de uma operação com 15 anos de estrada na distribuição de cosméticos. ${NEGOCIO.regiao}`,
       "Atendemos salões, clínicas, farmácias, lojas e redes: catálogo aberto para consulta, preço de distribuidor liberado assim que o CNPJ é aprovado, e nota fiscal em toda venda.",
       "Trabalhamos apenas com marcas das quais somos distribuidores autorizados: o produto sai do fabricante e chega no seu estoque sem passar por atravessador.",
     ]

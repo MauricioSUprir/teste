@@ -33,7 +33,8 @@ export interface Negocio {
   /** como o número aparece escrito na tela */
   whatsappVisivel?: string;
   endereco?: Endereco;
-  /** cidade/estado de atuação quando não há endereço público de loja */
+  /** frase pronta sobre onde a loja fica e até onde atende (com ponto final,
+   *  para encaixar em qualquer parágrafo sem precisar de emenda) */
   regiao: string;
   horario: string;
   /** em quanto tempo a gente promete responder (item "promessa de resposta") */
@@ -53,7 +54,7 @@ const NEGOCIOS: Record<LojaId, Negocio> = {
     email: "atendimento@beautynow.com.br",
     whatsapp: "5521997322464",
     whatsappVisivel: "(21) 99732-2464",
-    regiao: "Rio de Janeiro, RJ. Entregamos para todo o Brasil",
+    regiao: "Ficamos no Rio de Janeiro, RJ, e entregamos para todo o Brasil.",
     horario: "Segunda a sexta, das 9h às 18h",
     promessaResposta: "Respondemos em até 1 dia útil. No WhatsApp costuma ser em minutos.",
     site: "https://www.beautynowstore.com.br",
@@ -64,7 +65,7 @@ const NEGOCIOS: Record<LojaId, Negocio> = {
     email: "atendimento@beautynow.com.br",
     whatsapp: "5521997322464",
     whatsappVisivel: "(21) 99732-2464",
-    regiao: "Rio de Janeiro, RJ. Atendemos salões e lojistas em todo o Brasil",
+    regiao: "Ficamos no Rio de Janeiro, RJ, e atendemos salões e lojistas em todo o Brasil.",
     horario: "Segunda a sexta, das 9h às 18h",
     promessaResposta: "Respondemos em até 1 dia útil. No WhatsApp costuma ser em minutos.",
     site: "https://www.be2beauty.com.br",
@@ -74,7 +75,7 @@ const NEGOCIOS: Record<LojaId, Negocio> = {
     email: "atendimento@beautynow.com.br",
     whatsapp: "5521997322464",
     whatsappVisivel: "(21) 99732-2464",
-    regiao: "Rio de Janeiro, RJ",
+    regiao: "Ficamos no Rio de Janeiro, RJ.",
     horario: "Segunda a sexta, das 9h às 18h",
     promessaResposta: "Respondemos em até 1 dia útil. No WhatsApp costuma ser em minutos.",
     instagram: "https://www.instagram.com/pulse.beautystore/",
@@ -90,7 +91,7 @@ const NEGOCIOS: Record<LojaId, Negocio> = {
       uf: "SP",
       cep: "13289-010",
     },
-    regiao: "Vinhedo, SP. Atendemos todo o estado de São Paulo",
+    regiao: "Ficamos em Vinhedo, SP, e atendemos todo o estado de São Paulo.",
     horario: "Segunda a sexta, das 9h às 18h (sábado fechado)",
     promessaResposta: "Respondemos em até 1 dia útil.",
     instagram: "https://www.instagram.com/bradecodistribuidora/",
