@@ -57,6 +57,8 @@ export class Engine {
     renderScale: 1, width: 0, height: 0,
   }
   private scaleCooldown = 0
+  /** Média longa do tempo de quadro, usada só pela resolução dinâmica. */
+  private mediaLonga = 0
   readonly maxAnisotropy: number
 
   private pmrem: THREE.PMREMGenerator | null = null
@@ -313,18 +315,28 @@ export class Engine {
     }
     this.scaleCooldown -= dt
     if (this.scaleCooldown > 0) return
+
+    // A decisão sai de uma média longa, não do quadro atual. Reagir ao quadro
+    // faz a escala subir e descer sem parar, e redimensionar a cada meio
+    // segundo é exatamente o que se vê como imagem tremida e embaçada.
+    this.mediaLonga = this.mediaLonga === 0 ? frameMs : this.mediaLonga * 0.88 + frameMs * 0.12
+
     const target = 1000 / this.settings.targetFps
     const base = this.settings.renderScale
-    const min = base * 0.6
+    const min = base * 0.55
     let next = this.effectiveScale
-    if (frameMs > target * 1.30) next = Math.max(min, this.effectiveScale - 0.08)
-    else if (frameMs < target * 0.80) next = Math.min(base, this.effectiveScale + 0.05)
-    if (Math.abs(next - this.effectiveScale) > 0.005) {
+    // Faixa morta larga: entre 25% abaixo e 45% acima do alvo, não mexe.
+    if (this.mediaLonga > target * 1.45) next = Math.max(min, this.effectiveScale - 0.10)
+    else if (this.mediaLonga < target * 0.75) next = Math.min(base, this.effectiveScale + 0.04)
+
+    if (Math.abs(next - this.effectiveScale) > 0.02) {
       this.effectiveScale = next
       this.resize()
-      this.scaleCooldown = 0.6
+      // Depois de mexer, espera bastante: a média precisa refletir a mudança
+      // antes da próxima decisão, senão o ajuste persegue o próprio rastro.
+      this.scaleCooldown = 2.5
     } else {
-      this.scaleCooldown = 0.25
+      this.scaleCooldown = 0.6
     }
   }
 

@@ -50,6 +50,8 @@ export class PeopleTextureLoader {
   private carregados = new Map<TecidoKey, Tecido>()
   private pendentes = new Map<TecidoKey, Pendente[]>()
   private emCurso = new Set<TecidoKey>()
+  /** Decodificação fora da thread principal, igual às texturas do mundo. */
+  private readonly bitmap = new THREE.ImageBitmapLoader()
   private readonly loader = new THREE.TextureLoader()
   private aniso = 4
   /** Créditos das texturas efetivamente aplicadas. */
@@ -59,6 +61,8 @@ export class PeopleTextureLoader {
   constructor(maxAnisotropy: number) {
     this.aniso = Math.min(8, maxAnisotropy)
     this.loader.setCrossOrigin('anonymous')
+    this.bitmap.setOptions({ imageOrientation: 'flipY' })
+    this.bitmap.setCrossOrigin('anonymous')
   }
 
   get total(): number { return Object.keys(TECIDOS).length }
@@ -91,13 +95,23 @@ export class PeopleTextureLoader {
     const carregar = (url: string, srgb: boolean): Promise<THREE.Texture> =>
       new Promise((ok, erro) => {
         const t = setTimeout(() => erro(new Error('tempo esgotado')), 25000)
-        this.loader.load(url, (tex) => {
+        const preparar = (tex: THREE.Texture) => {
           clearTimeout(t)
           tex.wrapS = tex.wrapT = THREE.RepeatWrapping
           if (srgb) tex.colorSpace = THREE.SRGBColorSpace
           tex.anisotropy = this.aniso
+          tex.needsUpdate = true
           ok(tex)
-        }, undefined, (e) => { clearTimeout(t); erro(e as Error) })
+        }
+        this.bitmap.load(
+          url,
+          (bmp) => preparar(new THREE.CanvasTexture(bmp as unknown as HTMLCanvasElement)),
+          undefined,
+          () => {
+            this.loader.load(url, preparar, undefined,
+              (e) => { clearTimeout(t); erro(e as Error) })
+          },
+        )
       })
 
     try {

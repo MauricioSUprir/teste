@@ -97,10 +97,13 @@ export const DEFAULT_BINDINGS: KeyBindings = {
 }
 
 export const QUALITY_PRESETS: Record<QualityPreset, Partial<GraphicsSettings>> = {
+  // 'baixo' precisa rodar, mas não precisa ser feio: sombra desligada é o que
+  // realmente economiza, e o antisserrilhamento custa pouco e evita a imagem
+  // picotada que uma escala reduzida sozinha produz.
   baixo: {
-    renderScale: 0.7, shadows: 'off', viewDistance: 320, pedestrianDensity: 0.3,
-    trafficDensity: 0.3, antialias: 'off', ssao: false, bloom: false, motionBlur: false,
-    textureQuality: 'baixo', vegetationDensity: 0.3, anisotropy: 1,
+    renderScale: 0.85, shadows: 'off', viewDistance: 340, pedestrianDensity: 0.3,
+    trafficDensity: 0.35, antialias: 'fxaa', ssao: false, bloom: false, motionBlur: false,
+    textureQuality: 'baixo', vegetationDensity: 0.35, anisotropy: 2,
   },
   medio: {
     renderScale: 0.9, shadows: 'baixo', viewDistance: 460, pedestrianDensity: 0.5,
@@ -129,7 +132,7 @@ export function defaultSettings(): Settings {
   // era fácil dizer 'medio' e deixar oclusão de ambiente e textura em alto,
   // que foi exatamente o que aconteceu.
   const base: GraphicsSettings = {
-    preset: 'medio',
+    preset: 'baixo',
     renderScale: 1,
     outputWidthCap: 0,
     shadows: 'medio',
@@ -145,7 +148,7 @@ export function defaultSettings(): Settings {
     textureQuality: 'medio',
     vegetationDensity: 0.6,
     anisotropy: 4,
-    ...QUALITY_PRESETS.medio,
+    ...QUALITY_PRESETS.baixo,
   }
   return {
     graphics: base,
@@ -168,7 +171,7 @@ export function applyPreset(g: GraphicsSettings, preset: QualityPreset): Graphic
  * jogado ficava preso ao perfil guardado no navegador e não recebia o novo
  * padrão — que era justamente a correção de desempenho.
  */
-const STORAGE_KEY = 'thegrounds.settings.v2'
+const STORAGE_KEY = 'thegrounds.settings.v3'
 
 export function loadSettings(): Settings {
   const def = defaultSettings()

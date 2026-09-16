@@ -34,6 +34,13 @@ export interface CdnProgress {
 }
 
 export class CdnTextureLoader {
+  /**
+   * ImageBitmapLoader decodifica a imagem fora da thread principal. Com o
+   * TextureLoader comum, cada mapa que chegava era decodificado no meio do
+   * quadro — e como os mapas chegam em série, o jogo travava de poucos em
+   * poucos segundos durante o primeiro minuto.
+   */
+  private bitmap = new THREE.ImageBitmapLoader()
   private loader = new THREE.TextureLoader()
   private cache = new Map<string, Promise<THREE.Texture>>()
   private aborted = false
@@ -43,8 +50,13 @@ export class CdnTextureLoader {
 
   constructor(anisotropy: number, quality: 'baixo' | 'medio' | 'alto') {
     this.anisotropy = anisotropy
+    // 2k só quando pedido de propósito. Vinte e um materiais em 2k com quatro
+    // mapas cada passam de cem megabytes de download e de decodificação, o que
+    // não se paga: a diferença na tela é pequena e o custo é enorme.
     this.resolution = quality === 'alto' ? '2k' : '1k'
     this.loader.setCrossOrigin('anonymous')
+    this.bitmap.setOptions({ imageOrientation: 'flipY' })
+    this.bitmap.setCrossOrigin('anonymous')
   }
 
   static get keys(): CdnKey[] {
@@ -62,21 +74,26 @@ export class CdnTextureLoader {
     if (hit) return hit
     const p = new Promise<THREE.Texture>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('tempo esgotado')), 30000)
-      this.loader.load(
+      const preparar = (tex: THREE.Texture) => {
+        clearTimeout(timer)
+        tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+        tex.anisotropy = this.anisotropy
+        tex.minFilter = THREE.LinearMipmapLinearFilter
+        tex.magFilter = THREE.LinearFilter
+        tex.generateMipmaps = true
+        tex.needsUpdate = true
+        resolve(tex)
+      }
+      this.bitmap.load(
         url,
-        (tex) => {
-          clearTimeout(timer)
-          tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace
-          tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-          tex.anisotropy = this.anisotropy
-          tex.minFilter = THREE.LinearMipmapLinearFilter
-          tex.magFilter = THREE.LinearFilter
-          tex.generateMipmaps = true
-          tex.needsUpdate = true
-          resolve(tex)
-        },
+        (bmp) => preparar(new THREE.CanvasTexture(bmp as unknown as HTMLCanvasElement)),
         undefined,
-        () => { clearTimeout(timer); reject(new Error('falha ao baixar')) },
+        () => {
+          // Navegador sem ImageBitmap ou CORS recusado: cai no caminho comum.
+          this.loader.load(url, preparar, undefined,
+            () => { clearTimeout(timer); reject(new Error('falha ao baixar')) })
+        },
       )
     })
     this.cache.set(url, p)
@@ -96,7 +113,9 @@ export class CdnTextureLoader {
     if (urls.map) jobs.push(this.loadTexture(urls.map, true).then((t) => { out.map = t }).catch(() => {}))
     if (urls.normalMap) jobs.push(this.loadTexture(urls.normalMap, false).then((t) => { out.normalMap = t }).catch(() => {}))
     if (urls.roughnessMap) jobs.push(this.loadTexture(urls.roughnessMap, false).then((t) => { out.roughnessMap = t }).catch(() => {}))
-    if (urls.aoMap) jobs.push(this.loadTexture(urls.aoMap, false).then((t) => { out.aoMap = t }).catch(() => {}))
+    // O mapa de oclusão sai: é um quarto download por material para uma
+    // diferença que quase não aparece com luz de céu aberto.
+    void urls.aoMap
     await Promise.all(jobs)
     if (!out.map) return null
     if (!this.credits.includes(entry.credit)) this.credits.push(entry.credit)
@@ -122,6 +141,10 @@ export class CdnTextureLoader {
         failed++
       }
       done++
+      // Respira entre materiais: a troca de mapas de um material sobe textura
+      // para a placa, e emendar vinte e uma dessas seguidas é justamente o que
+      // se sente como travada periódica.
+      await new Promise((r) => setTimeout(r, 450))
       onProgress?.({ total: keys.length, done, failed, current: key })
     }
   }
