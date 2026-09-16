@@ -444,7 +444,7 @@ export const SKY_FOUNDRY: MapDef = registerMap({
     },
   ],
   ambient: {
-    skyTop: 0x2a3f7a, skyBottom: 0xf7c9a8, fog: 0xa9bde0, fogDensity: 0.0032,
+    skyTop: 0x2f6fd0, skyBottom: 0xffe0bd, fog: 0xc6d8f0, fogDensity: 0.0026,
     sunColor: 0xfff0d8, sunIntensity: 2.15, ambientColor: 0x9fc4ff, ambientIntensity: 0.85,
     sunDir: [-0.45, 0.82, -0.36], palette: 'foundry',
   },
