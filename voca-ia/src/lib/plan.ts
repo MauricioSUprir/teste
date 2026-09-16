@@ -90,12 +90,12 @@ export const PLANS: Plano[] = [
   {
     id: 'anual',
     title: '1 ano',
-    price: 149.99,
+    price: 189.99,
     days: 365,
-    perMonth: 'sai por R$ 12,50 por mês',
-    badge: 'economiza 58%',
+    perMonth: 'sai por R$ 15,83 por mês',
+    badge: 'economiza 47%',
     destaque: true,
-    perks: ['Tudo do mensal', 'Mais de 7 meses de graça na conta', 'O preço trava: reajuste não pega você'],
+    perks: ['Tudo do mensal', 'Quase 6 meses de graça na conta', 'O preço trava: reajuste não pega você'],
   },
 ]
 
