@@ -445,3 +445,8 @@ textarea { resize: none; }
 .passos { padding-left: 20px; margin: 0; }
 .passos li { margin-bottom: 8px; font-size: 14px; }
 .pix-ok { display: grid; justify-items: center; text-align: center; gap: 6px; background: var(--card); border-radius: var(--r); padding: 20px 16px; }
+
+.linha { display: flex; gap: 9px; align-items: flex-start; cursor: pointer; }
+.linha input { width: auto; margin-top: 3px; }
+.linha small { font-weight: 400; }
+.roast-line .mini-speak, .fb-roast + .mini-speak { margin-right: 4px; }

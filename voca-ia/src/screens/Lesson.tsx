@@ -8,7 +8,7 @@ import { getMood } from '../content/moods'
 import { buildLesson, buildReview } from '../lib/lessonBuilder'
 import { dueCards } from '../lib/srs'
 import { judge, one, shuffle, norm } from '../lib/util'
-import { speak, sttSupported, listen } from '../lib/speech'
+import { speak, speakPt, sttSupported, listen } from '../lib/speech'
 import { findClip } from '../content/clips'
 import { ClipCard } from '../components/ClipCard'
 import { Voca } from '../components/Voca'
@@ -186,6 +186,11 @@ export function Lesson({
           rate={save.profile.voiceRate}
           voiceName={save.profile.voiceName}
           onExplain={() => setExplicando(true)}
+          falarBronca={
+            save.profile.ptVoice
+              ? (texto: string) => speakPt(texto, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName })
+              : undefined
+          }
         />
       )}
 
@@ -441,8 +446,14 @@ function SpeakEx({ phrase, locale, disabled, onDone, say }: { phrase: { t: strin
 
 // ---------------------------------------------------------------- correcao
 
-function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate, voiceName, onExplain }: { ex: Exercise; phase: Phase; langId: string; lessonId: string; moodLines: string[]; onNext: () => void; locale: string; rate: number; voiceName: string | null; onExplain: () => void }) {
+function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate, voiceName, onExplain, falarBronca }: { ex: Exercise; phase: Phase; langId: string; lessonId: string; moodLines: string[]; onNext: () => void; locale: string; rate: number; voiceName: string | null; onExplain: () => void; falarBronca?: (t: string) => void }) {
   const line = useMemo(() => one(moodLines), [moodLines, ex])
+
+  // ele fala a bronca em voz alta assim que a correcao aparece
+  useEffect(() => {
+    if (falarBronca) falarBronca(line)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [line])
   const phrase = 'phrase' in ex ? ex.phrase : null
   const clip = useMemo(() => (phrase && phase !== 'right' ? findClip(langId, lessonId, phrase.t) : null), [phrase, phase, langId, lessonId])
 
@@ -457,6 +468,9 @@ function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate
       <div className="fb-head">
         <b>{phase === 'right' ? 'Certo!' : phase === 'almost' ? 'Quase lá' : 'Errado'}</b>
         <span className="fb-roast">{line}</span>
+        {falarBronca && (
+          <button className="mini-speak" onClick={() => falarBronca(line)} aria-label="Ouvir de novo">🔊</button>
+        )}
       </div>
       {phrase && phase !== 'right' && (
         <div className="fb-answer">

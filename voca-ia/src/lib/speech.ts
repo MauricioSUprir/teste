@@ -64,6 +64,23 @@ export function speak(text: string, opts: SpeakOpts) {
   return stopSpeaking
 }
 
+/**
+ * Fala em portugues do Brasil — usado para a bronca e para a traducao.
+ * rate/pitch vem do humor: no modo bravo a voz fica mais grave e acelerada.
+ */
+export function speakPt(
+  text: string,
+  opts: { rate?: number; pitch?: number; voiceName?: string | null; onEnd?: () => void } = {},
+) {
+  return speak(text, {
+    locale: 'pt-BR',
+    rate: opts.rate ?? 1.1,
+    pitch: opts.pitch ?? 0.85,
+    voiceName: opts.voiceName ?? null,
+    onEnd: opts.onEnd,
+  })
+}
+
 export function stopSpeaking() {
   if ('speechSynthesis' in window) window.speechSynthesis.cancel()
   currentUtterance = null

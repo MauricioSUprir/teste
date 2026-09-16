@@ -100,6 +100,9 @@ export type Profile = {
   dailyGoal: number // xp por dia
   voiceRate: number
   voiceName: string | null
+  /** o Voca fala tambem em portugues (a bronca, a traducao) */
+  ptVoice: boolean
+  ptVoiceName: string | null
   sound: boolean
   /** conversa continua: volta a escutar sozinho depois que o Voca fala */
   autoListen: boolean

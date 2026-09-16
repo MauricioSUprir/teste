@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useStore, levelOf, ACHIEVEMENTS } from '../state/store'
 import { LANGUAGES, getLang } from '../content/languages'
 import { MOODS, getMood } from '../content/moods'
-import { voicesFor, voicesReady, speak } from '../lib/speech'
+import { voicesFor, voicesReady, speak, speakPt } from '../lib/speech'
 import { AiSetup } from '../components/AiSetup'
 import { mastered } from '../lib/srs'
 import { Voca } from '../components/Voca'
@@ -22,11 +22,16 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
   const lang = getLang(save.profile.lang)
   const mood = getMood(save.profile.mood)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [vozesPt, setVozesPt] = useState<SpeechSynthesisVoice[]>([])
   const [confirmReset, setConfirmReset] = useState(false)
 
   useEffect(() => {
-    voicesReady(() => setVoices(voicesFor(lang.locale)))
+    voicesReady(() => {
+      setVoices(voicesFor(lang.locale))
+      setVozesPt(voicesFor('pt-BR'))
+    })
     setVoices(voicesFor(lang.locale))
+    setVozesPt(voicesFor('pt-BR'))
   }, [lang.locale])
 
   const acc = save.stats.answers ? Math.round((save.stats.correct / save.stats.answers) * 100) : 0
@@ -163,6 +168,36 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
       <button className="btn ghost sm" onClick={() => speak(lang.units[0].lessons[0].phrases[0].t, { locale: lang.locale, rate: save.profile.voiceRate, voiceName: save.profile.voiceName })}>
         🔊 testar voz
       </button>
+
+      <h3 className="sec">Voz em português</h3>
+      <div className="acc-box">
+        <label className="linha">
+          <input
+            type="checkbox"
+            checked={save.profile.ptVoice}
+            onChange={(e) => patchProfile({ ptVoice: e.target.checked })}
+          />
+          <span>
+            <b>Falar em português em voz alta</b>
+            <small className="muted"> — a bronca e a tradução saem faladas, não só escritas.</small>
+          </span>
+        </label>
+        <label className="field">
+          <span>Voz brasileira ({vozesPt.length} disponíveis)</span>
+          <select value={save.profile.ptVoiceName ?? ''} onChange={(e) => patchProfile({ ptVoiceName: e.target.value || null })}>
+            <option value="">padrão do sistema</option>
+            {vozesPt.map((v) => (
+              <option key={v.name} value={v.name}>{v.name}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="btn ghost sm"
+          onClick={() => speakPt(mood.wrong[0], { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName })}
+        >
+          🔊 ouvir ele bravo
+        </button>
+      </div>
 
       <h3 className="sec">Zona de perigo</h3>
       {confirmReset ? (

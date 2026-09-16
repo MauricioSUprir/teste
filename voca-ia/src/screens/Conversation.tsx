@@ -8,7 +8,7 @@ import { getLang } from '../content/languages'
 import { MOODS, getMood } from '../content/moods'
 import { SCENARIOS, getScenario } from '../content/scenarios'
 import { Voca, type VocaState } from '../components/Voca'
-import { listen, speak, stopSpeaking, sttSupported } from '../lib/speech'
+import { listen, speak, speakPt, stopSpeaking, sttSupported } from '../lib/speech'
 import { checkServer, sendChat, sendReport, type ChatReply, type Report } from '../lib/api'
 import { offlineGreeting, offlineReply } from '../content/offlineChat'
 import type { ChatTurn, Correction } from '../state/types'
@@ -96,14 +96,28 @@ export function Conversation({ onExit }: { onExit: () => void }) {
 
   function sayOut(reply: ChatReply) {
     setState('talking')
+    const terminar = () => {
+      setState('idle')
+      if (autoRef.current && speechOk) setTimeout(startMic, 260)
+    }
     speak(reply.reply, {
       locale: lang.locale,
       rate: save.profile.voiceRate,
       voiceName: save.profile.voiceName,
       onProgress: (p) => setEnergy(0.3 + p * 0.5),
       onEnd: () => {
-        setState('idle')
-        if (autoRef.current && speechOk) setTimeout(startMic, 260)
+        // a bronca vem depois, em portugues: é ela que tem graça de ouvir
+        if (save.profile.ptVoice && reply.roast) {
+          setState('talking')
+          speakPt(reply.roast, {
+            rate: mood.voz.rate,
+            pitch: mood.voz.pitch,
+            voiceName: save.profile.ptVoiceName,
+            onEnd: terminar,
+          })
+        } else {
+          terminar()
+        }
       },
     })
   }
@@ -320,11 +334,33 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           ) : (
             <>
               <p className="said" lang={lang.locale} dir={lang.rtl ? 'rtl' : 'ltr'}>{lastTurn?.role === 'grimm' ? lastTurn.text : '…'}</p>
-              {save.profile.showPt && lastTurn?.pt && <p className="said-pt">{lastTurn.pt}</p>}
+              {save.profile.showPt && lastTurn?.pt && (
+                <p className="said-pt">
+                  <button
+                    className="mini-speak"
+                    onClick={() => speakPt(lastTurn.pt!, { rate: 1, pitch: 1, voiceName: save.profile.ptVoiceName })}
+                    aria-label="Ouvir em português"
+                  >
+                    🔊
+                  </button>
+                  {lastTurn.pt}
+                </p>
+              )}
             </>
           )}
         </div>
-        {last?.roast && <p className="roast-line">{last.roast}</p>}
+        {last?.roast && (
+        <p className="roast-line">
+          <button
+            className="mini-speak"
+            onClick={() => speakPt(last.roast!, { rate: mood.voz.rate, pitch: mood.voz.pitch, voiceName: save.profile.ptVoiceName })}
+            aria-label="Ouvir a bronca"
+          >
+            🔊
+          </button>
+          {last.roast}
+        </p>
+      )}
       </div>
 
       {last?.corrections && last.corrections.length > 0 && (
@@ -378,6 +414,10 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           <label>
             <input type="checkbox" checked={save.profile.showPt} onChange={(e) => patchProfile({ showPt: e.target.checked })} />
             mostrar tradução
+          </label>
+          <label>
+            <input type="checkbox" checked={save.profile.ptVoice} onChange={(e) => patchProfile({ ptVoice: e.target.checked })} />
+            falar em português
           </label>
           <button className="btn ghost sm" onClick={() => lastTurn && sayOut({ reply: lastTurn.text, corrections: [] })}>🔊 repetir</button>
         </div>

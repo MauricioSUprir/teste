@@ -104,8 +104,9 @@ export function Onboarding({ go }: { go: (v: View) => void }) {
             ))}
           </div>
           <p className="disclaimer">
-            Os humores bravos são <b>piada</b>: o Voca implica com o erro, nunca com você — e
-            volta a ser gentil na hora se você pedir.
+            Os humores bravos são <b>piada de professor rígido</b>: ele grita e chama você de
+            burra, mula, anta — sempre pelo <b>erro</b> que você cometeu, nunca por quem você é, e
+            sem palavrão. Cansou? Troca o humor em um toque, no topo da tela.
           </p>
           <button className="btn primary big" onClick={() => setStep(3)}>
             Continuar

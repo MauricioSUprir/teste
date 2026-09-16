@@ -23,6 +23,8 @@ function emptySave(): SaveData {
       dailyGoal: 50,
       voiceRate: 0.95,
       voiceName: null,
+      ptVoice: true,
+      ptVoiceName: null,
       sound: true,
       autoListen: true,
       showPt: true,
