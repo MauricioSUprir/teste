@@ -24,8 +24,8 @@ export const PROVIDERS = {
   gemini: {
     label: 'Google Gemini',
     kind: 'gemini',
-    chat: 'gemini-2.5-flash',
-    report: 'gemini-2.5-flash',
+    chat: 'gemini-3.6-flash',
+    report: 'gemini-3.6-flash',
   },
   groq: {
     label: 'Groq',
@@ -279,11 +279,11 @@ function jsonSpec(tool) {
 }
 
 /** Tenta cada provedor da corrente, em ordem, ate um responder. */
-async function callChain({ chain, system, messages, tool, maxTokens = 700 }) {
+async function callChain({ chain, system, messages, tool, maxTokens = 700, task = 'fast' }) {
   const erros = []
   for (const ai of chain) {
     try {
-      const out = await callOne({ ai, system, messages, tool, maxTokens })
+      const out = await callOne({ ai, system, messages, tool, maxTokens, task })
       return { out, usado: ai.id, tentativas: erros }
     } catch (e) {
       erros.push(`${ai.id}: ${e.message}`)
@@ -293,7 +293,7 @@ async function callChain({ chain, system, messages, tool, maxTokens = 700 }) {
   throw new Error(erros.join(' | ') || 'nenhum provedor de IA configurado')
 }
 
-async function callOne({ ai, system, messages, tool, maxTokens = 700 }) {
+async function callOne({ ai, system, messages, tool, maxTokens = 700, task = 'fast' }) {
   const { provider, key, model } = ai
 
   if (provider.kind === 'anthropic') {
@@ -328,7 +328,15 @@ async function callOne({ ai, system, messages, tool, maxTokens = 700 }) {
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }],
           })),
-          generationConfig: { responseMimeType: 'application/json', maxOutputTokens: maxTokens, temperature: 0.9 },
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: maxTokens,
+            temperature: 0.9,
+            // os modelos novos "pensam" antes de responder, e isso come o
+            // limite de tokens. Na conversa isso so atrasa: desligamos.
+            // Na explicacao, o raciocinio melhora a resposta: deixamos rolar.
+            ...(task === 'fast' ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+          },
         }),
       },
     )
@@ -442,6 +450,7 @@ app.post('/api/chat', async (req, res) => {
       system: systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots }),
       messages,
       tool: REPLY_TOOL,
+      task: 'fast',
     })
     res.json({
       reply: out.reply,
@@ -477,7 +486,8 @@ Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
 - "nextGoal": uma meta concreta e pequena para a proxima conversa.`,
       messages: [{ role: 'user', content: `Transcricao:\n${transcript}` }],
       tool: REPORT_TOOL,
-      maxTokens: 900,
+      maxTokens: 2500,
+      task: 'smart',
     })
     res.json({ ...out, by: usado })
   } catch (e) {
@@ -516,7 +526,8 @@ O que a aluna respondeu: "${given || '(deixou em branco)'}"`,
         },
       ],
       tool: EXPLAIN_TOOL,
-      maxTokens: 800,
+      maxTokens: 2500,
+      task: 'smart',
     })
     res.json({ ...out, by: usado })
   } catch (e) {
@@ -552,7 +563,8 @@ ${context.explanation ? 'Explicacao que voce ja deu: ' + context.explanation : '
 Em "examples" (opcional) devolva ate 3 frases de exemplo.`,
       messages,
       tool: ASK_TOOL,
-      maxTokens: 500,
+      maxTokens: 1500,
+      task: 'smart',
     })
     res.json({ ...out, by: usado })
   } catch (e) {
@@ -584,7 +596,8 @@ O que ela escreveu ate agora: "${given || '(nada)'}"`,
         },
       ],
       tool: HINT_TOOL,
-      maxTokens: 250,
+      maxTokens: 400,
+      task: 'fast',
     })
     res.json({ ...out, by: usado })
   } catch (e) {

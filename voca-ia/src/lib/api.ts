@@ -35,7 +35,7 @@ export const PROVIDERS: ProviderInfo[] = [
     free: 'Tem plano gratuito (com limite por minuto/dia).',
     quality: 'A melhor opção grátis para este app: entende e responde bem nos 10 idiomas, inclusive japonês, coreano, árabe e russo.',
     speed: 'Rápido',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.6-flash',
     signup: 'https://aistudio.google.com/apikey',
   },
   {
