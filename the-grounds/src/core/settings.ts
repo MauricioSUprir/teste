@@ -120,27 +120,32 @@ export const QUALITY_PRESETS: Record<QualityPreset, Partial<GraphicsSettings>> =
 }
 
 export function defaultSettings(): Settings {
+  // Padrão no médio: a cidade ficou bem mais detalhada (moldura de janela,
+  // carro estacionado, mais material por fachada) e abrir no alto entrega uma
+  // primeira impressão travada em máquina comum. Quem tem folga sobe o perfil
+  // nas opções e vê a diferença.
+  //
+  // Os campos vêm do próprio preset em vez de escritos à mão: listados soltos,
+  // era fácil dizer 'medio' e deixar oclusão de ambiente e textura em alto,
+  // que foi exatamente o que aconteceu.
   const base: GraphicsSettings = {
-    // Padrão no médio: a cidade ficou bem mais detalhada (moldura de janela,
-    // carro estacionado, mais material por fachada) e abrir no alto entrega
-    // uma primeira impressão travada em máquina comum. Quem tem folga sobe o
-    // perfil nas opções e vê a diferença.
     preset: 'medio',
-    renderScale: 0.9,
+    renderScale: 1,
     outputWidthCap: 0,
-    shadows: 'baixo',
-    viewDistance: 460,
-    pedestrianDensity: 0.5,
-    trafficDensity: 0.8,
+    shadows: 'medio',
+    viewDistance: 600,
+    pedestrianDensity: 0.6,
+    trafficDensity: 0.6,
     antialias: 'fxaa',
-    ssao: true,
+    ssao: false,
     bloom: true,
     motionBlur: false,
     dynamicResolution: true,
     targetFps: 60,
-    textureQuality: 'alto',
-    vegetationDensity: 0.85,
-    anisotropy: 8,
+    textureQuality: 'medio',
+    vegetationDensity: 0.6,
+    anisotropy: 4,
+    ...QUALITY_PRESETS.medio,
   }
   return {
     graphics: base,
@@ -158,7 +163,12 @@ export function applyPreset(g: GraphicsSettings, preset: QualityPreset): Graphic
   return { ...g, ...QUALITY_PRESETS[preset], preset }
 }
 
-const STORAGE_KEY = 'thegrounds.settings.v1'
+/**
+ * A versão da chave sobe quando o significado dos perfis muda. Quem já tinha
+ * jogado ficava preso ao perfil guardado no navegador e não recebia o novo
+ * padrão — que era justamente a correção de desempenho.
+ */
+const STORAGE_KEY = 'thegrounds.settings.v2'
 
 export function loadSettings(): Settings {
   const def = defaultSettings()

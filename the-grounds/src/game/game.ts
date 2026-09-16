@@ -6,7 +6,10 @@ import * as THREE from 'three'
 import { damp } from '../core/math'
 import { Engine } from '../core/engine'
 import { Input } from '../core/input'
-import { loadSettings, sanitizeSettings, saveSettings, type Settings } from '../core/settings'
+import {
+  applyPreset, loadSettings, sanitizeSettings, saveSettings,
+  type QualityPreset, type Settings,
+} from '../core/settings'
 import { MaterialLibrary, type WorldMaterialKey } from '../world/materials'
 import { World } from '../world/world'
 import { CDN_PRIORITY, CdnTextureLoader } from '../assets/cdnTextures'
@@ -235,6 +238,44 @@ export class Game {
     }
   }
 
+  /**
+   * Queda automática de perfil.
+   *
+   * Nenhum jogador deveria precisar descobrir sozinho que o problema está nas
+   * opções. Se o quadro fica bem acima do orçamento por alguns segundos
+   * seguidos, o jogo desce um degrau de qualidade e avisa. Só desce: subir
+   * sozinho produziria oscilação, e essa escolha é de quem joga.
+   */
+  private quedaTimer = 0
+  private quedaFeitas = 0
+  /** Mensagem para a interface quando o perfil cai sozinho. */
+  avisoQualidade = ''
+
+  private ajustarQualidade(dt: number): void {
+    const ordem: QualityPreset[] = ['ultra', 'alto', 'medio', 'baixo']
+    const i = ordem.indexOf(this.settings.graphics.preset)
+    if (i < 0 || i >= ordem.length - 1 || this.quedaFeitas >= 3) return
+
+    const alvo = 1000 / Math.max(30, this.settings.graphics.targetFps)
+    // Espera a resolução dinâmica chegar no fundo antes de culpar o perfil:
+    // se ainda há escala para ceder, o problema pode se resolver sozinho.
+    const noFundo = this.engine.perf.renderScale <= this.settings.graphics.renderScale * 0.62
+    if (this.engine.perf.frameMs > alvo * 1.6 && noFundo) {
+      this.quedaTimer += dt
+    } else {
+      this.quedaTimer = Math.max(0, this.quedaTimer - dt * 0.5)
+    }
+
+    if (this.quedaTimer > 5) {
+      this.quedaTimer = 0
+      this.quedaFeitas++
+      const novo = ordem[i + 1]
+      this.applySettings({ ...this.settings, graphics: applyPreset(this.settings.graphics, novo) })
+      this.avisoQualidade = `Gráficos reduzidos para "${novo}" para manter a fluidez.`
+      this.interacoes.notificar(this.avisoQualidade, 6)
+    }
+  }
+
   /** Menu contextual aberto (jogar/treinar, por exemplo), ou null. */
   escolha: EscolhaContexto | null = null
 
@@ -397,6 +438,8 @@ export class Game {
         this.envTimer = 1
       }
     }
+
+    if (!this.paused) this.ajustarQualidade(dt)
 
     // Os picos envelhecem: interessa o pior quadro recente, não o da abertura.
     this.picoDecay -= dt

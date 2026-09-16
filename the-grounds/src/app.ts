@@ -141,9 +141,14 @@ export class App {
 
   private abrirEditor(novoJogo: boolean): void {
     this.estado = 'editor'
+    // O editor tem renderizador próprio. Deixar o jogo desenhando a cidade
+    // inteira atrás dele significa dois contextos WebGL disputando a placa ao
+    // mesmo tempo: é o que travava tudo e apagava a tela do editor.
+    this.jogo.stop()
     this.creator = new CharacterCreator(this.aparencia, (r) => {
       this.creator?.dispose()
       this.creator = null
+      this.jogo.start()
       if (r.confirmado) {
         this.aparencia = r.aparencia
         this.jogo.player.applyAppearance(this.aparencia)

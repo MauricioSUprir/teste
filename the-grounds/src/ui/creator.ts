@@ -439,5 +439,9 @@ export class CharacterCreator {
     window.removeEventListener('keydown', this.onKey)
     this.personagem.dispose()
     this.renderer.dispose()
+    // dispose() libera os recursos mas não devolve o contexto WebGL. Sem isso,
+    // abrir e fechar o editor algumas vezes esgota o número de contextos que o
+    // navegador permite e a próxima tela nasce preta.
+    this.renderer.forceContextLoss()
   }
 }
