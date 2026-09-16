@@ -12,11 +12,30 @@ import { speak, sttSupported, listen } from '../lib/speech'
 import { findClip } from '../content/clips'
 import { ClipCard } from '../components/ClipCard'
 import { Voca } from '../components/Voca'
-import type { Exercise } from '../state/types'
+import { HintBar } from '../components/HintBar'
+import { ExplainPanel } from '../components/ExplainPanel'
+import type { Difficulty, Exercise } from '../state/types'
+
+const SLACK: Record<Difficulty, number> = { facil: 1.6, medio: 1, dificil: 0 }
+
+/** Rotulo de nivel usado nos prompts da IA. */
+function levelOf(langId: string, levels: Record<string, string>) {
+  return levels[langId] ?? 'A1'
+}
 
 type Phase = 'answer' | 'right' | 'almost' | 'wrong'
 
-export function Lesson({ lessonId, review, onExit }: { lessonId?: string; review?: boolean; onExit: () => void }) {
+export function Lesson({
+  lessonId,
+  review,
+  onExit,
+  onPaywall,
+}: {
+  lessonId?: string
+  review?: boolean
+  onExit: () => void
+  onPaywall: () => void
+}) {
   const { save, addXp, loseHeart, recordAnswer, finishLesson, gradeCard, refillHearts } = useStore()
   const lang = getLang(save.profile.lang)
   const mood = getMood(save.profile.mood)
@@ -29,7 +48,11 @@ export function Lesson({ lessonId, review, onExit }: { lessonId?: string; review
   const [tries, setTries] = useState(0)
   const [done, setDone] = useState(false)
   const [unlocked, setUnlocked] = useState<string[]>([])
+  const [ajudas, setAjudas] = useState(0)
+  const [explicando, setExplicando] = useState(false)
   const startedAt = useRef(Date.now())
+  const dificuldade = save.profile.difficulty
+  const nivel = levelOf(lang.id, save.profile.levels)
 
   useEffect(() => {
     const speech = sttSupported()
@@ -38,7 +61,7 @@ export function Lesson({ lessonId, review, onExit }: { lessonId?: string; review
       setQueue(buildReview(cards, lang, speech))
     } else if (found) {
       const attempt = save.lessons[`${lang.id}:${found.lesson.id}`]?.times ?? 0
-      setQueue(buildLesson(lang, found.lesson, attempt, { speech }))
+      setQueue(buildLesson(lang, found.lesson, attempt, { speech, difficulty: dificuldade }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -69,7 +92,8 @@ export function Lesson({ lessonId, review, onExit }: { lessonId?: string; review
   function finish() {
     const acc = tries ? hits / tries : 1
     const base = review ? 15 : 20
-    const xp = Math.round(base + acc * 20 + (acc >= 1 ? 10 : 0))
+    const bonusDificuldade = dificuldade === 'dificil' ? 12 : dificuldade === 'facil' ? -5 : 0
+    const xp = Math.max(5, Math.round(base + acc * 20 + (acc >= 1 ? 10 : 0) + bonusDificuldade - ajudas * 2))
     if (review || !found) {
       addXp(xp)
     } else {
@@ -134,10 +158,54 @@ export function Lesson({ lessonId, review, onExit }: { lessonId?: string; review
             <p>{found.lesson.grammar.body}</p>
           </div>
         )}
-        <ExerciseView key={ex.id + i} ex={ex} langId={lang.id} locale={lang.locale} rate={save.profile.voiceRate} voiceName={save.profile.voiceName} phase={phase} setPhase={setPhase} onJudged={next} />
+        <ExerciseView key={ex.id + i} ex={ex} langId={lang.id} locale={lang.locale} rate={save.profile.voiceRate} voiceName={save.profile.voiceName} phase={phase} setPhase={setPhase} onJudged={next} slack={SLACK[dificuldade]} />
+
+        {phase === 'answer' && 'phrase' in ex && (
+          <HintBar
+            key={'hint' + ex.id + i}
+            phrase={ex.phrase}
+            prompt={'prompt' in ex ? ex.prompt : ex.phrase.pt}
+            given=""
+            langName={lang.name}
+            level={nivel}
+            onUse={() => setAjudas((a) => a + 1)}
+            onPaywall={onPaywall}
+          />
+        )}
       </div>
 
-      {phase !== 'answer' && <Feedback ex={ex} phase={phase} langId={lang.id} lessonId={found?.lesson.id ?? 'rev'} moodLines={phase === 'right' ? mood.praise : mood.wrong} onNext={advance} locale={lang.locale} rate={save.profile.voiceRate} voiceName={save.profile.voiceName} />}
+      {phase !== 'answer' && (
+        <Feedback
+          ex={ex}
+          phase={phase}
+          langId={lang.id}
+          lessonId={found?.lesson.id ?? 'rev'}
+          moodLines={phase === 'right' ? mood.praise : mood.wrong}
+          onNext={advance}
+          locale={lang.locale}
+          rate={save.profile.voiceRate}
+          voiceName={save.profile.voiceName}
+          onExplain={() => setExplicando(true)}
+        />
+      )}
+
+      {explicando && 'phrase' in ex && (
+        <ExplainPanel
+          phrase={ex.phrase}
+          given=""
+          prompt={'prompt' in ex ? ex.prompt : ex.phrase.pt}
+          langName={lang.name}
+          locale={lang.locale}
+          level={nivel}
+          lessonTitle={found?.lesson.title}
+          grammar={found?.lesson.grammar}
+          onClose={() => setExplicando(false)}
+          onPaywall={() => {
+            setExplicando(false)
+            onPaywall()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -162,6 +230,8 @@ type ExProps = {
   phase: Phase
   setPhase: (p: Phase) => void
   onJudged: (correct: boolean, quality: 0 | 1 | 2 | 3) => void
+  /** tolerancia a erro de digitacao, vinda da dificuldade */
+  slack: number
 }
 
 function ExerciseView(p: ExProps) {
@@ -177,15 +247,15 @@ function ExerciseView(p: ExProps) {
 
   switch (ex.kind) {
     case 'translate-pt-en':
-      return <TypeEx title="Traduza para o idioma que você está estudando" prompt={ex.prompt} answers={ex.answers} disabled={disabled} onDone={commit} />
+      return <TypeEx title="Traduza para o idioma que você está estudando" prompt={ex.prompt} answers={ex.answers} disabled={disabled} onDone={commit} slack={p.slack} />
     case 'translate-en-pt':
-      return <TypeEx title="O que isso quer dizer em português?" prompt={ex.prompt} answers={ex.answers} disabled={disabled} onDone={commit} speakPrompt={() => say(ex.prompt)} />
+      return <TypeEx title="O que isso quer dizer em português?" prompt={ex.prompt} answers={ex.answers} disabled={disabled} onDone={commit} speakPrompt={() => say(ex.prompt)} slack={p.slack} />
     case 'listen':
-      return <ListenEx text={ex.phrase.t} answers={ex.answers} disabled={disabled} onDone={commit} say={say} />
+      return <ListenEx text={ex.phrase.t} answers={ex.answers} disabled={disabled} onDone={commit} say={say} slack={p.slack} />
     case 'choice':
       return <ChoiceEx prompt={ex.prompt} sub={ex.sub} options={ex.options} correct={ex.correct} disabled={disabled} onDone={commit} />
     case 'bank':
-      return <BankEx prompt={ex.prompt} bank={ex.bank} answers={ex.answers} disabled={disabled} onDone={commit} />
+      return <BankEx prompt={ex.prompt} bank={ex.bank} answers={ex.answers} disabled={disabled} onDone={commit} slack={p.slack} />
     case 'fill':
       return <FillEx before={ex.before} after={ex.after} options={ex.options} answers={ex.answers} pt={ex.phrase.pt} disabled={disabled} onDone={commit} />
     case 'match':
@@ -195,7 +265,7 @@ function ExerciseView(p: ExProps) {
   }
 }
 
-function TypeEx({ title, prompt, answers, disabled, onDone, speakPrompt }: { title: string; prompt: string; answers: string[]; disabled: boolean; onDone: (v: 'certo' | 'quase' | 'errado') => void; speakPrompt?: () => void }) {
+function TypeEx({ title, prompt, answers, disabled, onDone, speakPrompt, slack }: { title: string; prompt: string; answers: string[]; disabled: boolean; onDone: (v: 'certo' | 'quase' | 'errado') => void; speakPrompt?: () => void; slack: number }) {
   const [v, setV] = useState('')
   return (
     <div className="ex">
@@ -205,13 +275,13 @@ function TypeEx({ title, prompt, answers, disabled, onDone, speakPrompt }: { tit
         {speakPrompt && <button className="mini-speak" onClick={speakPrompt} aria-label="Ouvir">🔊</button>}
       </p>
       <textarea autoFocus value={v} disabled={disabled} onChange={(e) => setV(e.target.value)} placeholder="escreva aqui" rows={2}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (v.trim() && !disabled) onDone(judge(v, answers)) } }} />
-      <button className="btn primary big" disabled={!v.trim() || disabled} onClick={() => onDone(judge(v, answers))}>Verificar</button>
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (v.trim() && !disabled) onDone(judge(v, answers, slack)) } }} />
+      <button className="btn primary big" disabled={!v.trim() || disabled} onClick={() => onDone(judge(v, answers, slack))}>Verificar</button>
     </div>
   )
 }
 
-function ListenEx({ text, answers, disabled, onDone, say }: { text: string; answers: string[]; disabled: boolean; onDone: (v: 'certo' | 'quase' | 'errado') => void; say: (t: string) => void }) {
+function ListenEx({ text, answers, disabled, onDone, say, slack }: { text: string; answers: string[]; disabled: boolean; onDone: (v: 'certo' | 'quase' | 'errado') => void; say: (t: string) => void; slack: number }) {
   const [v, setV] = useState('')
   useEffect(() => { const t = setTimeout(() => say(text), 350); return () => clearTimeout(t) }, [])
   return (
@@ -222,8 +292,8 @@ function ListenEx({ text, answers, disabled, onDone, say }: { text: string; answ
         <button className="btn ghost sm" onClick={() => speak(text, { locale: 'en-US', rate: 0.6 })}>devagar</button>
       </div>
       <textarea autoFocus value={v} disabled={disabled} onChange={(e) => setV(e.target.value)} rows={2} placeholder="o que ele falou?"
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (v.trim() && !disabled) onDone(judge(v, answers)) } }} />
-      <button className="btn primary big" disabled={!v.trim() || disabled} onClick={() => onDone(judge(v, answers))}>Verificar</button>
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (v.trim() && !disabled) onDone(judge(v, answers, slack)) } }} />
+      <button className="btn primary big" disabled={!v.trim() || disabled} onClick={() => onDone(judge(v, answers, slack))}>Verificar</button>
     </div>
   )
 }
@@ -244,7 +314,7 @@ function ChoiceEx({ prompt, sub, options, correct, disabled, onDone }: { prompt:
   )
 }
 
-function BankEx({ prompt, bank, answers, disabled, onDone }: { prompt: string; bank: string[]; answers: string[]; disabled: boolean; onDone: (v: 'certo' | 'quase' | 'errado') => void }) {
+function BankEx({ prompt, bank, answers, disabled, onDone, slack }: { prompt: string; bank: string[]; answers: string[]; disabled: boolean; onDone: (v: 'certo' | 'quase' | 'errado') => void; slack: number }) {
   const [picked, setPicked] = useState<number[]>([])
   const sentence = picked.map((idx) => bank[idx]).join(' ')
   return (
@@ -260,7 +330,7 @@ function BankEx({ prompt, bank, answers, disabled, onDone }: { prompt: string; b
       </div>
       <div className="row">
         <button className="btn ghost sm" disabled={disabled || !picked.length} onClick={() => setPicked([])}>limpar</button>
-        <button className="btn primary big" disabled={!picked.length || disabled} onClick={() => onDone(judge(sentence, answers))}>Verificar</button>
+        <button className="btn primary big" disabled={!picked.length || disabled} onClick={() => onDone(judge(sentence, answers, slack))}>Verificar</button>
       </div>
     </div>
   )
@@ -371,7 +441,7 @@ function SpeakEx({ phrase, locale, disabled, onDone, say }: { phrase: { t: strin
 
 // ---------------------------------------------------------------- correcao
 
-function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate, voiceName }: { ex: Exercise; phase: Phase; langId: string; lessonId: string; moodLines: string[]; onNext: () => void; locale: string; rate: number; voiceName: string | null }) {
+function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate, voiceName, onExplain }: { ex: Exercise; phase: Phase; langId: string; lessonId: string; moodLines: string[]; onNext: () => void; locale: string; rate: number; voiceName: string | null; onExplain: () => void }) {
   const line = useMemo(() => one(moodLines), [moodLines, ex])
   const phrase = 'phrase' in ex ? ex.phrase : null
   const clip = useMemo(() => (phrase && phase !== 'right' ? findClip(langId, lessonId, phrase.t) : null), [phrase, phase, langId, lessonId])
@@ -401,6 +471,11 @@ function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate
       )}
       {phrase?.tip && <p className="fb-tip">💡 {phrase.tip}</p>}
       {clip && phrase && <ClipCard clip={clip} phrase={phrase.t} lang={langId} />}
+      {phrase && (
+        <button className="btn ghost big explain-btn" onClick={onExplain}>
+          🧠 {phase === 'right' ? 'entender melhor essa' : 'me explica por que errei'}
+        </button>
+      )}
       <button className="btn primary big" onClick={onNext}>Continuar</button>
     </div>
   )

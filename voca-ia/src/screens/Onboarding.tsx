@@ -5,14 +5,35 @@ import { LANGUAGES } from '../content/languages'
 import { MOODS } from '../content/moods'
 import { Voca } from '../components/Voca'
 import { getMood } from '../content/moods'
+import type { View } from '../App'
+import type { Difficulty } from '../state/types'
 
-export function Onboarding() {
+const NIVEIS: { id: Difficulty; emoji: string; title: string; desc: string }[] = [
+  { id: 'facil', emoji: '🐣', title: 'Leve', desc: 'Mais escolher e montar do que escrever. Perdoa erro de digitação.' },
+  { id: 'medio', emoji: '🔥', title: 'Normal', desc: 'Mistura tudo: escrever, ouvir, montar e falar.' },
+  { id: 'dificil', emoji: '💀', title: 'Pesado', desc: 'Escrever do zero e falar. Errou uma letra, errou. Vale mais XP.' },
+]
+
+export function Onboarding({ go }: { go: (v: View) => void }) {
   const { patchProfile } = useStore()
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [lang, setLang] = useState('en')
   const [mood, setMood] = useState('brutal')
+  const [dif, setDif] = useState<Difficulty>('medio')
   const m = getMood(mood)
+
+  function entrar(comTeste: boolean) {
+    patchProfile({
+      name: name.trim() || 'você',
+      lang,
+      langs: [lang],
+      mood,
+      difficulty: dif,
+      onboarded: true,
+    })
+    if (comTeste) go({ name: 'nivelamento', langId: lang })
+  }
 
   return (
     <div className="screen onboarding">
@@ -86,13 +107,48 @@ export function Onboarding() {
             Os humores bravos são <b>piada</b>: o Voca implica com o erro, nunca com você — e
             volta a ser gentil na hora se você pedir.
           </p>
-          <button
-            className="btn primary big"
-            onClick={() =>
-              patchProfile({ name: name.trim() || 'você', lang, langs: [lang], mood, onboarded: true })
-            }
-          >
-            Entrar no app
+          <button className="btn primary big" onClick={() => setStep(3)}>
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="ob-step">
+          <h2>Quanto ele deve pegar no seu pé?</h2>
+          <p className="ob-lead">Isso muda o tipo de exercício e o quanto ele perdoa. Dá para trocar depois.</p>
+          <div className="mood-grid">
+            {NIVEIS.map((n) => (
+              <button key={n.id} className={`mood-card ${dif === n.id ? 'on' : ''}`} onClick={() => setDif(n.id)}>
+                <span className="emoji">{n.emoji}</span>
+                <b>{n.title}</b>
+                <small>{n.desc}</small>
+              </button>
+            ))}
+          </div>
+          <button className="btn primary big" onClick={() => setStep(4)}>
+            Continuar
+          </button>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="ob-step">
+          <h2>Vamos descobrir seu nível</h2>
+          <p className="ob-lead">
+            Um teste rápido, sem vidas e sem pressa: ele vai subindo de dificuldade até você travar.
+            Assim você começa no ponto certo em vez de repetir o que já sabe.
+          </p>
+          <ul className="perk-list">
+            <li><b>Leva uns 3 minutos</b><small>Umas 15 questões, e para assim que fica difícil demais.</small></li>
+            <li><b>Não tem como ir mal</b><small>Se não souber, responde "não sei" — é isso que o teste quer saber.</small></li>
+            <li><b>Abre as lições do seu nível</b><small>Nada de começar do "oi, tudo bem" se você já passou disso.</small></li>
+          </ul>
+          <button className="btn primary big" onClick={() => entrar(true)}>
+            Fazer o teste de nível
+          </button>
+          <button className="btn ghost big" onClick={() => entrar(false)}>
+            Pular e começar do começo
           </button>
         </div>
       )}

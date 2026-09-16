@@ -68,8 +68,12 @@ export function levenshtein(a: string, b: string) {
 
 export type Verdict = 'certo' | 'quase' | 'errado'
 
-/** Compara a resposta com as alternativas aceitas, com tolerancia a erro de digitacao. */
-export function judge(input: string, answers: string[]): Verdict {
+/**
+ * Compara a resposta com as alternativas aceitas, com tolerancia a erro de
+ * digitacao. `slack` vem da dificuldade: 1.6 no facil, 1 no medio, 0 no dificil
+ * (no dificil, errou uma letra e errou).
+ */
+export function judge(input: string, answers: string[], slack = 1): Verdict {
   const given = canon(input)
   if (!given) return 'errado'
   let best = Infinity
@@ -78,8 +82,9 @@ export function judge(input: string, answers: string[]): Verdict {
     if (given === target) return 'certo'
     best = Math.min(best, levenshtein(given, target))
   }
-  const tolerance = given.length > 22 ? 3 : given.length > 12 ? 2 : 1
-  return best <= tolerance ? 'quase' : 'errado'
+  const base = given.length > 22 ? 3 : given.length > 12 ? 2 : 1
+  const tolerance = Math.floor(base * slack)
+  return tolerance > 0 && best <= tolerance ? 'quase' : 'errado'
 }
 
 export function shuffle<T>(arr: T[], rnd: () => number = Math.random): T[] {

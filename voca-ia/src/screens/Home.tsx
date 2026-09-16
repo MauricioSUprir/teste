@@ -7,6 +7,7 @@ import { getMood } from '../content/moods'
 import { dueCards } from '../lib/srs'
 import { Voca } from '../components/Voca'
 import { today } from '../lib/util'
+import { canUse } from '../lib/plan'
 
 export function Home({ go }: { go: (v: View) => void }) {
   const { save, patchProfile, minutesToHeart } = useStore()
@@ -22,7 +23,14 @@ export function Home({ go }: { go: (v: View) => void }) {
   // trilha: a licao seguinte so abre quando a anterior termina
   const flat = lang.units.flatMap((u) => u.lessons.map((l) => ({ unit: u, lesson: l })))
   const firstLocked = flat.findIndex(({ lesson }) => !save.lessons[key(lang.id, lesson.id)]?.completed)
-  const unlockedUntil = firstLocked === -1 ? flat.length : firstLocked
+  const sequencial = firstLocked === -1 ? flat.length : firstLocked
+  // o teste de nivelamento abre tudo que esta no nivel dela ou abaixo
+  const ORDEM = ['A1', 'A2', 'B1', 'B2']
+  const nivel = save.profile.levels[lang.id]
+  const porNivel = nivel
+    ? flat.reduce((n, f, i) => (ORDEM.indexOf(f.unit.cefr) <= ORDEM.indexOf(nivel) ? i + 1 : n), 0)
+    : 0
+  const unlockedUntil = Math.max(sequencial, porNivel)
 
   return (
     <div className="screen home">
@@ -70,7 +78,11 @@ export function Home({ go }: { go: (v: View) => void }) {
         </div>
       </div>
 
-      <button className="talk-card" style={{ ['--mood' as string]: mood.color }} onClick={() => go({ name: 'conversa' })}>
+      <button
+        className="talk-card"
+        style={{ ['--mood' as string]: mood.color }}
+        onClick={() => go(canUse(save, 'conversa') ? { name: 'conversa' } : { name: 'assinar', feature: 'conversa' })}
+      >
         <Voca state="talking" face={mood.face} color={mood.color} size={92} energy={0.6} />
         <div className="talk-text">
           <h2>Conversa contínua</h2>
@@ -83,6 +95,16 @@ export function Home({ go }: { go: (v: View) => void }) {
           <span className="tag">trocar humor no meio da conversa →</span>
         </div>
       </button>
+
+      {!save.profile.placed.includes(lang.id) && (
+        <button className="review-card" onClick={() => go({ name: 'nivelamento', langId: lang.id })}>
+          <span className="rc-icon">🎯</span>
+          <div>
+            <h3>Descobrir meu nível em {lang.name}</h3>
+            <p>3 minutos e o app já te coloca no ponto certo — sem repetir o que você já sabe.</p>
+          </div>
+        </button>
+      )}
 
       {due.length > 0 && (
         <button className="review-card" onClick={() => go({ name: 'review' })}>

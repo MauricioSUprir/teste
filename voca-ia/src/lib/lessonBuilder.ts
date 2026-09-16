@@ -1,7 +1,7 @@
 // Gera os exercicios de uma licao a partir das frases. Usa um gerador
 // pseudo-aleatorio com semente: muda a cada tentativa, mas continua estavel
 // dentro da mesma sessao.
-import type { Exercise, Lesson, Phrase, SrsCard } from '../state/types'
+import type { Difficulty, Exercise, Lesson, Phrase, SrsCard } from '../state/types'
 import type { LangDef } from '../content/languages'
 import { pick, seeded, shuffle, hash } from './util'
 
@@ -28,6 +28,20 @@ export type BuildOpts = {
   speech: boolean
   /** quantas frases entram */
   size?: number
+  /** quanto o app pega no pe */
+  difficulty?: Difficulty
+}
+
+/**
+ * Que tipos de exercicio cada dificuldade usa.
+ * facil   — reconhecer: escolher, ligar, montar com blocos
+ * medio   — mistura tudo
+ * dificil — produzir: escrever do zero, ouvir sem apoio, falar
+ */
+const SLOTS: Record<Difficulty, number[]> = {
+  facil: [1, 2, 4, 1, 2, 3],
+  medio: [0, 1, 2, 3, 4, 5],
+  dificil: [0, 3, 5, 0, 3, 0],
 }
 
 export function buildLesson(lang: LangDef, lesson: Lesson, attempt: number, opts: BuildOpts): Exercise[] {
@@ -41,8 +55,10 @@ export function buildLesson(lang: LangDef, lesson: Lesson, attempt: number, opts
     const id = `${lesson.id}-${i}`
     const answers = answersFor(p)
     const typed = typedForm(p, lang)
-    // roda os tipos de exercicio para nao cair tudo igual
-    const slot = (i + Math.floor(rnd() * 3)) % 6
+    // roda os tipos de exercicio para nao cair tudo igual, dentro do que a
+    // dificuldade escolhida permite
+    const table = SLOTS[opts.difficulty ?? 'medio']
+    const slot = table[(i + Math.floor(rnd() * 3)) % table.length]
     if (slot === 0) {
       out.push({ kind: 'translate-pt-en', id, phrase: p, prompt: p.pt, answers })
     } else if (slot === 1) {
@@ -61,8 +77,8 @@ export function buildLesson(lang: LangDef, lesson: Lesson, attempt: number, opts
     }
   })
 
-  // um exercicio de ligar pares no meio do caminho
-  if (phrases.length >= 4) {
+  // ligar pares so nos niveis mais leves — no dificil ela tem que produzir
+  if (phrases.length >= 4 && (opts.difficulty ?? 'medio') !== 'dificil') {
     const pairs = pick(phrases, 4, rnd).map((p) => ({ t: p.t, pt: p.pt }))
     out.splice(Math.min(3, out.length), 0, { kind: 'match', id: `${lesson.id}-match`, pairs })
   }

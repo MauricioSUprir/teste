@@ -7,8 +7,17 @@ import { voicesFor, voicesReady, speak } from '../lib/speech'
 import { PROVIDERS, getAi, setAi, userAiReady, testAi, resetServerCheck } from '../lib/api'
 import { mastered } from '../lib/srs'
 import { Voca } from '../components/Voca'
+import type { View } from '../App'
+import type { Difficulty } from '../state/types'
+import { isPro, PAYWALL_ON } from '../lib/plan'
 
-export function Profile({ onExit }: { onExit: () => void }) {
+const DIFICULDADES: { id: Difficulty; emoji: string; title: string; desc: string }[] = [
+  { id: 'facil', emoji: '🐣', title: 'Leve', desc: 'Mais escolher e montar; perdoa typo.' },
+  { id: 'medio', emoji: '🔥', title: 'Normal', desc: 'Mistura tudo.' },
+  { id: 'dificil', emoji: '💀', title: 'Pesado', desc: 'Escrever e falar; sem perdão. Mais XP.' },
+]
+
+export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => void }) {
   const { save, patchProfile, reset } = useStore()
   const lang = getLang(save.profile.lang)
   const mood = getMood(save.profile.mood)
@@ -69,6 +78,49 @@ export function Profile({ onExit }: { onExit: () => void }) {
         <div><b>{save.stats.conversationTurns}</b><small>falas na conversa</small></div>
         <div><b>{Math.round(save.stats.conversationSeconds / 60)}min</b><small>conversando</small></div>
         <div><b>{save.profile.langs.length}</b><small>idiomas</small></div>
+      </div>
+
+      <h3 className="sec">Conta e plano</h3>
+      <div className="acc-box">
+        <p className="ai-status">
+          {save.account ? `✅ conectada como ${save.account.email}` : '📱 progresso salvo só neste navegador'}
+        </p>
+        <p className="muted small">
+          {save.account
+            ? `plano: ${isPro(save) ? 'PRO' : 'grátis'}${PAYWALL_ON ? '' : ' · tudo liberado durante os testes'}`
+            : 'Crie uma conta para não perder XP, ofensiva e revisões ao trocar de aparelho.'}
+        </p>
+        <div className="row">
+          <button className="btn primary" onClick={() => go({ name: 'conta' })}>
+            {save.account ? 'gerenciar conta' : 'criar conta / entrar'}
+          </button>
+          <button className="btn ghost" onClick={() => go({ name: 'assinar' })}>ver o VOCA PRO</button>
+        </div>
+      </div>
+
+      <h3 className="sec">Nível e dificuldade</h3>
+      <div className="acc-box">
+        <p className="ai-status">
+          {save.profile.levels[lang.id]
+            ? `Seu nível em ${lang.name}: ${save.profile.levels[lang.id]}`
+            : `Você ainda não fez o teste de nível em ${lang.name}.`}
+        </p>
+        <div className="mood-grid dif-grid">
+          {DIFICULDADES.map((d) => (
+            <button
+              key={d.id}
+              className={`mood-card ${save.profile.difficulty === d.id ? 'on' : ''}`}
+              onClick={() => patchProfile({ difficulty: d.id })}
+            >
+              <span className="emoji">{d.emoji}</span>
+              <b>{d.title}</b>
+              <small>{d.desc}</small>
+            </button>
+          ))}
+        </div>
+        <button className="btn ghost" onClick={() => go({ name: 'nivelamento', langId: lang.id })}>
+          {save.profile.placed.includes(lang.id) ? 'refazer teste de nível' : 'fazer teste de nível'}
+        </button>
       </div>
 
       <h3 className="sec">Conquistas</h3>

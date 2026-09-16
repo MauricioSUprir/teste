@@ -47,7 +47,47 @@ estrutura — Terminator para `I'll be back`, Frozen para `let it go`, Encanto p
 Cada clipe tem **"o que observar"** (a regra, não só a curiosidade), um link para a
 cena e um link para ouvir **aquela frase exata** sendo falada em dezenas de vídeos reais.
 
-### 4. O que faz voltar todo dia
+### 4. Correção que ensina 🧠
+- **Dicas na hora da questão:** uma dica local de graça (quantas palavras, a regra
+  da lição) e o **"pedir ajuda ao Voca"**, que dá uma pista de verdade sem nunca
+  entregar a resposta. Pedir ajuda custa XP — de propósito.
+- **Explicaçãozinha do erro:** a IA explica o que deu errado, a regra em duas
+  frases, 3 exemplos com áudio e um macete pra não errar de novo.
+- **Chat de dúvidas dentro da explicação:** dá pra continuar perguntando ali
+  mesmo ("por que não pode ser do outro jeito?", "como fica no passado?") e ele
+  responde preso ao contexto daquela questão.
+- Sem IA ligada, os dois viram versão simples (dica local e explicação montada
+  com o material do curso) — nunca fica mudo.
+
+### 5. Nível e dificuldade
+- **Teste de nivelamento** de ~15 questões que sobe de nível e para quando você
+  trava; no fim define seu nível (A1→B2), sugere a dificuldade e **abre as lições
+  do seu nível** em vez de te fazer repetir "oi, tudo bem".
+- **3 dificuldades:** Leve (escolher e montar, perdoa typo), Normal (mistura tudo)
+  e Pesado (escrever do zero e falar, sem perdão, mais XP).
+
+### 6. Conta e progresso na nuvem
+Criar conta com e-mail guarda XP, ofensiva, lições e revisões no servidor
+(Supabase). Trocou de celular, continua de onde parou. **Sem conta o app funciona
+igual**, só fica preso ao navegador. O merge é sempre a favor de quem tem mais
+progresso: ninguém perde ofensiva por ter entrado em outro aparelho.
+
+### 7. VOCA PRO (ainda não cobrando)
+As funções de IA — conversa contínua, explicação, chat de dúvidas e ajuda nas
+questões — são as que entrarão no plano pago. A estrutura já está pronta:
+`src/lib/plan.ts` controla tudo e a página de assinatura existe. Enquanto
+`VITE_PAYWALL` não for `on`, **tudo fica liberado**. Para ligar a cobrança:
+
+```bash
+VITE_PAYWALL=on
+VITE_CHECKOUT_URL=https://seu-checkout   # Stripe, Mercado Pago, etc.
+```
+
+O plano vive na conta (`progress.plan` / `progress.pro_until` no banco) e é
+protegido por trigger: o app nunca consegue se promover sozinho a PRO — só o
+servidor de pagamento.
+
+### 8. O que faz voltar todo dia
 Ofensiva 🔥 (com 1 congelamento), 5 vidas que voltam sozinhas, XP e níveis, meta
 diária, 12 conquistas, e **revisão espaçada** (SM-2): cada frase volta no dia em que
 você está prestes a esquecê-la.
@@ -93,11 +133,20 @@ npm run server       # serve o dist/ e a API na mesma porta
 - Tudo (progresso, XP, revisões) fica salvo só no navegador do aparelho.
   O áudio nunca sai do aparelho — quem transcreve é o próprio navegador.
 
+## Banco de dados (contas)
+```bash
+VITE_SUPABASE_URL=https://<projeto>.supabase.co
+VITE_SUPABASE_KEY=<publishable key>
+```
+Tabela `progress` (um registro por pessoa) com RLS: cada conta só enxerga a
+própria linha.
+
 ## Estrutura
 ```
 src/content/     currículos dos 10 idiomas, humores, cenários, clipes de vídeo
 src/lib/         voz, gerador de exercícios, revisão espaçada, comparação de respostas
-src/screens/     onboarding, home, lição, conversa, perfil
-src/components/  Voca.tsx (o bonequinho animado), ClipCard
+src/screens/     onboarding, nivelamento, home, lição, conversa, conta, assinatura, perfil
+src/components/  Voca.tsx (o bonequinho animado), ClipCard, ExplainPanel, HintBar
+src/lib/plan.ts  o que é grátis, o que será pago e como ligar a cobrança
 server/index.js  proxy da Anthropic + prompts + regras de segurança
 ```

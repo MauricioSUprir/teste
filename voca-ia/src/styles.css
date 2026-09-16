@@ -340,3 +340,60 @@ textarea { resize: none; }
 .prov-setup a { color: var(--blue); }
 .test-ok { color: var(--green); font-size: 14px; margin-top: 8px; }
 .test-fail { color: var(--red); font-size: 14px; margin-top: 8px; word-break: break-word; }
+
+/* ------------------------------------------------------- dicas na questão */
+.hintbar { margin-top: 14px; }
+.hint-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.hint { background: #2A2412; border-left: 4px solid var(--yellow); border-radius: 12px; padding: 9px 12px; font-size: 14px; margin-top: 8px; animation: up .18s ease-out; }
+
+/* ------------------------------------------------- explicação + dúvidas */
+.explain-wrap { position: fixed; inset: 0; background: rgba(6,9,13,.72); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
+.explain { background: var(--bg2); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; border-top: 3px solid var(--green); padding: 12px 16px 20px; animation: up .2s ease-out; }
+.explain-top { display: flex; align-items: center; gap: 8px; position: sticky; top: -12px; background: var(--bg2); padding: 6px 0; }
+.explain-top b { flex: 1; font-family: Fredoka, sans-serif; font-size: 18px; }
+.explain h4 { margin: 14px 0 4px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.exp-short { font-size: 17px; font-weight: 600; background: var(--card); border-radius: 12px; padding: 10px 12px; }
+.exp-examples { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; }
+.exp-examples li { background: var(--card); border-radius: 12px; padding: 9px 11px; }
+.exp-examples b { display: inline; font-size: 16px; }
+.exp-examples small { display: block; color: var(--muted); font-size: 13px; }
+.exp-trick { background: #16251F; border-left: 4px solid var(--green); border-radius: 12px; padding: 10px 12px; }
+.exp-mistake { background: #2A2412; border-left: 4px solid var(--yellow); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.chat { display: grid; gap: 8px; margin-bottom: 10px; }
+.msg { border-radius: 14px; padding: 9px 12px; font-size: 14px; max-width: 92%; }
+.msg p { margin: 0; }
+.msg.user { background: #14222C; justify-self: end; border-bottom-right-radius: 4px; }
+.msg.voca { background: var(--card); justify-self: start; border-bottom-left-radius: 4px; }
+.msg-ex { color: var(--green); margin-top: 4px !important; }
+.chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { background: var(--card); border: 2px solid var(--line); border-radius: 99px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+.explain-btn { margin-top: 4px; }
+
+/* --------------------------------------------------- nivelamento / conta */
+.placement.certo .ex-prompt { border: 2px solid var(--green); }
+.placement.errado .ex-prompt { border: 2px solid var(--red); }
+.acc-box { background: var(--card); border: 2px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 8px; }
+.acc-hero { display: grid; justify-items: center; text-align: center; gap: 4px; margin-bottom: 12px; }
+.tabs { display: flex; gap: 6px; }
+.tabs button { flex: 1; background: var(--bg2); border: 2px solid var(--line); border-radius: 12px; padding: 9px; cursor: pointer; font-weight: 600; }
+.tabs button.on { border-color: var(--green); background: #16251F; }
+.dif-grid { grid-template-columns: repeat(3, 1fr); }
+
+/* ------------------------------------------------------------- assinatura */
+.sub-hero { display: grid; justify-items: center; text-align: center; gap: 2px; margin-bottom: 10px; }
+.sub-hero h1 { font-size: 26px; }
+.free-now { background: #16251F; border: 2px solid var(--green); border-radius: 14px; padding: 11px 13px; font-size: 14px; }
+.perk-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.perk-list li { background: var(--card); border-radius: 14px; padding: 10px 12px; }
+.perk-list b { display: block; font-size: 15px; }
+.perk-list small { color: var(--muted); font-size: 13px; }
+.perk-list.free li { border-left: 4px solid var(--green); }
+.plans { display: grid; gap: 10px; }
+.plan { background: var(--card); border: 2px solid var(--line); border-radius: var(--r); padding: 14px; }
+.plan-head { display: flex; gap: 8px; align-items: center; }
+.plan-head b { flex: 1; font-size: 17px; }
+.price { font-size: 30px; font-family: Fredoka, sans-serif; margin: 6px 0; }
+.price small { font-size: 14px; color: var(--muted); font-family: Inter, sans-serif; }
+.plan ul { list-style: none; padding: 0; margin: 0 0 10px; }
+.plan li { font-size: 14px; color: var(--muted); margin-bottom: 3px; }
+.plan .btn { display: block; text-align: center; text-decoration: none; }

@@ -14,6 +14,9 @@ function emptySave(): SaveData {
     version: 1,
     profile: {
       name: '',
+      difficulty: 'medio',
+      levels: {},
+      placed: [],
       mood: 'brutal',
       lang: 'en',
       langs: ['en'],
@@ -38,6 +41,10 @@ function emptySave(): SaveData {
     history: [],
     stats: { answers: 0, correct: 0, lessonsDone: 0, conversationTurns: 0, conversationSeconds: 0, wordsSpoken: 0 },
     weakSpots: {},
+    account: null,
+    plan: 'free',
+    proUntil: null,
+    syncedAt: null,
   }
 }
 
@@ -91,6 +98,8 @@ type Ctx = {
   noteWeakSpot: (what: string) => void
   logConversation: (turns: number, seconds: number, words: number) => string[]
   reset: () => void
+  /** troca o save inteiro (usado ao trazer o progresso da nuvem) */
+  replaceAll: (s: SaveData) => void
   minutesToHeart: number
 }
 
@@ -260,6 +269,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return novos
       },
       reset: () => setSave(emptySave()),
+      replaceAll: (novo) => setSave({ ...emptySave(), ...novo, profile: { ...emptySave().profile, ...novo.profile } }),
       minutesToHeart:
         save.hearts >= MAX_HEARTS
           ? 0

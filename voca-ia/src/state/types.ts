@@ -80,8 +80,17 @@ export type LessonProgress = {
 
 export type DayLog = { day: string; xp: number; minutes: number }
 
+export type Difficulty = 'facil' | 'medio' | 'dificil'
+export type Cefr = 'A1' | 'A2' | 'B1' | 'B2'
+
 export type Profile = {
   name: string
+  /** quanto o app pega no seu pe */
+  difficulty: Difficulty
+  /** nivel medido pelo teste de nivelamento, por idioma */
+  levels: Record<string, Cefr>
+  /** idiomas em que ela ja fez o teste de nivelamento */
+  placed: string[]
   /** humor atual do Voca (ver content/moods.ts) */
   mood: string
   /** idioma sendo estudado agora */
@@ -123,8 +132,15 @@ export type SaveData = {
   achievements: string[]
   history: DayLog[]
   stats: Stats
-  /** erros recorrentes detectados na conversa, para o Grimm cobrar depois */
+  /** erros recorrentes detectados na conversa, para o Voca cobrar depois */
   weakSpots: Record<string, number>
+  /** conta conectada (quando ela entra com e-mail) */
+  account: { id: string; email: string } | null
+  /** plano: o acesso as funcoes de IA sera cobrado no futuro */
+  plan: 'free' | 'pro'
+  proUntil: number | null
+  /** ultima sincronizacao com a nuvem */
+  syncedAt: number | null
 }
 
 export type Correction = { wrong: string; right: string; why: string }

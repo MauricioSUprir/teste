@@ -277,6 +277,53 @@ async function callAi({ ai, system, messages, tool, maxTokens = 700 }) {
   return parseJson(data?.choices?.[0]?.message?.content ?? '')
 }
 
+
+const EXPLAIN_TOOL = {
+  name: 'explicar',
+  description: 'Explica o erro do aluno de forma didatica.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      short: { type: 'string' },
+      rule: { type: 'string' },
+      examples: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: { text: { type: 'string' }, pt: { type: 'string' } },
+          required: ['text', 'pt'],
+        },
+      },
+      trick: { type: 'string' },
+      mistake: { type: 'string' },
+    },
+    required: ['short', 'rule', 'examples', 'trick'],
+  },
+}
+
+const ASK_TOOL = {
+  name: 'responder_duvida',
+  description: 'Responde a duvida do aluno sobre a questao.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      answer: { type: 'string' },
+      examples: { type: 'array', items: { type: 'string' } },
+    },
+    required: ['answer'],
+  },
+}
+
+const HINT_TOOL = {
+  name: 'dica',
+  description: 'Da uma pista sem entregar a resposta.',
+  input_schema: {
+    type: 'object',
+    properties: { hint: { type: 'string' } },
+    required: ['hint'],
+  },
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
@@ -351,6 +398,113 @@ Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
     res.json(out)
   } catch (e) {
     console.error('[report]', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+
+// ------------------------------------------------- correcao explicada pela IA
+app.post('/api/explain', async (req, res) => {
+  const ai = resolveAi(req.body, 'chat')
+  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  try {
+    const { langName, prompt, correct, given, lessonTitle, grammar, level, mood } = req.body
+    const out = await callAi({
+      ai,
+      system: `Voce e o Voca, professor de ${langName} de uma aluna brasileira. Explique EM PORTUGUES DO BRASIL,
+de forma curta, concreta e sem jargao. Nunca invente regra: se a duvida for de uso, diga como se fala de verdade.
+Personalidade: ${MOOD_STYLE[mood] || MOOD_STYLE.neutro} — mas a explicacao em si e sempre clara e util; o humor entra
+no maximo em uma frase.
+Nivel da aluna: ${level}. Licao: ${lessonTitle || 'livre'}. ${grammar ? 'Ponto de gramatica da licao: ' + grammar : ''}
+
+Campos:
+- "short": uma frase dizendo o que exatamente deu errado.
+- "rule": a regra por tras, em 2 ou 3 frases, com as palavras mais simples possiveis.
+- "examples": 3 exemplos curtos em ${langName} com a traducao ("text" e "pt"), mostrando o padrao certo.
+- "trick": um macete para nao errar de novo (pode ser uma pergunta que ela se faz, uma rima, uma comparacao com o portugues).
+- "mistake": o erro parecido que brasileiros cometem nesse ponto, se houver.`,
+      messages: [
+        {
+          role: 'user',
+          content: `Pediram para traduzir/responder: "${prompt}"
+Resposta certa: "${correct}"
+O que a aluna respondeu: "${given || '(deixou em branco)'}"`,
+        },
+      ],
+      tool: EXPLAIN_TOOL,
+      maxTokens: 800,
+    })
+    res.json(out)
+  } catch (e) {
+    console.error('[explain]', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ----------------------------------------- chat de duvidas dentro da explicacao
+app.post('/api/ask', async (req, res) => {
+  const ai = resolveAi(req.body, 'chat')
+  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  try {
+    const { langName, question, context = {}, history = [], level } = req.body
+    const messages = history
+      .slice(-8)
+      .map((t) => ({ role: t.role === 'user' ? 'user' : 'assistant', content: t.text }))
+      .filter((m) => m.content?.trim())
+    messages.push({ role: 'user', content: question })
+    if (messages[0]?.role !== 'user') messages.shift()
+    const out = await callAi({
+      ai,
+      system: `Voce e o Voca tirando duvida de uma aluna brasileira de ${langName} (nivel ${level}).
+Responda SEMPRE em portugues do Brasil, curto (ate 4 frases), direto, com exemplo quando ajudar.
+Se ela perguntar algo fora do idioma, traga de volta para a questao com bom humor.
+Nunca invente: se nao tiver certeza, diga o que e regra e o que e costume.
+
+Questao em que ela esta: "${context.prompt || ''}"
+Resposta certa: "${context.correct || ''}"
+O que ela tinha respondido: "${context.given || ''}"
+${context.explanation ? 'Explicacao que voce ja deu: ' + context.explanation : ''}
+
+Em "examples" (opcional) devolva ate 3 frases de exemplo.`,
+      messages,
+      tool: ASK_TOOL,
+      maxTokens: 500,
+    })
+    res.json(out)
+  } catch (e) {
+    console.error('[ask]', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// --------------------------------------------- dica durante a questao (sem entregar)
+app.post('/api/hint', async (req, res) => {
+  const ai = resolveAi(req.body, 'chat')
+  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  try {
+    const { langName, prompt, correct, given, level, strength } = req.body
+    const out = await callAi({
+      ai,
+      system: `Voce e o Voca ajudando uma aluna brasileira de ${langName} (nivel ${level}) que esta TRAVADA numa questao.
+Responda em portugues do Brasil, UMA frase.
+${strength >= 2
+  ? 'Ela ja pediu ajuda antes: agora de uma pista forte — pode dizer a estrutura e a primeira palavra da resposta, mas NUNCA a frase inteira.'
+  : 'De um empurrao leve: aponte o caminho (que tempo verbal, que palavra-chave, que armadilha), sem dizer nenhuma palavra da resposta.'}
+Nunca escreva a resposta completa, nem em outro idioma.`,
+      messages: [
+        {
+          role: 'user',
+          content: `Questao: "${prompt}"
+Resposta certa (NAO revele): "${correct}"
+O que ela escreveu ate agora: "${given || '(nada)'}"`,
+        },
+      ],
+      tool: HINT_TOOL,
+      maxTokens: 250,
+    })
+    res.json(out)
+  } catch (e) {
+    console.error('[hint]', e.message)
     res.status(500).json({ error: e.message })
   }
 })
