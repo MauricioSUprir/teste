@@ -118,9 +118,12 @@ export class MaterialLibrary {
       case 'tronco':
         return this.textured('madeiraEscura', { roughness: 0.94 })
       case 'pintura':
+        // Verniz forte com reflexo de céu nublado estoura a lataria inteira e
+        // deixa todo carro branco. Aqui o reflexo é contido e a cor volta a
+        // aparecer.
         return new THREE.MeshPhysicalMaterial({
-          vertexColors: true, roughness: 0.28, metalness: 0.35,
-          clearcoat: 0.85, clearcoatRoughness: 0.12, envMapIntensity: 1.4,
+          vertexColors: true, roughness: 0.34, metalness: 0.18,
+          clearcoat: 0.55, clearcoatRoughness: 0.16, envMapIntensity: 0.75,
         })
       case 'plastico':
         return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.02 })

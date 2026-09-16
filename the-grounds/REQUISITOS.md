@@ -185,6 +185,27 @@ Legenda: ✅ feito e verificado · 🔨 em andamento · ⬜ não começado · �
 | Chute conecta em qualquer taxa de quadros | ✅ | Corrigido: o contato era testado numa janela de 1/60 s e era pulado abaixo de 60 fps |
 | **Verificação em partida completa** | 🔨 | Verificados: entrada no campo, posição de saída, treino livre e chute (86 km/h, bola em voo, contador). Falta correr uma partida do apito inicial ao final |
 
+## 10-B. Referência visual de acabamento (Marvel's Spider-Man 2)
+
+O alvo pedido é o acabamento daquele jogo — profundidade de fachada, rua
+ocupada, materiais que se distinguem — aplicado à cidade brasileira deste
+projeto, não a Nova York dele.
+
+| Item | Estado | Observação |
+|---|---|---|
+| Janela com profundidade real | ✅ | Anel de moldura que avança da parede, vidro ao fundo, jamba lateral e caixilho. Antes era um decalque de 2 cm colado na parede, que é o que achatava tudo |
+| Peitoril e verga salientes | ✅ | Com escorrido de chuva na parede abaixo |
+| Grade de proteção nos primeiros andares | ✅ | Presença constante em fachada brasileira; dá a densidade que a escada de incêndio dá na referência |
+| Ar-condicionado pendurado no peitoril | ✅ | Com suporte |
+| Sujeira acumulando na base | ✅ | Moldura escurece nos andares baixos |
+| Carros estacionados no meio-fio | ✅ | Mesmo modelo dos carros que circulam, congelado em geometria de setor: zero desenhos extras |
+| Materiais de carro corretos | ✅ | Pintura com verniz, vidro escuro, cromo — antes a lataria pegava a textura de porta de aço do material do mundo |
+| Mobiliário de rua na calçada | ✅ | Corrigido: a linha corria pelo bordo externo e jogava postes e árvores para dentro do lote |
+| Três anéis de detalhe | ✅ | Perto: miúdos completos. Médio: relevo de janela sem miúdos. Longe: só volume |
+| Vagas nas esquinas | 🔨 | O recorte de esquina usa o fim do trecho dentro do setor, não o cruzamento real; num cruzamento ainda sobra carro em lugar estranho |
+| Fachada com tijolo e pastilha aparentes | 🔨 | Materiais existem; falta variar mais entre prédios vizinhos |
+| Reflexo de rua molhada, poça, meio-fio gasto | ⬜ | Não iniciado |
+
 ## 11. Qualidade visual e 4K
 
 | Item | Estado | Observação |

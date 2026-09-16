@@ -5,7 +5,7 @@
 
 import * as THREE from 'three'
 import { clamp, makeRng } from '../core/math'
-import { GeometryBatcher, makeBox, makeRibbon, transform, withColor } from './geometry'
+import { GeometryBatcher, makeBox, makeRibbon, transform, withColor, type NivelDetalhe } from './geometry'
 import { CityLayout, SIDEWALK, type RoadLine } from './layout'
 import { terrainHeight, WATER_LEVEL } from './terrain'
 import type { CollisionWorld } from './collision'
@@ -66,7 +66,7 @@ export function buildRoadsForSector(
   collision: CollisionWorld,
   owner: string,
   propCtx: PropContext,
-  detail: 'alto' | 'baixo',
+  detail: NivelDetalhe,
 ): RoadBuildResult {
   const trafficLights: TrafficLightHandle[] = []
   const rng = makeRng(Math.round(bounds.x0 * 131 + bounds.z0 * 977) >>> 0)
@@ -121,16 +121,20 @@ export function buildRoadsForSector(
         )
 
         // Mobiliário urbano na calçada
-        if (detail === 'alto') {
-          const a = line.axis === 'x' ? { x: line.pos + side * (hw + SIDEWALK), z: clipped[0] } : { x: clipped[0], z: line.pos + side * (hw + SIDEWALK) }
-          const b = line.axis === 'x' ? { x: line.pos + side * (hw + SIDEWALK), z: clipped[1] } : { x: clipped[1], z: line.pos + side * (hw + SIDEWALK) }
+        if (detail !== 'baixo') {
+          // A linha de mobiliário corre pelo meio da calçada. Antes ela corria
+          // pelo bordo externo, o que jogava postes e árvores para dentro do
+          // lote, atrás do alinhamento dos prédios.
+          const eixo = hw + SIDEWALK / 2
+          const a = line.axis === 'x' ? { x: line.pos + side * eixo, z: clipped[0] } : { x: clipped[0], z: line.pos + side * eixo }
+          const b = line.axis === 'x' ? { x: line.pos + side * eixo, z: clipped[1] } : { x: clipped[1], z: line.pos + side * eixo }
           const nx = line.axis === 'x' ? side : 0
           const nz = line.axis === 'x' ? 0 : side
-          decorateSide(propCtx, a, b, nx, nz, line, rng())
+          decorateSide(propCtx, a, b, nx, nz, line, rng(), detail === 'alto')
         }
       }
 
-      if (detail === 'alto') {
+      if (detail !== 'baixo') {
         addMarkings(line, clipped, hw, batcher, h)
         addBridge(line, clipped, hw, batcher, collision, owner)
       }
@@ -138,7 +142,7 @@ export function buildRoadsForSector(
   }
 
   // Semáforos e faixas de pedestres nos cruzamentos de avenidas
-  if (detail === 'alto') {
+  if (detail !== 'baixo') {
     for (const lx of layout.xLines) {
       if (lx.pos < bounds.x0 || lx.pos >= bounds.x1) continue
       for (const lz of layout.zLines) {
@@ -175,9 +179,14 @@ export function buildRoadsForSector(
 function decorateSide(
   ctx: PropContext,
   a: { x: number; z: number }, b: { x: number; z: number },
-  nx: number, nz: number, line: RoadLine, seed: number,
+  nx: number, nz: number, line: RoadLine, seed: number, comVagas: boolean,
 ): void {
-  decorateSidewalk(ctx, a.x, a.z, b.x, b.z, nx, nz, line.avenue ? 1 : 0.7, 0.8, Math.floor(seed * 1e9))
+  // A linha vem no bordo externo da calçada: a vaga fica a uma calçada de
+  // distância, já dentro da pista, com meia largura de carro de folga.
+  decorateSidewalk(
+    ctx, a.x, a.z, b.x, b.z, nx, nz,
+    line.avenue ? 1 : 0.7, 0.8, Math.floor(seed * 1e9), SIDEWALK / 2 + 1.05, comVagas,
+  )
 }
 
 function addMarkings(

@@ -185,6 +185,15 @@ export function transform(
  * Acumulador de geometria por material: junta tudo em uma malha por material
  * para manter poucas chamadas de desenho por setor.
  */
+/**
+ * Nível de detalhe de um setor.
+ *
+ * 'alto' é o anel colado no jogador, onde vale pagar por moldura de janela,
+ * grade, ar-condicionado e escorrido de chuva. 'medio' mantém a silhueta e o
+ * relevo das janelas, mas corta os miúdos. 'baixo' é só volume e telhado.
+ */
+export type NivelDetalhe = 'alto' | 'medio' | 'baixo'
+
 export class GeometryBatcher {
   private groups = new Map<string, THREE.BufferGeometry[]>()
 

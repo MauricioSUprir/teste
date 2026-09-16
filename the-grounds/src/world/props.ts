@@ -10,6 +10,7 @@ import { clamp, lerp, makeRng, pick, randInt, randRange, type Rng } from '../cor
 import { GeometryBatcher, makeBox, makeCylinder, transform, withColor } from './geometry'
 import type { CollisionWorld } from './collision'
 import { terrainHeight } from './terrain'
+import { buildVehicleMeshes, makeVehicleSpec, type VehicleClass } from '../vehicle/model'
 
 const CINZA = new THREE.Color(0x8a8f94)
 const CINZA_ESCURO = new THREE.Color(0x3b4045)
@@ -405,6 +406,10 @@ export function decorateSidewalk(
   ax: number, az: number, bx: number, bz: number,
   normalX: number, normalZ: number,
   density: number, vegetation: number, seed: number,
+  /** Distância da linha da calçada até o eixo da vaga, já dentro da pista. */
+  recuoVaga = 4.2,
+  /** Carros estacionados só no anel colado no jogador: são caros. */
+  comVagas = true,
 ): void {
   const rng = makeRng(seed)
   const len = Math.hypot(bx - ax, bz - az)
@@ -433,4 +438,76 @@ export function decorateSidewalk(
       addBush(ctx, px, pz, rng)
     }
   }
+
+  // Fila de carros estacionados junto ao meio-fio. O passo é o comprimento de
+  // uma vaga; os buracos vêm de garagens, hidrantes e esquinas, não de sorte
+  // pura, então a rua fica cheia sem virar um paredão contínuo de carros.
+  if (!comVagas) return
+  const vaga = 7.2
+  // Segmento curto é esquina ou entrada de garagem: não recebe fila de vagas.
+  if (len < 30) return
+  const vagas = Math.floor((len - 6) / vaga)
+  const yawCarro = Math.atan2(dirX, dirZ)
+  for (let i = 0; i < vagas; i++) {
+    const t = 3 + i * vaga + vaga / 2
+    if (t > len - 3) break
+    // Deixa livre perto das esquinas e abre um vão de vez em quando.
+    if (t < 11 || t > len - 11) continue
+    if (rng() < 0.34 * (2 - density)) continue
+    const px = ax + dirX * t - normalX * recuoVaga
+    const pz = az + dirZ * t - normalZ * recuoVaga
+    addParkedCar(ctx, px, pz, yawCarro + (rng() < 0.15 ? Math.PI : 0), rng)
+  }
+}
+
+/** Classes de carro que aparecem estacionadas na rua. */
+const CLASSES_PARADAS: readonly VehicleClass[] = ['hatch', 'sedan', 'hatch', 'suv', 'sedan', 'picape', 'van']
+
+/**
+ * Carro estacionado no meio-fio.
+ *
+ * Usa o mesmo modelo dos carros que circulam — carroceria lofteada, cabine,
+ * colunas, rodas — mas congelado em geometria mesclada no setor. O carro
+ * parado fica idêntico ao que anda, sem custar um veículo simulado nem um
+ * desenho a mais.
+ */
+export function addParkedCar(ctx: PropContext, x: number, z: number, yaw: number, rng: Rng): void {
+  const y = ground(x, z)
+  const spec = makeVehicleSpec(pick(rng, CLASSES_PARADAS), randInt(rng, 1, 1e9))
+  const m = buildVehicleMeshes(spec, true)
+
+  // A origem do modelo de veículo já fica no chão: as rodas nascem em
+  // y = raioRoda. Somar o raio aqui fazia o carro flutuar.
+  const base = y
+
+  /** Leva uma peça do referencial do carro para o mundo. */
+  const por = (geo: THREE.BufferGeometry, chave: string): void => {
+    if (!geo.attributes.position || geo.attributes.position.count === 0) return
+    ctx.batcher.add(chave, transform(geo, x, base, z, yaw))
+  }
+
+  // Materiais de carro, não de prédio: pintura com verniz, vidro escuro e
+  // cromo. Com os materiais do mundo a lataria saía com textura de porta de
+  // aço e o vidro com o tom das janelas de fachada.
+  // A cor da lataria é reaplicada aqui: sem isso a carroceria chegava branca
+  // ao lote do setor e a rua inteira virava uma fila de carros claros.
+  por(withColor(m.corpo, new THREE.Color(spec.cor)), 'pintura')
+  por(m.vidros, 'vidroEscuro')
+  por(m.cromados, 'cromo')
+  por(m.escuros, 'borracha')
+  por(m.farois, 'luz')
+  por(m.lanternas, 'plastico')
+
+  for (const r of m.posicoesRodas) {
+    const g = m.roda.clone()
+    transform(g, r.x, r.y, r.z, 0)
+    ctx.batcher.add('borracha', transform(g, x, base, z, yaw))
+  }
+  m.roda.dispose()
+
+  ctx.collision.add(
+    { x, y: base + spec.altura / 2, z },
+    { x: spec.largura / 2, y: spec.altura / 2, z: spec.comprimento / 2 },
+    yaw, 'prop', ctx.owner,
+  )
 }

@@ -152,6 +152,8 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
       game.iniciarTreino(alvo.id)
       return { id: alvo.id, nome: alvo.name }
     },
+    /** Esconde o painel de diagnóstico, para avaliar a imagem limpa. */
+    limpo: () => { hud.style.display = 'none'; return true },
     /** Dispara um chute do jogador com a potência dada (0..1). */
     chute: (potencia = 0.8) => {
       game.player.potenciaChute = Math.max(0, Math.min(1, potencia))

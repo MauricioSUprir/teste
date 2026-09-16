@@ -272,7 +272,15 @@ export interface VehicleMeshes {
 }
 
 /** Constrói todas as malhas de um veículo a partir da ficha. */
-export function buildVehicleMeshes(spec: VehicleSpec): VehicleMeshes {
+/**
+ * Monta a geometria de um veículo.
+ *
+ * `simples` é a versão de carro parado: mesma carroceria e mesma cabine — a
+ * silhueta é o que se enxerga — mas com roda mais barata e sem os miúdos que
+ * ninguém distingue num carro encostado no meio-fio (retrovisor, maçaneta,
+ * vinco de porta, raio de roda).
+ */
+export function buildVehicleMeshes(spec: VehicleSpec, simples = false): VehicleMeshes {
   const rng = makeRng(spec.seed ^ 0x77)
   const corpoParts: THREE.BufferGeometry[] = []
   const vidroParts: THREE.BufferGeometry[] = []
@@ -352,7 +360,7 @@ export function buildVehicleMeshes(spec: VehicleSpec): VehicleMeshes {
   }
 
   // Retrovisores
-  if (spec.classe !== 'onibus') {
+  if (spec.classe !== 'onibus' && !simples) {
     for (const side of [-1, 1]) {
       const arm = makeBox(0.10, 0.05, 0.06, { uvScale: 1 })
       corpoParts.push(withColor(transform(arm, side * (w + 0.05), belt + 0.10, cabin[1].z + 0.15), cor))
@@ -364,7 +372,7 @@ export function buildVehicleMeshes(spec: VehicleSpec): VehicleMeshes {
   }
 
   // Vincos de porta e maçanetas
-  if (spec.classe !== 'onibus') {
+  if (spec.classe !== 'onibus' && !simples) {
     for (const side of [-1, 1]) {
       const doorZ = spec.classe === 'esportivo' ? [0.1] : [0.42, -0.62]
       for (const dz of doorZ) {
@@ -402,15 +410,15 @@ export function buildVehicleMeshes(spec: VehicleSpec): VehicleMeshes {
   }
 
   // Roda: pneu + aro + calota
-  const tire = makeCylinder(spec.raioRoda, spec.larguraRoda, 18, 0.5)
+  const tire = makeCylinder(spec.raioRoda, spec.larguraRoda, simples ? 12 : 18, 0.5)
   tire.rotateZ(Math.PI / 2)
-  const rim = makeCylinder(spec.raioRoda * 0.62, spec.larguraRoda + 0.012, 14, 0.4)
+  const rim = makeCylinder(spec.raioRoda * 0.62, spec.larguraRoda + 0.012, simples ? 9 : 14, 0.4)
   rim.rotateZ(Math.PI / 2)
   const rodaParts = [
     withColor(tire, new THREE.Color(0x1a1c1e)),
     withColor(rim, new THREE.Color(0xb9bdc2)),
   ]
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < (simples ? 0 : 5); i++) {
     const a = (i / 5) * Math.PI * 2
     const spoke = makeBox(spec.larguraRoda + 0.02, spec.raioRoda * 0.10, spec.raioRoda * 1.0, { uvScale: 1 })
     spoke.rotateX(a)

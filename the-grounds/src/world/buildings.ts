@@ -9,7 +9,7 @@
 
 import * as THREE from 'three'
 import { hash2, lerp, makeRng, pick, randInt, randRange, type Rng } from '../core/math'
-import { GeometryBatcher, makeBox, makeCylinder, transform, withColor } from './geometry'
+import { GeometryBatcher, makeBox, makeCylinder, transform, withColor, type NivelDetalhe } from './geometry'
 import { PALETTE } from './materials'
 import type { CollisionWorld } from './collision'
 import type { Block, Zone } from './layout'
@@ -283,7 +283,7 @@ export function buildBuilding(
   batcher: GeometryBatcher,
   collision: CollisionWorld,
   owner: string,
-  detail: 'alto' | 'baixo',
+  detail: NivelDetalhe,
 ): void {
   const rng = makeRng(spec.seed)
   const w = spec.width
@@ -368,8 +368,8 @@ export function buildBuilding(
   }
 
   // ---- Detalhamento de fachada --------------------------------------------
-  if (detail === 'alto') {
-    addFacadeDetails(spec, batcher, place, rng, color, trim, gh, totalH)
+  if (detail !== 'baixo') {
+    addFacadeDetails(spec, batcher, place, rng, color, trim, gh, totalH, detail)
     addUrbanClutter(spec, batcher, place, rng, gh, totalH)
   }
 
@@ -385,7 +385,10 @@ type PlaceFn = (geo: THREE.BufferGeometry, lx: number, ly: number, lz: number, r
 function addFacadeDetails(
   spec: BuildingSpec, batcher: GeometryBatcher, place: PlaceFn, rng: Rng,
   color: THREE.Color, trim: THREE.Color, groundH: number, totalH: number,
+  nivel: NivelDetalhe = 'alto',
 ): void {
+  /** Miúdos que só existem no anel colado no jogador. */
+  const fino = nivel === 'alto'
   const w = spec.width
   const d = spec.depth
   const hw = w / 2, hd = d / 2
@@ -418,10 +421,22 @@ function addFacadeDetails(
     }
   }
 
-  // Janelas dos andares superiores, em todas as quatro faces
+  // Janelas dos andares superiores, em todas as quatro faces.
+  //
+  // Uma janela plana colada na parede é o que mais achata uma fachada: sem
+  // profundidade não há sombra e o prédio vira um adesivo. Aqui cada janela é
+  // um anel de moldura que avança da parede, com o vidro lá no fundo — o
+  // olho lê isso como um vão recuado, que é o efeito que interessa.
   const winW = 1.15
   const winH = 1.35
   const startFloor = 1
+  /** Quanto a moldura avança da parede (profundidade aparente do vão). */
+  const PROF = 0.19
+  /** Espessura das peças da moldura. */
+  const ESP = 0.085
+  const SEM_FUNDO: ReadonlySet<string> = new Set(['nz'])
+  const corMoldura = trim.clone().lerp(new THREE.Color(0xffffff), 0.28)
+  const corCaixilho = new THREE.Color(0x3b4148)
   const faces: { sx: number; sz: number; len: number; yawOff: number; off: number }[] = [
     { sx: 1, sz: 0, len: w, yawOff: 0, off: hd },        // frente (+Z local)
     { sx: 1, sz: 0, len: w, yawOff: Math.PI, off: -hd }, // fundos
@@ -444,25 +459,84 @@ function addFacadeDetails(
         const ox = nx * 0.02
         const oz = nz * 0.02
 
-        // Decalques de fachada: só a face voltada para fora é gerada, o que
-        // reduz drasticamente a contagem de vértices sem perda visual.
         const lit = hash2(spec.id * 7 + c, fl, 991)
-        batcher.add('plastico', withColor(
-          place(makeBox(winW + 0.2, winH + 0.2, 0.02, { uvScale: 1, skip: ONLY_FRONT }), lx + ox * 0.5, y, lz + oz * 0.5, f.yawOff), trim))
-        batcher.add('plastico', withColor(
-          place(makeBox(winW, winH, 0.02, { uvScale: 1, skip: ONLY_FRONT }), lx + ox, y, lz + oz, f.yawOff), dark))
-        batcher.add('vidro', withColor(
-          place(makeBox(winW - 0.12, winH - 0.12, 0.02, { uvScale: 1, skip: ONLY_FRONT }), lx + ox * 2, y, lz + oz * 2, f.yawOff),
-          glassTint.clone().multiplyScalar(lerp(0.75, 1.15, lit))))
-        // Peitoril saliente
-        batcher.add('concreto', withColor(
-          place(makeBox(winW + 0.26, 0.09, 0.18, { uvScale: 1, skip: SKIP_BOTTOM }), lx + nx * 0.07, y - winH / 2 - 0.08, lz + nz * 0.07, f.yawOff), trim))
+        /** Sujeira acumulada: mais forte embaixo, onde a chuva escorre. */
+        const sujo = lerp(0.82, 1.0, Math.min(1, (fl - 1) / Math.max(1, spec.floors - 2)))
 
-        // Ar-condicionado ocasional
-        if (rng() < 0.12) {
+        // Vidro no fundo do vão, quase no plano da parede.
+        batcher.add('vidro', withColor(
+          place(makeBox(winW, winH, 0.02, { uvScale: 1, skip: ONLY_FRONT }), lx + ox, y, lz + oz, f.yawOff),
+          glassTint.clone().multiplyScalar(lerp(0.52, 0.92, lit))))
+        // Caixilho em cruz, no fundo do vão: dá escala à janela.
+        if (fino) {
+          batcher.add('plastico', withColor(
+            place(makeBox(0.05, winH, 0.03, { uvScale: 1, skip: ONLY_FRONT }), lx + ox * 2, y, lz + oz * 2, f.yawOff), corCaixilho))
+        }
+        batcher.add('plastico', withColor(
+          place(makeBox(winW, 0.05, 0.03, { uvScale: 1, skip: ONLY_FRONT }), lx + ox * 2, y + winH * 0.14, lz + oz * 2, f.yawOff), corCaixilho))
+
+        // Anel da moldura: as faces internas destas peças são o recuo do vão,
+        // e é a sombra delas sobre o vidro que cria a profundidade.
+        const meio = PROF / 2
+        const mx = nx * meio
+        const mz = nz * meio
+        batcher.add('reboco', withColor(  // verga (peça de cima)
+          place(makeBox(winW + ESP * 2, ESP, PROF, { uvScale: 1, skip: SEM_FUNDO }),
+            lx + mx, y + winH / 2 + ESP / 2, lz + mz, f.yawOff), corMoldura.clone().multiplyScalar(sujo)))
+        batcher.add('reboco', withColor(  // jamba esquerda
+          place(makeBox(ESP, winH, PROF, { uvScale: 1, skip: SEM_FUNDO }),
+            lx + mx - (f.sx ? winW / 2 + ESP / 2 : 0), y, lz + mz - (f.sz ? winW / 2 + ESP / 2 : 0), f.yawOff),
+          corMoldura.clone().multiplyScalar(sujo * 0.97)))
+        batcher.add('reboco', withColor(  // jamba direita
+          place(makeBox(ESP, winH, PROF, { uvScale: 1, skip: SEM_FUNDO }),
+            lx + mx + (f.sx ? winW / 2 + ESP / 2 : 0), y, lz + mz + (f.sz ? winW / 2 + ESP / 2 : 0), f.yawOff),
+          corMoldura.clone().multiplyScalar(sujo * 0.97)))
+
+        // Peitoril: avança mais que a moldura e pinga chuva na parede abaixo.
+        batcher.add('concreto', withColor(
+          place(makeBox(winW + ESP * 2 + 0.16, 0.10, PROF + 0.12, { uvScale: 1, skip: SKIP_BOTTOM }),
+            lx + nx * (meio + 0.06), y - winH / 2 - 0.05, lz + nz * (meio + 0.06), f.yawOff),
+          corMoldura.clone().multiplyScalar(sujo * 0.93)))
+        // Escorrido de chuva sob o peitoril.
+        if (fino) batcher.add('reboco', withColor(
+          place(makeBox(winW + 0.1, fh * 0.42, 0.012, { uvScale: 1, skip: ONLY_FRONT }),
+            lx + ox * 0.6, y - winH / 2 - 0.1 - fh * 0.21, lz + oz * 0.6, f.yawOff),
+          color.clone().multiplyScalar(0.84)))
+
+        // Verga superior larga, marcando a linha da janela na fachada.
+        if (fino) batcher.add('concreto', withColor(
+          place(makeBox(winW + 0.62, 0.13, PROF + 0.05, { uvScale: 1, skip: SKIP_BOTTOM }),
+            lx + nx * (meio + 0.02), y + winH / 2 + ESP + 0.07, lz + nz * (meio + 0.02), f.yawOff),
+          corMoldura.clone().multiplyScalar(sujo)))
+
+        // Grade de proteção nos primeiros andares — presença constante nas
+        // cidades brasileiras e o que dá densidade à fachada de perto.
+        const residencial = spec.type === 'predio' || spec.type === 'sobrado' || spec.type === 'casa'
+        if (fino && residencial && fl <= 3 && hash2(spec.id * 13 + c, fl, 71) < 0.62) {
+          const barras = 4
+          for (let b = 0; b < barras; b++) {
+            const t2 = (b / (barras - 1) - 0.5) * (winW - 0.1)
+            batcher.add('grade', withColor(
+              place(makeBox(0.028, winH - 0.05, 0.028, { uvScale: 1 }),
+                lx + nx * (PROF - 0.03) + (f.sx ? t2 : 0), y, lz + nz * (PROF - 0.03) + (f.sz ? t2 : 0), f.yawOff),
+              new THREE.Color(0x4a4d51)))
+          }
+          batcher.add('grade', withColor(
+            place(makeBox(winW - 0.05, 0.03, 0.03, { uvScale: 1 }),
+              lx + nx * (PROF - 0.03), y + winH / 2 - 0.05, lz + nz * (PROF - 0.03), f.yawOff),
+            new THREE.Color(0x4a4d51)))
+        }
+
+        // Ar-condicionado: pendurado no peitoril, com suporte e mancha.
+        if (fino && rng() < 0.2) {
           batcher.add('metal', withColor(
-            place(makeBox(0.62, 0.42, 0.34, { uvScale: 1 }), lx + nx * 0.2, y - winH / 2 - 0.35, lz + nz * 0.2, f.yawOff),
-            new THREE.Color(0xd8d8d4)))
+            place(makeBox(0.68, 0.44, 0.40, { uvScale: 1 }),
+              lx + nx * (PROF + 0.16), y - winH / 2 - 0.34, lz + nz * (PROF + 0.16), f.yawOff),
+            new THREE.Color(0xd8d8d4).multiplyScalar(sujo)))
+          batcher.add('metal', withColor(
+            place(makeBox(0.74, 0.05, 0.06, { uvScale: 1 }),
+              lx + nx * (PROF + 0.30), y - winH / 2 - 0.58, lz + nz * (PROF + 0.30), f.yawOff),
+            new THREE.Color(0x6e7276)))
         }
       }
     }

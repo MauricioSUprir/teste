@@ -6,7 +6,7 @@
 
 import * as THREE from 'three'
 import { makeRng, pick, randInt, randRange, type Rng } from '../core/math'
-import { GeometryBatcher, makeBox, makeCylinder, makeGroundQuad, transform, withColor } from './geometry'
+import { GeometryBatcher, makeBox, makeCylinder, makeGroundQuad, transform, withColor, type NivelDetalhe } from './geometry'
 import { addBench, addBin, addBush, addStreetLight, addTree, type PropContext } from './props'
 import type { Block } from './layout'
 import { terrainHeight } from './terrain'
@@ -80,7 +80,7 @@ export function buildBlockContent(
   collision: CollisionWorld,
   owner: string,
   ctx: PropContext,
-  detail: 'alto' | 'baixo',
+  detail: NivelDetalhe,
   outPitches: PitchSpec[],
 ): void {
   const rng = makeRng(0x1234 ^ (block.id * 2246822519))
@@ -126,7 +126,7 @@ function groundQuad(
   batcher.add(mat, withColor(geo, color))
 }
 
-function buildPraca(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: 'alto' | 'baixo'): void {
+function buildPraca(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: NivelDetalhe): void {
   const { cx, cz, width: w, depth: d } = block
   groundQuad(batcher, 'grama', cx, cz, w, d, 4, new THREE.Color(0xffffff))
   // Caminhos em cruz de paralelepípedo
@@ -170,7 +170,7 @@ function buildPraca(block: Block, batcher: GeometryBatcher, ctx: PropContext, rn
   }
 }
 
-function buildParque(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: 'alto' | 'baixo'): void {
+function buildParque(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: NivelDetalhe): void {
   const { cx, cz, width: w, depth: d } = block
   groundQuad(batcher, 'grama', cx, cz, w + 10, d + 10, 6, new THREE.Color(0xffffff))
   // Trilha sinuosa
@@ -201,7 +201,7 @@ function buildParque(block: Block, batcher: GeometryBatcher, ctx: PropContext, r
 
 function buildCampo(
   block: Block, spec: PitchSpec, batcher: GeometryBatcher, collision: CollisionWorld, owner: string,
-  ctx: PropContext, detail: 'alto' | 'baixo',
+  ctx: PropContext, detail: NivelDetalhe,
 ): void {
   const alongX = block.width >= block.depth
   const { halfLength, halfWidth, yaw, x: cx, z: cz, y, surface } = spec
@@ -209,10 +209,10 @@ function buildCampo(
   const w = alongX ? halfLength * 2 : halfWidth * 2
   const d = alongX ? halfWidth * 2 : halfLength * 2
   groundQuad(batcher, surface === 'grama' ? 'gramado' : 'terra', cx, cz, w + 6, d + 6, 6, new THREE.Color(0xffffff))
-  if (detail === 'alto') addPitchMarkings(batcher, cx, cz, y, halfLength, halfWidth, yaw)
+  if (detail !== 'baixo') addPitchMarkings(batcher, cx, cz, y, halfLength, halfWidth, yaw)
 
   addGoals(batcher, collision, owner, spec)
-  if (detail === 'alto') {
+  if (detail !== 'baixo') {
     // Alambrado nas laterais e postes de luz
     addFenceRect(batcher, collision, owner, cx, cz, w + 6, d + 6, 3.2, yaw)
     for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
@@ -236,7 +236,7 @@ function buildCampo(
 
 function buildQuadra(
   block: Block, spec: PitchSpec, batcher: GeometryBatcher, collision: CollisionWorld, owner: string,
-  ctx: PropContext, detail: 'alto' | 'baixo',
+  ctx: PropContext, detail: NivelDetalhe,
 ): void {
   const alongX = block.width >= block.depth
   const { halfLength, halfWidth, yaw, x: cx, z: cz, y } = spec
@@ -244,10 +244,10 @@ function buildQuadra(
   const d = alongX ? halfWidth * 2 : halfLength * 2
 
   groundQuad(batcher, 'concreto', cx, cz, w + 4, d + 4, 5, new THREE.Color(0xb8c4cc))
-  if (detail === 'alto') addPitchMarkings(batcher, cx, cz, y, halfLength, halfWidth, yaw)
+  if (detail !== 'baixo') addPitchMarkings(batcher, cx, cz, y, halfLength, halfWidth, yaw)
 
   addGoals(batcher, collision, owner, spec)
-  if (detail === 'alto') {
+  if (detail !== 'baixo') {
     addFenceRect(batcher, collision, owner, cx, cz, w + 4, d + 4, 4.2, yaw)
     for (const [sx, sz] of [[-1, 0], [1, 0]] as const) {
       addStreetLight(ctx, cx + sx * (w / 2 + 2), cz + sz * (d / 2 + 2), Math.atan2(-sx, -sz))
@@ -257,7 +257,7 @@ function buildQuadra(
 
 function buildArena(
   block: Block, spec: PitchSpec, batcher: GeometryBatcher, collision: CollisionWorld, owner: string,
-  ctx: PropContext, detail: 'alto' | 'baixo',
+  ctx: PropContext, detail: NivelDetalhe,
 ): void {
   const alongX = block.width >= block.depth
   const { halfLength, halfWidth, yaw, x: cx, z: cz, y } = spec
@@ -265,11 +265,11 @@ function buildArena(
   const d = alongX ? halfWidth * 2 : halfLength * 2
 
   groundQuad(batcher, 'gramado', cx, cz, w + 10, d + 10, 6, new THREE.Color(0xffffff))
-  if (detail === 'alto') addPitchMarkings(batcher, cx, cz, y, halfLength, halfWidth, yaw)
+  if (detail !== 'baixo') addPitchMarkings(batcher, cx, cz, y, halfLength, halfWidth, yaw)
 
   addGoals(batcher, collision, owner, spec)
 
-  if (detail === 'alto') {
+  if (detail !== 'baixo') {
     // Arquibancadas em degraus nos quatro lados
     const steps = 8
     for (const side of [-1, 1]) {
@@ -401,7 +401,7 @@ function addFenceRect(
   }
 }
 
-function buildEstacionamento(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: 'alto' | 'baixo'): void {
+function buildEstacionamento(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: NivelDetalhe): void {
   const { cx, cz, width: w, depth: d } = block
   groundQuad(batcher, 'asfalto', cx, cz, w, d, 6, new THREE.Color(0xffffff))
   if (detail === 'baixo') return
@@ -420,7 +420,7 @@ function buildEstacionamento(block: Block, batcher: GeometryBatcher, ctx: PropCo
   }
 }
 
-function buildVazio(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: 'alto' | 'baixo'): void {
+function buildVazio(block: Block, batcher: GeometryBatcher, ctx: PropContext, rng: Rng, detail: NivelDetalhe): void {
   const { cx, cz, width: w, depth: d } = block
   groundQuad(batcher, 'grama', cx, cz, w, d, 5, new THREE.Color(0xffffff))
   if (detail === 'baixo') return

@@ -8,7 +8,7 @@ import { clamp, damp, lerp, makeRng, smoothstep } from '../core/math'
 import type { GraphicsSettings } from '../core/settings'
 import { Sky } from '../core/sky'
 import { CollisionWorld } from './collision'
-import { GeometryBatcher, disposeObject } from './geometry'
+import { GeometryBatcher, disposeObject, type NivelDetalhe } from './geometry'
 import { CityLayout, districtAt, type Block } from './layout'
 import { MaterialLibrary, type WorldMaterialKey } from './materials'
 import { buildBlockContent, planPitchForBlock, type PitchSpec } from './blocks'
@@ -24,7 +24,7 @@ export const SECTOR_SIZE = 128
 interface Sector {
   key: string
   sx: number; sz: number
-  detail: 'alto' | 'baixo'
+  detail: NivelDetalhe
   group: THREE.Group
   lamps: { x: number; y: number; z: number }[]
   trafficLights: TrafficLightHandle[]
@@ -61,7 +61,7 @@ export class World {
 
   private sectors = new Map<string, Sector>()
   private terrainChunks = new Map<string, { mesh: THREE.Mesh; lod: number }>()
-  private buildQueue: { sx: number; sz: number; detail: 'alto' | 'baixo'; priority: number }[] = []
+  private buildQueue: { sx: number; sz: number; detail: NivelDetalhe; priority: number }[] = []
   /** Setor sendo construído em etapas, entre quadros. */
   private emConstrucao: Generator<void, void, void> | null = null
   private terrainGroup = new THREE.Group()
@@ -175,8 +175,11 @@ export class World {
   updateStreaming(center: THREE.Vector3): void {
     const csx = Math.floor(center.x / SECTOR_SIZE)
     const csz = Math.floor(center.z / SECTOR_SIZE)
-    const highR = 2
-    const lowR = Math.max(highR + 1, Math.ceil(this.settings.viewDistance / SECTOR_SIZE))
+    // Anel colado no jogador em detalhe máximo; um anel intermediário mantém
+    // o relevo das fachadas sem os miúdos; o resto é só volume.
+    const highR = 1
+    const medioR = 2
+    const lowR = Math.max(medioR + 1, Math.ceil(this.settings.viewDistance / SECTOR_SIZE))
     const maxR = Math.min(lowR, Math.ceil((MAP_HALF * 2) / SECTOR_SIZE))
 
     const wanted = new Set<string>()
@@ -187,7 +190,7 @@ export class World {
         if (Math.abs(sz * SECTOR_SIZE) > MAP_HALF + SECTOR_SIZE) continue
         const dist = Math.hypot(i, j)
         if (dist > maxR) continue
-        const detail: 'alto' | 'baixo' = dist <= highR ? 'alto' : 'baixo'
+        const detail: NivelDetalhe = dist <= highR ? 'alto' : dist <= medioR ? 'medio' : 'baixo'
         const key = this.sectorKey(sx, sz)
         wanted.add(key)
         const existing = this.sectors.get(key)
@@ -238,7 +241,7 @@ export class World {
    * milissegundos de uma vez só, o que aparece como um tranco na imagem; aqui
    * o trabalho é cortado em pedaços e o laço decide quantos cabem no quadro.
    */
-  private *construirSetor(sx: number, sz: number, detail: 'alto' | 'baixo'): Generator<void, void, void> {
+  private *construirSetor(sx: number, sz: number, detail: NivelDetalhe): Generator<void, void, void> {
     const key = this.sectorKey(sx, sz)
     const x0 = sx * SECTOR_SIZE
     const z0 = sz * SECTOR_SIZE
@@ -259,8 +262,8 @@ export class World {
     for (const block of this.layout.blocksInRect(x0, z0, x1, z1)) {
       if (block.kind === 'edificado') {
         for (const spec of this.buildingsOfBlock(block)) {
-          if (detail === 'alto') buildBuilding(spec, batcher, this.collision, key, 'alto')
-          else buildBuildingLod(spec, batcher)
+          if (detail === 'baixo') buildBuildingLod(spec, batcher)
+          else buildBuilding(spec, batcher, this.collision, key, detail)
           buildings.push(spec)
           yield
         }
@@ -274,7 +277,7 @@ export class World {
     for (const m of meshes) {
       // Superfícies rasas já vêm marcadas para não projetar sombra; setores de
       // baixo detalhe não projetam nada.
-      m.castShadow = m.castShadow && detail === 'alto'
+      m.castShadow = m.castShadow && detail !== 'baixo'
       m.receiveShadow = true
       group.add(m)
     }
