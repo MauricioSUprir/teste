@@ -172,13 +172,16 @@ export class Game {
     this.player.teleport(spawnX, spawnZ, 0)
     this.world.updateStreaming(this.player.position)
 
-    // Constrói os setores próximos antes de entrar.
+    // Só o que está ao redor do jogador precisa estar pronto para entrar. O
+    // resto do horizonte continua sendo construído com o jogo já rodando, pelo
+    // orçamento adaptativo do laço — que é exatamente para isso que ele existe.
+    const faltam0 = Math.max(1, this.world.pendingNearSectors())
     let guard = 0
-    while (this.world.pendingSectors > 0 && guard < 400) {
+    while (this.world.pendingNearSectors() > 0 && guard < 400) {
       this.world.processBuildQueue(28)
       guard++
-      const total = this.world.loadedSectors + this.world.pendingSectors
-      onProgress?.(0.05 + 0.55 * (this.world.loadedSectors / Math.max(total, 1)), 'Levantando a cidade')
+      const faltam = this.world.pendingNearSectors()
+      onProgress?.(0.05 + 0.55 * (1 - faltam / faltam0), 'Levantando a cidade')
       await frame()
     }
 

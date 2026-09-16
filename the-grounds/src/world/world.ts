@@ -234,6 +234,20 @@ export class World {
   }
 
   get pendingSectors(): number { return this.buildQueue.length + (this.emConstrucao ? 1 : 0) }
+
+  /**
+   * Setores ainda na fila dentro de `anel` anéis do jogador.
+   *
+   * É o que precisa estar pronto antes de entrar no jogo. Esperar a fila
+   * inteira significa levantar a cidade até o horizonte com o jogador olhando
+   * para uma tela de carregamento — e o que está longe pode perfeitamente
+   * chegar depois, enquanto ele já anda.
+   */
+  pendingNearSectors(anel = 2.1): number {
+    let n = this.emConstrucao ? 1 : 0
+    for (const q of this.buildQueue) if (q.priority <= anel) n++
+    return n
+  }
   get loadedSectors(): number { return this.sectors.size }
 
   /**

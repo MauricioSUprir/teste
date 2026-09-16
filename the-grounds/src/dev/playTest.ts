@@ -30,12 +30,23 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
 
   const x = Number(q.get('x') ?? 24)
   const z = Number(q.get('z') ?? -96)
+  // Marcos de tempo do carregamento, para medir em vez de adivinhar.
+  const t0 = performance.now()
+  const marcos: Record<string, number> = {}
+  let etapaAnterior = 'inicio'
   await game.prepare(x, z, (p, texto) => {
+    if (texto !== etapaAnterior) {
+      marcos[etapaAnterior] = Math.round(performance.now() - t0)
+      etapaAnterior = texto
+    }
     const i = barra.querySelector('i') as HTMLElement
     const e = barra.querySelector('.etapa') as HTMLElement
     if (i) i.style.width = `${Math.round(p * 100)}%`
     if (e) e.textContent = texto
   })
+  marcos[etapaAnterior] = Math.round(performance.now() - t0)
+  marcos.total = Math.round(performance.now() - t0)
+  ;(window as unknown as Record<string, unknown>).__carga = marcos
   barra.remove()
 
   game.player.rig.yaw = Number(q.get('yaw') ?? 0)
