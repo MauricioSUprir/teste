@@ -54,6 +54,17 @@ automatizado antes de existir um único pixel:
 
 ---
 
+## Mapas
+
+| Mapa | Modo | Layouts | Ideia |
+|---|---|---|---|
+| **SKY FOUNDRY** | corrida | 4 | fábrica acima das nuvens, 3 rotas com perfis de risco diferentes |
+| **JARDIM NÉON** | corrida (fácil) | 2 | jardim ao anoitecer; onde se aprende que pular é gostoso |
+| **ANEL DA TEMPESTADE** | eliminação | 2 | arena de três anéis que desabam de fora para dentro |
+
+Adicionar um mapa é escrever um arquivo com `maps/kit.ts` e incluí-lo na
+playlist. Nada no motor muda.
+
 ## Round Director — o diferencial
 
 Um mapa não deve parecer a mesma partida toda vez.

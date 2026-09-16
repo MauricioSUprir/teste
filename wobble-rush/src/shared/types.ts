@@ -143,6 +143,8 @@ export interface PlayerSim {
   rank: number;
   qualified: boolean;
   eliminated: boolean;
+  /** Tick this player went out, -1 while alive. Survival ranks by this. */
+  eliminatedTick: number;
   /** Round score for point-based modes (Grand Prix, collect, survival). */
   score: number;
   falls: number;

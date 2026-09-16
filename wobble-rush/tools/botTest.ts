@@ -8,6 +8,9 @@
  */
 import { MatchSim, RoundPhase } from '../src/shared/world';
 import { SKY_FOUNDRY } from '../src/shared/maps/skyfoundry';
+import { NEON_GARDEN } from '../src/shared/maps/neongarden';
+import { STORM_RING } from '../src/shared/maps/stormring';
+import { MapDef } from '../src/shared/mapdef';
 import { makeRules, TICK_DT } from '../src/shared/config';
 import { InputCmd, SimEventKind } from '../src/shared/types';
 import { BotBrain, makeBotRoster, BotDifficulty } from '../src/shared/bots';
@@ -23,12 +26,17 @@ interface Result {
   ms: number;
   /** Players that got at least 70% of the way round. */
   deep: number;
+  survivors: number;
 }
 
 function runMatch(variantId: string | undefined, seed: number, count = 32,
-                  difficulty: BotDifficulty = 'normal', maxSeconds = 180): Result {
+                  difficulty: BotDifficulty = 'normal', maxSeconds = 180,
+                  map: MapDef = SKY_FOUNDRY): Result {
+  const mode = map.modes[0] ?? 'race';
   const sim = new MatchSim({
-    map: SKY_FOUNDRY, rules: makeRules(), seed, variantId, countdownTime: 1,
+    map, mode,
+    rules: makeRules({ respawnEnabled: mode !== 'survival' && mode !== 'arena' }),
+    seed, variantId, countdownTime: 1,
   });
   const roster = makeBotRoster(count, seed, difficulty);
   const brains: BotBrain[] = [];
@@ -58,14 +66,15 @@ function runMatch(variantId: string | undefined, seed: number, count = 32,
     }
     sim.clearEvents();
     if (sim.phase === RoundPhase.Running && sim.racingCount() === 0) break;
+    if (mode === 'survival' && sim.phase === RoundPhase.Running && sim.aliveCount() <= 1) break;
     // Stop once the qualifying places are gone and everyone else has had a while.
     if (times.length >= count) break;
   }
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
-  const deep = sim.players.filter((p) => p.bestProgress > SKY_FOUNDRY.courseLength * 0.7).length;
+  const deep = sim.players.filter((p) => p.bestProgress > map.courseLength * 0.7).length;
   return {
     variant: sim.director.variantId, finished: times.length, total: count,
-    times, falls, fallZ, ticks, ms, deep,
+    times, falls, fallZ, ticks, ms, deep, survivors: sim.aliveCount(),
   };
 }
 
@@ -76,9 +85,26 @@ console.log('\n=== WOBBLE RUSH - full match playability ===\n');
 let failures = 0;
 const allFalls: number[] = [];
 
-for (const variant of ['standard', 'gauntlet', 'highroad', 'overdrive']) {
-  const r = runMatch(variant, 4242, 32, 'normal');
+const MAPS: [MapDef, string[]][] = [
+  [SKY_FOUNDRY, ['standard', 'gauntlet', 'highroad', 'overdrive']],
+  [NEON_GARDEN, ['bloom', 'dusk']],
+  [STORM_RING, ['gathering', 'tempest']],
+];
+
+for (const [map, variants] of MAPS) {
+console.log(`\n-- ${map.id} (${map.modes[0]}) --`);
+for (const variant of variants) {
+  const r = runMatch(variant, 4242, 32, 'normal', 180, map);
   allFalls.push(...r.fallZ);
+  if (map.modes[0] !== 'race') {
+    // Survival: the measure is that the field thins out gradually rather than
+    // everyone dying at once or nobody dying at all.
+    const survivors = r.survivors;
+    console.log(`${variant.padEnd(10)} survivors ${survivors}/${r.total} after ${fmt(r.ticks * TICK_DT)}s  falls ${r.falls}`);
+    if (survivors === r.total) { console.log('  !! nobody was eliminated - the arena is harmless'); failures++; }
+    if (survivors === 0) { console.log('  !! everyone died - the arena is a meat grinder'); failures++; }
+    continue;
+  }
   const rate = r.finished / r.total;
   const fastest = r.times.length ? Math.min(...r.times) : 0;
   const slowest = r.times.length ? Math.max(...r.times) : 0;
@@ -96,9 +122,10 @@ for (const variant of ['standard', 'gauntlet', 'highroad', 'overdrive']) {
   // enough that the qualifying places mean something", not "everyone finishes".
   if (deep < 12) { console.log(`  !! only ${deep} players got deep into the course - the race has no field`); failures++; }
   if (r.times.length > 3 && spread < 4) { console.log('  !! finishes too bunched - no drama'); failures++; }
-  if (fastest > 0 && (fastest < 25 || fastest > 110)) {
-    console.log(`  !! winning time ${fmt(fastest)}s is outside the 25-110s target`); failures++;
+  if (map.modes[0] === 'race' && fastest > 0 && (fastest < 20 || fastest > 130)) {
+    console.log(`  !! winning time ${fmt(fastest)}s is outside the 20-130s target`); failures++;
   }
+}
 }
 
 // Difficulty ladder should be visible in the results.

@@ -9,7 +9,7 @@
  */
 import * as THREE from 'three';
 import { MatchSim, RoundPhase } from '../shared/world';
-import { MapDef } from '../shared/mapdef';
+import { MapDef, GameModeKind } from '../shared/mapdef';
 import { makeRules, RuleSet, TICK_DT } from '../shared/config';
 import { InputCmd, makeInput, MoveState, SimEventKind, PlayerSim, Btn } from '../shared/types';
 import { BotBrain, BotDifficulty, BotPersonality } from '../shared/bots';
@@ -55,6 +55,9 @@ export interface MatchOptions {
   /** Round number within a session, for the HUD. */
   roundIndex?: number;
   roundCount?: number;
+  /** Overrides the map's default mode. */
+  mode?: GameModeKind;
+  teamCount?: number;
 }
 
 export interface Standing {
@@ -109,6 +112,7 @@ export class MatchClient {
   private result: MatchResult | null = null;
   private runClock = 0;
   private opts: MatchOptions;
+  private mode: GameModeKind;
   private rng: Rng;
   private lastBannerPhase = '';
   private spectateIndex = -1;
@@ -126,9 +130,14 @@ export class MatchClient {
   ) {
     this.opts = opts;
     this.rng = new Rng(hashString(`${opts.map.id}:${opts.seed}`));
+    const mode = opts.mode ?? opts.map.modes[0] ?? 'race';
+    this.mode = mode;
     this.sim = new MatchSim({
       map: opts.map,
-      rules: makeRules(opts.rules),
+      mode,
+      teamCount: opts.teamCount ?? 0,
+      // In elimination modes a fall is final - that is the whole mode.
+      rules: makeRules({ respawnEnabled: mode !== 'survival' && mode !== 'arena', ...opts.rules }),
       seed: opts.seed,
       variantId: opts.variantId,
       countdownTime: opts.practice ? 1.2 : 3.4,
@@ -405,17 +414,19 @@ export class MatchClient {
     const total = this.sim.players.length;
     const pos = this.sim.positionOf(this.localId);
     const timeLeft = this.opts.map.timeLimit - Math.max(0, this.sim.runTime);
+    const survival = this.mode === 'survival' || this.mode === 'arena';
 
     this.hud.update(dt, {
       position: pos,
       total,
-      qualified: this.sim.qualifiedCount,
+      qualified: survival ? this.sim.aliveCount() : this.sim.qualifiedCount,
       qualifyTarget: this.opts.practice ? 1 : this.opts.qualifyCount,
+      survival,
       timeLeft,
       countdown: -this.sim.runTime,
       showCountdown: this.sim.phase === RoundPhase.Countdown ||
         (this.sim.phase === RoundPhase.Running && this.sim.runTime < 0.9),
-      objective: t('hud.objective.race'),
+      objective: t(survival ? 'hud.objective.survive' : 'hud.objective.race'),
       mapName: t(this.opts.map.nameKey),
       variantName: t(`variant.${this.sim.director.variantId}`),
       checkpoint: me.checkpoint,
@@ -434,6 +445,18 @@ export class MatchClient {
     const me = this.localPlayer;
     if (!me) return;
     const timeUp = this.sim.runTime >= this.opts.map.timeLimit;
+
+    if (this.mode === 'survival' || this.mode === 'arena') {
+      // Survival has no finish line: the round is over when the qualifying
+      // places are the only players still standing.
+      const alive = this.sim.aliveCount();
+      const settled = this.sim.phase === RoundPhase.Running &&
+        alive <= Math.max(1, this.opts.qualifyCount);
+      if (me.eliminated && !this.spectating && !settled) this.beginSpectate();
+      if (settled || timeUp) this.endRound(!me.eliminated);
+      return;
+    }
+
     const everyoneDone = this.sim.phase === RoundPhase.Running && this.sim.racingCount() === 0;
     const enoughQualified = !this.opts.practice && this.sim.qualifiedCount >= this.sim.qualifyCount;
     const meDone = me.finishTick >= 0;

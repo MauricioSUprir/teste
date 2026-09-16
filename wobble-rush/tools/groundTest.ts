@@ -29,7 +29,7 @@ function makePlayer(x = 0, y = 2, z = 0): PlayerSim {
     coyote: 0, jumpBuffer: 0, jumpHeld: false, airJumpsUsed: 0,
     diveCooldown: 0, stateTimer: 0, lastHitId: 0, hitCd: 0, invuln: 0,
     checkpoint: 0, progress: 0, bestProgress: 0, finishTick: -1, rank: 0,
-    qualified: false, eliminated: false, score: 0, falls: 0,
+    qualified: false, eliminated: false, eliminatedTick: -1, score: 0, falls: 0,
     ability: makeAbilityRuntime(3), loadout: [], emote: 0, emoteTime: 0,
     idleTicks: 0, stallTicks: 0, connected: true, lastSeq: 0,
   };

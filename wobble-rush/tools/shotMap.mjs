@@ -1,0 +1,22 @@
+import { chromium } from 'playwright';
+const mapId = process.argv[2];
+const out = process.argv[3];
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+const errs = [];
+p.on('pageerror', e => errs.push(e.message));
+p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto('http://localhost:5190/', { waitUntil: 'networkidle' });
+await p.waitForTimeout(1200);
+await p.evaluate((id) => {
+  const app = window.__app;
+  const map = window.__maps.find((m) => m.id === id);
+  app.startMatch(false, 777, undefined, map);
+}, mapId);
+await p.waitForTimeout(5500);
+await p.keyboard.press('F3');
+await p.keyboard.down('KeyW');
+await p.waitForTimeout(4000);
+await p.screenshot({ path: out });
+console.log(mapId, 'errors:', errs.length ? errs.slice(0, 4).join(' | ') : 'none');
+await b.close();

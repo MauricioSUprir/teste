@@ -14,7 +14,10 @@ import { CameraController } from './game/camera';
 import { InputManager } from './game/input';
 import { MatchClient, MatchResult, RosterEntry } from './game/matchClient';
 import { SKY_FOUNDRY } from './shared/maps/skyfoundry';
+import { NEON_GARDEN } from './shared/maps/neongarden';
+import { STORM_RING } from './shared/maps/stormring';
 import { rollVariantFor } from './shared/world';
+import { MapDef } from './shared/mapdef';
 import { Wobbler } from './render/character';
 import { CharacterBatch } from './render/characterBatch';
 import { SKIN_COLORS } from './render/palette';
@@ -30,6 +33,12 @@ type Screen = 'loading' | 'menu' | 'draw' | 'intro' | 'match' | 'results';
 
 /** Menu backdrop - a plain, friendly blue. */
 const MENU_BLUE = 0x2f6fd0;
+
+/**
+ * The rotation a PLAY press draws from. Adding a map to the game is adding it
+ * to this list - everything downstream reads the MapDef.
+ */
+const PLAYLIST: MapDef[] = [SKY_FOUNDRY, NEON_GARDEN, STORM_RING];
 
 const TIPS = [
   'Mergulhe para atravessar vãos maiores — mas você fica vulnerável ao cair.',
@@ -59,6 +68,7 @@ export class App {
   private showDev = false;
   private menuTime = 0;
   private drawTimer = 0;
+  private lastMapId = '';
   private frameTimes: number[] = [];
 
   constructor() {
@@ -170,10 +180,10 @@ export class App {
         </div>
         <div class="menu-bottom">
           <div class="map-card">
-            <span class="tag">${SKY_FOUNDRY.difficulty.toUpperCase()}</span>
+            <span class="tag">${PLAYLIST.length} MAPAS</span>
             <div>
-              <b>${t(SKY_FOUNDRY.nameKey)}</b>
-              <small>${rec?.bestTime ? `Recorde ${fmtTime(rec.bestTime)}` : 'Sem recorde ainda'} · 32 jogadores · 4 layouts</small>
+              <b>${PLAYLIST.map((m) => t(m.nameKey)).join(' · ')}</b>
+              <small>${rec?.bestTime ? `Recorde em ${t(SKY_FOUNDRY.nameKey)}: ${fmtTime(rec.bestTime)}` : 'Sorteado a cada partida'} · 32 jogadores</small>
             </div>
           </div>
           <button class="btn big" id="play">${t('menu.play')}</button>
@@ -323,59 +333,69 @@ export class App {
     // Hide the menu character: it shows through the draw overlay otherwise.
     this.menuRoot.visible = false;
     this.menuBatch.root.visible = false;
+
     const seed = (Math.random() * 0xffffffff) >>> 0;
-    const chosen = rollVariantFor(SKY_FOUNDRY, seed);
-    const variants = SKY_FOUNDRY.variants;
-    const rec = saveManager.data.records[SKY_FOUNDRY.id];
+    // Avoid drawing the same course twice in a row - variety beats pure chance.
+    const pool = PLAYLIST.length > 1
+      ? PLAYLIST.filter((m) => m.id !== this.lastMapId)
+      : PLAYLIST;
+    const map = pool[seed % pool.length];
+    const chosen = rollVariantFor(map, seed);
+    this.lastMapId = map.id;
+
+    const modeKey = `mode.${map.modes[0]}`;
+    const qualify = Math.max(1, Math.round(map.maxPlayers * map.qualifyRatio));
+    const variant = map.variants.find((v) => v.id === chosen);
 
     this.setScreen(`
       <div class="draw">
         <div class="draw-head">
-          <span class="draw-eyebrow">PRÓXIMA RODADA</span>
-          <h2>${t(SKY_FOUNDRY.nameKey)}</h2>
-          <p>${SKY_FOUNDRY.difficulty.toUpperCase()} · CORRIDA · 32 JOGADORES · CLASSIFICAM 16</p>
+          <span class="draw-eyebrow">${t('draw.next')}</span>
+          <h2 id="draw-name">${t(map.nameKey)}</h2>
+          <p id="draw-meta">${t(modeKey)} · ${map.difficulty.toUpperCase()} · ${map.maxPlayers} · ${qualify}</p>
         </div>
         <div class="draw-cards">
-          ${variants.map((v) => `
-            <div class="draw-card" data-id="${v.id}">
-              <b>${t(v.nameKey)}</b>
-              <span>${v.descKey ? t(v.descKey) : ''}</span>
+          ${PLAYLIST.map((m) => `
+            <div class="draw-card" data-id="${m.id}">
+              <b>${t(m.nameKey)}</b>
+              <span>${t(`mode.${m.modes[0]}`)} · ${m.difficulty.toUpperCase()}</span>
             </div>`).join('')}
         </div>
-        <div class="draw-status">SORTEANDO O PERCURSO…</div>
-        <div class="draw-foot">${rec?.bestTime ? `Seu recorde: ${fmtTime(rec.bestTime)}` : 'Primeira corrida nesta pista'}</div>
+        <div class="draw-status">${t('draw.picking')}</div>
+        <div class="draw-foot" id="draw-variant"></div>
       </div>`, 'draw');
 
     const cards = Array.from(this.screenEl.querySelectorAll('.draw-card')) as HTMLElement[];
     const status = this.screenEl.querySelector('.draw-status') as HTMLElement;
-    const targetIndex = Math.max(0, variants.findIndex((v) => v.id === chosen));
+    const variantEl = this.screenEl.querySelector('#draw-variant') as HTMLElement;
+    const targetIndex = Math.max(0, PLAYLIST.findIndex((m) => m.id === map.id));
 
-    // Spin, decelerate, land. Total is under three seconds on purpose: the
-    // player came here to run, not to watch a slot machine.
+    // Spin, decelerate, land. Under three seconds on purpose: the player came
+    // here to run, not to watch a slot machine. The result was already drawn.
     let i = 0;
-    let delay = 70;
+    let delay = 80;
     let elapsed = 0;
     const spin = () => {
       cards.forEach((c) => c.classList.remove('active'));
       cards[i % cards.length].classList.add('active');
       audio.play('uiHover');
       elapsed += delay;
-      const landing = elapsed > 1500 && (i % cards.length) === targetIndex;
-      if (landing) {
+      if (elapsed > 1300 && (i % cards.length) === targetIndex) {
         cards[targetIndex].classList.add('picked');
-        status.textContent = 'PERCURSO SORTEADO';
+        status.textContent = t('draw.picked');
+        variantEl.innerHTML = `<b>${variant ? t(variant.nameKey) : ''}</b> — ${variant?.descKey ? t(variant.descKey) : ''}`;
         audio.play('reward');
-        this.drawTimer = window.setTimeout(() => this.startMatch(false, seed, chosen), 900);
+        this.drawTimer = window.setTimeout(() => this.startMatch(false, seed, chosen, map), 1000);
         return;
       }
       i++;
-      if (elapsed > 1100) delay = Math.min(280, delay * 1.22);
+      if (elapsed > 900) delay = Math.min(300, delay * 1.24);
       this.drawTimer = window.setTimeout(spin, delay);
     };
     spin();
   }
 
-  private startMatch(practice: boolean, presetSeed?: number, presetVariant?: string): void {
+  private startMatch(practice: boolean, presetSeed?: number, presetVariant?: string, presetMap?: MapDef): void {
     audio.resume();
     if (this.drawTimer) { clearTimeout(this.drawTimer); this.drawTimer = 0; }
     this.menuRoot.visible = false;
@@ -383,8 +403,11 @@ export class App {
     // Clear the menu before the HUD is mounted, or it sits on top of the match.
     this.setScreen('', 'match');
     const d = saveManager.data;
+    const map = presetMap ?? SKY_FOUNDRY;
     const seed = presetSeed ?? ((Math.random() * 0xffffffff) >>> 0);
-    const rec = d.records[SKY_FOUNDRY.id];
+    const rec = d.records[map.id];
+    const mode = map.modes[0] ?? 'race';
+    const qualify = Math.max(1, Math.round(map.maxPlayers * map.qualifyRatio));
 
     // Build the field: the local player plus a varied bot roster.
     const roster: RosterEntry[] = [{
@@ -392,7 +415,7 @@ export class App {
       difficulty: 'normal', personality: 'speedrunner', look: { ...d.look },
     }];
     if (!practice) {
-      makeBotRoster(31, seed, this.pickBotDifficulty()).forEach((r, i) => {
+      makeBotRoster(map.maxPlayers - 1, seed, this.pickBotDifficulty()).forEach((r, i) => {
         roster.push({
           id: i + 2, name: r.name, isBot: true,
           difficulty: r.difficulty, personality: r.personality,
@@ -405,11 +428,12 @@ export class App {
     }
 
     this.match = new MatchClient(this.rig, this.vfx, this.camera, this.input, this.screenEl, {
-      map: SKY_FOUNDRY,
+      map,
+      mode,
       seed,
       roster,
       localId: 1,
-      qualifyCount: practice ? 1 : 16,
+      qualifyCount: practice ? 1 : qualify,
       variantId: presetVariant,
       practice,
       showTimer: d.settings.showTimer || practice,
@@ -418,14 +442,18 @@ export class App {
     this.match.onFinished = (r) => this.showResults(r);
 
     this.rig.setNight(0);
-    // Short flyover down the course while the countdown runs: it sells the map
-    // and costs no extra time, because the countdown had to happen anyway.
+    // Short flyover while the countdown runs: it sells the map and costs no
+    // extra time, because the countdown had to happen anyway. Arenas orbit;
+    // courses fly the route backwards from the finish to the grid.
     if (!practice) {
-      this.camera.startIntro([
-        [0, 26, 150], [0, 18, 110], [0, 12, 62], [0, 7, 22], [0, 4, -2],
-      ], 3.0);
+      const arena = mode === 'survival' || mode === 'arena';
+      const len = map.courseLength;
+      this.camera.startIntro(arena
+        ? [[34, 20, 34], [0, 16, 44], [-34, 14, 20], [-14, 9, -14], [0, 6, -20]]
+        : [[0, 26, len * 0.62], [0, 18, len * 0.45], [0, 12, len * 0.26],
+           [0, 7, len * 0.09], [0, 4, -2]], 3.0);
     }
-    this.showRoundIntro(practice);
+    this.showRoundIntro(practice, map);
     this.screen = 'match';
     this.touchEl.classList.toggle('active', this.input.touchEnabled);
   }
@@ -439,15 +467,15 @@ export class App {
     return 'expert';
   }
 
-  private showRoundIntro(practice: boolean): void {
+  private showRoundIntro(practice: boolean, map: MapDef = SKY_FOUNDRY): void {
     const info = this.match!.getVariantInfo();
     const el = document.createElement('div');
     el.className = 'round-intro';
     el.innerHTML = `
-      <div class="name">${t(SKY_FOUNDRY.nameKey)}</div>
+      <div class="name">${t(map.nameKey)}</div>
       <div class="variant">${info.name}</div>
       <div class="desc">${info.desc}</div>
-      <div class="goal">${practice ? t('menu.practice') : t('hud.qualified', { n: 0, total: 16 })}</div>`;
+      <div class="goal">${practice ? t('menu.practice') : t(`mode.${map.modes[0]}`)}</div>`;
     this.screenEl.appendChild(el);
     setTimeout(() => { el.style.transition = 'opacity 500ms'; el.style.opacity = '0'; }, 2400);
     setTimeout(() => el.remove(), 3000);
@@ -622,4 +650,5 @@ export class App {
 const app = new App();
 // Exposed for automated screenshots and the dev console. Harmless in release:
 // it grants nothing the player could not already do by playing.
-(window as unknown as { __app: App }).__app = app;
+(window as unknown as { __app: App; __maps: MapDef[] }).__app = app;
+(window as unknown as { __maps: MapDef[] }).__maps = PLAYLIST;

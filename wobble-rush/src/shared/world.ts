@@ -14,7 +14,7 @@ import {
 } from './collision';
 import { qFromEulerArray, qIdentity } from './quat';
 import {
-  MapDef, RouteDef, groupsForVariant,
+  MapDef, RouteDef, GameModeKind, groupsForVariant,
 } from './mapdef';
 import {
   ObstacleRuntime, createObstacle, updateObstacle, setObstacleActive, triggerCrumble, VolumeDef,
@@ -56,6 +56,10 @@ export interface DirectorState {
 
 export interface MatchConfig {
   map: MapDef;
+  /** Defaults to the map's first declared mode. */
+  mode?: GameModeKind;
+  /** Number of teams; 0 means free-for-all. */
+  teamCount?: number;
   rules: RuleSet;
   seed: number;
   /** Forces a layout instead of rolling one (custom rooms, replays, time trials). */
@@ -82,6 +86,8 @@ export class MatchSim {
   readonly volumes: VolumeDef[] = [];
   readonly director: DirectorState;
 
+  readonly mode: GameModeKind;
+  readonly teamCount: number;
   phase: RoundPhase = RoundPhase.Loading;
   phaseTime = 0;
   /** Ticks since the sim was created (obstacles use this: they move during the countdown). */
@@ -110,6 +116,8 @@ export class MatchSim {
 
   constructor(cfg: MatchConfig) {
     this.map = cfg.map;
+    this.mode = cfg.mode ?? cfg.map.modes[0] ?? 'race';
+    this.teamCount = cfg.teamCount ?? 0;
     this.rules = cfg.rules;
     this.seed = cfg.seed;
     this.rng = new Rng((cfg.seed ^ hashString(cfg.map.id)) >>> 0);
@@ -268,6 +276,7 @@ export class MatchSim {
       rank: 0,
       qualified: false,
       eliminated: false,
+      eliminatedTick: -1,
       score: 0,
       falls: 0,
       ability: makeAbilityRuntime(3),
@@ -480,9 +489,11 @@ export class MatchSim {
       if (rt && rt.def.kind === 'crumble') triggerCrumble(rt);
     }
 
-    // Respawn once the fall timer expires.
+    // Respawn once the fall timer expires - unless the mode says a fall is
+    // final, in which case that timer is the player's last half second.
     if (p.state === MoveState.Respawning && p.stateTimer <= 0) {
-      this.respawn(p);
+      if (this.rules.respawnEnabled) this.respawn(p);
+      else this.eliminate(p, 'fell');
     }
 
     // Live progress for the ranking board.
@@ -567,6 +578,7 @@ export class MatchSim {
   eliminate(p: PlayerSim, reason = 'eliminated'): void {
     if (p.eliminated) return;
     p.eliminated = true;
+    p.eliminatedTick = this.tick;
     p.state = MoveState.Eliminated;
     p.stateTime = 0;
     v3set(p.vel, 0, 0, 0);
@@ -618,18 +630,57 @@ export class MatchSim {
     return drop >= 0;
   }
 
-  /** Players ordered by race position (finished first, then by progress). */
+  /**
+   * Live standings.
+   * Race: finishers by time, then by distance covered.
+   * Survival: whoever is still up, then the fallen in reverse order of falling -
+   * lasting longer is the entire achievement, so it has to rank you higher.
+   * Collect/team: by score, with progress as the tiebreak.
+   */
   liveRanking(out: PlayerSim[] = []): PlayerSim[] {
     out.length = 0;
-    for (const p of this.players) if (!p.eliminated) out.push(p);
-    out.sort((a, b) => {
-      if (a.finishTick >= 0 && b.finishTick >= 0) return a.finishTick - b.finishTick;
-      if (a.finishTick >= 0) return -1;
-      if (b.finishTick >= 0) return 1;
-      return b.progress - a.progress;
-    });
+    for (const p of this.players) out.push(p);
+
+    if (this.mode === 'survival' || this.mode === 'arena' || this.mode === 'escape') {
+      out.sort((a, b) => {
+        if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+        if (a.eliminated && b.eliminated) return b.eliminatedTick - a.eliminatedTick;
+        return b.progress - a.progress;
+      });
+    } else if (this.mode === 'collect' || this.mode === 'hunt' || this.mode === 'team') {
+      out.sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+        return b.progress - a.progress;
+      });
+    } else {
+      // Race.
+      const alive = out.filter((p) => !p.eliminated);
+      out.length = 0;
+      out.push(...alive);
+      out.sort((a, b) => {
+        if (a.finishTick >= 0 && b.finishTick >= 0) return a.finishTick - b.finishTick;
+        if (a.finishTick >= 0) return -1;
+        if (b.finishTick >= 0) return 1;
+        return b.progress - a.progress;
+      });
+    }
     for (let i = 0; i < out.length; i++) if (out[i].finishTick < 0) out[i].rank = i + 1;
     return out;
+  }
+
+  /** Combined score of a team, used by team modes. */
+  teamScore(teamId: number): number {
+    let total = 0;
+    for (const p of this.players) if (p.teamId === teamId) total += p.score;
+    return total;
+  }
+
+  /** How many players are still in the round. */
+  aliveCount(): number {
+    let n = 0;
+    for (const p of this.players) if (!p.eliminated) n++;
+    return n;
   }
 
   positionOf(playerId: number): number {

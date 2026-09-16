@@ -26,7 +26,9 @@ O núcleo vem primeiro. Cada fase seguinte só começa sem P0/P1 pendentes.
 | Câmera 3ª pessoa: colisão, FOV dinâmico, suavização, shake | OK | |
 | Controles PC + mobile + gamepad, remapeáveis | OK | |
 | 18 tipos de obstáculo parametrizados | OK | função pura do tempo |
-| Mapa completo (SKY FOUNDRY) com rotas e atalhos | OK | 240 m, 3 rotas, 6 checkpoints |
+| Mapas | OK | 3 mapas: SKY FOUNDRY (corrida, 240 m, 3 rotas, 4 layouts), JARDIM NÉON (corrida fácil, 170 m, 2 layouts), ANEL DA TEMPESTADE (eliminação, arena de 3 anéis que desabam) |
+| Modos além de corrida | PARCIAL | sobrevivência/eliminação completo; equipes declarado no mapa mas ainda sem pontuação por equipe na tela |
+| Kit de autoria de mapas | OK | `maps/kit.ts` — um mapa novo é um arquivo curto, não uma cópia do anterior |
 | Checkpoints, respawn seguro, invulnerabilidade | OK | escolhe ponto livre |
 | Linha de chegada, photo finish autoritativo | OK | |
 | Bots com rota, dificuldade e personalidade | OK | 4 dificuldades × 5 perfis. Escada real: easy termina em ~66 s, hard em ~46 s. No layout padrão 18 de 32 cruzam a linha, vencedor em ~52 s |
@@ -86,7 +88,17 @@ O núcleo vem primeiro. Cada fase seguinte só começa sem P0/P1 pendentes.
 - O `MatchClient` já aceita um roster e devolve a classificação completa, então
   o encadeamento de rodadas é ligação de telas, não refactor.
 
-## Bugs corrigidos nesta leva
+## Bugs corrigidos (leva 2)
+
+| Bug | Causa | Correção |
+|---|---|---|
+| Rampas colidiam **planas** | a função de euler tem assinatura (rx, ry, rz) e os três chamadores passavam (y, x, z) | `qFromEulerArray`, que recebe o array do mapa |
+| D andava para a esquerda | produto vetorial invertido: com a câmera olhando +Z, a direita da tela é −X | base corrigida no controller e nos bots |
+| Dash parecia um segundo pulo | lift de 5.2 contra 2.4 de impulso útil | dash rasante: 15.5 à frente, 2.4 de lift |
+| Step-up nunca funcionava | avançava só a sobra do movimento, a descida empurrava de volta na horizontal, e a flag lida era do movimento errado (objeto de resultado compartilhado) | refaz o movimento inteiro elevado, sondagem vertical pura, flags capturadas na hora |
+| Passarela superior intransponível | a rampa atravessava o próprio piso (só visível depois do conserto do euler) | deck encurtado e rampas recalculadas |
+
+## Bugs corrigidos (leva 1)
 
 | Bug | Causa | Correção |
 |---|---|---|

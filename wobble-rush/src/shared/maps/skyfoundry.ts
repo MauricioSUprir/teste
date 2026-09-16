@@ -237,9 +237,9 @@ obs({
 floor(12, 128, 2.6, 2.6, 0, { group: 'routeR', color: C.right });
 floor(9, 137, 5, 5, 0, { group: 'routeR', color: C.right });
 // -- Upper catwalk: only in the 'highroad' layout. --------------------------
-floor(0, 120, 4.2, 20, 7.5, { group: 'upper', color: C.upper });
-ramp(0, 3.9, 103, 4.2, 6.5, -0.55, { group: 'upper', color: C.upper });
-ramp(0, 3.9, 137, 4.2, 6.5, 0.55, { group: 'upper', color: C.upper });
+floor(0, 120, 4.2, 12, 7.5, { group: 'upper', color: C.upper });
+ramp(0, 3.85, 102.25, 4.2, 7.34, -0.552, { group: 'upper', color: C.upper });
+ramp(0, 3.85, 137.75, 4.2, 7.34, 0.552, { group: 'upper', color: C.upper });
 obs({
   kind: 'sweeper', id: nid('sweep'), group: 'upper', pos: [0, 8.6, 120],
   size: [4.6, 0.28, 0.35], speed: 1.35, count: 3, force: 10,
@@ -369,8 +369,9 @@ const routes: RouteDef[] = [
   },
   {
     id: 'r_upper', group: 'upper',
-    points: [[0, 0.6, 96], [0, 4, 103], [0, 8.1, 112], [0, 8.1, 128], [0, 4, 137], [0, 0.6, 148]],
-    startDist: 96, endDist: 152, risk: 0.35, width: 2.8,
+    points: [[0, 0.6, 96], [0, 2.5, 100], [0, 6, 105], [0, 8.1, 110], [0, 8.1, 130],
+      [0, 6, 135], [0, 2.5, 140], [0, 0.6, 146], [0, 0.6, 148]],
+    startDist: 96, endDist: 152, risk: 0.6, width: 3.4,
   },
   {
     // Salvage deck -> ramp -> back on course. Bots pick this only when they are

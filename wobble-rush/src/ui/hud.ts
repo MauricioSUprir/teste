@@ -23,6 +23,8 @@ export interface HudState {
   runTime: number;
   personalBest: number;
   showTimer: boolean;
+  /** Survival rounds count who is left, not who got through. */
+  survival?: boolean;
 }
 
 export class Hud {
@@ -89,7 +91,9 @@ export class Hud {
 
     const pct = s.qualifyTarget > 0 ? Math.min(1, s.qualified / s.qualifyTarget) : 0;
     this.qualBar.style.width = `${pct * 100}%`;
-    this.qualText.textContent = t('hud.qualified', { n: s.qualified, total: s.qualifyTarget });
+    this.qualText.textContent = s.survival
+      ? t('hud.survivors', { n: s.qualified, total: s.qualifyTarget })
+      : t('hud.qualified', { n: s.qualified, total: s.qualifyTarget });
 
     const mins = Math.floor(Math.max(0, s.timeLeft) / 60);
     const secs = Math.floor(Math.max(0, s.timeLeft) % 60);
