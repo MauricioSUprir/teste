@@ -111,13 +111,17 @@ export class App {
     const temSave = resumos((x, z) => this.jogo.world.districtName(x, z)).some((r) => r.existe)
     this.menu = new MainMenu((id) => this.acaoMenu(id), VERSAO)
     this.menu.definirOpcoes([
-      { id: 'novo', titulo: 'Novo jogo', descricao: 'Criar personagem e começar em Vila Aurora', disponivel: true },
+      { id: 'novo', titulo: 'Novo jogo', descricao: 'Começar na rua, em Vila Aurora', disponivel: true },
       {
         id: 'continuar', titulo: 'Continuar',
         descricao: 'Retomar de onde parou', disponivel: temSave && this.podeSalvar,
         motivo: this.podeSalvar ? 'Nenhum jogo salvo ainda' : 'Armazenamento indisponível neste navegador',
       },
-      { id: 'personalizar', titulo: 'Personalizar personagem', descricao: 'Editor completo de aparência', disponivel: true },
+      {
+        id: 'personalizar', titulo: 'Personalizar personagem',
+        descricao: 'Editor completo de aparência', disponivel: false,
+        motivo: 'Em conserto: o editor ainda trava em algumas máquinas',
+      },
       { id: 'config', titulo: 'Configurações', descricao: 'Gráficos, áudio, jogabilidade e controles', disponivel: true },
       { id: 'creditos', titulo: 'Créditos e controles', descricao: 'Como jogar e o que foi usado', disponivel: true },
     ])
@@ -127,9 +131,12 @@ export class App {
   private acaoMenu(id: AcaoMenu['id']): void {
     this.jogo.audio.interface(id === 'voltar' ? 'voltar' : 'confirmar')
     switch (id) {
-      case 'novo': this.abrirEditor(true); break
+      // O editor de personagem está desativado até parar de travar. Enquanto
+      // isso, "Novo jogo" coloca o jogador direto na rua, de pé, com a
+      // aparência padrão.
+      case 'novo': this.comecarJogo(true); break
       case 'continuar': this.abrirCarregar(); break
-      case 'personalizar': this.abrirEditor(false); break
+      case 'personalizar': break
       case 'config': this.abrirConfig(); break
       case 'creditos': this.abrirCreditos(); break
       case 'salvar': this.salvar(); break
@@ -139,6 +146,12 @@ export class App {
     }
   }
 
+  /**
+   * Editor de personagem. Desligado do menu por ora: ele abre um segundo
+   * contexto WebGL e ainda trava em algumas máquinas. O código fica aqui,
+   * inteiro, para voltar assim que o problema estiver resolvido.
+   */
+  // @ts-expect-error mantido de propósito enquanto o editor está desativado
   private abrirEditor(novoJogo: boolean): void {
     this.estado = 'editor'
     // O editor tem renderizador próprio. Deixar o jogo desenhando a cidade
@@ -214,7 +227,11 @@ export class App {
     if (novo) {
       this.progresso = progressoInicial()
       this.jogo.world.hour = 9.0
-      this.jogo.player.teleport(SPAWN.x, SPAWN.z, 0)
+      // Começa de pé na calçada, de frente para a rua — não dentro de um lote
+      // nem em cima de uma laje.
+      const p = this.jogo.world.pontoInicial(SPAWN)
+      this.jogo.player.teleport(p.x, p.z, p.yaw)
+      this.jogo.player.rig.yaw = p.yaw
     }
     this.jogo.definirCinematica(false)
     this.jogo.paused = false
@@ -224,7 +241,10 @@ export class App {
     this.ultimaPos.copy(this.jogo.player.position)
     this.jogo.input.requestPointerLock()
     this.jogo.interacoes.notificar(
-      novo ? 'Clique na tela para capturar o mouse. Explore à vontade.' : 'Bem-vindo de volta.', 5,
+      novo
+        ? 'Clique na tela para capturar o mouse. WASD anda, Shift corre, E interage.'
+        : 'Bem-vindo de volta.',
+      6,
     )
   }
 

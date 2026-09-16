@@ -175,7 +175,8 @@ export class PauseMenu {
     const itens: [AcaoMenu['id'], string, string, boolean][] = [
       ['voltar', 'Continuar jogando', 'Fecha a pausa', true],
       ['salvar', 'Salvar', podeSalvar ? 'Grava o progresso no espaço atual' : 'Armazenamento indisponível neste navegador', podeSalvar],
-      ['personalizar', 'Personalizar personagem', 'Editar aparência sem sair do jogo', true],
+      // Desativado até o editor parar de travar em algumas máquinas.
+      ['personalizar', 'Personalizar personagem', 'Em conserto: o editor ainda trava em algumas máquinas', false],
       ['config', 'Configurações', 'Gráficos, áudio, controles', true],
       ['creditos', 'Créditos e controles', 'Referência rápida', true],
       ['sair', 'Sair para o menu', 'O progresso não salvo é perdido', true],

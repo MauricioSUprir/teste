@@ -9,7 +9,7 @@ import type { GraphicsSettings } from '../core/settings'
 import { Sky } from '../core/sky'
 import { CollisionWorld } from './collision'
 import { GeometryBatcher, disposeObject, type NivelDetalhe } from './geometry'
-import { CityLayout, districtAt, type Block } from './layout'
+import { CityLayout, districtAt, SIDEWALK, type Block } from './layout'
 import { MaterialLibrary, type WorldMaterialKey } from './materials'
 import { buildBlockContent, planPitchForBlock, type PitchSpec } from './blocks'
 import { buildBuilding, buildBuildingLod, planBlockBuildings, type BuildingSpec } from './buildings'
@@ -513,6 +513,12 @@ export class World {
     return new THREE.Vector3(x, terrainHeight(x, z), z)
   }
 
+  /**
+   * Ponto de calçada livre mais próximo, com a direção olhando para a rua.
+   *
+   * É onde o jogador deve nascer: de pé, na calçada, de frente para a via — e
+   * não dentro de um lote ou em cima de uma laje.
+   */
   dispose(): void {
     for (const key of [...this.sectors.keys()]) this.unloadSector(key)
     for (const c of this.terrainChunks.values()) c.mesh.geometry.dispose()
