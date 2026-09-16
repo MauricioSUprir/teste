@@ -46,7 +46,10 @@ texturas e áudio são gerados em código.
 
 **Controles** — WASD mover · SPACE pular · SHIFT/CTRL/E mergulhar · mouse câmera
 · `[` `]` trocar de espectador · ESC sair · F3 painel de depuração.
-No celular: joystick virtual à esquerda, câmera à direita, botões PULO/MERGULHO.
+No celular: analógico virtual no canto inferior esquerdo (fica visível desde o
+início da partida e desliza até o polegar), câmera no resto da tela, botões PULO
+e AVANÇO à direita. Em *Ajustes → Controles na tela* dá para ligar o analógico
+também no PC, controlado pelo mouse dentro do anel.
 
 ---
 
