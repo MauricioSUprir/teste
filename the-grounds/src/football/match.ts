@@ -44,6 +44,10 @@ export interface Footballer {
   rng: Rng
   /** True para o jogador humano. */
   humano: boolean
+  /** Ação do quadro anterior, para saber quando uma ação nova começou. */
+  acaoAnterior: ActionKind | null
+  /** True depois que o contato desta ação já foi resolvido. */
+  contatoFeito: boolean
   nome: string
   energia: number
 }
@@ -243,6 +247,8 @@ export class Match {
           travaToque: 0,
           rng: makeRng(seed ^ 0x2a2a),
           humano,
+          acaoAnterior: null,
+          contatoFeito: false,
           nome: humano ? 'Você' : `#${i + 1}`,
           energia: 1,
         }
@@ -725,13 +731,22 @@ export class Match {
     const ball = this.ball
     const d = f.position.distanceTo(ball.position)
 
+    // Ação nova: o contato dela ainda não foi resolvido.
+    if (f.action !== f.acaoAnterior) {
+      f.acaoAnterior = f.action
+      f.contatoFeito = false
+    }
+
     // Ação com contato programado (chute, passe, cabeceio).
+    //
+    // O instante do contato é testado por travamento, não por uma janela de um
+    // quadro: com uma janela fixa de 1/60 s, qualquer taxa abaixo de 60 fps
+    // passava por cima do contato e o chute simplesmente não saía.
     if (f.action && ACTION_CONTACT[f.action] !== undefined) {
       const dur = ACTION_DURATION[f.action]
       const contato = ACTION_CONTACT[f.action]!
-      const antes = (f.actionTime - 1 / 60) / dur
-      const agora = f.actionTime / dur
-      if (antes < contato && agora >= contato && d < 2.0) {
+      if (!f.contatoFeito && f.actionTime / dur >= contato && d < 2.0) {
+        f.contatoFeito = true
         if (f.humano) {
           const mira = new THREE.Vector3().subVectors(f.destino, ball.position).setY(0)
           this.aplicarChute(f, f.action, mira, this.potenciaHumano)

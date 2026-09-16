@@ -122,6 +122,8 @@ Legenda: ✅ feito e verificado · 🔨 em andamento · ⬜ não começado · �
 | Câmera de futebol | ✅ | |
 | Modo fotografia | ✅ | Câmera livre |
 | Ajuste de sensibilidade | ✅ | |
+| Câmera boa no trackpad de notebook | ✅ | Perfil auto/mouse/trackpad, curva de aceleração, suavização que espalha o movimento sem perder rotação, limite contra saltos do travamento de ponteiro e rolagem acumulada por limiar |
+| Girar a câmera sem apontador | ✅ | Setas do teclado |
 
 ## 8. Carros e trânsito
 
@@ -166,7 +168,8 @@ Legenda: ✅ feito e verificado · 🔨 em andamento · ⬜ não começado · �
 |---|---|---|
 | Campos de bairro, quadras, instalação maior | ✅ | 9 locais gerados, incluindo arena |
 | Chegar ao local e iniciar atividade | ✅ | |
-| Treino livre | ✅ | Bola solta em qualquer lugar (tecla G) |
+| Treino livre | ✅ | Modo próprio no campo: só você e os goleiros, sem relógio, bola de volta ao pé, aproveitamento/defesas/km-h no HUD. Bola solta em qualquer lugar pela tecla G |
+| Escolher entre jogar e treinar | ✅ | Menu contextual no campo: partida 5×5, treino livre ou bater uma bola |
 | Condução e domínio | ✅ | |
 | Passe | ✅ | |
 | Chute com direção e potência | ✅ | Segurar carrega a força |
@@ -179,7 +182,8 @@ Legenda: ✅ feito e verificado · 🔨 em andamento · ⬜ não começado · �
 | Física da bola | ✅ | Arrasto, efeito Magnus, quique por superfície, rolamento |
 | Bots buscam espaço, marcam, passam, chutam | ✅ | |
 | Animações coordenadas com o contato | ✅ | Contato programado no ciclo da ação |
-| **Verificação em partida completa** | 🔨 | Sistemas prontos; falta o teste de ponta a ponta |
+| Chute conecta em qualquer taxa de quadros | ✅ | Corrigido: o contato era testado numa janela de 1/60 s e era pulado abaixo de 60 fps |
+| **Verificação em partida completa** | 🔨 | Verificados: entrada no campo, posição de saída, treino livre e chute (86 km/h, bola em voo, contador). Falta correr uma partida do apito inicial ao final |
 
 ## 11. Qualidade visual e 4K
 
@@ -255,7 +259,9 @@ Legenda: ✅ feito e verificado · 🔨 em andamento · ⬜ não começado · �
 | Simulação reduzida à distância | ✅ | |
 | Resolução dinâmica | ✅ | |
 | Medição de desempenho | ✅ | Painel com F3 |
-| 60 fps no equipamento de referência | ⚠️ | **Não verificável aqui**: o ambiente só tem rasterizador por software (~20 fps). Precisa de teste em GPU real |
+| Estabilidade de tempo de quadro | ✅ | Setores e interiores construídos em etapas retomáveis com orçamento em ms; pedestres e carros reaproveitados de reserva; mapa de ambiente refeito só quando a luz muda |
+| Perfil por subsistema | ✅ | Média e pico de cada etapa no painel F3 |
+| 60 fps no equipamento de referência | ⚠️ | **Não verificável aqui**: o ambiente só tem rasterizador por software (1–2 fps a 800×450). O trabalho de CPU está medido (soma < 5 ms/quadro); o custo de GPU precisa de teste em máquina real |
 
 ## 15. Testes e critérios de entrega
 
