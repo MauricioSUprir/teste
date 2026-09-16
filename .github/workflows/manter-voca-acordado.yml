@@ -1,0 +1,26 @@
+name: manter-voca-acordado
+
+# Acorda o VOCA IA de manhã e o mantém de pé durante o horário de estudo.
+#
+# Por que só nesse horário: o plano gratuito do Render dá 750 horas de execução
+# por MÊS para a conta inteira (todos os serviços grátis somados). Manter um
+# serviço acordado 24/7 consome ~730h sozinho — ou seja, a conta toda. Das 7h às
+# 23h dá ~490h/mês, que cabe junto com o resto.
+#
+# O agendador do GitHub só roda workflow que está na branch padrão.
+on:
+  schedule:
+    # a cada 10 min, das 10:00 às 02:59 UTC = 7h às 23h de Brasília
+    - cron: "*/10 10-23,0-2 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  cutucar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar o servidor
+        run: |
+          # o primeiro acesso do dia demora: damos tempo de ele levantar
+          curl -fsS --max-time 120 "https://voca-ia-f0ls.onrender.com/api/health" -o /dev/null \
+            && echo "VOCA IA acordado" \
+            || echo "não respondeu desta vez (segue a vida)"

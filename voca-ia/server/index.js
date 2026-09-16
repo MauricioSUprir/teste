@@ -787,6 +787,46 @@ if (fs.existsSync(dist)) {
   app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')))
 }
 
+// ------------------------------------------------- despertador do servidor
+// O plano gratuito do Render hiberna o servico depois de ~15 min parado, e
+// acordar demora quase um minuto. Enquanto esta de pe, ele se cutuca sozinho
+// para nao dormir — mas SO na janela de estudo, porque hora de execucao e
+// compartilhada entre todos os servicos gratuitos da conta.
+//
+// KEEP_AWAKE=off desliga. KEEP_AWAKE_FROM / KEEP_AWAKE_TO sao horas de Brasilia.
+const ACORDADO = (process.env.KEEP_AWAKE || 'on') !== 'off'
+const HORA_INICIO = Number(process.env.KEEP_AWAKE_FROM ?? 7) // 7h da manha
+const HORA_FIM = Number(process.env.KEEP_AWAKE_TO ?? 23) // ate as 23h
+const MEU_ENDERECO = process.env.RENDER_EXTERNAL_URL || ''
+
+function horaDeBrasilia() {
+  return Number(
+    new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: 'numeric', hour12: false }).format(new Date()),
+  )
+}
+
+function dentroDaJanela() {
+  const h = horaDeBrasilia()
+  // janela que vira a meia-noite (ex.: 20h as 2h) tambem funciona
+  return HORA_INICIO <= HORA_FIM ? h >= HORA_INICIO && h < HORA_FIM : h >= HORA_INICIO || h < HORA_FIM
+}
+
+function ligarDespertador() {
+  if (!ACORDADO || !MEU_ENDERECO) return
+  console.log(`despertador ligado: das ${HORA_INICIO}h as ${HORA_FIM}h (horario de Brasilia)`)
+  setInterval(
+    async () => {
+      if (!dentroDaJanela()) return
+      try {
+        await fetch(`${MEU_ENDERECO}/api/health`, { headers: { 'x-voca-despertador': '1' } })
+      } catch {
+        /* sem rede agora; tenta no proximo */
+      }
+    },
+    10 * 60 * 1000, // a cada 10 minutos, antes dos 15 de hibernacao
+  )
+}
+
 app.listen(PORT, () => {
   console.log(`VOCA IA — servidor em http://localhost:${PORT}`)
   console.log(
@@ -795,4 +835,5 @@ app.listen(PORT, () => {
       : 'sem IA no servidor — cada pessoa liga a dela no app, ou fica no modo offline',
   )
   console.log(XI_KEY ? `voz natural: ElevenLabs (${XI_MODEL})` : 'voz natural desligada — usando a voz do navegador')
+  ligarDespertador()
 })
