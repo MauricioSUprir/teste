@@ -291,7 +291,10 @@ export class World {
     for (const m of meshes) {
       // Superfícies rasas já vêm marcadas para não projetar sombra; setores de
       // baixo detalhe não projetam nada.
-      m.castShadow = m.castShadow && detail !== 'baixo'
+      // Só o anel colado no jogador projeta sombra. Deixar o anel médio
+      // projetar dobra a geometria do mapa de sombras — foi o que pesou
+      // quando as fachadas ganharam moldura, peitoril e verga.
+      m.castShadow = m.castShadow && detail === 'alto'
       m.receiveShadow = true
       group.add(m)
     }

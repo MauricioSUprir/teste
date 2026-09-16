@@ -103,9 +103,9 @@ export const QUALITY_PRESETS: Record<QualityPreset, Partial<GraphicsSettings>> =
     textureQuality: 'baixo', vegetationDensity: 0.3, anisotropy: 1,
   },
   medio: {
-    renderScale: 0.9, shadows: 'baixo', viewDistance: 520, pedestrianDensity: 0.55,
-    trafficDensity: 0.55, antialias: 'fxaa', ssao: false, bloom: true, motionBlur: false,
-    textureQuality: 'medio', vegetationDensity: 0.6, anisotropy: 4,
+    renderScale: 0.9, shadows: 'baixo', viewDistance: 460, pedestrianDensity: 0.5,
+    trafficDensity: 0.5, antialias: 'fxaa', ssao: false, bloom: true, motionBlur: false,
+    textureQuality: 'medio', vegetationDensity: 0.55, anisotropy: 4,
   },
   alto: {
     renderScale: 1.0, shadows: 'medio', viewDistance: 750, pedestrianDensity: 0.8,
@@ -121,12 +121,16 @@ export const QUALITY_PRESETS: Record<QualityPreset, Partial<GraphicsSettings>> =
 
 export function defaultSettings(): Settings {
   const base: GraphicsSettings = {
-    preset: 'alto',
-    renderScale: 1,
+    // Padrão no médio: a cidade ficou bem mais detalhada (moldura de janela,
+    // carro estacionado, mais material por fachada) e abrir no alto entrega
+    // uma primeira impressão travada em máquina comum. Quem tem folga sobe o
+    // perfil nas opções e vê a diferença.
+    preset: 'medio',
+    renderScale: 0.9,
     outputWidthCap: 0,
-    shadows: 'medio',
-    viewDistance: 750,
-    pedestrianDensity: 0.8,
+    shadows: 'baixo',
+    viewDistance: 460,
+    pedestrianDensity: 0.5,
     trafficDensity: 0.8,
     antialias: 'fxaa',
     ssao: true,

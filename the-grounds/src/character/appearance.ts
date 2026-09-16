@@ -539,8 +539,32 @@ function buildFaceFeatures(app: Appearance, shape: BodyShape): THREE.BufferGeome
     attach(p, put(asa, cx + sgn * 0.0135 * k * f.nariz, cy + g.noseTipY - 0.0015 * k, cz + g.noseZ - 0.010 * k), head)
   }
 
+  // Pálpebras. Sem elas o globo ocular fica exposto inteiro e o rosto ganha
+  // aquele olhar de boneco. A de cima cobre o terço superior do globo e é
+  // levemente inclinada para fora; a de baixo é só uma borda.
+  for (const sgn of [-1, 1]) {
+    const sup = sphere(1, 12)
+    sup.scale(g.eyeR * 1.30, g.eyeR * 0.66, g.eyeR * 0.72)
+    attach(p, put(sup,
+      cx + sgn * g.eyeX, cy + g.eyeY + g.eyeR * 0.58, cz + g.eyeZ + g.eyeR * 0.42,
+      -0.22, 0, sgn * 0.10), head, 0.78)
+    const inf = sphere(1, 10)
+    inf.scale(g.eyeR * 1.18, g.eyeR * 0.40, g.eyeR * 0.62)
+    attach(p, put(inf,
+      cx + sgn * g.eyeX, cy + g.eyeY - g.eyeR * 0.74, cz + g.eyeZ + g.eyeR * 0.40,
+      0.16, 0, 0), head, 0.88)
+    // Canto interno e externo, para o olho não ficar redondo demais.
+    for (const lado of [-1, 1] as const) {
+      const canto = sphere(1, 8)
+      canto.scale(g.eyeR * 0.34, g.eyeR * 0.60, g.eyeR * 0.50)
+      attach(p, put(canto,
+        cx + sgn * g.eyeX + lado * g.eyeR * 1.08, cy + g.eyeY - g.eyeR * 0.06,
+        cz + g.eyeZ + g.eyeR * 0.30), head, 0.84)
+    }
+  }
+
   // Lábios
-  const mouthW = 0.0215 * k
+  const mouthW = 0.0268 * k
   const labioSup = sphere(1, 12)
   labioSup.scale(mouthW, 0.0062 * k, 0.0085 * k)
   attach(p, put(labioSup, cx, cy + g.mouthY + 0.0040 * k, cz + g.mouthZ), head, 0.93)
@@ -571,18 +595,20 @@ function faceAnchors(app: Appearance, k: number) {
   const hy = HEAD_RADII.y * f.alongamento * k
   const hz = HEAD_RADII.z * k
   const cy = HEAD_CENTER_Y * k
-  const eyeY = cy + hy * 0.10
+  const eyeY = cy + hy * 0.015
   // Superfície frontal na altura dos olhos (elipsoide), recuada pela órbita.
   const surfZ = hz * Math.sqrt(Math.max(0, 1 - Math.pow((eyeY - cy) / hy, 2)))
   return {
-    eyeR: 0.0102 * k,
+    // Olho de 2,5 cm e no meio da altura da cabeça, que é onde ele fica de
+    // verdade. Menor e mais alto, vira uma continha colada no rosto.
+    eyeR: 0.0125 * k,
     eyeX: hx * 0.42,
     eyeY,
     eyeZ: surfZ * (0.865 - (f.orbitas - 1) * 0.06),
     noseTopY: cy + hy * 0.12,
     noseTipY: cy - hy * 0.12,
     noseZ: hz * 0.99 + 0.006 * k * f.nariz,
-    mouthY: cy - hy * 0.42,
+    mouthY: cy - hy * 0.36,
     mouthZ: hz * 0.80,
     earX: hx * 0.99,
     earY: cy + hy * 0.02,
@@ -684,12 +710,34 @@ function buildAccessories(app: Appearance, shape: BodyShape): THREE.BufferGeomet
   const cy = HEAD_CENTER_Y * kc
 
   if (app.chapeu === 'bone' || app.chapeu === 'boneTras') {
-    const crown = new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.52)
-    crown.scale(HX + 0.014 * kc, HY + 0.008 * kc, HZ + 0.014 * kc)
-    attach(p, put(crown, c.x, c.y + cy + 0.006 * kc, c.z), head)
+    // Copa um pouco mais alta que meia esfera: cortada na metade exata ela
+    // fica com cara de touca de natação.
+    const crown = new THREE.SphereGeometry(1, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.56)
+    crown.scale(HX + 0.015 * kc, (HY + 0.010 * kc) * 1.12, HZ + 0.015 * kc)
+    attach(p, put(crown, c.x, c.y + cy + 0.004 * kc, c.z), head)
+    // Botão do topo.
+    attach(p, put(sphere(0.011 * kc, 8), c.x, c.y + cy + (HY + 0.010 * kc) * 1.12 - 0.004 * kc, c.z), head)
+    // Faixa da testa, que fecha a copa e dá espessura ao boné.
+    const faixa = new THREE.CylinderGeometry(HX + 0.016 * kc, HX + 0.016 * kc, 0.026 * kc, 20, 1, true)
+    faixa.scale(1, 1, (HZ + 0.016 * kc) / (HX + 0.016 * kc))
+    attach(p, put(faixa, c.x, c.y + cy + HY * 0.30, c.z), head)
+
+    // Aba: três lâminas que estreitam e caem, em vez de uma placa reta. Vista
+    // de frente a placa lisa virava uma agulha atravessando a cabeça.
     const dir = app.chapeu === 'bone' ? 1 : -1
-    attach(p, put(box((HX + 0.014 * kc) * 1.9, 0.010 * kc, 0.105 * kc),
-      c.x, c.y + cy + HY * 0.34, c.z + dir * (HZ + 0.055 * kc), dir * 0.14), head)
+    const larguraBase = (HX + 0.015 * kc) * 1.78
+    const passos = 3
+    for (let i = 0; i < passos; i++) {
+      const t = i / passos
+      const t1 = (i + 1) / passos
+      const larg = larguraBase * (1 - t * 0.34)
+      const prof = 0.040 * kc
+      const zz = (HZ + 0.012 * kc) + (0.030 * kc) + t * prof * 0.92 + prof / 2
+      // Cai um pouco mais a cada lâmina: é isso que curva a aba.
+      const queda = (t + t1) * 0.5 * 0.055 * kc
+      attach(p, put(box(larg, 0.009 * kc, prof),
+        c.x, c.y + cy + HY * 0.30 - queda, c.z + dir * zz, dir * (0.16 + t * 0.20)), head)
+    }
   } else if (app.chapeu === 'gorro') {
     const g = new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.62)
     g.scale(HX + 0.016 * kc, HY + 0.012 * kc, HZ + 0.016 * kc)
