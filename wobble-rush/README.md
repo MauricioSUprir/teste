@@ -15,6 +15,28 @@ npm run build:single  # gera wobble-rush.html — o jogo inteiro num arquivo só
 npm run test:bots  # partidas completas com 32 bots + heatmap de quedas
 ```
 
+### Jogar online
+
+O build de arquivo único fica na branch `play` e é servido pelo githack, que lê
+direto do GitHub com o tipo MIME correto — sem precisar de GitHub Pages (o do
+repositório já está em uso por outro site).
+
+```
+https://rawcdn.githack.com/MauricioSUprir/teste/<sha>/wobble-rush/wobble-rush.html
+```
+
+Para publicar uma versão nova:
+
+```bash
+npm run build:single
+git checkout play && git add -f wobble-rush/wobble-rush.html
+git commit -m "atualiza build" && git push
+git rev-parse HEAD   # use este sha na URL
+```
+
+Use `rawcdn` com o sha (permanente, em cache) para compartilhar; `raw.githack.com`
+com o nome da branch sempre serve a versão mais recente, mas tem limite de uso.
+
 ### Arquivo único
 
 `npm run build:single` gera `wobble-rush.html` (~650 KB): abre com duplo clique,
