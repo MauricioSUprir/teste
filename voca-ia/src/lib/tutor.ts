@@ -2,7 +2,10 @@
 // resposta. Tudo tem plano B local, para o app nunca ficar mudo.
 import type { Phrase } from '../state/types'
 
+
 export type Explanation = {
+  /** qual servico respondeu */
+  by?: string
   short: string
   rule: string
   examples: { text: string; pt: string }[]
@@ -13,23 +16,14 @@ export type Explanation = {
 
 export type AskReply = { answer: string; examples?: string[]; offline?: boolean }
 
-function aiFields() {
-  try {
-    const raw = localStorage.getItem('voca-ia:ai')
-    if (!raw) return {}
-    const a = JSON.parse(raw)
-    if (!a.provider) return {}
-    return { provider: a.provider, model: a.model || undefined, apiKey: a.apiKey || undefined }
-  } catch {
-    return {}
-  }
-}
+import { chainFor } from './api'
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(path: string, body: unknown, task: 'fast' | 'smart' = 'smart'): Promise<T> {
+  const chain = chainFor(task)
   const r = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...(body as object), ...aiFields() }),
+    body: JSON.stringify({ ...(body as object), ...(chain.length ? { chain } : {}) }),
   })
   if (!r.ok) {
     let msg = `servidor respondeu ${r.status}`
@@ -90,7 +84,8 @@ export async function hint(body: {
   level: string
   strength: number
 }): Promise<{ hint: string }> {
-  return post<{ hint: string }>('/api/hint', body)
+  // dica e no meio do exercicio: aqui velocidade importa mais
+  return post<{ hint: string }>('/api/hint', body, 'fast')
 }
 
 /** Dica local: nao precisa de IA nem de internet. */

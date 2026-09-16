@@ -3,6 +3,8 @@
 import type { ChatTurn, Correction } from '../state/types'
 
 export type ChatReply = {
+  /** qual servico respondeu (quando ha mais de um configurado) */
+  by?: string
   reply: string
   replyPt?: string
   corrections: Correction[]
@@ -91,16 +93,42 @@ export const PROVIDERS: ProviderInfo[] = [
   },
 ]
 
-export type AiConfig = { provider: string; model: string; apiKey: string }
+/** Uma chave configurada para um provedor. */
+export type AiSlot = { model: string; apiKey: string }
+
+/**
+ * Da para configurar MAIS DE UM servico ao mesmo tempo e dizer qual usar em
+ * cada coisa: um rapido para a conversa por voz, um melhor para explicar. E se
+ * um estourar o limite do plano gratuito, o outro assume sozinho.
+ */
+export type AiConfig = {
+  slots: Record<string, AiSlot>
+  /** usado na conversa e nas dicas — o que importa e a velocidade */
+  fast: string
+  /** usado na explicacao, nas duvidas e no relatorio — o que importa e acertar */
+  smart: string
+}
+
+const VAZIO: AiConfig = { slots: {}, fast: '', smart: '' }
 
 export function getAi(): AiConfig {
   try {
     const raw = localStorage.getItem(AI_STORE)
-    if (raw) return { provider: '', model: '', apiKey: '', ...JSON.parse(raw) }
+    if (!raw) return VAZIO
+    const j = JSON.parse(raw)
+    // formato antigo: um provedor so
+    if (j && typeof j.provider === 'string' && !j.slots) {
+      if (!j.provider) return VAZIO
+      return {
+        slots: { [j.provider]: { model: j.model ?? '', apiKey: j.apiKey ?? '' } },
+        fast: j.provider,
+        smart: j.provider,
+      }
+    }
+    return { ...VAZIO, ...j, slots: j.slots ?? {} }
   } catch {
-    /* navegador sem storage */
+    return VAZIO
   }
-  return { provider: '', model: '', apiKey: '' }
 }
 
 export function setAi(c: AiConfig) {
@@ -112,10 +140,28 @@ export function setAi(c: AiConfig) {
   online = null
 }
 
+/** Provedores que ja tem chave (o Ollama roda local e nao precisa). */
+export function configured(c: AiConfig = getAi()) {
+  return Object.entries(c.slots)
+    .filter(([id, s]) => s.apiKey.trim() || id === 'ollama')
+    .map(([id]) => id)
+}
+
+/**
+ * Ordem de tentativa para uma tarefa: o preferido na frente, o outro atras
+ * como reserva.
+ */
+export function chainFor(task: 'fast' | 'smart', c: AiConfig = getAi()) {
+  const prontos = configured(c)
+  if (!prontos.length) return []
+  const preferido = task === 'fast' ? c.fast : c.smart
+  const ordem = [preferido, ...prontos.filter((id) => id !== preferido)].filter((id) => prontos.includes(id))
+  return ordem.map((id) => ({ provider: id, model: c.slots[id]?.model || undefined, apiKey: c.slots[id]?.apiKey || undefined }))
+}
+
 /** A pessoa configurou IA no proprio app? */
 export function userAiReady() {
-  const a = getAi()
-  return !!a.provider && (!!a.apiKey || a.provider === 'ollama')
+  return configured().length > 0
 }
 
 let online: boolean | null = null
@@ -157,7 +203,7 @@ export async function sendChat(req: ChatRequest): Promise<ChatReply> {
   const r = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...req, ...aiFields() }),
+    body: JSON.stringify({ ...req, ...aiFields('fast') }),
   })
   if (!r.ok) throw new Error(await errorText(r))
   return (await r.json()) as ChatReply
@@ -179,16 +225,15 @@ export async function sendReport(req: {
   const r = await fetch('/api/report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...req, ...aiFields() }),
+    body: JSON.stringify({ ...req, ...aiFields('smart') }),
   })
   if (!r.ok) throw new Error(await errorText(r))
   return (await r.json()) as Report
 }
 
-function aiFields() {
-  const a = getAi()
-  if (!a.provider) return {}
-  return { provider: a.provider, model: a.model || undefined, apiKey: a.apiKey || undefined }
+function aiFields(task: 'fast' | 'smart' = 'fast') {
+  const chain = chainFor(task)
+  return chain.length ? { chain } : {}
 }
 
 async function errorText(r: Response) {

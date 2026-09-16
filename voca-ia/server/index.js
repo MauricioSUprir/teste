@@ -77,20 +77,40 @@ const SERVER_KEY = process.env.VOCA_API_KEY || process.env.ANTHROPIC_API_KEY || 
 const CHAT_MODEL = process.env.VOCA_CHAT_MODEL || ''
 const REPORT_MODEL = process.env.VOCA_REPORT_MODEL || ''
 
-/** Decide qual provedor/chave/modelo usar nesta requisicao. */
-function resolveAi(body, task) {
-  const id = (body?.provider || SERVER_PROVIDER || '').trim()
-  const p = PROVIDERS[id]
+/** Monta um "slot": provedor + chave + modelo prontos para uso. */
+function slot(id, apiKey, model, task) {
+  const p = PROVIDERS[String(id || '').trim()]
   if (!p) return null
-  const key = (body?.apiKey || (id === SERVER_PROVIDER ? SERVER_KEY : '')).trim()
-  // Ollama roda local e nao pede chave
-  if (!key && p.kind !== 'openai') return null
+  const key = String(apiKey || '').trim()
   if (!key && id !== 'ollama') return null
-  const model =
-    (body?.model || '').trim() ||
-    (id === SERVER_PROVIDER ? (task === 'report' ? REPORT_MODEL : CHAT_MODEL) : '') ||
-    (task === 'report' ? p.report : p.chat)
-  return { id, provider: p, key, model }
+  const escolhido = String(model || '').trim() || (task === 'report' ? p.report : p.chat)
+  return { id, provider: p, key, model: escolhido }
+}
+
+/**
+ * Ordem de tentativa desta requisicao. O app pode mandar uma CORRENTE de
+ * provedores (ex.: Groq primeiro por ser rapido, Gemini atras por ser melhor):
+ * se o primeiro falhar — limite do plano gratuito, fora do ar, modelo removido —
+ * o proximo assume sem a pessoa perceber.
+ */
+function resolveChain(body, task) {
+  const chain = []
+  const bruta = Array.isArray(body?.chain) ? body.chain : []
+  for (const item of bruta) {
+    const s = slot(item?.provider, item?.apiKey, item?.model, task)
+    if (s) chain.push(s)
+  }
+  // formato antigo (um provedor so)
+  if (!chain.length && body?.provider) {
+    const s = slot(body.provider, body.apiKey, body.model, task)
+    if (s) chain.push(s)
+  }
+  // provedor do servidor, se houver, sempre como ultima rede de seguranca
+  if (SERVER_PROVIDER) {
+    const s = slot(SERVER_PROVIDER, SERVER_KEY, task === 'report' ? REPORT_MODEL : CHAT_MODEL, task)
+    if (s && !chain.some((c) => c.id === s.id)) chain.push(s)
+  }
+  return chain
 }
 
 const MOOD_STYLE = {
@@ -211,7 +231,22 @@ function jsonSpec(tool) {
     (keys.includes('fix') ? ' "fix" e uma lista de objetos {what, example}. "strengths" e uma lista de textos.' : '')
 }
 
-async function callAi({ ai, system, messages, tool, maxTokens = 700 }) {
+/** Tenta cada provedor da corrente, em ordem, ate um responder. */
+async function callChain({ chain, system, messages, tool, maxTokens = 700 }) {
+  const erros = []
+  for (const ai of chain) {
+    try {
+      const out = await callOne({ ai, system, messages, tool, maxTokens })
+      return { out, usado: ai.id, tentativas: erros }
+    } catch (e) {
+      erros.push(`${ai.id}: ${e.message}`)
+      console.warn('[ia] falhou em', ai.id, '-', e.message.slice(0, 160))
+    }
+  }
+  throw new Error(erros.join(' | ') || 'nenhum provedor de IA configurado')
+}
+
+async function callOne({ ai, system, messages, tool, maxTokens = 700 }) {
   const { provider, key, model } = ai
 
   if (provider.kind === 'anthropic') {
@@ -338,8 +373,8 @@ app.get('/api/health', (_req, res) => {
 })
 
 app.post('/api/chat', async (req, res) => {
-  const ai = resolveAi(req.body, 'chat')
-  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  const chain = resolveChain(req.body, 'chat')
+  if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, mood, scenarioTitle, situation, level, userName, history = [], message, weakSpots = [], opening } = req.body
     const messages = history
@@ -354,8 +389,8 @@ app.post('/api/chat', async (req, res) => {
     })
     if (messages[0]?.role !== 'user') messages.shift()
 
-    const out = await callAi({
-      ai,
+    const { out, usado } = await callChain({
+      chain,
       system: systemPrompt({ langName, mood, scenarioTitle, situation, level, userName, weakSpots }),
       messages,
       tool: REPLY_TOOL,
@@ -367,6 +402,7 @@ app.post('/api/chat', async (req, res) => {
       roast: out.roast,
       suggestion: out.suggestion,
       score: out.score,
+      by: usado,
     })
   } catch (e) {
     console.error('[chat]', e.message)
@@ -375,16 +411,16 @@ app.post('/api/chat', async (req, res) => {
 })
 
 app.post('/api/report', async (req, res) => {
-  const ai = resolveAi(req.body, 'report')
-  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  const chain = resolveChain(req.body, 'report')
+  if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, turns = [], userName } = req.body
     const transcript = turns
       .map((t) => `${t.role === 'user' ? 'ALUNO' : 'VOCA'}: ${t.text}`)
       .join('\n')
       .slice(-6000)
-    const out = await callAi({
-      ai,
+    const { out, usado } = await callChain({
+      chain,
       system: `Voce e um professor de ${langName} avaliando uma conversa de um aluno brasileiro chamado ${userName || 'aluno'}.
 Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
 - "summary": 2 frases sobre como foi a conversa, honestas mas encorajadoras.
@@ -395,7 +431,7 @@ Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
       tool: REPORT_TOOL,
       maxTokens: 900,
     })
-    res.json(out)
+    res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[report]', e.message)
     res.status(500).json({ error: e.message })
@@ -405,12 +441,12 @@ Escreva TUDO em portugues do Brasil, direto e sem enrolacao.
 
 // ------------------------------------------------- correcao explicada pela IA
 app.post('/api/explain', async (req, res) => {
-  const ai = resolveAi(req.body, 'chat')
-  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  const chain = resolveChain(req.body, 'chat')
+  if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, prompt, correct, given, lessonTitle, grammar, level, mood } = req.body
-    const out = await callAi({
-      ai,
+    const { out, usado } = await callChain({
+      chain,
       system: `Voce e o Voca, professor de ${langName} de uma aluna brasileira. Explique EM PORTUGUES DO BRASIL,
 de forma curta, concreta e sem jargao. Nunca invente regra: se a duvida for de uso, diga como se fala de verdade.
 Personalidade: ${MOOD_STYLE[mood] || MOOD_STYLE.neutro} — mas a explicacao em si e sempre clara e util; o humor entra
@@ -434,7 +470,7 @@ O que a aluna respondeu: "${given || '(deixou em branco)'}"`,
       tool: EXPLAIN_TOOL,
       maxTokens: 800,
     })
-    res.json(out)
+    res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[explain]', e.message)
     res.status(500).json({ error: e.message })
@@ -443,8 +479,8 @@ O que a aluna respondeu: "${given || '(deixou em branco)'}"`,
 
 // ----------------------------------------- chat de duvidas dentro da explicacao
 app.post('/api/ask', async (req, res) => {
-  const ai = resolveAi(req.body, 'chat')
-  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  const chain = resolveChain(req.body, 'chat')
+  if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, question, context = {}, history = [], level } = req.body
     const messages = history
@@ -453,8 +489,8 @@ app.post('/api/ask', async (req, res) => {
       .filter((m) => m.content?.trim())
     messages.push({ role: 'user', content: question })
     if (messages[0]?.role !== 'user') messages.shift()
-    const out = await callAi({
-      ai,
+    const { out, usado } = await callChain({
+      chain,
       system: `Voce e o Voca tirando duvida de uma aluna brasileira de ${langName} (nivel ${level}).
 Responda SEMPRE em portugues do Brasil, curto (ate 4 frases), direto, com exemplo quando ajudar.
 Se ela perguntar algo fora do idioma, traga de volta para a questao com bom humor.
@@ -470,7 +506,7 @@ Em "examples" (opcional) devolva ate 3 frases de exemplo.`,
       tool: ASK_TOOL,
       maxTokens: 500,
     })
-    res.json(out)
+    res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[ask]', e.message)
     res.status(500).json({ error: e.message })
@@ -479,12 +515,12 @@ Em "examples" (opcional) devolva ate 3 frases de exemplo.`,
 
 // --------------------------------------------- dica durante a questao (sem entregar)
 app.post('/api/hint', async (req, res) => {
-  const ai = resolveAi(req.body, 'chat')
-  if (!ai) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
+  const chain = resolveChain(req.body, 'chat')
+  if (!chain.length) return res.status(503).json({ error: 'nenhum provedor de IA configurado' })
   try {
     const { langName, prompt, correct, given, level, strength } = req.body
-    const out = await callAi({
-      ai,
+    const { out, usado } = await callChain({
+      chain,
       system: `Voce e o Voca ajudando uma aluna brasileira de ${langName} (nivel ${level}) que esta TRAVADA numa questao.
 Responda em portugues do Brasil, UMA frase.
 ${strength >= 2
@@ -502,7 +538,7 @@ O que ela escreveu ate agora: "${given || '(nada)'}"`,
       tool: HINT_TOOL,
       maxTokens: 250,
     })
-    res.json(out)
+    res.json({ ...out, by: usado })
   } catch (e) {
     console.error('[hint]', e.message)
     res.status(500).json({ error: e.message })
