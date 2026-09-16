@@ -41,6 +41,8 @@ export class InputManager {
 
   private keys = new Set<string>();
   private pointerLocked = false;
+  private pointerLockBlocked = false;
+  private mouseDown = false;
   private stickId = -1;
   private stickOrigin = { x: 0, y: 0 };
   private stickPos = { x: 0, y: 0 };
@@ -66,13 +68,27 @@ export class InputManager {
     window.addEventListener('blur', this.onBlurBound);
 
     this.canvas.addEventListener('mousedown', () => {
-      if (!this.touchEnabled && !this.pointerLocked) this.canvas.requestPointerLock();
+      this.mouseDown = true;
+      // Pointer lock is the good experience, but it is unavailable in some
+      // embedded contexts. Falling back to drag-to-look keeps the camera
+      // usable instead of dead.
+      if (!this.touchEnabled && !this.pointerLocked) {
+        const req = this.canvas.requestPointerLock();
+        if (req && typeof (req as Promise<void>).catch === 'function') {
+          (req as unknown as Promise<void>).catch(() => { this.pointerLockBlocked = true; });
+        }
+      }
     });
+    window.addEventListener('mouseup', () => { this.mouseDown = false; });
+    document.addEventListener('pointerlockerror', () => { this.pointerLockBlocked = true; });
     document.addEventListener('pointerlockchange', () => {
       this.pointerLocked = document.pointerLockElement === this.canvas;
+      if (this.pointerLocked) this.pointerLockBlocked = false;
     });
     window.addEventListener('mousemove', (e) => {
-      if (!this.pointerLocked || this.suspended) return;
+      if (this.suspended) return;
+      const dragging = this.mouseDown && !this.pointerLocked;
+      if (!this.pointerLocked && !dragging) return;
       this.intent.lookX += e.movementX * this.mouseSensitivity;
       this.intent.lookY += e.movementY * this.mouseSensitivity;
     });
@@ -200,6 +216,9 @@ export class InputManager {
     this.intent.lookY = 0;
     return out;
   }
+
+  /** True when the camera must be dragged rather than locked. */
+  get needsDragToLook(): boolean { return this.pointerLockBlocked && !this.touchEnabled; }
 
   rebind(action: ActionName, code: string): void {
     this.bindings[action] = [code];
