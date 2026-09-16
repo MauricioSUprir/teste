@@ -79,10 +79,10 @@ const cp = (index: number, x: number, y: number, z: number, hx: number, hz: numb
 // Wide and calm: 32 players need room to not shove each other into the void
 // before the race even begins.
 // ══════════════════════════════════════════════════════════════════════════
-floor(0, -4, 15, 12, 0, { color: C.start });
-rail(-15, -4, 0.5, 12);
-rail(15, -4, 0.5, 12);
-rail(0, -16, 15, 0.5);
+floor(0, -8, 15, 16, 0, { color: C.start });
+rail(-15, -8, 0.5, 16);
+rail(15, -8, 0.5, 16);
+rail(0, -24, 15, 0.5);
 // Starting grid: 4 rows of 8, staggered so the front row is not a free win.
 for (let row = 0; row < 4; row++) {
   for (let col = 0; col < 8; col++) {
@@ -94,7 +94,7 @@ cyl(-9, 3.4, 7, 0.55, 3.4, { style: 'accent' });
 cyl(9, 3.4, 7, 0.55, 3.4, { style: 'accent' });
 box(0, 7.2, 7, 9.6, 0.55, 0.55, { style: 'accent' });
 box(0, 6.1, 7, 4.2, 0.7, 0.25, { style: 'lightPanel', decorOnly: true, color: 0x5cf2c8 });
-cp(0, 0, 0, -4, 15, 12);
+cp(0, 0, 0, -8, 15, 16);
 
 // ══════════════════════════════════════════════════════════════════════════
 // SECTION 1 - SWEEPER SPAN  (z 8 .. 52)
@@ -237,9 +237,9 @@ obs({
 floor(12, 128, 2.6, 2.6, 0, { group: 'routeR', color: C.right });
 floor(9, 137, 5, 5, 0, { group: 'routeR', color: C.right });
 // -- Upper catwalk: only in the 'highroad' layout. --------------------------
-floor(0, 120, 3, 20, 7.5, { group: 'upper', color: C.upper });
-ramp(0, 3.9, 103, 3, 6.5, -0.55, { group: 'upper', color: C.upper });
-ramp(0, 3.9, 137, 3, 6.5, 0.55, { group: 'upper', color: C.upper });
+floor(0, 120, 4.2, 20, 7.5, { group: 'upper', color: C.upper });
+ramp(0, 3.9, 103, 4.2, 6.5, -0.55, { group: 'upper', color: C.upper });
+ramp(0, 3.9, 137, 4.2, 6.5, 0.55, { group: 'upper', color: C.upper });
 obs({
   kind: 'sweeper', id: nid('sweep'), group: 'upper', pos: [0, 8.6, 120],
   size: [4.6, 0.28, 0.35], speed: 1.35, count: 3, force: 10,

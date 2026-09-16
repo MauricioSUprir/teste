@@ -106,10 +106,12 @@ export class MatchSim {
   private hazardScale = 1;
   private phaseEventsEnabled: boolean;
   private lastFinishTime = -99;
+  private readonly seed: number;
 
   constructor(cfg: MatchConfig) {
     this.map = cfg.map;
     this.rules = cfg.rules;
+    this.seed = cfg.seed;
     this.rng = new Rng((cfg.seed ^ hashString(cfg.map.id)) >>> 0);
     this.countdownTime = cfg.countdownTime ?? 3.2;
     this.introTime = cfg.introTime ?? 0;
@@ -135,16 +137,7 @@ export class MatchSim {
 
   /** Seeded weighted roll - every client can reproduce it from the match seed. */
   private rollVariant(): string {
-    const variants = this.map.variants;
-    if (!variants.length) return 'standard';
-    let total = 0;
-    for (const v of variants) total += v.weight;
-    let r = this.rng.next() * total;
-    for (const v of variants) {
-      r -= v.weight;
-      if (r <= 0) return v.id;
-    }
-    return variants[variants.length - 1].id;
+    return rollVariantFor(this.map, this.seed);
   }
 
   // ── construction ────────────────────────────────────────────────────────
@@ -669,6 +662,25 @@ export class MatchSim {
   getHazardScale(): number { return this.hazardScale; }
   getActiveGroups(): Set<string> { return this.activeGroups; }
   getContext(): SimContext { return this.ctx; }
+}
+
+/**
+ * The same seeded weighted roll the simulation uses, exposed so the pre-match
+ * screen can present the drawn layout. Keeping one implementation means the
+ * card the player sees is always the layout they actually get.
+ */
+export function rollVariantFor(map: MapDef, seed: number): string {
+  const rng = new Rng((seed ^ hashString(map.id)) >>> 0);
+  const variants = map.variants;
+  if (!variants.length) return 'standard';
+  let total = 0;
+  for (const v of variants) total += v.weight;
+  let r = rng.next() * total;
+  for (const v of variants) {
+    r -= v.weight;
+    if (r <= 0) return v.id;
+  }
+  return variants[variants.length - 1].id;
 }
 
 const EMPTY_INPUT: InputCmd = makeInput();

@@ -7,7 +7,7 @@
  */
 import { Wobbler, WobblerLook } from '../render/character';
 import { PlayerSim, MoveState } from '../shared/types';
-import { lerp, angleLerp, clamp, damp } from '../shared/math';
+import { lerp, angleLerp, angleDelta, clamp, damp } from '../shared/math';
 import { CHAR } from '../shared/config';
 
 export class PlayerView {
@@ -29,6 +29,7 @@ export class PlayerView {
   /** Set by the client when this player should emit footstep effects. */
   onFootstep?: (x: number, y: number, z: number, surface: number) => void;
   private surface = 0;
+  private turnRate = 0;
 
   constructor(player: PlayerSim, look: WobblerLook) {
     this.id = player.id;
@@ -61,6 +62,9 @@ export class PlayerView {
     this.renderY = lerp(this.prevY, this.curY, alpha);
     this.renderZ = lerp(this.prevZ, this.curZ, alpha);
     const yaw = angleLerp(this.prevYaw, this.curYaw, alpha);
+    // Turn rate in radians/second, smoothed - drives the running bank.
+    const rawTurn = dt > 0 ? angleDelta(this.prevYaw, this.curYaw) / Math.max(dt, 1e-3) : 0;
+    this.turnRate = damp(this.turnRate, clamp(rawTurn, -6, 6), 10, dt);
 
     const w = this.wobbler;
     w.root.position.set(this.renderX, this.renderY, this.renderZ);
@@ -71,7 +75,7 @@ export class PlayerView {
     const tilt = prone ? -1.35 : ragdoll ? -1.5 : 0;
     w.proneTilt(tilt, dt);
 
-    w.update(dt, this.state, this.speed, this.vy, this.grounded, yaw, this.stateTime);
+    w.update(dt, this.state, this.speed, this.vy, this.grounded, yaw, this.stateTime, this.turnRate);
 
     // Invulnerability flicker after a respawn, so players understand the state.
     if (this.invuln > 0) {

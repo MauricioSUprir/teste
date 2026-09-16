@@ -19,6 +19,8 @@ import { DIVE } from './config';
 /** How far a bot believes it can travel: measured from the sim, not guessed. */
 const JUMP_REACH = 4.4;
 const DIVE_REACH = 7.4;
+/** Where a bot commits to a jump - roughly one stride from the edge. */
+const TAKEOFF_PROBE = 1.5;
 /** Ground probes start this far above the feet so climbs read correctly. */
 const PROBE_RISE = 3.0;
 const PROBE_REACH = 6.5;
@@ -44,8 +46,8 @@ interface DifficultyProfile {
 }
 
 const DIFFICULTY: Record<BotDifficulty, DifficultyProfile> = {
-  easy:   { reaction: 0.34, errorRate: 0.22, lookahead: 3.0, wobble: 0.55, diveSkill: 0.12, hazardRead: 0.2 },
-  normal: { reaction: 0.22, errorRate: 0.12, lookahead: 4.2, wobble: 0.32, diveSkill: 0.35, hazardRead: 0.45 },
+  easy:   { reaction: 0.30, errorRate: 0.15, lookahead: 3.4, wobble: 0.45, diveSkill: 0.22, hazardRead: 0.38 },
+  normal: { reaction: 0.20, errorRate: 0.09, lookahead: 4.2, wobble: 0.30, diveSkill: 0.38, hazardRead: 0.58 },
   hard:   { reaction: 0.14, errorRate: 0.05, lookahead: 5.4, wobble: 0.16, diveSkill: 0.6,  hazardRead: 0.72 },
   expert: { reaction: 0.08, errorRate: 0.02, lookahead: 6.5, wobble: 0.07, diveSkill: 0.8,  hazardRead: 0.9 },
 };
@@ -249,8 +251,14 @@ export class BotBrain {
     if (this.hazardCommit > 0) this.hazardCommit -= dt;
     if (this.hazardReact > 0) this.hazardReact -= dt;
     const threat = this.readHazards(sim, p, dx, dz, diff.lookahead);
-    if (threat.danger > 0.35 && this.hazardCommit <= 0 && this.hazardReact <= 0 &&
-        this.rng.next() < diff.hazardRead) {
+    // Skill is *perception*, not twitchiness. Gating the reaction on a skill
+    // roll made expert bots react to everything - including things that were
+    // never going to hit them - and finish slower than beginners. Instead,
+    // skill sharpens the estimate: a weak bot both panics at ghosts and walks
+    // into real hammers, a strong one reads the situation as it truly is.
+    const perceived = clamp(
+      threat.danger + this.rng.noise() * (1 - diff.hazardRead) * 0.9, 0, 1.5);
+    if (perceived > 0.45 && this.hazardCommit <= 0 && this.hazardReact <= 0) {
       if (threat.low && p.grounded && this.jumpHold <= 0) {
         cmd.buttons |= Btn.Jump;
         this.jumpHold = 0.5;
@@ -265,49 +273,52 @@ export class BotBrain {
         if (this.hazardWait > 1.6) { this.hazardCommit = 2.2; this.hazardWait = 0; this.waitTimer = 0; }
       }
     }
-    if (threat.danger <= 0.1) this.hazardWait = Math.max(0, this.hazardWait - dt * 0.5);
+    if (perceived <= 0.1) this.hazardWait = Math.max(0, this.hazardWait - dt * 0.5);
 
     // --- gaps ------------------------------------------------------------
-    // The single most important bot rule: never jump a gap you cannot clear.
-    // Without it a bot walks cheerfully off every ferry landing in the game.
-    const probeDist = 1.3 + diff.lookahead * 0.28;
-    // The probe starts well above head height: on a climbing ramp the ground
-    // ahead is *higher* than the player, and a low probe would report a
-    // phantom gap and freeze the bot halfway up every slope.
+    // Two different questions need two different probes, and conflating them
+    // was making bots jump 4 m early and land short of the gap they feared:
+    //   "should I take off NOW?"  -> a probe at the take-off point
+    //   "should I slow down?"     -> a probe scaled by how fast I am moving
+    const speedNow = Math.hypot(p.vel.x, p.vel.z);
     const probeTop = p.pos.y + PROBE_RISE;
-    v3set(_probe, p.pos.x + dx * probeDist, probeTop, p.pos.z + dz * probeDist);
-    const groundAhead = sim.world.raycastDown(_probe.x, _probe.y, _probe.z, PROBE_REACH, this.scratch);
-    // A gap is either "no floor at all" or "floor so far below it is a fall".
-    const dropAhead = groundAhead < 0 ? Infinity : (p.pos.y - (probeTop - groundAhead));
-    const gapAhead = dropAhead > MAX_SAFE_DROP;
+    const groundAt = (dist: number): number => {
+      v3set(_probe, p.pos.x + dx * dist, probeTop, p.pos.z + dz * dist);
+      const hit = sim.world.raycastDown(_probe.x, _probe.y, _probe.z, PROBE_REACH, this.scratch);
+      return hit < 0 ? Infinity : p.pos.y - (probeTop - hit);
+    };
 
-    if (gapAhead && p.grounded) {
+    const takeoffGap = groundAt(TAKEOFF_PROBE) > MAX_SAFE_DROP;
+    const brakeGap = groundAt(1.2 + speedNow * 0.32) > MAX_SAFE_DROP;
+
+    if (p.grounded && (takeoffGap || brakeGap)) {
       const far = this.gapWidth(sim, p, dx, dz);
       const canJump = far <= JUMP_REACH;
       const canDive = far <= DIVE_REACH && p.diveCooldown <= 0;
       const mistake = this.rng.next() < diff.errorRate * 0.6;
 
-      if (canJump && this.jumpHold <= 0 && !mistake) {
+      if (takeoffGap && canJump && this.jumpHold <= 0 && !mistake) {
         cmd.buttons |= Btn.Jump;
         this.jumpHold = 0.45;
         if (far > JUMP_REACH * 0.78 && this.rng.next() < diff.diveSkill) this.diveHold = 0.13;
-      } else if (canDive && this.jumpHold <= 0 && this.rng.next() < diff.diveSkill && !mistake) {
+      } else if (takeoffGap && canDive && this.jumpHold <= 0 && this.rng.next() < diff.diveSkill && !mistake) {
         cmd.buttons |= Btn.Jump;
         this.diveHold = 0.12;
         this.jumpHold = 0.55;
-      } else if (!mistake) {
-        // Too wide: stop at the lip and wait for a ferry, a platform or a
-        // better line. Beginners edge forward anyway and sometimes pay for it.
-        const brake = pers.patience > 0.8 ? -0.35 : -0.15;
+      } else if (!canJump && !canDive && !mistake) {
+        // Genuinely uncrossable: stop at the lip and wait for a ferry, a
+        // platform, or a better line. Brake harder the faster we are going.
+        const urgency = clamp(speedNow / 5.5, 0.35, 1.3);
+        const brake = (pers.patience > 0.8 ? -0.4 : -0.22) * urgency;
         cmd.moveX *= brake;
         cmd.moveZ *= brake;
         this.edgeWait += dt;
-        // Long waits mean the route is gone - look for another way across.
         if (this.edgeWait > 4.5) { this.nodeIndex = Math.max(1, this.nodeIndex - 1); this.edgeWait = 0; }
       }
     } else {
       this.edgeWait = 0;
     }
+
     // Dive follows the jump by a beat, exactly like a good human player does.
     if (this.diveHold > 0 && !p.grounded && p.state === MoveState.Air && p.diveCooldown <= 0) {
       if (this.diveHold < 0.06) {

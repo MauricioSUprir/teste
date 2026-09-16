@@ -14,6 +14,7 @@ import { CameraController } from './game/camera';
 import { InputManager } from './game/input';
 import { MatchClient, MatchResult, RosterEntry } from './game/matchClient';
 import { SKY_FOUNDRY } from './shared/maps/skyfoundry';
+import { rollVariantFor } from './shared/world';
 import { Wobbler } from './render/character';
 import { CharacterBatch } from './render/characterBatch';
 import { SKIN_COLORS } from './render/palette';
@@ -25,7 +26,10 @@ import { MoveState } from './shared/types';
 import { clamp } from './shared/math';
 import { BotDifficulty, makeBotRoster } from './shared/bots';
 
-type Screen = 'loading' | 'menu' | 'intro' | 'match' | 'results';
+type Screen = 'loading' | 'menu' | 'draw' | 'intro' | 'match' | 'results';
+
+/** Menu backdrop - a plain, friendly blue. */
+const MENU_BLUE = 0x2f6fd0;
 
 const TIPS = [
   'Mergulhe para atravessar vãos maiores — mas você fica vulnerável ao cair.',
@@ -54,6 +58,7 @@ export class App {
   private devEl: HTMLElement;
   private showDev = false;
   private menuTime = 0;
+  private drawTimer = 0;
   private frameTimes: number[] = [];
 
   constructor() {
@@ -136,29 +141,15 @@ export class App {
       this.menuBatch.add(this.menuWobbler);
       this.rig.scene.add(this.menuBatch.root);
       this.rig.scene.add(this.menuRoot);
-      // A small stage so the menu character is not floating in a void.
       this.menuRoot.position.set(2.9, 0, 0);
-      const disc = new THREE.Mesh(
-        new THREE.CylinderGeometry(1.7, 1.9, 0.35, 32),
-        new THREE.MeshStandardMaterial({ color: 0x1d2942, roughness: 0.7 }),
-      );
-      disc.position.y = -0.18;
-      disc.receiveShadow = true;
-      this.menuRoot.add(disc);
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(1.75, 0.055, 8, 48),
-        new THREE.MeshBasicMaterial({ color: 0x3ddad0 }),
-      );
-      ring.rotation.x = Math.PI / 2;
-      ring.position.y = 0.02;
-      this.menuRoot.add(ring);
     }
     this.menuRoot.visible = true;
     this.menuBatch.root.visible = true;
     this.menuWobbler.setLook({ skin: d.look.skin, accent: d.look.accent });
-    this.rig.applyAmbient(SKY_FOUNDRY.ambient);
+    // Plain blue behind the character: no horizon, no clouds, no platform.
+    this.rig.setFlatBackground(MENU_BLUE);
     this.rig.setNight(0);
-    this.camera.setOrbit(new THREE.Vector3(2.9, 0.95, 0), 4.4, 0.9);
+    this.camera.setOrbit(new THREE.Vector3(2.9, 0.85, 0), 4.2, 0.75);
     this.rig.followShadow(2.9, 0, 0);
 
     const need = xpForLevel(d.level);
@@ -194,7 +185,7 @@ export class App {
         </div>
       </div>`, 'menu');
 
-    this.screenEl.querySelector('#play')!.addEventListener('click', () => this.startMatch(false));
+    this.screenEl.querySelector('#play')!.addEventListener('click', () => this.showMapDraw());
     this.screenEl.querySelector('#practice')!.addEventListener('click', () => this.startMatch(true));
     this.screenEl.querySelector('#customize')!.addEventListener('click', () => this.openCustomize());
     this.screenEl.querySelector('#settings')!.addEventListener('click', () => this.openSettings());
@@ -322,14 +313,77 @@ export class App {
   }
 
   // ── match flow ──────────────────────────────────────────────────────────
-  private startMatch(practice: boolean): void {
+  /**
+   * Pre-match draw. The layout is rolled first and the card animation lands on
+   * the real answer - the shuffle is presentation, the result is authoritative,
+   * exactly the way a server-picked round has to work.
+   */
+  private showMapDraw(): void {
     audio.resume();
+    // Hide the menu character: it shows through the draw overlay otherwise.
+    this.menuRoot.visible = false;
+    this.menuBatch.root.visible = false;
+    const seed = (Math.random() * 0xffffffff) >>> 0;
+    const chosen = rollVariantFor(SKY_FOUNDRY, seed);
+    const variants = SKY_FOUNDRY.variants;
+    const rec = saveManager.data.records[SKY_FOUNDRY.id];
+
+    this.setScreen(`
+      <div class="draw">
+        <div class="draw-head">
+          <span class="draw-eyebrow">PRÓXIMA RODADA</span>
+          <h2>${t(SKY_FOUNDRY.nameKey)}</h2>
+          <p>${SKY_FOUNDRY.difficulty.toUpperCase()} · CORRIDA · 32 JOGADORES · CLASSIFICAM 16</p>
+        </div>
+        <div class="draw-cards">
+          ${variants.map((v) => `
+            <div class="draw-card" data-id="${v.id}">
+              <b>${t(v.nameKey)}</b>
+              <span>${v.descKey ? t(v.descKey) : ''}</span>
+            </div>`).join('')}
+        </div>
+        <div class="draw-status">SORTEANDO O PERCURSO…</div>
+        <div class="draw-foot">${rec?.bestTime ? `Seu recorde: ${fmtTime(rec.bestTime)}` : 'Primeira corrida nesta pista'}</div>
+      </div>`, 'draw');
+
+    const cards = Array.from(this.screenEl.querySelectorAll('.draw-card')) as HTMLElement[];
+    const status = this.screenEl.querySelector('.draw-status') as HTMLElement;
+    const targetIndex = Math.max(0, variants.findIndex((v) => v.id === chosen));
+
+    // Spin, decelerate, land. Total is under three seconds on purpose: the
+    // player came here to run, not to watch a slot machine.
+    let i = 0;
+    let delay = 70;
+    let elapsed = 0;
+    const spin = () => {
+      cards.forEach((c) => c.classList.remove('active'));
+      cards[i % cards.length].classList.add('active');
+      audio.play('uiHover');
+      elapsed += delay;
+      const landing = elapsed > 1500 && (i % cards.length) === targetIndex;
+      if (landing) {
+        cards[targetIndex].classList.add('picked');
+        status.textContent = 'PERCURSO SORTEADO';
+        audio.play('reward');
+        this.drawTimer = window.setTimeout(() => this.startMatch(false, seed, chosen), 900);
+        return;
+      }
+      i++;
+      if (elapsed > 1100) delay = Math.min(280, delay * 1.22);
+      this.drawTimer = window.setTimeout(spin, delay);
+    };
+    spin();
+  }
+
+  private startMatch(practice: boolean, presetSeed?: number, presetVariant?: string): void {
+    audio.resume();
+    if (this.drawTimer) { clearTimeout(this.drawTimer); this.drawTimer = 0; }
     this.menuRoot.visible = false;
     this.menuBatch.root.visible = false;
     // Clear the menu before the HUD is mounted, or it sits on top of the match.
     this.setScreen('', 'match');
     const d = saveManager.data;
-    const seed = (Math.random() * 0xffffffff) >>> 0;
+    const seed = presetSeed ?? ((Math.random() * 0xffffffff) >>> 0);
     const rec = d.records[SKY_FOUNDRY.id];
 
     // Build the field: the local player plus a varied bot roster.
@@ -356,6 +410,7 @@ export class App {
       roster,
       localId: 1,
       qualifyCount: practice ? 1 : 16,
+      variantId: presetVariant,
       practice,
       showTimer: d.settings.showTimer || practice,
       personalBest: rec?.bestTime ?? 0,
@@ -449,9 +504,8 @@ export class App {
       </div>`, 'results');
 
     this.screenEl.querySelector('#again')!.addEventListener('click', () => {
-      const practice = false;
       this.disposeMatch();
-      this.startMatch(practice);
+      this.showMapDraw();
     });
     this.screenEl.querySelector('#menu')!.addEventListener('click', () => this.enterMenu());
   }

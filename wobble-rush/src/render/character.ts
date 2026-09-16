@@ -193,7 +193,7 @@ export class Wobbler {
    * `speed` is horizontal speed, `vy` vertical velocity, `grounded` self-explanatory.
    */
   update(dt: number, state: MoveState, speed: number, vy: number, grounded: boolean,
-         yaw: number, stateTime: number): void {
+         yaw: number, stateTime: number, turnRate = 0): void {
     const maxSpeed = 7.3;
     const run = clamp(speed / maxSpeed, 0, 1.3);
 
@@ -244,7 +244,11 @@ export class Wobbler {
     // character look like it has momentum.
     const targetLean = prone ? 0 : clamp(run * 0.22, 0, 0.3);
     this.leanX = damp(this.leanX, targetLean, 9, dt);
-    this.leanZ = damp(this.leanZ, 0, 9, dt);
+    // Bank into the turn like a runner leaning through a corner. This is the
+    // cheapest animation in the game and the one that most makes movement read
+    // as weight rather than a sliding puppet.
+    const bank = prone ? 0 : clamp(turnRate * 0.16, -0.42, 0.42) * clamp(run, 0, 1);
+    this.leanZ = damp(this.leanZ, bank, 7, dt);
 
     this.body.rotation.y = yaw;
     this.body.position.y = 0;
@@ -505,7 +509,7 @@ export class Wobbler {
   private poseEmote(): void {
     const t = 1.8 - this.emoteTime;
     const p = t * 9;
-    switch (this.emoteId % 3) {
+    switch (this.emoteId % 5) {
       case 0: // wave
         this.set('armUpR', -2.7, 0, -0.9 - Math.sin(p) * 0.35);
         this.set('armLoR', -0.35, 0, 0);
@@ -526,6 +530,27 @@ export class Wobbler {
         this.set('legUpL', Math.sin(p) * 0.35, 0, 0.05);
         this.set('legUpR', -Math.sin(p) * 0.35, 0, -0.05);
         break;
+      case 3: { // applause
+        const clap = Math.abs(Math.sin(p * 1.4));
+        this.set('armUpL', -1.5, 0, 0.35 + clap * 0.3);
+        this.set('armUpR', -1.5, 0, -0.35 - clap * 0.3);
+        this.set('armLoL', -1.1, 0, 0);
+        this.set('armLoR', -1.1, 0, 0);
+        this.set('head', -0.1, 0, 0);
+        this.set('hips', 0.04 + clap * 0.05, 0, 0);
+        this.set('torso', -0.04, 0, 0);
+        break;
+      }
+      case 4: { // point forward
+        this.set('armUpR', -2.1, 0, -0.25);
+        this.set('armLoR', -0.05, 0, 0);
+        this.set('armUpL', -0.2, 0, 0.2);
+        this.set('armLoL', -0.5, 0, 0);
+        this.set('head', -0.18, Math.sin(p * 0.6) * 0.1, 0);
+        this.set('torso', -0.08, 0.15, 0);
+        this.set('hips', 0.03, 0.1, 0);
+        break;
+      }
       default: // taunt / shrug
         this.set('armUpL', -0.9, 0, 0.95);
         this.set('armUpR', -0.9, 0, -0.95);

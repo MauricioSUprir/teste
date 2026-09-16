@@ -157,7 +157,24 @@ export class SceneRig {
     this.setQuality(quality);
   }
 
+  /**
+   * Swaps the gradient sky for a flat colour - used by menus, where a horizon
+   * and clouds behind a character is noise, not atmosphere.
+   */
+  setFlatBackground(color: number): void {
+    this.sky.visible = false;
+    this.scene.background = new THREE.Color(color);
+    this.scene.fog = null;
+  }
+
+  /** Restores the sky dome (called when a map loads). */
+  useSky(): void {
+    this.sky.visible = true;
+    this.scene.background = null;
+  }
+
   applyAmbient(a: MapAmbient): void {
+    this.useSky();
     this.skyMat.uniforms.topColor.value.setHex(a.skyTop);
     this.skyMat.uniforms.bottomColor.value.setHex(a.skyBottom);
     this.skyMat.uniforms.sunDir.value.set(a.sunDir[0], a.sunDir[1], a.sunDir[2]);

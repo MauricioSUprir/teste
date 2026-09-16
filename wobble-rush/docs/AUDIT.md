@@ -29,7 +29,8 @@ O núcleo vem primeiro. Cada fase seguinte só começa sem P0/P1 pendentes.
 | Mapa completo (SKY FOUNDRY) com rotas e atalhos | OK | 240 m, 3 rotas, 6 checkpoints |
 | Checkpoints, respawn seguro, invulnerabilidade | OK | escolhe ponto livre |
 | Linha de chegada, photo finish autoritativo | OK | |
-| Bots com rota, dificuldade e personalidade | PARCIAL | 4 dificuldades × 5 perfis, navegam o percurso inteiro e terminam; ainda caem demais (~12 quedas por bot em 180 s), então só ~1/3 do grid chega perto do fim. Não bloqueia a rodada (a classificação é por posição), mas é a próxima dívida de balanceamento |
+| Bots com rota, dificuldade e personalidade | OK | 4 dificuldades × 5 perfis. Escada real: easy termina em ~66 s, hard em ~46 s. No layout padrão 18 de 32 cruzam a linha, vencedor em ~52 s |
+| Sorteio de mapa/layout antes da partida | OK | as cartas embaralham, mas o resultado já foi sorteado pelo servidor — a animação nunca decide nada |
 | HUD enxuto, menu, resultados, progressão | OK | |
 | Áudio 3D sintetizado + música em camadas | OK | |
 | VFX em pool, iluminação, qualidade adaptativa | OK | |
@@ -79,11 +80,20 @@ O núcleo vem primeiro. Cada fase seguinte só começa sem P0/P1 pendentes.
 
 ## Dívidas conhecidas
 
-- **Balanceamento dos bots**: terminam o percurso, mas caem com frequência alta.
-  O heatmap (`npm run test:bots`) mostra as quedas hoje distribuídas, sem um
-  ponto único culpado — é trabalho de ajuste fino, não um bug estrutural.
+- O layout `highroad` ainda leva menos gente ao fim que os outros (13 de 32
+  chegam a 70% do percurso, contra 18 no padrão). Passarela superior é
+  legitimamente mais difícil, mas merece mais um passe de ajuste.
 - O `MatchClient` já aceita um roster e devolve a classificação completa, então
   o encadeamento de rodadas é ligação de telas, não refactor.
+
+## Bugs corrigidos nesta leva
+
+| Bug | Causa | Correção |
+|---|---|---|
+| Câmera ficava **na frente** do personagem | a base de movimento mapeava W para +Z, mas o braço da câmera também era colocado em +Z — 180° fora de fase | braço da câmera invertido para ficar atrás |
+| Via-se o mapa por baixo na largada | a câmera saía pela traseira do deck, que acabava logo atrás do grid | deck estendido 8 m para trás |
+| Bots pulavam cedo e caíam antes do vão | uma única sonda decidia *pular* e *frear*; ao escalar com a velocidade, o salto disparava 4 m antes da beirada | sondas separadas: decolagem a 1,5 m, frenagem proporcional à velocidade |
+| Bots expert mais lentos que os easy | perícia era tratada como "reage mais", então os melhores reagiam até ao que não ia acertá-los | perícia virou **precisão de percepção**: o fraco entra em pânico com fantasmas e ignora martelos reais |
 
 ## Próxima fase planejada
 

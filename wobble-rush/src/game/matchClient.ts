@@ -349,6 +349,7 @@ export class MatchClient {
     if (!this.camera.isIntro()) this.camera.look(look.x, look.y);
 
     for (const view of this.views.values()) view.render(dt, alpha);
+    this.updateGlances(dt);
 
     // Camera follows either the local player or, once out, whoever we watch.
     const focusView = this.spectating ? this.getSpectateView() : this.views.get(this.localId);
@@ -371,6 +372,34 @@ export class MatchClient {
 
     this.updateHud(dt);
     audio.updateMusic(dt, this.opts.map.bpm);
+  }
+
+  /**
+   * Characters look at whatever is worth looking at: the nearest rival, or a
+   * hazard about to hit them. A crowd of faces all staring dead ahead is the
+   * fastest way to make a scene feel like puppets on rails.
+   */
+  private glanceTimer = 0;
+  private updateGlances(dt: number): void {
+    this.glanceTimer -= dt;
+    if (this.glanceTimer > 0) return;
+    this.glanceTimer = 0.2;
+
+    const views = [...this.views.values()];
+    for (const view of views) {
+      const p = view.position;
+      let bestD = 49;   // squared: only react inside ~7 m
+      let bx = 0, by = 0, bz = 0, found = false;
+      for (const other of views) {
+        if (other === view) continue;
+        const o = other.position;
+        const d = (o.x - p.x) ** 2 + (o.z - p.z) ** 2;
+        if (d < bestD) { bestD = d; bx = o.x; by = o.y + 1.2; bz = o.z; found = true; }
+      }
+      if (found) {
+        view.wobbler.glanceAt(bx, by, bz, 0.8);
+      }
+    }
   }
 
   private updateHud(dt: number): void {

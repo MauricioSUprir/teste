@@ -103,8 +103,8 @@ export class CameraController {
     // the player sees where they are going rather than where they have been.
     _target.set(px, py + CHAR.height * 0.72, pz);
     const lead = clamp(speed / 7.3, 0, 1) * 0.9;
-    _target.x -= Math.sin(this.curYaw) * lead;
-    _target.z -= Math.cos(this.curYaw) * lead;
+    _target.x += Math.sin(this.curYaw) * lead;
+    _target.z += Math.cos(this.curYaw) * lead;
     // Falling: ease the focus down so the ground rushing up stays visible.
     if (vy < -6) _target.y += clamp(vy * 0.045, -1.1, 0);
 
@@ -112,12 +112,15 @@ export class CameraController {
     this.focus.y = damp(this.focus.y, _target.y, 9 * sm, dt);
     this.focus.z = damp(this.focus.z, _target.z, 13 * sm, dt);
 
-    // Desired camera position on a sphere behind the focus.
+    // Desired camera position: BEHIND the player, opposite the direction they
+    // run. Input maps W to +Z when camYaw is 0, so the boom must sit at -Z -
+    // getting this sign wrong puts the camera in front and you sprint straight
+    // into the lens.
     const wanted = this.settings.distance;
     const cp = Math.cos(this.curPitch);
-    const dirX = Math.sin(this.curYaw) * cp;
+    const dirX = -Math.sin(this.curYaw) * cp;
     const dirY = Math.sin(this.curPitch);
-    const dirZ = Math.cos(this.curYaw) * cp;
+    const dirZ = -Math.cos(this.curYaw) * cp;
 
     let dist = wanted;
     if (world) dist = this.collide(world, this.focus, dirX, dirY, dirZ, wanted);
@@ -189,9 +192,9 @@ export class CameraController {
     this.curDist = this.settings.distance;
     const cp = Math.cos(this.curPitch);
     this.camera.position.set(
-      this.focus.x + Math.sin(this.curYaw) * cp * this.curDist,
+      this.focus.x - Math.sin(this.curYaw) * cp * this.curDist,
       this.focus.y + Math.sin(this.curPitch) * this.curDist + 0.35,
-      this.focus.z + Math.cos(this.curYaw) * cp * this.curDist,
+      this.focus.z - Math.cos(this.curYaw) * cp * this.curDist,
     );
     this.camera.lookAt(this.focus);
   }

@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+const errs=[]; p.on('pageerror', e=>errs.push(e.message)); p.on('console', m=>{if(m.type()==='error')errs.push(m.text());});
+await p.goto('http://localhost:5190/', { waitUntil: 'networkidle' });
+await p.waitForTimeout(1200);
+await p.click('#play');
+await p.waitForTimeout(2000);
+await p.screenshot({ path: '/tmp/claude-0/draw.png' });
+await p.waitForTimeout(6000);
+await p.keyboard.down('KeyW');
+await p.waitForTimeout(4000);
+await p.screenshot({ path: '/tmp/claude-0/after-draw.png' });
+console.log('errors:', errs.length?errs.slice(0,5).join('\n'):'none');
+await b.close();

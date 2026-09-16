@@ -319,3 +319,38 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---------- pre-match draw ---------- */
+.draw {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: clamp(14px, 3vh, 28px);
+  padding: 16px; background: rgba(9, 14, 26, 0.82); backdrop-filter: blur(4px);
+  overflow-y: auto;
+}
+.draw-head { text-align: center; }
+.draw-eyebrow { font-size: 0.75rem; letter-spacing: 0.3em; color: var(--ink-dim); font-weight: 800; }
+.draw-head h2 {
+  margin: 6px 0 4px; font-size: clamp(1.8rem, 6vw, 3.2rem); font-weight: 900;
+  letter-spacing: 0.08em; text-shadow: 0 6px 0 rgba(0,0,0,0.35);
+}
+.draw-head p { margin: 0; color: var(--ink-dim); letter-spacing: 0.14em; font-size: 0.8rem; font-weight: 700; }
+.draw-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px; width: min(760px, 94vw);
+}
+.draw-card {
+  background: rgba(255,255,255,0.06); border: 2px solid transparent;
+  border-radius: var(--radius); padding: 16px; text-align: left;
+  transition: transform 120ms cubic-bezier(.34,1.5,.64,1), border-color 120ms, background 120ms;
+  opacity: 0.55;
+}
+.draw-card b { display: block; letter-spacing: 0.08em; margin-bottom: 4px; }
+.draw-card span { color: var(--ink-dim); font-size: 0.8rem; line-height: 1.35; }
+.draw-card.active { opacity: 1; background: rgba(255,255,255,0.14); border-color: var(--accent); transform: translateY(-4px); }
+.draw-card.picked {
+  opacity: 1; border-color: var(--warn); background: rgba(255, 209, 102, 0.16);
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.18), var(--shadow);
+}
+.draw-status { letter-spacing: 0.26em; font-weight: 800; color: var(--warn); font-size: 0.9rem; }
+.draw-foot { color: var(--ink-dim); font-size: 0.82rem; }
