@@ -355,10 +355,7 @@ export class MatchClient {
     const focusView = this.spectating ? this.getSpectateView() : this.views.get(this.localId);
     if (focusView) {
       const p = focusView.position;
-      const wasIntro = this.camera.isIntro();
       this.camera.update(dt, p.x, p.y, p.z, focusView.currentSpeed, focusView.verticalSpeed, this.sim.world);
-      // Hand control back cleanly instead of snapping from the flyover pose.
-      if (wasIntro && !this.camera.isIntro()) this.camera.snapBehind(p.x, p.y, p.z);
       this.rig.followShadow(p.x, p.y, p.z);
       audio.setListener(p.x, p.y, p.z);
     }

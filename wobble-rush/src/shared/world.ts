@@ -12,7 +12,7 @@ import {
 import {
   CollisionWorld, Collider, ShapeKind, Surface, makeCollider, refreshAabb,
 } from './collision';
-import { qSetEulerYXZ, qIdentity } from './quat';
+import { qFromEulerArray, qIdentity } from './quat';
 import {
   MapDef, RouteDef, groupsForVariant,
 } from './mapdef';
@@ -160,7 +160,7 @@ export class MatchSim {
           : p.shape === 'capsule' ? ShapeKind.Capsule : ShapeKind.Box;
       const rot = p.rot ?? [0, 0, 0];
       const q = qIdentity();
-      qSetEulerYXZ(q, rot[1] * mirror, rot[0], rot[2] * mirror);
+      qFromEulerArray(q, rot as [number, number, number], mirror);
       const c = makeCollider(kind, v3(p.pos[0] * mirror, p.pos[1], p.pos[2]), v3(p.size[0], p.size[1], p.size[2]), {
         surface: p.surface ?? Surface.Metal,
         friction: p.friction ?? 1,

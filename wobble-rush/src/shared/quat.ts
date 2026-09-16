@@ -14,8 +14,16 @@ export function qSetAxisAngle(out: Quat, ax: number, ay: number, az: number, ang
   return out;
 }
 
+/**
+ * Builds a quaternion from an XYZ euler triple applied in YXZ order
+ * (yaw, then pitch, then roll) - the convention the map data uses.
+ *
+ * Argument order is (rx, ry, rz) to match the `[x, y, z]` arrays in map files.
+ * Prefer `qFromEulerArray` at call sites: passing these three separately is
+ * exactly how every caller once ended up swapping pitch and yaw, which drew
+ * ramps on screen while their colliders stayed flat.
+ */
 export function qSetEulerYXZ(out: Quat, rx: number, ry: number, rz: number): Quat {
-  // Yaw (Y) * Pitch (X) * Roll (Z) - matches the convention used by the map data.
   const c1 = Math.cos(ry * 0.5), s1 = Math.sin(ry * 0.5);
   const c2 = Math.cos(rx * 0.5), s2 = Math.sin(rx * 0.5);
   const c3 = Math.cos(rz * 0.5), s3 = Math.sin(rz * 0.5);
@@ -58,6 +66,12 @@ export function qRotateInv(out: Vec3, q: Quat, v: Vec3): Vec3 {
     v.x + w * tx + (-y * tz + z * ty),
     v.y + w * ty + (-z * tx + x * tz),
     v.z + w * tz + (-x * ty + y * tx));
+}
+
+/** Builds a rotation from a map-style `[x, y, z]` euler array. */
+export function qFromEulerArray(out: Quat, e: readonly [number, number, number], mirror = 1): Quat {
+  // Mirroring across X flips the sign of yaw and roll, never of pitch.
+  return qSetEulerYXZ(out, e[0], e[1] * mirror, e[2] * mirror);
 }
 
 export const isIdentity = (q: Quat): boolean =>

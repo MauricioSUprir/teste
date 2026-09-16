@@ -43,7 +43,12 @@ export const MOVE = {
   slideAccel: 18,
   /** Max distance the capsule snaps down to stay glued to slopes/steps. */
   groundSnap: 0.32,
-  stepHeight: 0.42,
+  /**
+   * Measured limit, not a wish: above roughly the capsule's lower-sphere centre
+   * the contact becomes a front-face hit and the step-up cannot resolve it.
+   * Map geometry should keep vertical joins under this or use a ramp.
+   */
+  stepHeight: 0.32,
 } as const;
 
 export const JUMP = {
@@ -62,22 +67,30 @@ export const JUMP = {
   hardLandSpeed: 20,
 } as const;
 
+/**
+ * The dash (bound to Shift / the DIVE button).
+ *
+ * It is deliberately *flat*: an earlier version launched you 5 units upward and
+ * every player read it as a second jump instead of a dash. A dash should feel
+ * like ground being eaten, so the lift is barely enough to clear a lip and the
+ * speed is what you notice.
+ */
 export const DIVE = {
   /** Forward impulse, applied along facing. */
-  forward: 12.0,
-  up: 5.2,
-  /** Steering authority retained mid-dive. */
-  control: 0.18,
-  cooldown: 1.05,
-  /** Minimum airtime before a dive can end on landing. */
-  minTime: 0.12,
-  /** Ground friction while sliding after the dive lands. */
-  slideFriction: 26,
+  forward: 15.5,
+  up: 2.4,
+  /** Steering authority retained mid-dash. */
+  control: 0.22,
+  cooldown: 0.85,
+  /** Minimum airtime before a dash can end on landing. */
+  minTime: 0.08,
+  /** Ground friction while sliding out of the dash. */
+  slideFriction: 24,
   /** Slide ends below this speed. */
-  slideEndSpeed: 1.6,
-  getUpTime: 0.42,
+  slideEndSpeed: 1.9,
+  getUpTime: 0.34,
   /** Impulse transferred to players hit mid-dive. */
-  hitImpulse: 7.5,
+  hitImpulse: 8.5,
 } as const;
 
 export const IMPACT = {

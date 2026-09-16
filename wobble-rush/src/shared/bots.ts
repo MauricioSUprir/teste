@@ -231,8 +231,10 @@ export class BotBrain {
     const sx = dx * cosW - dz * sinW;
     const sz = dx * sinW + dz * cosW;
 
-    // Input is camera-relative with camYaw 0 => +Z forward, so moveZ = -forward.
-    cmd.moveX = clamp(sx, -1, 1);
+    // Bots steer in world space, so convert to the same camera-relative axes a
+    // human sends with camYaw 0: forward is +Z (moveZ = -1) and screen-right
+    // is -X (moveX = +1).
+    cmd.moveX = clamp(-sx, -1, 1);
     cmd.moveZ = clamp(-sz, -1, 1);
 
     if (this.waitTimer > 0) {

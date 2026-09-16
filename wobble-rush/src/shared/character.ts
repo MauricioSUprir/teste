@@ -48,6 +48,7 @@ const _capA = v3();
 const _capB = v3();
 const _groundN = v3(0, 1, 0);
 const _stepDelta = v3();
+const _stepNormal = v3(0, 1, 0);
 
 /** Capsule segment endpoints for a player, honouring the prone states. */
 export function capsuleSegment(p: PlayerSim, scale: number, outA: Vec3, outB: Vec3): number {
@@ -72,11 +73,14 @@ interface MoveResult {
   groundNormal: Vec3;
   groundCollider: Collider | null;
   hitWall: boolean;
+  /** The blocking contact was low enough to be a step rather than a wall. */
+  steppable: boolean;
   maxImpact: number;
 }
 
 const _moveResult: MoveResult = {
-  hitCount: 0, grounded: false, groundNormal: v3(0, 1, 0), groundCollider: null, hitWall: false, maxImpact: 0,
+  hitCount: 0, grounded: false, groundNormal: v3(0, 1, 0), groundCollider: null,
+  hitWall: false, steppable: false, maxImpact: 0,
 };
 
 /**
@@ -85,7 +89,8 @@ const _moveResult: MoveResult = {
  */
 function moveAndCollide(p: PlayerSim, delta: Vec3, ctx: SimContext, scale: number, dt: number): MoveResult {
   const res = _moveResult;
-  res.hitCount = 0; res.grounded = false; res.groundCollider = null; res.hitWall = false; res.maxImpact = 0;
+  res.hitCount = 0; res.grounded = false; res.groundCollider = null;
+  res.hitWall = false; res.steppable = false; res.maxImpact = 0;
   v3set(res.groundNormal, 0, 1, 0);
 
   const dist = v3len(delta);
@@ -147,7 +152,21 @@ function moveAndCollide(p: PlayerSim, delta: Vec3, ctx: SimContext, scale: numbe
           }
         } else {
           p.pos.x += n.x * depth; p.pos.y += n.y * depth; p.pos.z += n.z * depth;
-          if (n.y < 0.5) res.hitWall = true;
+          // Anything we cannot stand on blocks us, so it is a candidate for a
+          // step-up. Requiring a near-vertical normal here meant the sloped
+          // normal off a low ledge edge armed nothing and the player just stuck.
+          res.hitWall = true;
+          // A kerb, a platform seam, the lip of the next slab: if the contact
+          // is within step height of our feet it is a step, not a wall, and
+          // must not eat the run. The step-up pass lifts us over it with the
+          // speed intact; braking here first is what makes floors feel sticky.
+          const stepMax = MOVE.stepHeight * scale + 0.04;
+          if (_contact.point.y - p.pos.y <= stepMax) {
+            res.steppable = true;
+            if (res.hitCount < _hitNormals.length) v3copy(_hitNormals[res.hitCount], n);
+            res.hitCount++;
+            continue;
+          }
           if (vn < 0) {
             if (c.bounce > 0 && n.y > 0.3 && -vn > 2.5) {
               const bounceVel = -vn * c.bounce;
@@ -283,10 +302,13 @@ export function stepCharacter(p: PlayerSim, cmd: InputCmd, ctx: SimContext, dt: 
   const hasInput = inLenSq > 0.02;
 
   // Camera-relative basis. Input uses screen axes (moveZ = -1 is "forward"),
-  // camYaw 0 means the camera looks down +Z.
+  // camYaw 0 means the camera sits behind the player looking down +Z.
+  //   view forward = ( sin(yaw), 0,  cos(yaw))
+  //   screen right = (-cos(yaw), 0,  sin(yaw))   <- cross(forward, up)
+  // Getting this cross product backwards is what made D walk you left.
   const cy = Math.cos(cmd.camYaw), sy = Math.sin(cmd.camYaw);
   const fwd = -inZ, strafe = inX;
-  v3set(_wish, sy * fwd + cy * strafe, 0, cy * fwd - sy * strafe);
+  v3set(_wish, sy * fwd - cy * strafe, 0, cy * fwd + sy * strafe);
 
   const jumpPressed = !frozenInput && (cmd.buttons & Btn.Jump) !== 0;
   if (jumpPressed && !p.jumpHeld) p.jumpBuffer = JUMP.bufferTime;
@@ -425,7 +447,8 @@ export function stepCharacter(p: PlayerSim, cmd: InputCmd, ctx: SimContext, dt: 
 
   const wasGrounded = p.grounded;
   const prevVelY = p.vel.y;
-  const preX = p.pos.x, preZ = p.pos.z;
+  const preX = p.pos.x, preY = p.pos.y, preZ = p.pos.z;
+  const preVx = p.vel.x, preVz = p.vel.z;
   const res = moveAndCollide(p, _delta, ctx, scale, dt);
 
   // The shared result object is reused by nested calls, so snapshot it.
@@ -439,20 +462,42 @@ export function stepCharacter(p: PlayerSim, cmd: InputCmd, ctx: SimContext, dt: 
   // down; keep the result only if it genuinely made progress onto solid ground.
   const wantedH = Math.hypot(_delta.x, _delta.z);
   const movedH = Math.hypot(p.pos.x - preX, p.pos.z - preZ);
-  if (res.hitWall && (wasGrounded || resGrounded) && wantedH > 0.004 && movedH < wantedH * 0.72 &&
-      p.state !== MoveState.Ragdoll) {
+  const blocked = res.hitWall && movedH < wantedH * 0.72;
+  if (blocked && (wasGrounded || resGrounded) && wantedH > 0.004 && p.state !== MoveState.Ragdoll) {
+    // Replay the *whole* move from where we started, lifted by one step. The
+    // earlier version only retried whatever displacement was left over, which
+    // after a blocking contact is almost nothing - so it climbed a few
+    // millimetres a tick and never actually got over anything.
     const sx = p.pos.x, sy = p.pos.y, sz = p.pos.z;
     const step = MOVE.stepHeight * scale;
-    p.pos.y += step;
-    v3set(_stepDelta, _delta.x - (p.pos.x - preX), 0, _delta.z - (p.pos.z - preZ));
-    moveAndCollide(p, _stepDelta, ctx, scale, dt);
-    v3set(_stepDelta, 0, -(step + 0.03), 0);
+    v3set(p.pos, preX, preY + step, preZ);
+    v3set(_stepDelta, _delta.x, 0, _delta.z);
+    // moveAndCollide returns a shared scratch object, so every flag has to be
+    // read before the next call overwrites it. Reading `across.hitWall` after
+    // the settle step meant we were inspecting the wrong move and rejecting
+    // every successful step-up.
+    const across = moveAndCollide(p, _stepDelta, ctx, scale, dt);
+    const acrossBlocked = across.hitWall && !across.steppable;
+    const clearedH = Math.hypot(p.pos.x - preX, p.pos.z - preZ);
+    const acrossX = p.pos.x, acrossZ = p.pos.z;
+    v3set(_stepDelta, 0, -(step + 0.05), 0);
     const down = moveAndCollide(p, _stepDelta, ctx, scale, dt);
-    const gainedH = Math.hypot(p.pos.x - sx, p.pos.z - sz);
-    if (down.grounded && gainedH > 0.012) {
+    // Settling is a vertical probe. Letting its contacts shove us sideways
+    // undoes the very displacement the step-up just achieved - the player ends
+    // the tick exactly where they started, pinned against the kerb forever.
+    p.pos.x = acrossX;
+    p.pos.z = acrossZ;
+    const landed = down.grounded;
+    const landCollider = down.groundCollider;
+    v3copy(_stepNormal, down.groundNormal);
+
+    if (landed && clearedH > movedH + 0.004 && !acrossBlocked) {
       resGrounded = true;
-      resCollider = down.groundCollider;
-      v3copy(_groundN, down.groundNormal);
+      resCollider = landCollider;
+      v3copy(_groundN, _stepNormal);
+      // Stepping over something costs nothing: keep the run going.
+      p.vel.x = preVx;
+      p.vel.z = preVz;
     } else {
       v3set(p.pos, sx, sy, sz);
     }
@@ -582,15 +627,24 @@ function groundMove(p: PlayerSim, wish: Vec3, hasInput: boolean, maxSpeed: numbe
     return;
   }
 
-  const targetX = wish.x * maxSpeed;
-  const targetZ = wish.z * maxSpeed;
+  // Climbing costs ground speed. Without this a 40-degree ramp is covered just
+  // as fast as flat floor, which is the single most "floaty" thing a character
+  // controller can do. The normal tilts downhill, so a positive dot with the
+  // wish direction means we are heading up it.
+  const nx = p.groundNormal.x, nz = p.groundNormal.z;
+  const uphill = clamp(-(wish.x * nx + wish.z * nz), 0, 1);
+  const slopeFactor = 1 - uphill * (1 - p.groundNormal.y) * 1.15;
+  const speed = maxSpeed * clamp(slopeFactor, 0.55, 1.12);
+
+  const targetX = wish.x * speed;
+  const targetZ = wish.z * speed;
   let dx = targetX - rvx;
   let dz = targetZ - rvz;
   const dLen = Math.hypot(dx, dz);
   if (dLen > 0.0001) {
     // Turning against current motion brakes harder: crisp direction changes
     // without making top speed feel twitchy.
-    const align = (rvx * wish.x + rvz * wish.z) / (Math.hypot(rvx, rvz) + 0.001) / (maxSpeed || 1);
+    const align = (rvx * wish.x + rvz * wish.z) / (Math.hypot(rvx, rvz) + 0.001) / (speed || 1);
     const accel = MOVE.accel + (align < 0 ? MOVE.turnBrake : 0);
     const step = Math.min(dLen, accel * dt);
     p.vel.x += (dx / dLen) * step;

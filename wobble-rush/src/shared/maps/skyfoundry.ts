@@ -442,7 +442,7 @@ export const SKY_FOUNDRY: MapDef = registerMap({
     {
       id: 'overdrive', nameKey: 'variant.overdrive', weight: 18,
       enable: ['always', 'routeL', 'routeC', 'routeR', 'routeR_tiles', 'upper', 'hazA', 'hazB'],
-      hazardScale: 1.26, descKey: 'variant.overdrive.desc',
+      hazardScale: 1.12, descKey: 'variant.overdrive.desc',
     },
   ],
   // ── Mid-match transformations (always telegraphed) ──────────────────────

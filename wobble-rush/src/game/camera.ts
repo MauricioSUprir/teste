@@ -47,6 +47,10 @@ export class CameraController {
   private introPath: THREE.Vector3[] = [];
   private mode: 'follow' | 'intro' | 'orbit' = 'follow';
   private orbitAngle = 0;
+  /** Seconds left of the swoop from a cinematic pose into gameplay follow. */
+  private blend = 0;
+  private blendDuration = 0.75;
+  private blendFrom = new THREE.Vector3();
 
   constructor(private camera: THREE.PerspectiveCamera) {
     this.camera.fov = this.settings.fov;
@@ -75,7 +79,17 @@ export class CameraController {
   }
   private introDuration = 5;
 
-  endIntro(): void { this.mode = 'follow'; }
+  /**
+   * Ends the flyover by *blending* into the gameplay pose rather than cutting.
+   * A hard cut from a camera 25 m up to one 7 m behind the player is a visual
+   * bug even though every number involved is correct.
+   */
+  endIntro(): void {
+    if (this.mode !== 'intro') return;
+    this.mode = 'follow';
+    this.blendFrom.copy(this.camera.position);
+    this.blend = this.blendDuration;
+  }
   isIntro(): boolean { return this.mode === 'intro'; }
 
   /** Slow orbit used by the menu and the winner podium. */
@@ -134,7 +148,13 @@ export class CameraController {
       this.focus.y + dirY * this.curDist + 0.35,
       this.focus.z + dirZ * this.curDist,
     );
-    this.camera.position.copy(_desired);
+    if (this.blend > 0) {
+      this.blend = Math.max(0, this.blend - dt);
+      const k = smoothstep(1 - this.blend / this.blendDuration);
+      this.camera.position.lerpVectors(this.blendFrom, _desired, k);
+    } else {
+      this.camera.position.copy(_desired);
+    }
     this.camera.lookAt(this.focus);
 
     // Speed FOV: subtle, and it snaps back faster than it opens.
@@ -165,10 +185,16 @@ export class CameraController {
     const f = st - i;
     const a = pts[i], b = pts[i + 1];
     this.camera.position.set(lerp(a.x, b.x, f), lerp(a.y, b.y, f), lerp(a.z, b.z, f));
-    const laI = Math.min(pts.length - 1, i + 1);
-    const la = pts[laI];
-    this.camera.lookAt(la.x, la.y - 2.5, la.z + 12);
-    if (t >= 1) this.mode = 'follow';
+    // Aim a little further along the path than we are, so the shot leads the
+    // course instead of swinging when a waypoint is reached.
+    const ahead = pts[Math.min(pts.length - 1, i + 1)];
+    const ahead2 = pts[Math.min(pts.length - 1, i + 2)];
+    this.camera.lookAt(
+      lerp(ahead.x, ahead2.x, 0.5),
+      lerp(ahead.y, ahead2.y, 0.5) - 3.5,
+      lerp(ahead.z, ahead2.z, 0.5),
+    );
+    if (t >= 1) this.endIntro();
   }
 
   private updateOrbit(dt: number): void {

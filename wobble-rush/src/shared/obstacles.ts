@@ -11,7 +11,7 @@
  * layout variants - never require new code.
  */
 import { Vec3, v3, v3set, clamp, TAU, smoothstep, lerp } from './math';
-import { Quat, qIdentity, qSetEulerYXZ, qSetAxisAngle, qMul, qRotate } from './quat';
+import { Quat, qIdentity, qFromEulerArray, qSetAxisAngle, qMul, qRotate } from './quat';
 import {
   Collider, CollisionWorld, ShapeKind, Surface, makeCollider, refreshAabb,
 } from './collision';
@@ -126,7 +126,7 @@ export function createObstacle(def: ObstacleDef, world: CollisionWorld, ownerId:
   };
   const p = v3(def.pos[0], def.pos[1], def.pos[2]);
   const rot = def.rot ?? [0, 0, 0];
-  qSetEulerYXZ(_base, rot[1], rot[0], rot[2]);
+  qFromEulerArray(_base, rot as [number, number, number]);
   const baseRot: Quat = { ..._base };
   const surface = def.surface ?? Surface.Metal;
   const force = def.force ?? DEFAULTS.force;
@@ -251,7 +251,7 @@ export function updateObstacle(rt: ObstacleRuntime, t: number, hazardScale: numb
   const dwell = def.dwell ?? DEFAULTS.dwell;
   const pos = def.pos;
   const rot = def.rot ?? [0, 0, 0];
-  qSetEulerYXZ(_base, rot[1], rot[0], rot[2]);
+  qFromEulerArray(_base, rot as [number, number, number]);
 
   switch (def.kind) {
     case 'rotator':
