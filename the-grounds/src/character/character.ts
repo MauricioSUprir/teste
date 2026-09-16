@@ -17,6 +17,7 @@ import {
   BONE_INDEX, buildSkeleton, clampBodyShape, eyeHeight, type BoneName,
 } from './rig'
 import { bibliotecaPersonagem } from '../assets/characterTextures'
+import { tecidoDasPernas, tecidoDoTorso, tecidosPessoas } from '../assets/peopleTextures'
 
 export interface CharacterMaterials {
   pele: THREE.MeshPhysicalMaterial
@@ -37,6 +38,7 @@ export interface CharacterMaterials {
  */
 function makeMaterials(app: Appearance): CharacterMaterials {
   const lib = bibliotecaPersonagem()
+  const tecidos = tecidosPessoas()
 
   const pele = new THREE.MeshPhysicalMaterial({
     color: app.pele,
@@ -56,6 +58,9 @@ function makeMaterials(app: Appearance): CharacterMaterials {
 
   const roupa = new THREE.MeshStandardMaterial({ color: app.corTorso, roughness: 1, metalness: 0, vertexColors: true })
   lib.aplicar(roupa, 'tecido', 4, 5, 0.85)
+  // Tecido fotográfico por cima da procedural: a peça nasce vestida com a
+  // procedural e ganha a trama de verdade quando o download chega.
+  tecidos.aplicar(roupa, tecidoDoTorso(app.torso), 4, 5, 0.9)
 
   const roupaBrilho = new THREE.MeshStandardMaterial({ color: app.corTorsoSec, roughness: 1, metalness: 0.04, vertexColors: true })
   lib.aplicar(roupaBrilho, 'tecido', 4, 5, 0.7)
@@ -68,6 +73,7 @@ function makeMaterials(app: Appearance): CharacterMaterials {
 
   const calcado = new THREE.MeshStandardMaterial({ color: app.corPes, roughness: 1, vertexColors: true })
   lib.aplicar(calcado, 'couro', 3, 3, 0.9)
+  tecidos.aplicar(calcado, 'couro', 3, 3, 0.95)
 
   const acessorio = new THREE.MeshStandardMaterial({ color: app.corChapeu, roughness: 1, vertexColors: true })
   lib.aplicar(acessorio, 'tecido', 4, 4, 0.7)
@@ -158,11 +164,14 @@ export class Character {
     add(parts.pele, this.materials.pele, 'pele')
     add(parts.roupaTorso, this.materials.roupa, 'torso')
     const lib = bibliotecaPersonagem()
+    const tecidosLib = tecidosPessoas()
     const matPernas = new THREE.MeshStandardMaterial({ color: appearance.corPernas, roughness: 1, vertexColors: true })
     lib.aplicar(matPernas, 'tecido', 4, 6, 0.85)
+    tecidosLib.aplicar(matPernas, tecidoDasPernas(appearance.pernas), 4, 6, 0.9)
     add(parts.roupaPernas, matPernas, 'pernas')
     const matMeias = new THREE.MeshStandardMaterial({ color: appearance.corMeias, roughness: 1, vertexColors: true })
     lib.aplicar(matMeias, 'tecido', 3, 3, 0.8)
+    tecidosLib.aplicar(matMeias, 'esportivo', 3, 3, 0.85)
     add(parts.meias, matMeias, 'meias')
     add(parts.calcados, this.materials.calcado, 'calcados')
     add(parts.cabelo, this.materials.cabelo, 'cabelo')

@@ -1,0 +1,150 @@
+{
+  "generatedAt": "2026-09-16T02:26:46.362Z",
+  "source": "Poly Haven (CC0)",
+  "tecidos": {
+    "camiseta": {
+      "id": "cotton_jersey",
+      "uvScale": 0.16,
+      "credit": "Poly Haven — cotton_jersey (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cotton_jersey/cotton_jersey_rough_1k.jpg"
+        }
+      }
+    },
+    "moletom": {
+      "id": "knitted_fleece",
+      "uvScale": 0.18,
+      "credit": "Poly Haven — knitted_fleece (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/knitted_fleece/knitted_fleece_rough_1k.jpg"
+        }
+      }
+    },
+    "jaqueta": {
+      "id": "caban",
+      "uvScale": 0.2,
+      "credit": "Poly Haven — caban (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/caban/caban_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/caban/caban_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/caban/caban_rough_1k.jpg"
+        }
+      }
+    },
+    "camisa": {
+      "id": "stretch_poplin",
+      "uvScale": 0.14,
+      "credit": "Poly Haven — stretch_poplin (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stretch_poplin/stretch_poplin_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stretch_poplin/stretch_poplin_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stretch_poplin/stretch_poplin_rough_1k.jpg"
+        }
+      }
+    },
+    "jeans": {
+      "id": "denim_fabric_04",
+      "uvScale": 0.2,
+      "credit": "Poly Haven — denim_fabric_04 (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric_04/denim_fabric_04_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric_04/denim_fabric_04_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/denim_fabric_04/denim_fabric_04_rough_1k.jpg"
+        }
+      }
+    },
+    "calcaSocial": {
+      "id": "poly_wool_herringbone",
+      "uvScale": 0.18,
+      "credit": "Poly Haven — poly_wool_herringbone (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_rough_1k.jpg"
+        }
+      }
+    },
+    "veludo": {
+      "id": "ribbed_corduroy",
+      "uvScale": 0.16,
+      "credit": "Poly Haven — ribbed_corduroy (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ribbed_corduroy/ribbed_corduroy_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ribbed_corduroy/ribbed_corduroy_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ribbed_corduroy/ribbed_corduroy_rough_1k.jpg"
+        }
+      }
+    },
+    "esportivo": {
+      "id": "jersey_melange",
+      "uvScale": 0.15,
+      "credit": "Poly Haven — jersey_melange (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jersey_melange/jersey_melange_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jersey_melange/jersey_melange_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jersey_melange/jersey_melange_rough_1k.jpg"
+        }
+      }
+    },
+    "agasalho": {
+      "id": "polar_fleece",
+      "uvScale": 0.18,
+      "credit": "Poly Haven — polar_fleece (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/polar_fleece/polar_fleece_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/polar_fleece/polar_fleece_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/polar_fleece/polar_fleece_rough_1k.jpg"
+        }
+      }
+    },
+    "couro": {
+      "id": "fabric_leather_01",
+      "uvScale": 0.22,
+      "credit": "Poly Haven — fabric_leather_01 (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_01/fabric_leather_01_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_01/fabric_leather_01_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_leather_01/fabric_leather_01_rough_1k.jpg"
+        }
+      }
+    },
+    "linho": {
+      "id": "rough_linen",
+      "uvScale": 0.15,
+      "credit": "Poly Haven — rough_linen (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg"
+        }
+      }
+    },
+    "malhaGrossa": {
+      "id": "jogging_melange",
+      "uvScale": 0.17,
+      "credit": "Poly Haven — jogging_melange (CC0)",
+      "res": {
+        "1k": {
+          "map": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jogging_melange/jogging_melange_diff_1k.jpg",
+          "normalMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jogging_melange/jogging_melange_nor_gl_1k.jpg",
+          "roughnessMap": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/jogging_melange/jogging_melange_rough_1k.jpg"
+        }
+      }
+    }
+  }
+}
