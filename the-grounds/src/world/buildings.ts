@@ -250,13 +250,20 @@ function facadeMaterialFor(spec: BuildingSpec, rng: Rng): string {
   if (spec.type === 'galpao') return 'metalPintado'
   const r = rng()
   switch (spec.zone) {
+    // No centro convivem prédio de pastilha dos anos 70, tijolo aparente,
+    // concreto e reboco pintado. Quando o reboco domina, a rua inteira vira
+    // uma parede só — é o que fazia os prédios vizinhos se confundirem.
     case 'centro':
-      if (r < 0.28) return 'fachadaPastilha'
-      if (r < 0.36) return 'concreto'
+      if (r < 0.24) return 'fachadaPastilha'
+      if (r < 0.44) return 'tijolo'
+      if (r < 0.58) return 'concreto'
+      if (r < 0.68) return 'fachadaGasta'
       return 'fachada'
     case 'comercio':
-      if (r < 0.22) return 'fachadaPastilha'
-      if (r < 0.30) return 'fachadaGasta'
+      if (r < 0.20) return 'fachadaPastilha'
+      if (r < 0.38) return 'tijolo'
+      if (r < 0.52) return 'fachadaGasta'
+      if (r < 0.60) return 'concreto'
       return 'fachada'
     case 'periferia':
       if (r < 0.34) return 'tijolo'
@@ -270,9 +277,9 @@ function facadeMaterialFor(spec: BuildingSpec, rng: Rng): string {
     case 'orla':
       return r < 0.3 ? 'fachadaPastilha' : 'fachada'
     default:
-      if (r < 0.14) return 'tijolo'
-      if (r < 0.26) return 'fachadaGasta'
-      if (r < 0.34) return 'fachadaPastilha'
+      if (r < 0.28) return 'tijolo'
+      if (r < 0.44) return 'fachadaGasta'
+      if (r < 0.54) return 'fachadaPastilha'
       return 'fachada'
   }
 }
@@ -427,16 +434,27 @@ function addFacadeDetails(
   // profundidade não há sombra e o prédio vira um adesivo. Aqui cada janela é
   // um anel de moldura que avança da parede, com o vidro lá no fundo — o
   // olho lê isso como um vão recuado, que é o efeito que interessa.
-  const winW = 1.15
-  const winH = 1.35
+  //
+  // O ritmo da janela é o que mais distingue um prédio do vizinho: largura,
+  // altura, vão entre eixos e se a abertura é uma só ou um par geminado. Tudo
+  // sai da semente do edifício, então dois prédios lado a lado nunca repetem a
+  // mesma malha de janelas.
+  const rr = makeRng(spec.seed ^ 0x9e37)
+  const winW = randRange(rr, 0.92, 1.58)
+  const winH = randRange(rr, 1.18, 1.78)
+  const passo = randRange(rr, 2.25, 3.35)
+  /** Par geminado: duas folhas estreitas no mesmo vão. */
+  const geminada = rr() < 0.28 && winW > 1.2
   const startFloor = 1
   /** Quanto a moldura avança da parede (profundidade aparente do vão). */
   const PROF = 0.19
   /** Espessura das peças da moldura. */
   const ESP = 0.085
   const SEM_FUNDO: ReadonlySet<string> = new Set(['nz'])
-  const corMoldura = trim.clone().lerp(new THREE.Color(0xffffff), 0.28)
-  const corCaixilho = new THREE.Color(0x3b4148)
+  // Moldura ora contrasta com a parede, ora quase some nela.
+  const contraste = randRange(rr, 0.05, 0.62)
+  const corMoldura = trim.clone().lerp(new THREE.Color(0xffffff), contraste)
+  const corCaixilho = new THREE.Color(pick(rr, [0x3b4148, 0x23282d, 0x6d7278, 0xd6d3cc, 0x4a3b2e]))
   const faces: { sx: number; sz: number; len: number; yawOff: number; off: number }[] = [
     { sx: 1, sz: 0, len: w, yawOff: 0, off: hd },        // frente (+Z local)
     { sx: 1, sz: 0, len: w, yawOff: Math.PI, off: -hd }, // fundos
@@ -445,7 +463,7 @@ function addFacadeDetails(
   ]
 
   for (const f of faces) {
-    const cols = Math.max(1, Math.floor((f.len - 1.4) / 2.55))
+    const cols = Math.max(1, Math.floor((f.len - 1.4) / passo))
     const spacing = (f.len - 1.0) / cols
     for (let fl = startFloor; fl < spec.floors; fl++) {
       const y = groundH + (fl - 1) * fh + fh * 0.42
@@ -463,12 +481,27 @@ function addFacadeDetails(
         /** Sujeira acumulada: mais forte embaixo, onde a chuva escorre. */
         const sujo = lerp(0.82, 1.0, Math.min(1, (fl - 1) / Math.max(1, spec.floors - 2)))
 
-        // Vidro no fundo do vão, quase no plano da parede.
-        batcher.add('vidro', withColor(
-          place(makeBox(winW, winH, 0.02, { uvScale: 1, skip: ONLY_FRONT }), lx + ox, y, lz + oz, f.yawOff),
-          glassTint.clone().multiplyScalar(lerp(0.52, 0.92, lit))))
+        // Vidro no fundo do vão, quase no plano da parede. Na janela geminada
+        // são duas folhas separadas por um montante.
+        const tomVidro = glassTint.clone().multiplyScalar(lerp(0.52, 0.92, lit))
+        if (geminada) {
+          const folha = (winW - 0.09) / 2
+          for (const s2 of [-1, 1] as const) {
+            const dt = s2 * (folha + 0.045) / 2
+            batcher.add('vidro', withColor(
+              place(makeBox(folha, winH, 0.02, { uvScale: 1, skip: ONLY_FRONT }),
+                lx + ox + (f.sx ? dt : 0), y, lz + oz + (f.sz ? dt : 0), f.yawOff), tomVidro))
+          }
+          batcher.add('plastico', withColor(
+            place(makeBox(0.09, winH, 0.04, { uvScale: 1, skip: ONLY_FRONT }),
+              lx + ox * 2, y, lz + oz * 2, f.yawOff), corCaixilho))
+        } else {
+          batcher.add('vidro', withColor(
+            place(makeBox(winW, winH, 0.02, { uvScale: 1, skip: ONLY_FRONT }), lx + ox, y, lz + oz, f.yawOff),
+            tomVidro))
+        }
         // Caixilho em cruz, no fundo do vão: dá escala à janela.
-        if (fino) {
+        if (fino && !geminada) {
           batcher.add('plastico', withColor(
             place(makeBox(0.05, winH, 0.03, { uvScale: 1, skip: ONLY_FRONT }), lx + ox * 2, y, lz + oz * 2, f.yawOff), corCaixilho))
         }
@@ -566,9 +599,15 @@ function addFacadeDetails(
     }
   }
 
-  // Faixa de base (rodapé de granito/pastilha)
-  batcher.add('concreto', withColor(place(makeBox(w + 0.14, 0.75, d + 0.14, { uvScale: 1.6 }), 0, 0.37, 0),
-    new THREE.Color(0x8d8880).lerp(color, 0.25)))
+  // Faixa de base: granito escuro, pastilha ou o mesmo tom da parede sujo.
+  const alturaBase = randRange(rr, 0.55, 1.35)
+  const corBase = pick(rr, [
+    new THREE.Color(0x3c3a37), new THREE.Color(0x6b6560), new THREE.Color(0x8d8880),
+    new THREE.Color(0x5a4a3c), color.clone().multiplyScalar(0.72),
+  ])
+  batcher.add(rr() < 0.35 ? 'paralelepipedo' : 'concreto', withColor(
+    place(makeBox(w + 0.14, alturaBase, d + 0.14, { uvScale: 1.6 }), 0, alturaBase / 2, 0),
+    corBase.clone().lerp(color, 0.18)))
 
   void spec.zone
 }
