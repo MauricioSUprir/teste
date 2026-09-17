@@ -68,6 +68,13 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   const [pausado, setPausado] = useState(false)
   const pausadoRef = useRef(false)
   pausadoRef.current = pausado
+  /** está mandando/ouvindo a resposta? (nessa hora o microfone fica fechado) */
+  const processando = useRef(false)
+  /** quantas vezes o microfone reabriu seguidamente sem ouvir nada */
+  const reaberturas = useRef(0)
+  const ultimaAbertura = useRef(0)
+  const [semSom, setSemSom] = useState(false)
+  const timerSilencio = useRef<number | null>(null)
 
   const speechOk = useMemo(() => sttSupported(), [])
 
@@ -102,24 +109,60 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   function pararMic() {
     micCtl.current?.stop()
     micCtl.current = null
+    if (timerSilencio.current) clearTimeout(timerSilencio.current)
   }
 
-  /** Abre o microfone e espera ela falar. Fecha sozinho quando ela para. */
+  /**
+   * Abre o microfone e espera ela falar.
+   *
+   * Detalhe que quebrava a ligação inteira: o reconhecimento do navegador
+   * ENCERRA SOZINHO depois de alguns segundos de silêncio. Se a gente não
+   * reabrir, a tela continua dizendo "pode falar" com o microfone morto — era
+   * só ela pensar um pouco antes de responder para a chamada travar. Por isso
+   * todo fim de escuta reabre, desde que a ligação ainda esteja de pé.
+   */
   function abrirMic() {
-    if (!naChamada.current || pausadoRef.current || !speechOk) return
+    if (!naChamada.current || pausadoRef.current || !speechOk || processando.current) return
+
+    // proteção contra laço: se reabrir muitas vezes em poucos segundos, algo
+    // está errado de verdade e insistir só esquenta o aparelho
+    const agora = Date.now()
+    if (agora - ultimaAbertura.current < 1200) reaberturas.current += 1
+    else reaberturas.current = 0
+    ultimaAbertura.current = agora
+    if (reaberturas.current > 8) {
+      setMicError('O microfone não está abrindo. Toque em "voltar" para tentar de novo.')
+      setPausado(true)
+      pausadoRef.current = true
+      setFase('pausado')
+      return
+    }
+
     pararMic()
     setPartial('')
+    setSemSom(false)
     setFase('ouvindo')
+
+    // se ficar muito tempo sem ouvir nada, avisa em vez de deixar no vácuo
+    if (timerSilencio.current) clearTimeout(timerSilencio.current)
+    timerSilencio.current = window.setTimeout(() => setSemSom(true), 20000)
+
     micCtl.current = listen(
       lang.locale,
       {
         onPartial: (t) => {
+          setSemSom(false)
+          if (timerSilencio.current) clearTimeout(timerSilencio.current)
           setPartial(t)
           setEnergy(Math.min(1, t.length / 40))
         },
         onFinal: (t) => {
+          processando.current = true
+          reaberturas.current = 0
+          if (timerSilencio.current) clearTimeout(timerSilencio.current)
           pararMic()
           setPartial('')
+          setSemSom(false)
           ouviuAlgo(t)
         },
         onError: (e) => {
@@ -127,12 +170,18 @@ export function Conversation({ onExit }: { onExit: () => void }) {
             // sem permissão não tem o que tentar: a pessoa precisa liberar
             setMicError('Libere o microfone para o site e toque em "voltar" — no Chrome é o cadeado ao lado do endereço.')
             setPausado(true)
+            pausadoRef.current = true
             setFase('pausado')
             return
           }
-          // falha passageira (rede, silêncio, aba escondida): reabre e segue
+          // falha passageira (rede, aba escondida): o onEnd abaixo reabre
           setMicError(null)
-          setTimeout(() => abrirMic(), 600)
+        },
+        onEnd: () => {
+          // AQUI está o conserto: fim de escuta não é fim de conversa
+          if (naChamada.current && !pausadoRef.current && !processando.current) {
+            setTimeout(abrirMic, 300)
+          }
         },
       },
       false,
@@ -142,7 +191,11 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   /** Chegou uma fala dela: pontua o treino (se houver) e segue a conversa. */
   function ouviuAlgo(texto: string) {
     const t = texto.trim()
-    if (!t) return abrirMic()
+    // ruído e engasgo não merecem uma rodada inteira de IA
+    if (t.length < 2) {
+      processando.current = false
+      return abrirMic()
+    }
 
     const alvo = drillRef.current
     if (alvo) {
@@ -165,13 +218,17 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     const seguir = () => {
       if (seguiu) return
       seguiu = true
+      processando.current = false
       if (!naChamada.current || pausadoRef.current) {
         setFase(pausadoRef.current ? 'pausado' : 'parado')
         return
       }
-      setTimeout(abrirMic, 200)
+      // um respiro antes de abrir o microfone, para ele não ouvir a si mesmo
+      setTimeout(abrirMic, 400)
     }
-    const socorro = setTimeout(seguir, Math.max(6000, reply.reply.length * 120))
+    // rede de segurança: se a voz do navegador engasgar e nunca avisar que
+    // terminou, a chamada segue assim mesmo
+    let socorro = window.setTimeout(seguir, Math.max(8000, reply.reply.length * 140))
     const depois = () => {
       clearTimeout(socorro)
       seguir()
@@ -185,6 +242,10 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         // a bronca sai em português, depois da fala no idioma
         if (save.profile.ptVoice && reply.roast) {
           setFase('falando')
+          // a bronca vem depois: estica o socorro para ele não abrir o
+          // microfone no meio da fala (e acabar ouvindo a si mesmo)
+          clearTimeout(socorro)
+          socorro = window.setTimeout(seguir, Math.max(8000, reply.roast.length * 160))
           speakPt(reply.roast, {
             rate: mood.voz.rate,
             pitch: mood.voz.pitch,
@@ -314,11 +375,14 @@ export function Conversation({ onExit }: { onExit: () => void }) {
       pararMic()
       stopSpeaking()
       setFase('pausado')
+      setSemSom(false)
       return
     }
     // voltando: a chamada pode ter caído junto, então religa o ciclo
     setMicError(null)
     naChamada.current = true
+    processando.current = false
+    reaberturas.current = 0
     setFase('ouvindo')
     setTimeout(abrirMic, 100)
   }
@@ -332,6 +396,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
 
   async function desligar() {
     naChamada.current = false
+    processando.current = false
     pararMic()
     stopSpeaking()
     setFase('parado')
@@ -504,6 +569,11 @@ export function Conversation({ onExit }: { onExit: () => void }) {
 
         {/* o que ela está falando agora */}
         {partial && <p className="voce-falando">você: “{partial}”</p>}
+        {semSom && !partial && fase === 'ouvindo' && (
+          <p className="sem-som">
+            não estou te ouvindo — fala mais perto do microfone, ou toque em pausar e voltar
+          </p>
+        )}
       </div>
 
       {drill && (

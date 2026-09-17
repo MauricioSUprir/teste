@@ -674,3 +674,4 @@ textarea { resize: none; }
   .stage .voca { transform: scale(0.72); margin: -18px 0; }
   .screen { padding-bottom: 60px; }
 }
+.sem-som { margin-top: 8px; font-size: 13px; color: var(--yellow); text-align: center; }

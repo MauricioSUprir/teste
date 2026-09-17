@@ -240,11 +240,14 @@ export function listen(locale: string, h: ListenHandlers, keepAlive = true) {
       h.onError?.(e.error || 'erro')
     }
     rec.onend = () => {
-      if (!stopped && keepAlive) {
-        setTimeout(start, 250)
-      } else {
-        h.onEnd?.()
-      }
+      // Parada deliberada (alguem chamou stop()): quem parou ja sabe disso.
+      // Avisar aqui criava um laco — o proximo abrirMic() parava o anterior,
+      // que disparava onEnd, que mandava abrir de novo, e assim por diante.
+      if (stopped) return
+      // Fim natural: o navegador encerra a escuta sozinho depois de um tempo
+      // de silencio. Quem chamou decide se reabre.
+      if (keepAlive) setTimeout(start, 250)
+      else h.onEnd?.()
     }
     try {
       rec.start()
