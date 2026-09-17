@@ -73,7 +73,7 @@ export const PLANS: Plano[] = [
   {
     id: 'semanal',
     title: '1 semana',
-    price: 14.99,
+    price: 24.99,
     days: 7,
     perMonth: 'para experimentar sem compromisso',
     perks: ['Conversa contínua ilimitada', 'Explicação de cada erro', 'Chat de dúvidas', 'Ajuda do Voca nas questões'],
@@ -81,21 +81,21 @@ export const PLANS: Plano[] = [
   {
     id: 'mensal',
     title: '1 mês',
-    price: 29.99,
+    price: 39.99,
     days: 30,
-    perMonth: 'R$ 29,99 por mês',
+    perMonth: 'R$ 39,99 por mês',
     badge: 'o mais escolhido',
-    perks: ['Tudo do semanal', 'Um mês inteiro para criar o hábito', 'Sai menos da metade do preço por dia'],
+    perks: ['Tudo do semanal', 'Um mês inteiro para criar o hábito', 'O dia sai pela metade do preço do semanal'],
   },
   {
     id: 'anual',
     title: '1 ano',
-    price: 189.99,
+    price: 199.99,
     days: 365,
-    perMonth: 'sai por R$ 15,83 por mês',
-    badge: 'economiza 47%',
+    perMonth: 'sai por R$ 16,67 por mês',
+    badge: 'economiza 58%',
     destaque: true,
-    perks: ['Tudo do mensal', 'Quase 6 meses de graça na conta', 'O preço trava: reajuste não pega você'],
+    perks: ['Tudo do mensal', '7 meses de graça na conta', 'O preço trava: reajuste não pega você'],
   },
 ]
 

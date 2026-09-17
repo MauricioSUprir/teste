@@ -129,9 +129,9 @@ Três planos, **só Pix**, sem gateway no meio (o dinheiro cai direto na conta):
 
 | Plano | Preço | Acesso | Sai por |
 |---|---|---|---|
-| 1 semana | R$ 14,99 | 7 dias | para experimentar |
-| 1 mês | R$ 29,99 | 30 dias | R$ 1,00 por dia |
-| 1 ano | R$ 189,99 | 365 dias | R$ 15,83/mês — economiza 47% |
+| 1 semana | R$ 24,99 | 7 dias | para experimentar |
+| 1 mês | R$ 39,99 | 30 dias | R$ 1,33 por dia |
+| 1 ano | R$ 199,99 | 365 dias | R$ 16,67/mês — economiza 58% |
 
 O tempo pago é contado em **dias** (por causa do plano semanal) e **soma** em
 cima do que ainda falta, então renovar antes do vencimento nunca faz perder
