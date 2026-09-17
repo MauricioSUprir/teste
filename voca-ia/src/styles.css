@@ -567,3 +567,110 @@ textarea { resize: none; }
 .ctl.desligar { background: linear-gradient(180deg, #FF8A8A, #E14B4B); color: #2A0606; border-color: #9E2E2E; }
 .ctl:active { transform: translateY(2px); border-bottom-width: 2px; }
 .per-day { font-size: 12px; color: var(--muted); margin: -6px 0 8px; }
+
+/* ========================================================================
+   TELA GRANDE — tablet e computador
+   No celular o app é uma coluna só. Daqui para cima ele se abre: a trilha de
+   lições vai para a direita, o resto vira uma barra lateral, e a ligação
+   ganha duas colunas (o Voca de um lado, as correções do outro).
+   ======================================================================== */
+
+@media (min-width: 760px) {
+  body { font-size: 17px; }
+  .screen { max-width: 780px; padding: 22px 22px 100px; }
+  .lessons { grid-template-columns: repeat(3, 1fr); }
+  .scen-grid, .ach-grid, .lang-grid, .mood-grid, .serie-grid { grid-template-columns: repeat(3, 1fr); }
+  .plans { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  .acoes { grid-template-columns: repeat(4, 1fr); }
+  .feedback { max-width: 760px; border-radius: 22px 22px 0 0; }
+  .explain { max-width: 720px; border-radius: 22px; margin-bottom: 4vh; }
+  .explain-wrap { align-items: center; }
+  .ex-prompt { font-size: 25px; }
+  .drill-text { font-size: 24px; }
+}
+
+@media (min-width: 1040px) {
+  .screen { max-width: 1120px; }
+
+  /* ---- home: barra lateral à esquerda, trilha à direita */
+  .home {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    column-gap: 26px;
+    align-items: start;
+  }
+  .home > * { grid-column: 1; }
+  .home > .topbar,
+  .home > .lang-strip { grid-column: 1 / -1; }
+  .home > .path {
+    grid-column: 2;
+    grid-row: 3 / 200;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  .home > .home-foot { grid-column: 1 / -1; }
+  .lang-strip { -webkit-mask-image: none; mask-image: none; flex-wrap: wrap; overflow: visible; }
+  /* na barra lateral, quatro atalhos lado a lado nao cabem */
+  .home > .acoes { grid-template-columns: repeat(2, 1fr); }
+  .unit { margin-bottom: 0; }
+  .lessons { grid-template-columns: repeat(2, 1fr); }
+  .talk-card { padding: 18px; }
+
+  /* ---- a ligação: Voca de um lado, o que ele corrigiu do outro */
+  .conv-live {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    column-gap: 26px;
+    align-items: start;
+  }
+  .conv-live > * { grid-column: 1; }
+  .conv-live > .chamada-top,
+  .conv-live > .mood-row { grid-column: 1 / -1; }
+  .conv-live > .drill,
+  .conv-live > .nota-flutuante,
+  .conv-live > .fixes,
+  .conv-live > .transcript { grid-column: 2; }
+  .conv-live .bubble { min-height: 110px; }
+  .conv-live .said { font-size: 24px; }
+  .conv-live .transcript { max-height: 320px; overflow-y: auto; }
+
+  /* ---- lição: exercício centrado, sem esticar a linha de leitura */
+  .lesson-body { max-width: 720px; margin: 0 auto; }
+  .lesson-top { max-width: 720px; margin: 0 auto 18px; }
+
+  /* ---- perfil e assinatura em duas colunas */
+  .profile, .subscribe {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 24px;
+    align-items: start;
+  }
+  .profile > .conv-top, .profile > .prof-hero, .profile > .stat-grid,
+  .subscribe > .conv-top, .subscribe > .sub-hero, .subscribe > .plans,
+  .subscribe > .free-now { grid-column: 1 / -1; }
+
+  /* ---- tradutor: escreve de um lado, lê do outro */
+  .tradutor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 24px;
+    align-items: start;
+  }
+  .tradutor > .conv-top, .tradutor > .tr-dir { grid-column: 1 / -1; }
+  .tradutor > .tr-out, .tradutor > .tr-vazio { grid-column: 2; grid-row: 3 / 20; }
+}
+
+/* telas muito largas: o conteúdo para de crescer e fica no meio */
+@media (min-width: 1500px) {
+  .screen { max-width: 1280px; }
+  .home { grid-template-columns: 380px 1fr; }
+  .home > .path { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* celular deitado: sem desperdiçar altura */
+@media (max-width: 920px) and (orientation: landscape) and (max-height: 520px) {
+  .stage .voca { transform: scale(0.72); margin: -18px 0; }
+  .screen { padding-bottom: 60px; }
+}
