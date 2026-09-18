@@ -13,9 +13,9 @@ import { isPro, PAYWALL_ON } from '../lib/plan'
 import { SERIES, getSerie } from '../content/series'
 
 const DIFICULDADES: { id: Difficulty; emoji: string; title: string; desc: string }[] = [
-  { id: 'facil', emoji: '🐣', title: 'Leve', desc: 'Mais escolher e montar; perdoa typo.' },
-  { id: 'medio', emoji: '🔥', title: 'Normal', desc: 'Mistura tudo.' },
-  { id: 'dificil', emoji: '💀', title: 'Pesado', desc: 'Escrever e falar; sem perdão. Mais XP.' },
+  { id: 'facil', emoji: '01', title: 'Leve', desc: 'Mais escolher e montar; perdoa typo.' },
+  { id: 'medio', emoji: '02', title: 'Normal', desc: 'Mistura tudo.' },
+  { id: 'dificil', emoji: '03', title: 'Pesado', desc: 'Escrever e falar; sem perdão. Mais XP.' },
 ]
 
 export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => void }) {
@@ -57,7 +57,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
         <div>
           <h1>{save.profile.name || 'você'}</h1>
           <p className="muted">
-            nível {levelOf(save.xp)} · {save.xp} XP · 🔥 {save.streak} (recorde {save.bestStreak})
+            nível {levelOf(save.xp)} · {save.xp} XP · {save.streak} dias seguidos (recorde {save.bestStreak})
           </p>
         </div>
       </div>
@@ -74,7 +74,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
       <h3 className="sec">Conta e plano</h3>
       <div className="acc-box">
         <p className="ai-status">
-          {save.account ? `✅ conectada como ${save.account.email}` : '📱 progresso salvo só neste navegador'}
+          {save.account ? `conectada como ${save.account.email}` : 'progresso salvo só neste navegador'}
         </p>
         <p className="muted small">
           {save.account
@@ -93,8 +93,8 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
       <div className="acc-box">
         <p className="ai-status">
           {getSerie(save.profile.schoolYear)
-            ? `📓 ${getSerie(save.profile.schoolYear)!.label} — ${getSerie(save.profile.schoolYear)!.meta}`
-            : '📓 Você ainda não disse em que ano está.'}
+            ? `${getSerie(save.profile.schoolYear)!.label} — ${getSerie(save.profile.schoolYear)!.meta}`
+            : 'Você ainda não disse em que ano está.'}
         </p>
         <label className="field">
           <span>Trocar de ano</span>
@@ -146,7 +146,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
           const got = save.achievements.includes(a.id)
           return (
             <div key={a.id} className={`ach ${got ? 'got' : ''}`} title={a.desc}>
-              <span>{got ? a.icon : '🔒'}</span>
+              <span className="ach-n">{got ? '✓' : '—'}</span>
               <b>{a.title}</b>
               <small>{a.desc}</small>
             </div>
@@ -181,7 +181,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
         <span>Humor padrão do Voca</span>
         <select value={save.profile.mood} onChange={(e) => patchProfile({ mood: e.target.value })}>
           {MOODS.map((m) => (
-            <option key={m.id} value={m.id}>{m.emoji} {m.label} — {m.desc}</option>
+            <option key={m.id} value={m.id}>{m.label} — {m.desc}</option>
           ))}
         </select>
       </label>
@@ -201,17 +201,17 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
         </select>
       </label>
       <button className="btn ghost sm" onClick={() => speak(lang.units[0].lessons[0].phrases[0].t, { locale: lang.locale, rate: save.profile.voiceRate, voiceName: save.profile.voiceName })}>
-        🔊 testar voz
+        testar voz
       </button>
 
       <h3 className="sec">Voz em português</h3>
       <div className="acc-box">
         <p className="ai-status">
           {naturalVoiceAvailable() === true
-            ? '🎙️ Voz natural ligada (ElevenLabs) — nada de voz robótica.'
+            ? 'Voz natural ligada (ElevenLabs) — nada de voz robótica.'
             : naturalVoiceAvailable() === false
-              ? '🤖 Usando a voz do navegador. A voz natural precisa de chave do ElevenLabs no servidor.'
-              : '⏳ verificando a voz…'}
+              ? 'Usando a voz do navegador. A voz natural precisa de chave do ElevenLabs no servidor.'
+              : 'verificando a voz…'}
         </p>
         <label className="linha">
           <input
@@ -237,7 +237,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
         </label>
         {vozesIa.length > 0 && (
           <label className="field">
-            <span>Qual voz natural ({vozesIa.length} disponíveis · ⭐ = fala português nativo)</span>
+            <span>Qual voz natural ({vozesIa.length} disponíveis · = fala português nativo)</span>
             <select
               value={save.profile.naturalVoiceId ?? ''}
               onChange={(e) => patchProfile({ naturalVoiceId: e.target.value || null })}
@@ -245,7 +245,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
               <option value="">a padrão do servidor</option>
               {vozesIa.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.pt ? '⭐ ' : ''}
+                  {v.pt ? '' : ''}
                   {v.name}
                 </option>
               ))}
@@ -275,7 +275,7 @@ export function Profile({ onExit, go }: { onExit: () => void; go: (v: View) => v
             })
           }
         >
-          🔊 ouvir ele bravo
+          ouvir ele bravo
         </button>
       </div>
 

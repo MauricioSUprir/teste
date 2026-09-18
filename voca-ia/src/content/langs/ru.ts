@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const RU_UNITS: Unit[] = [
-  unit('u1', 'Первый контакт', 'Os primeiros 5 minutos', 'A1', '#5BC0EB', [
+  unit('u1', 'Первый контакт', 'Os primeiros 5 minutos', 'A1', '#6E8CA8', [
     lesson('u1l1', '👋', 'Cumprimentos', 'Oi formal e informal',
       { title: 'Ты x Вы', body: 'ТЫ com amigos e família. ВЫ com desconhecidos e mais velhos (e também plural). Detalhe que assusta: no presente o verbo SER simplesmente não existe — "Я студентка" = "eu (sou) estudante".' },
       [
@@ -39,7 +39,7 @@ export const RU_UNITS: Unit[] = [
         ['Почему вы спрашиваете?', 'Por que você pergunta?', undefined, undefined, 'pochemu vy sprashivaete'],
       ]),
   ]),
-  unit('u2', 'Каждый день', 'Rotina, comida e horas', 'A1', '#F4A259', [
+  unit('u2', 'Каждый день', 'Rotina, comida e horas', 'A1', '#FFB200', [
     lesson('u2l1', '⏰', 'Números e horas', 'Hora, preço, telefone', undefined,
       [
         ['Сколько сейчас времени?', 'Que horas são agora?', undefined, undefined, 'skolko seychas vremeni'],
@@ -74,7 +74,7 @@ export const RU_UNITS: Unit[] = [
         ['В воскресенье я всегда уставшая.', 'No domingo eu estou sempre cansada.', undefined, undefined, 'v voskresenye ya vsegda ustavshaya'],
       ]),
   ]),
-  unit('u3', 'На улице', 'Sair e voltar inteira', 'A2', '#C589E8', [
+  unit('u3', 'На улице', 'Sair e voltar inteira', 'A2', '#8A8F98', [
     lesson('u3l1', '🧭', 'Achar o caminho', 'Direções', undefined,
       [
         ['Извините, где туалет?', 'Com licença, onde fica o banheiro?', undefined, undefined, 'izvinite, gde tualet'],

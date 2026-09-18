@@ -137,7 +137,7 @@ export function ExplainPanel({
                 <ul className="exp-examples">
                   {exp.examples.map((ex, i) => (
                     <li key={i}>
-                      <button className="mini-speak" onClick={() => speak(ex.text, { locale })} aria-label="Ouvir">🔊</button>
+                      <button className="mini-speak" onClick={() => speak(ex.text, { locale })} aria-label="Ouvir">▶</button>
                       <b>{ex.text}</b>
                       <small>{ex.pt}</small>
                     </li>
@@ -146,8 +146,8 @@ export function ExplainPanel({
               </>
             )}
 
-            <p className="exp-trick">🎯 {exp.trick}</p>
-            {exp.mistake && <p className="exp-mistake">⚠️ {exp.mistake}</p>}
+            <p className="exp-trick">{exp.trick}</p>
+            {exp.mistake && <p className="exp-mistake">{exp.mistake}</p>}
 
             <h4>Ficou dúvida? Pergunta.</h4>
             <div className="chat">
@@ -156,7 +156,7 @@ export function ExplainPanel({
                   <p>{m.text}</p>
                   {m.examples?.map((e, j) => (
                     <p key={j} className="msg-ex">
-                      <button className="mini-speak" onClick={() => speak(e, { locale })}>🔊</button> {e}
+                      <button className="mini-speak" onClick={() => speak(e, { locale })}>▶</button> {e}
                     </p>
                   ))}
                 </div>

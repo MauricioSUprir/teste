@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const IT_UNITS: Unit[] = [
-  unit('u1', 'Primo Contatto', 'Os primeiros 5 minutos', 'A1', '#9BC53D', [
+  unit('u1', 'Primo Contatto', 'Os primeiros 5 minutos', 'A1', '#B8F000', [
     lesson('u1l1', '👋', 'Ciao!', 'Cumprimentar como gente',
       { title: 'Ciao x Salve x Buongiorno', body: 'CIAO só com quem você tem intimidade (serve para oi e tchau). Com desconhecido: buongiorno (dia) ou buonasera (tarde/noite). Salve resolve quando você não sabe.' },
       [
@@ -39,7 +39,7 @@ export const IT_UNITS: Unit[] = [
         ['Perché chiedi?', 'Por que você pergunta?'],
       ]),
   ]),
-  unit('u2', 'Ogni Giorno', 'Rotina, comida e horas', 'A1', '#F4A259', [
+  unit('u2', 'Ogni Giorno', 'Rotina, comida e horas', 'A1', '#FFB200', [
     lesson('u2l1', '⏰', 'Numeri e ore', 'Hora, preço e número', undefined,
       [
         ['Che ore sono?', 'Que horas são?'],
@@ -74,7 +74,7 @@ export const IT_UNITS: Unit[] = [
         ['Sono sempre stanca la domenica.', 'Estou sempre cansada no domingo.'],
       ]),
   ]),
-  unit('u3', 'In Strada', 'Sair e voltar inteira', 'A2', '#C589E8', [
+  unit('u3', 'In Strada', 'Sair e voltar inteira', 'A2', '#8A8F98', [
     lesson('u3l1', '🧭', 'Trovare la strada', 'Direções', undefined,
       [
         ['Scusi, dov’è il bagno?', 'Com licença, onde fica o banheiro?'],

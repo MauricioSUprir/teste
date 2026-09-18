@@ -109,7 +109,7 @@ export function Account({ onExit }: { onExit: () => void }) {
 
       {save.account ? (
         <div className="acc-box">
-          <p className="ai-status">✅ conectada como <b>{save.account.email}</b></p>
+          <p className="ai-status">conectada como <b>{save.account.email}</b></p>
           <p className="muted small">
             {save.syncedAt ? `última sincronização: ${new Date(save.syncedAt).toLocaleString('pt-BR')}` : 'ainda não sincronizou'}
             {' · '}plano: <b>{save.plan === 'pro' ? 'PRO' : 'grátis'}</b>
@@ -158,7 +158,7 @@ export function Account({ onExit }: { onExit: () => void }) {
         </div>
       )}
 
-      {erro && <p className="test-fail">❌ {erro}</p>}
+      {erro && <p className="test-fail">{erro}</p>}
       {aviso && <p className="test-ok">{aviso}</p>}
 
       <p className="muted small">

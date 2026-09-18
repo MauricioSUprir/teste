@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const KO_UNITS: Unit[] = [
-  unit('u1', '첫 만남', 'Os primeiros 5 minutos', 'A1', '#C589E8', [
+  unit('u1', '첫 만남', 'Os primeiros 5 minutos', 'A1', '#8A8F98', [
     lesson('u1l1', '👋', 'Cumprimentos', 'Oi, tchau e educação',
       { title: '요 é o seu escudo', body: 'Terminar em -요 deixa a frase educada e serve para quase tudo. Sem -요 (반말) só com amigos muito proximos ou gente mais nova. A ordem e sujeito - objeto - VERBO, com o verbo sempre no fim.' },
       [
@@ -39,7 +39,7 @@ export const KO_UNITS: Unit[] = [
         ['괜찮아요?', 'Tudo bem? / Está tudo certo?', 'Palavra-curinga: serve para "tudo bem", "não precisa" e "ok".', undefined, 'gwaenchanayo'],
       ]),
   ]),
-  unit('u2', '하루하루', 'Rotina, comida e horas', 'A1', '#F4A259', [
+  unit('u2', '하루하루', 'Rotina, comida e horas', 'A1', '#FFB200', [
     lesson('u2l1', '⏰', 'Números e horas', 'Hora, preço, telefone',
       { title: 'Dois sistemas de número', body: 'Coreano tem DOIS conjuntos de números: nativos (하나, 둘, 셋 — para horas e idade) e sino-coreanos (일, 이, 삼 — para minutos, dinheiro, telefone). 7h30 = 일곱(nativo) 시 삼십(sino) 분.' },
       [
@@ -75,7 +75,7 @@ export const KO_UNITS: Unit[] = [
         ['일요일에는 항상 피곤해요.', 'Aos domingos estou sempre cansada.', undefined, undefined, 'iryoireneun hangsang pigonhaeyo'],
       ]),
   ]),
-  unit('u3', '길에서', 'Sair e voltar inteira', 'A2', '#4ECDC4', [
+  unit('u3', '길에서', 'Sair e voltar inteira', 'A2', '#E8EAED', [
     lesson('u3l1', '🧭', 'Achar o caminho', 'Direções', undefined,
       [
         ['화장실이 어디예요?', 'Onde fica o banheiro?', undefined, undefined, 'hwajangsiri eodiyeyo'],

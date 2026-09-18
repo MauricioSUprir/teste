@@ -10,9 +10,9 @@ import type { Difficulty } from '../state/types'
 import { SERIES, getSerie } from '../content/series'
 
 const NIVEIS: { id: Difficulty; emoji: string; title: string; desc: string }[] = [
-  { id: 'facil', emoji: '🐣', title: 'Leve', desc: 'Mais escolher e montar do que escrever. Perdoa erro de digitação.' },
-  { id: 'medio', emoji: '🔥', title: 'Normal', desc: 'Mistura tudo: escrever, ouvir, montar e falar.' },
-  { id: 'dificil', emoji: '💀', title: 'Pesado', desc: 'Escrever do zero e falar. Errou uma letra, errou. Vale mais XP.' },
+  { id: 'facil', emoji: '01', title: 'Leve', desc: 'Mais escolher e montar do que escrever. Perdoa erro de digitação.' },
+  { id: 'medio', emoji: '02', title: 'Normal', desc: 'Mistura tudo: escrever, ouvir, montar e falar.' },
+  { id: 'dificil', emoji: '03', title: 'Pesado', desc: 'Escrever do zero e falar. Errou uma letra, errou. Vale mais XP.' },
 ]
 
 export function Onboarding({ go }: { go: (v: View) => void }) {

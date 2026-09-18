@@ -8,7 +8,7 @@ export function ClipCard({ clip, phrase, lang }: { clip: Clip; phrase: string; l
   return (
     <div className="clip">
       <button className="clip-head" onClick={() => setOpen((o) => !o)}>
-        <span className="clip-kind">🎬 {clip.kind}</span>
+        <span className="clip-kind">{clip.kind}</span>
         <b>{clip.title}</b>
         <span className="clip-toggle">{open ? '−' : '+'}</span>
       </button>
@@ -21,10 +21,10 @@ export function ClipCard({ clip, phrase, lang }: { clip: Clip; phrase: string; l
           </p>
           <div className="clip-links">
             <a href={youtubeSearch(clip.search)} target="_blank" rel="noreferrer" className="btn ghost sm">
-              ▶ Ver a cena
+              Ver a cena
             </a>
             <a href={youglishUrl(phrase, lang)} target="_blank" rel="noreferrer" className="btn ghost sm">
-              🎧 Ouvir essa frase em vídeos reais
+              Ouvir essa frase em vídeos reais
             </a>
           </div>
         </div>

@@ -36,20 +36,17 @@ export function SubscriptionNotice({ go }: { go: (v: View) => void }) {
 
   const textos = {
     vencendo: {
-      emoji: '📅',
-      titulo: `Sua assinatura vence em ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
+          titulo: `Sua assinatura vence em ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
       corpo: 'Renove pelo Pix para não perder a conversa com o Voca, as explicações e as dicas.',
       botao: 'renovar agora',
     },
     carencia: {
-      emoji: '⏳',
-      titulo: `Pagamento não identificado — faltam ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
+          titulo: `Pagamento não identificado — faltam ${dias} ${dias === 1 ? 'dia' : 'dias'}`,
       corpo: `Não achamos o Pix deste mês. Você continua com tudo liberado por ${DIAS_DE_CARENCIA} dias a partir do vencimento; depois disso a assinatura é cancelada. Se você já pagou, avisa que a gente confere.`,
       botao: 'pagar agora',
     },
     cancelado: {
-      emoji: '🔒',
-      titulo: 'Assinatura cancelada',
+          titulo: 'Assinatura cancelada',
       corpo: PAYWALL_ON
         ? 'A conversa, as explicações e as dicas do Voca ficaram travadas. Seu progresso, XP e ofensiva continuam salvos — é só assinar de novo para destravar tudo na hora.'
         : 'A assinatura venceu. Como o app ainda está em testes, nada travou — mas quando a cobrança entrar, é aqui que você renova.',
@@ -60,8 +57,7 @@ export function SubscriptionNotice({ go }: { go: (v: View) => void }) {
   return (
     <div className="limit-wrap" role="alertdialog">
       <div className={`limit plano-${estado}`}>
-        <span className="limit-emoji">{textos.emoji}</span>
-        <h2>{textos.titulo}</h2>
+                <h2>{textos.titulo}</h2>
         <p>{textos.corpo}</p>
         <button
           className="btn primary big"
@@ -88,9 +84,9 @@ export function SubscriptionBanner({ go }: { go: (v: View) => void }) {
   if (estado === 'free' || estado === 'ativo') return null
   return (
     <button className={`plano-banner ${estado}`} onClick={() => go({ name: 'assinar' })}>
-      {estado === 'vencendo' && `📅 Sua assinatura vence em ${dias} ${dias === 1 ? 'dia' : 'dias'} — renovar`}
-      {estado === 'carencia' && `⏳ Pagamento pendente · ${dias} ${dias === 1 ? 'dia' : 'dias'} até o cancelamento — pagar`}
-      {estado === 'cancelado' && '🔒 Assinatura cancelada — assinar de novo'}
+      {estado === 'vencendo' && `Sua assinatura vence em ${dias} ${dias === 1 ? 'dia' : 'dias'} — renovar`}
+      {estado === 'carencia' && `Pagamento pendente · ${dias} ${dias === 1 ? 'dia' : 'dias'} até o cancelamento — pagar`}
+      {estado === 'cancelado' && 'Assinatura cancelada — assinar de novo'}
     </button>
   )
 }

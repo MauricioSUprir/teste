@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const JA_UNITS: Unit[] = [
-  unit('u1', '初めまして', 'Os primeiros 5 minutos', 'A1', '#FF6B6B', [
+  unit('u1', '初めまして', 'Os primeiros 5 minutos', 'A1', '#FF2E2E', [
     lesson('u1l1', '👋', 'Cumprimentos', 'Dizer oi no nível certo de educação',
       { title: 'です é seu escudo', body: 'A terminação です (desu) deixa a frase educada. Entre amigos some, mas com desconhecido NUNCA tire. Ordem da frase: sujeito - objeto - VERBO. O verbo vai sempre no fim.' },
       [
@@ -40,7 +40,7 @@ export const JA_UNITS: Unit[] = [
         ['大丈夫ですか。', 'Está tudo bem?', undefined, undefined, 'daijoubu desu ka'],
       ]),
   ]),
-  unit('u2', '毎日', 'Rotina, comida e horas', 'A1', '#5BC0EB', [
+  unit('u2', '毎日', 'Rotina, comida e horas', 'A1', '#6E8CA8', [
     lesson('u2l1', '⏰', 'Números e horas', 'Hora, preço, telefone', undefined,
       [
         ['今何時ですか。', 'Que horas são?', undefined, undefined, 'ima nanji desu ka'],
@@ -75,7 +75,7 @@ export const JA_UNITS: Unit[] = [
         ['日曜日はいつも疲れています。', 'Domingo estou sempre cansada.', undefined, undefined, 'nichiyoubi wa itsumo tsukarete imasu'],
       ]),
   ]),
-  unit('u3', '町で', 'Sair e voltar inteira', 'A2', '#9BC53D', [
+  unit('u3', '町で', 'Sair e voltar inteira', 'A2', '#B8F000', [
     lesson('u3l1', '🧭', 'Achar o caminho', 'Direções e transporte', undefined,
       [
         ['トイレはどこですか。', 'Onde fica o banheiro?', undefined, undefined, 'toire wa doko desu ka'],

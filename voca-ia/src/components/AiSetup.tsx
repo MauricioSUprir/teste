@@ -48,13 +48,13 @@ export function AiSetup({ langName }: { langName: string }) {
   return (
     <div className={`ai-box ${status === 'desligada' ? 'off' : 'on'}`}>
       <p className="ai-status">
-        {status === 'checando' && '⏳ verificando…'}
-        {status === 'servidor' && '🤖 IA ligada — já configurada no servidor, você não precisa fazer nada.'}
+        {status === 'checando' && 'verificando…'}
+        {status === 'servidor' && 'IA ligada — já configurada no servidor, você não precisa fazer nada.'}
         {status === 'ligada' &&
           (turbo
-            ? `⚡ Modo turbo: ${prontos.length} serviços ligados, um cobrindo o outro.`
-            : `🤖 IA ligada com ${PROVIDERS.find((p) => p.id === prontos[0])?.label}.`)}
-        {status === 'desligada' && '📴 Sem IA: a conversa roda no modo offline (perguntas do próprio curso).'}
+            ? `Modo turbo: ${prontos.length} serviços ligados, um cobrindo o outro.`
+            : `IA ligada com ${PROVIDERS.find((p) => p.id === prontos[0])?.label}.`)}
+        {status === 'desligada' && 'Sem IA: a conversa roda no modo offline (perguntas do próprio curso).'}
       </p>
 
       {status !== 'servidor' && (
@@ -73,7 +73,7 @@ export function AiSetup({ langName }: { langName: string }) {
                   <button className="prov-open" onClick={() => setAberto(expandido ? null : p.id)}>
                     <div className="prov-head">
                       <b>
-                        {ligado ? '✅ ' : ''}
+                        {ligado ? '' : ''}
                         {p.label}
                       </b>
                       <span className={p.free.startsWith('Não') ? 'pill paid' : 'pill free'}>
@@ -134,7 +134,7 @@ export function AiSetup({ langName }: { langName: string }) {
 
           {turbo && (
             <div className="turbo">
-              <b>⚡ Modo turbo — quem faz o quê</b>
+              <b>Modo turbo — quem faz o quê</b>
               <p className="muted small">
                 Se o escolhido falhar ou bater no limite do plano grátis, o outro assume na hora,
                 sem você perceber.
@@ -181,7 +181,7 @@ export function AiSetup({ langName }: { langName: string }) {
               </button>
               {resultado && (
                 <p className={resultado.ok ? 'test-ok' : 'test-fail'}>
-                  {resultado.ok ? `✅ funcionou — ele respondeu: “${resultado.message}”` : `❌ ${resultado.message}`}
+                  {resultado.ok ? `funcionou — ele respondeu: “${resultado.message}”` : `${resultado.message}`}
                 </p>
               )}
             </>

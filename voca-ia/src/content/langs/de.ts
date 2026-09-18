@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const DE_UNITS: Unit[] = [
-  unit('u1', 'Erster Kontakt', 'Os primeiros 5 minutos', 'A1', '#FF6B6B', [
+  unit('u1', 'Erster Kontakt', 'Os primeiros 5 minutos', 'A1', '#FF2E2E', [
     lesson('u1l1', '👋', 'Hallo!', 'Cumprimentar sem medo',
       { title: 'Du x Sie', body: 'DU com amigos, colegas jovens, família. SIE (sempre com S maiúsculo) com desconhecidos e no trabalho. Substantivos em alemão SEMPRE comecam com maiuscula.' },
       [
@@ -40,7 +40,7 @@ export const DE_UNITS: Unit[] = [
         ['Warum fragst du?', 'Por que você pergunta?'],
       ]),
   ]),
-  unit('u2', 'Alltag', 'Rotina, comida e horas', 'A1', '#5BC0EB', [
+  unit('u2', 'Alltag', 'Rotina, comida e horas', 'A1', '#6E8CA8', [
     lesson('u2l1', '⏰', 'Zahlen und Uhrzeit', 'Hora, preço e número', undefined,
       [
         ['Wie spät ist es?', 'Que horas são?', undefined, 'Wie spaet ist es?'],
@@ -75,7 +75,7 @@ export const DE_UNITS: Unit[] = [
         ['Sonntags bin ich immer müde.', 'Aos domingos estou sempre cansada.', undefined, 'Sonntags bin ich immer muede'],
       ]),
   ]),
-  unit('u3', 'Auf der Straße', 'Sair e voltar inteira', 'A2', '#9BC53D', [
+  unit('u3', 'Auf der Straße', 'Sair e voltar inteira', 'A2', '#B8F000', [
     lesson('u3l1', '🧭', 'Den Weg finden', 'Direções', undefined,
       [
         ['Entschuldigung, wo ist die Toilette?', 'Com licença, onde fica o banheiro?'],

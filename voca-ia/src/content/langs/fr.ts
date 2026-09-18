@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const FR_UNITS: Unit[] = [
-  unit('u1', 'Premier Contact', 'Os primeiros 5 minutos', 'A1', '#5BC0EB', [
+  unit('u1', 'Premier Contact', 'Os primeiros 5 minutos', 'A1', '#6E8CA8', [
     lesson('u1l1', '👋', 'Bonjour !', 'Cumprimentar sem gaguejar',
       { title: 'Tu x Vous', body: 'TU com amigos e família. VOUS com desconhecidos, professores, atendentes — e também plural. Na dúvida, use vous: ninguém se ofende.' },
       [
@@ -39,7 +39,7 @@ export const FR_UNITS: Unit[] = [
         ['Pourquoi tu demandes ?', 'Por que você pergunta?'],
       ]),
   ]),
-  unit('u2', 'Au Quotidien', 'Rotina, comida e horas', 'A1', '#C589E8', [
+  unit('u2', 'Au Quotidien', 'Rotina, comida e horas', 'A1', '#8A8F98', [
     lesson('u2l1', '⏰', 'Chiffres et heures', 'Hora, preço e número', undefined,
       [
         ['Quelle heure est-il ?', 'Que horas são?'],
@@ -74,7 +74,7 @@ export const FR_UNITS: Unit[] = [
         ['Je suis toujours fatiguée le dimanche.', 'Estou sempre cansada no domingo.'],
       ]),
   ]),
-  unit('u3', 'Dans la Rue', 'Sair e voltar inteira', 'A2', '#FF6B6B', [
+  unit('u3', 'Dans la Rue', 'Sair e voltar inteira', 'A2', '#FF2E2E', [
     lesson('u3l1', '🧭', 'Trouver son chemin', 'Direções', undefined,
       [
         ['Excusez-moi, où sont les toilettes ?', 'Com licença, onde fica o banheiro?', 'Sempre no plural: les toilettes.'],

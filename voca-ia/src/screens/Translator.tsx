@@ -76,7 +76,7 @@ export function Translator({ onExit }: { onExit: () => void }) {
         {carregando ? 'traduzindo…' : 'traduzir'}
       </button>
 
-      {erro && <p className="test-fail">❌ {erro} — sem IA agora, tente de novo em instantes.</p>}
+      {erro && <p className="test-fail">{erro} — sem IA agora, tente de novo em instantes.</p>}
 
       {r && (
         <div className="tr-out">
@@ -92,7 +92,7 @@ export function Translator({ onExit }: { onExit: () => void }) {
                   : speakPt(r.translation, { nivel: 0, semIa: !save.profile.naturalVoice, voiceId: save.profile.naturalVoiceId })
               }
             >
-              🔊
+              ▶
             </button>
           </div>
 
@@ -116,7 +116,7 @@ export function Translator({ onExit }: { onExit: () => void }) {
                       className="mini-speak"
                       onClick={() => direcao === 'pt-alvo' && speak(a, { locale: lang.locale, rate: save.profile.voiceRate })}
                     >
-                      🔊
+                      ▶
                     </button>
                     {a}
                   </li>
@@ -136,7 +136,7 @@ export function Translator({ onExit }: { onExit: () => void }) {
               setSalvo(true)
             }}
           >
-            {salvo ? '✅ guardado na revisão' : '📌 guardar na minha revisão'}
+            {salvo ? 'guardado na revisão' : 'guardar na minha revisão'}
           </button>
         </div>
       )}

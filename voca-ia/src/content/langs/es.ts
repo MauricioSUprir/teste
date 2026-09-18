@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const ES_UNITS: Unit[] = [
-  unit('u1', 'Primer Contacto', 'Os primeiros 5 minutos de conversa', 'A1', '#F4A259', [
+  unit('u1', 'Primer Contacto', 'Os primeiros 5 minutos de conversa', 'A1', '#FFB200', [
     lesson('u1l1', '👋', 'Hola, ¿qué tal?', 'Cumprimentar e responder',
       { title: 'Ser x Estar', body: 'Igual ao português: SER para o que você e (soy estudiante), ESTAR para estado (estoy cansada). Boa noticia: aqui o português te ajuda.' },
       [
@@ -39,7 +39,7 @@ export const ES_UNITS: Unit[] = [
         ['¿Por qué preguntas?', 'Por que você pergunta?'],
       ]),
   ]),
-  unit('u2', 'Día a Día', 'Rotina, comida e horas', 'A1', '#9BC53D', [
+  unit('u2', 'Día a Día', 'Rotina, comida e horas', 'A1', '#B8F000', [
     lesson('u2l1', '⏰', 'Números y horas', 'Hora, preço e telefone', undefined,
       [
         ['¿Qué hora es?', 'Que horas são?'],
@@ -75,7 +75,7 @@ export const ES_UNITS: Unit[] = [
         ['Siempre estoy cansada los domingos.', 'Estou sempre cansada aos domingos.'],
       ]),
   ]),
-  unit('u3', 'En la Calle', 'Sair de casa e voltar inteira', 'A2', '#5BC0EB', [
+  unit('u3', 'En la Calle', 'Sair de casa e voltar inteira', 'A2', '#6E8CA8', [
     lesson('u3l1', '🧭', 'Cómo llegar', 'Direções e transporte', undefined,
       [
         ['Perdone, ¿dónde está el baño?', 'Com licença, onde fica o banheiro?'],

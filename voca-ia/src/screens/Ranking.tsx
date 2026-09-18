@@ -28,7 +28,7 @@ export function Ranking({ onExit, go }: { onExit: () => void; go: (v: View) => v
 
       {!accountsEnabled || !save.account ? (
         <div className="acc-box">
-          <p className="ai-status">🔐 O ranking precisa de conta</p>
+          <p className="ai-status">O ranking precisa de conta</p>
           <p className="muted small">
             É a conta que guarda seu XP na nuvem — sem ela não dá para comparar com ninguém. Leva
             um minuto para criar.
@@ -47,9 +47,9 @@ export function Ranking({ onExit, go }: { onExit: () => void; go: (v: View) => v
           <ol className="rank">
             {linhas.map((l) => (
               <li key={`${l.posicao}-${l.nome}`} className={l.eu ? 'eu' : ''}>
-                <span className="pos">{l.posicao === 1 ? '🥇' : l.posicao === 2 ? '🥈' : l.posicao === 3 ? '🥉' : `${l.posicao}º`}</span>
+                <span className="pos">{`${l.posicao}º`}</span>
                 <span className="nome">{l.nome}</span>
-                <span className="of">🔥 {l.ofensiva}</span>
+                <span className="of">{l.ofensiva}d</span>
                 <b>{l.xp} XP</b>
               </li>
             ))}

@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const AR_UNITS: Unit[] = [
-  unit('u1', 'أول لقاء', 'Os primeiros 5 minutos', 'A1', '#9BC53D', [
+  unit('u1', 'أول لقاء', 'Os primeiros 5 minutos', 'A1', '#B8F000', [
     lesson('u1l1', '👋', 'Cumprimentos', 'Oi, prazer e tchau',
       { title: 'Escreve-se da direita para a esquerda', body: 'O árabe se le da direita para a esquerda e as vogais curtas não aparecem escritas. Por isso aqui você sempre tem a transliteracao: pode responder nela.' },
       [
@@ -39,7 +39,7 @@ export const AR_UNITS: Unit[] = [
         ['لماذا تسأل؟', 'Por que você pergunta?', undefined, undefined, 'limadha tasal'],
       ]),
   ]),
-  unit('u2', 'كل يوم', 'Rotina, comida e horas', 'A1', '#4ECDC4', [
+  unit('u2', 'كل يوم', 'Rotina, comida e horas', 'A1', '#E8EAED', [
     lesson('u2l1', '⏰', 'Números e horas', 'Hora, preço, telefone', undefined,
       [
         ['كم الساعة؟', 'Que horas são?', undefined, undefined, 'kam as-saa'],
@@ -74,7 +74,7 @@ export const AR_UNITS: Unit[] = [
         ['أنا دائما متعبة يوم الأحد.', 'No domingo estou sempre cansada.', undefined, undefined, 'ana daiman mutaaba yawm al-ahad'],
       ]),
   ]),
-  unit('u3', 'في الشارع', 'Sair e voltar inteira', 'A2', '#F4A259', [
+  unit('u3', 'في الشارع', 'Sair e voltar inteira', 'A2', '#FFB200', [
     lesson('u3l1', '🧭', 'Achar o caminho', 'Direções', undefined,
       [
         ['من فضلك، أين الحمام؟', 'Por favor, onde fica o banheiro?', undefined, undefined, 'min fadlik, ayna al-hammam'],

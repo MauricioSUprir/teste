@@ -134,7 +134,7 @@ export function Lesson({
           <div className="unlocked">
             {unlocked.map((id) => {
               const a = ACHIEVEMENTS.find((x) => x.id === id)
-              return a ? <span key={id} className="badge">{a.icon} {a.title}</span> : null
+              return a ? <span key={id} className="badge">{a.title}</span> : null
             })}
           </div>
         )}
@@ -148,7 +148,11 @@ export function Lesson({
       <header className="lesson-top">
         <button className="x" onClick={onExit} aria-label="Sair">✕</button>
         <div className="bar"><i style={{ width: `${(i / queue.length) * 100}%` }} /></div>
-        <span className="hearts">{'❤️'.repeat(save.hearts)}{'🤍'.repeat(MAX_HEARTS - save.hearts)}</span>
+        <span className="vidas">
+          {Array.from({ length: MAX_HEARTS }, (_, i) => (
+            <u key={i} className={i < save.hearts ? 'on' : ''} />
+          ))}
+        </span>
       </header>
 
       <div className="lesson-body">
@@ -285,7 +289,7 @@ function TypeEx({ title, prompt, answers, disabled, onDone, speakPrompt, slack }
       <h3 className="ex-title">{title}</h3>
       <p className="ex-prompt">
         {prompt}
-        {speakPrompt && <button className="mini-speak" onClick={speakPrompt} aria-label="Ouvir">🔊</button>}
+        {speakPrompt && <button className="mini-speak" onClick={speakPrompt} aria-label="Ouvir">▶</button>}
       </p>
       <textarea autoFocus value={v} disabled={disabled} onChange={(e) => setV(e.target.value)} placeholder="escreva aqui" rows={2}
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (v.trim() && !disabled) onDone(judge(v, answers, slack)) } }} />
@@ -301,7 +305,7 @@ function ListenEx({ text, answers, disabled, onDone, say, slack }: { text: strin
     <div className="ex">
       <h3 className="ex-title">Escute e escreva o que ouviu</h3>
       <div className="listen-row">
-        <button className="big-speak" onClick={() => say(text)}>🔊</button>
+        <button className="big-speak" onClick={() => say(text)}>▶</button>
         <button className="btn ghost sm" onClick={() => speak(text, { locale: 'en-US', rate: 0.6 })}>devagar</button>
       </div>
       <textarea autoFocus value={v} disabled={disabled} onChange={(e) => setV(e.target.value)} rows={2} placeholder="o que ele falou?"
@@ -443,9 +447,9 @@ function SpeakEx({ phrase, locale, disabled, onDone, say }: { phrase: { t: strin
       {phrase.rom && <p className="rom">{phrase.rom}</p>}
       <p className="muted center">{phrase.pt}</p>
       <div className="listen-row">
-        <button className="btn ghost sm" onClick={() => say(phrase.t)}>🔊 ouvir</button>
+        <button className="btn ghost sm" onClick={() => say(phrase.t)}>ouvir</button>
       </div>
-      <button className={`mic ${rec ? 'rec' : ''}`} disabled={disabled} onClick={start}>{rec ? '🎙️ ouvindo…' : '🎤 falar'}</button>
+      <button className={`mic ${rec ? 'rec' : ''}`} disabled={disabled} onClick={start}>{rec ? 'ouvindo…' : 'falar'}</button>
       {heard && <p className="heard">ouvi: “{heard}”</p>}
       <button className="btn ghost sm" disabled={disabled} onClick={() => onDone('quase')}>pular</button>
     </div>
@@ -477,7 +481,7 @@ function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate
         <b>{phase === 'right' ? 'Certo!' : phase === 'almost' ? 'Quase lá' : 'Errado'}</b>
         <span className="fb-roast">{line}</span>
         {falarBronca && (
-          <button className="mini-speak" onClick={() => falarBronca(line)} aria-label="Ouvir de novo">🔊</button>
+          <button className="mini-speak" onClick={() => falarBronca(line)} aria-label="Ouvir de novo">▶</button>
         )}
       </div>
       {phrase && phase !== 'right' && (
@@ -485,17 +489,17 @@ function Feedback({ ex, phase, langId, lessonId, moodLines, onNext, locale, rate
           <span className="label">resposta</span>
           <p>
             {phrase.t}
-            <button className="mini-speak" onClick={() => speak(phrase.t, { locale, rate, voiceName })}>🔊</button>
+            <button className="mini-speak" onClick={() => speak(phrase.t, { locale, rate, voiceName })}>▶</button>
           </p>
           {phrase.rom && <p className="rom">{phrase.rom}</p>}
           <p className="pt">{phrase.pt}</p>
         </div>
       )}
-      {phrase?.tip && <p className="fb-tip">💡 {phrase.tip}</p>}
+      {phrase?.tip && <p className="fb-tip">{phrase.tip}</p>}
       {clip && phrase && <ClipCard clip={clip} phrase={phrase.t} lang={langId} />}
       {phrase && (
         <button className="btn ghost big explain-btn" onClick={onExplain}>
-          🧠 {phase === 'right' ? 'entender melhor essa' : 'me explica por que errei'}
+          {phase === 'right' ? 'entender melhor essa' : 'me explica por que errei'}
         </button>
       )}
       <button className="btn primary big" onClick={onNext}>Continuar</button>

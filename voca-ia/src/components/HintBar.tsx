@@ -46,7 +46,7 @@ export function HintBar({
         level,
         strength: usos >= 1 ? 2 : 1,
       })
-      setDicas((d) => [...d, '🗣️ ' + r.hint])
+      setDicas((d) => [...d, '' + r.hint])
     } catch {
       setDicas((d) => [...d, offlineHint(phrase.t, d.length + 1, phrase.tip)])
     }
@@ -56,9 +56,9 @@ export function HintBar({
   return (
     <div className="hintbar">
       <div className="hint-btns">
-        <button className="btn ghost sm" onClick={dicaLocal} disabled={usos >= 2}>💡 dica</button>
+        <button className="btn ghost sm" onClick={dicaLocal} disabled={usos >= 2}>dica</button>
         <button className="btn ghost sm" onClick={pedirAoVoca} disabled={carregando}>
-          {carregando ? 'pensando…' : '🆘 pedir ajuda ao Voca'}
+          {carregando ? 'pensando…' : 'pedir ajuda ao Voca'}
         </button>
       </div>
       {dicas.map((d, i) => (

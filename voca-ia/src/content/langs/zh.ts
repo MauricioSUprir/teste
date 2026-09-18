@@ -3,7 +3,7 @@ import type { Unit } from '../../state/types'
 import { lesson, unit } from '../build'
 
 export const ZH_UNITS: Unit[] = [
-  unit('u1', '初次见面', 'Os primeiros 5 minutos', 'A1', '#FF6B6B', [
+  unit('u1', '初次见面', 'Os primeiros 5 minutos', 'A1', '#FF2E2E', [
     lesson('u1l1', '👋', 'Cumprimentos', 'Oi, prazer e tchau',
       { title: 'Os 4 tons', body: 'A MESMA sílaba muda de sentido com o tom: mā (mãe), má (cânhamo), mǎ (cavalo), mà (xingar). Aqui você pode digitar o pinyin sem os acentos, mas ouca sempre o audio: o tom e metade da palavra.' },
       [
@@ -39,7 +39,7 @@ export const ZH_UNITS: Unit[] = [
         ['为什么问？', 'Por que você pergunta?', undefined, undefined, 'wèishénme wèn'],
       ]),
   ]),
-  unit('u2', '每天', 'Rotina, comida e horas', 'A1', '#9BC53D', [
+  unit('u2', '每天', 'Rotina, comida e horas', 'A1', '#B8F000', [
     lesson('u2l1', '⏰', 'Números e horas', 'Hora, preço, telefone', undefined,
       [
         ['现在几点？', 'Que horas são?', undefined, undefined, 'xiànzài jǐ diǎn'],
@@ -74,7 +74,7 @@ export const ZH_UNITS: Unit[] = [
         ['星期天我总是很累。', 'Domingo eu estou sempre cansada.', undefined, undefined, 'xīngqītiān wǒ zǒngshì hěn lèi'],
       ]),
   ]),
-  unit('u3', '在街上', 'Sair e voltar inteira', 'A2', '#5BC0EB', [
+  unit('u3', '在街上', 'Sair e voltar inteira', 'A2', '#6E8CA8', [
     lesson('u3l1', '🧭', 'Achar o caminho', 'Direções', undefined,
       [
         ['洗手间在哪里？', 'Onde fica o banheiro?', undefined, undefined, 'xǐshǒujiān zài nǎlǐ'],

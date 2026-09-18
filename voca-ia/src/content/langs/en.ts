@@ -9,7 +9,7 @@ export const EN_UNITS: Unit[] = [
     title: 'Primeiro Contato',
     subtitle: 'Sobreviver aos 5 primeiros minutos de conversa',
     cefr: 'A1',
-    color: '#5BC0EB',
+    color: '#6E8CA8',
     lessons: [
       lesson('u1l1', '👋', 'Oi, tudo bem?', 'Cumprimentar e responder sem travar',
         { title: 'To be (ser/estar)', body: "I am / you are / he is / she is / it is / we are / they are.\nNo dia a dia vira I'm, you're, he's. Em inglês NUNCA se omite o sujeito: \"Esta chovendo\" = \"It is raining\", não \"Is raining\"." },
@@ -65,7 +65,7 @@ export const EN_UNITS: Unit[] = [
     title: 'Dia a Dia',
     subtitle: 'Rotina, família, comida e as mentiras que a gente conta',
     cefr: 'A1',
-    color: '#9BC53D',
+    color: '#B8F000',
     lessons: [
       lesson('u2l1', '⏰', 'Minha rotina', 'Present simple sem esquecer o -s',
         { title: 'O -s da terceira pessoa', body: "he / she / it ganham -s no presente: she works, he studies, it rains.\nEsquecer esse -s e o erro número 1 de brasileiro. O Grimm conta cada um." },
@@ -121,7 +121,7 @@ export const EN_UNITS: Unit[] = [
     title: 'Na Rua',
     subtitle: 'Sair de casa e voltar inteira',
     cefr: 'A2',
-    color: '#F4A259',
+    color: '#FFB200',
     lessons: [
       lesson('u3l1', '🧭', 'Achar o caminho', 'Pedir e entender direções',
         { title: 'Preposições de lugar', body: "in front of (em frente), next to (ao lado), across from (do outro lado), between (entre), on the corner (na esquina)." },
@@ -175,7 +175,7 @@ export const EN_UNITS: Unit[] = [
     title: 'Ontem',
     subtitle: 'Contar o que aconteceu sem enrolar',
     cefr: 'A2',
-    color: '#C589E8',
+    color: '#8A8F98',
     lessons: [
       lesson('u4l1', '⏪', 'Passado simples', 'O -ed e os verbos rebeldes',
         { title: 'Past simple', body: "Regulares ganham -ed: worked, studied, played.\nIrregulares decoram: go->went, have->had, see->saw, eat->até, buy->bought.\nNa negativa e na pergunta o verbo VOLTA ao normal: \"I didn't go\", não \"I didn't went\"." },
@@ -230,7 +230,7 @@ export const EN_UNITS: Unit[] = [
     title: 'Amanhã',
     subtitle: 'Combinar, prometer e depois cancelar',
     cefr: 'A2',
-    color: '#4ECDC4',
+    color: '#E8EAED',
     lessons: [
       lesson('u5l1', '📅', 'Planos', 'going to x will',
         { title: 'going to x will', body: "going to = plano já decidido (\"I'm going to travel in July\").\nwill = decisão na hora / previsao (\"I'll help you\", \"It will rain\")." },
@@ -285,7 +285,7 @@ export const EN_UNITS: Unit[] = [
     title: 'Conversa de Verdade',
     subtitle: 'Opinião, sentimento, gíria e internet',
     cefr: 'B1',
-    color: '#FF6B6B',
+    color: '#FF2E2E',
     lessons: [
       lesson('u6l1', '💭', 'Dar opinião', 'Concordar, discordar, sem briga', undefined,
         [

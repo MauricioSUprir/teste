@@ -42,7 +42,7 @@ export function Subscribe({ feature, onExit }: { feature?: ProFeature; onExit: (
 
       {!PAYWALL_ON && !pro && (
         <p className="free-now">
-          🎉 Enquanto estamos em testes, <b>tudo isso está liberado de graça</b>. Assinar agora só
+          Enquanto estamos em testes, <b>tudo isso está liberado de graça</b>. Assinar agora só
           adianta o seu apoio — nada trava se você não assinar.
         </p>
       )}
@@ -114,7 +114,7 @@ function CheckoutPix({ plano, onVoltar, onExit }: { plano: Plano; onVoltar: () =
 
   useEffect(() => {
     if (!codigo) return
-    QRCode.toDataURL(codigo, { width: 320, margin: 1, color: { dark: '#0E1116', light: '#FFFFFF' } })
+    QRCode.toDataURL(codigo, { width: 320, margin: 1, color: { dark: '#08090A', light: '#FFFFFF' } })
       .then(setQr)
       .catch(() => setQr(''))
   }, [codigo])
@@ -153,8 +153,7 @@ function CheckoutPix({ plano, onVoltar, onExit }: { plano: Plano; onVoltar: () =
         </p>
       ) : enviado ? (
         <div className="pix-ok">
-          <span className="limit-emoji">✅</span>
-          <h2>Pagamento registrado</h2>
+            <h2>Pagamento registrado</h2>
           <p>
             Assim que o Pix cair, seu plano é liberado na conta <b>{save.account?.email}</b> — costuma
             levar poucas horas. Você não precisa pagar de novo.
@@ -178,7 +177,7 @@ function CheckoutPix({ plano, onVoltar, onExit }: { plano: Plano; onVoltar: () =
                 setTimeout(() => setCopiado(false), 2500)
               }}
             >
-              {copiado ? '✅ código copiado' : '📋 copiar código Pix'}
+              {copiado ? 'código copiado' : 'copiar código Pix'}
             </button>
             <details className="pix-code">
               <summary>ver o código copia e cola</summary>
@@ -199,7 +198,7 @@ function CheckoutPix({ plano, onVoltar, onExit }: { plano: Plano; onVoltar: () =
 
           {!save.account && (
             <p className="offline-warn">
-              ⚠️ Você ainda não entrou numa conta. O plano fica preso à conta, então crie a sua antes
+              Você ainda não entrou numa conta. O plano fica preso à conta, então crie a sua antes
               de pagar (Perfil → criar conta).
             </p>
           )}
@@ -207,7 +206,7 @@ function CheckoutPix({ plano, onVoltar, onExit }: { plano: Plano; onVoltar: () =
           <button className="btn primary big" onClick={jaPaguei} disabled={!save.account}>
             já paguei
           </button>
-          {erro && <p className="test-fail">❌ {erro}</p>}
+          {erro && <p className="test-fail">{erro}</p>}
           <button className="btn ghost big" onClick={onVoltar}>escolher outro plano</button>
         </>
       )}

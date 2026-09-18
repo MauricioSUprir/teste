@@ -12,7 +12,6 @@ export function LimitNotice() {
   return (
     <div className="limit-wrap" role="alertdialog">
       <div className="limit">
-        <span className="limit-emoji">😮‍💨</span>
         <h2>Acabou o limite de IA por hoje</h2>
         <p>
           As duas IAs bateram na cota diária delas. Isso volta ao normal{' '}
@@ -54,7 +53,7 @@ export function LimitBanner() {
   if (!ativo) return null
   return (
     <div className="limit-banner">
-      😮‍💨 Limite de IA de hoje esgotado — volta em {tempoAteAmanha()}. As lições seguem normais.
+      Limite de IA de hoje esgotado — volta em {tempoAteAmanha()}. As lições seguem normais.
     </div>
   )
 }

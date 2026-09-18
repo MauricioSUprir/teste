@@ -44,13 +44,17 @@ export function Home({ go }: { go: (v: View) => void }) {
           <span className="avatar">{save.profile.name.slice(0, 1).toUpperCase() || '•'}</span>
         </button>
         <div className="stats">
-          <span className="stat" title="Ofensiva">🔥 {save.streak}</span>
+          <span className="stat" title="Ofensiva"><i>dias</i><b>{save.streak}</b></span>
           <span className="stat" title="Vidas">
-            {'❤️'.repeat(save.hearts)}
-            {'🤍'.repeat(MAX_HEARTS - save.hearts)}
-            {save.hearts < MAX_HEARTS && <small> {minutesToHeart}min</small>}
+            <i>vidas</i>
+            <span className="vidas">
+              {Array.from({ length: MAX_HEARTS }, (_, i) => (
+                <u key={i} className={i < save.hearts ? 'on' : ''} />
+              ))}
+            </span>
+            {save.hearts < MAX_HEARTS && <small>{minutesToHeart}min</small>}
           </span>
-          <span className="stat" title="Nível">⚡ {save.xp}</span>
+          <span className="stat" title="XP"><i>xp</i><b>{save.xp}</b></span>
         </div>
       </header>
 
@@ -90,12 +94,10 @@ export function Home({ go }: { go: (v: View) => void }) {
 
       <div className="acoes">
         <button className="acao" onClick={() => go({ name: 'tradutor' })}>
-          <span>🔁</span>
           <b>Tradutor</b>
           <small>traduz e explica a pegadinha</small>
         </button>
         <button className="acao" onClick={() => go({ name: 'ranking' })}>
-          <span>🏆</span>
           <b>Ranking</b>
           <small>quem estuda mais</small>
         </button>
@@ -112,7 +114,7 @@ export function Home({ go }: { go: (v: View) => void }) {
           <p>
             Falar de verdade em {lang.name}, por voz, sem roteiro. Humor agora:{' '}
             <b>
-              {mood.emoji} {mood.label}
+              {mood.label}
             </b>
           </p>
           <span className="tag">trocar humor no meio da conversa →</span>
@@ -121,7 +123,6 @@ export function Home({ go }: { go: (v: View) => void }) {
 
       {!save.profile.placed.includes(lang.id) && (
         <button className="review-card" onClick={() => go({ name: 'nivelamento', langId: lang.id })}>
-          <span className="rc-icon">🎯</span>
           <div>
             <h3>Descobrir meu nível em {lang.name}</h3>
             <p>3 minutos e o app já te coloca no ponto certo — sem repetir o que você já sabe.</p>
@@ -131,7 +132,6 @@ export function Home({ go }: { go: (v: View) => void }) {
 
       {due.length > 0 && (
         <button className="review-card" onClick={() => go({ name: 'review' })}>
-          <span className="rc-icon">🧠</span>
           <div>
             <h3>Revisar {due.length} {due.length === 1 ? 'frase' : 'frases'}</h3>
             <p>Estão na hora de voltar — é isso que faz não esquecer.</p>
@@ -166,9 +166,11 @@ export function Home({ go }: { go: (v: View) => void }) {
                       disabled={locked}
                       onClick={() => go({ name: 'lesson', lessonId: l.id })}
                     >
-                      <span className="node-icon">{locked ? '🔒' : l.icon}</span>
+                      <span className="node-icon">{locked ? '——' : String(idx + 1).padStart(2, '0')}</span>
                       <span className="node-title">{l.title}</span>
-                      <span className="stars">{'★'.repeat(prog?.stars ?? 0)}{'☆'.repeat(3 - (prog?.stars ?? 0))}</span>
+                      <span className="stars">
+                        {[0, 1, 2].map((i) => <u key={i} className={i < (prog?.stars ?? 0) ? 'on' : ''} />)}
+                      </span>
                     </button>
                   )
                 })}
@@ -198,7 +200,6 @@ function Desafio({ onResgatar }: { onResgatar: () => void }) {
     return (
       <div className="desafio">
         <div className="desafio-topo">
-          <span>✅</span>
           <b>Desafio de hoje concluído</b>
           <span className="desafio-xp">+{d.xp} XP</span>
         </div>
@@ -208,7 +209,6 @@ function Desafio({ onResgatar }: { onResgatar: () => void }) {
   return (
     <button className={`desafio ${pronto ? 'pronto' : ''}`} onClick={() => pronto && onResgatar()}>
       <div className="desafio-topo">
-        <span>{d.emoji}</span>
         <b>{d.titulo}</b>
         <span className="desafio-xp">+{d.xp} XP</span>
       </div>
@@ -216,7 +216,7 @@ function Desafio({ onResgatar }: { onResgatar: () => void }) {
         <i style={{ width: `${Math.min(100, (estado.progresso / d.meta) * 100)}%` }} />
       </div>
       <p className="muted small">
-        {pronto ? 'toque para pegar seu XP 🎉' : `${estado.progresso} de ${d.meta}`}
+        {pronto ? 'toque para pegar seu XP' : `${estado.progresso} de ${d.meta}`}
       </p>
     </button>
   )
