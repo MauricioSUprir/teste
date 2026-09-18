@@ -70,6 +70,13 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   pausadoRef.current = pausado
   /** está mandando/ouvindo a resposta? (nessa hora o microfone fica fechado) */
   const processando = useRef(false)
+  /**
+   * Conta as rodadas da ligacao. Cada fala do Voca ganha um numero; quando uma
+   * rodada nova comeca (ou a pessoa pausa/desliga), o numero muda e os
+   * callbacks atrasados da rodada anterior viram letra morta. Sem isso, o
+   * timer de socorro de uma fala antiga abria o microfone no meio da proxima.
+   */
+  const ciclo = useRef(0)
   /** quantas vezes o microfone reabriu seguidamente sem ouvir nada */
   const reaberturas = useRef(0)
   const ultimaAbertura = useRef(0)
@@ -141,6 +148,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     pararMic()
     setPartial('')
     setSemSom(false)
+    setMicError(null)
     setFase('ouvindo')
 
     // se ficar muito tempo sem ouvir nada, avisa em vez de deixar no vácuo
@@ -157,6 +165,8 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           setEnergy(Math.min(1, t.length / 40))
         },
         onFinal: (t) => {
+          // ja estamos tratando uma fala: resultado repetido nao vira rodada nova
+          if (processando.current) return
           processando.current = true
           reaberturas.current = 0
           if (timerSilencio.current) clearTimeout(timerSilencio.current)
@@ -212,11 +222,16 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   // ------------------------------------------------------------- a conversa
 
   function falarResposta(reply: ChatReply) {
+    // Enquanto o Voca fala, o microfone fica FECHADO. Sem isso ele escuta a
+    // propria voz pelo alto-falante, transcreve e responde a si mesmo.
+    processando.current = true
+    pararMic()
+    const rodada = ++ciclo.current
     setFase('falando')
     // se a voz do navegador engasgar, o microfone abre assim mesmo
     let seguiu = false
     const seguir = () => {
-      if (seguiu) return
+      if (seguiu || rodada !== ciclo.current) return
       seguiu = true
       processando.current = false
       if (!naChamada.current || pausadoRef.current) {
@@ -264,7 +279,11 @@ export function Conversation({ onExit }: { onExit: () => void }) {
 
   async function enviar(texto: string) {
     const clean = texto.trim()
-    if (!clean) return
+    if (!clean) {
+      processando.current = false
+      return
+    }
+    processando.current = true
     stopSpeaking()
     setTurns((t) => [...t, { role: 'user', text: clean, at: Date.now() }])
     setFase('pensando')
@@ -320,6 +339,14 @@ export function Conversation({ onExit }: { onExit: () => void }) {
       },
     ])
     setDrill(reply.drill ? { text: reply.drill, pt: reply.drillPt, why: reply.drillWhy } : null)
+
+    // desligou ou pausou enquanto a IA pensava? entao ele nao fala sozinho por
+    // cima da tela de resumo
+    if (!naChamada.current || pausadoRef.current) {
+      processando.current = false
+      setFase(pausadoRef.current ? 'pausado' : 'parado')
+      return
+    }
     falarResposta(reply)
   }
 
@@ -331,6 +358,9 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     naChamada.current = true
     setPausado(false)
     pausadoRef.current = false
+    processando.current = false
+    reaberturas.current = 0
+    setMicError(null)
     setFase('pensando')
 
     if (online) {
@@ -372,6 +402,8 @@ export function Conversation({ onExit }: { onExit: () => void }) {
     pausadoRef.current = vaiPausar
     setNotice(null)
     if (vaiPausar) {
+      ciclo.current += 1
+      processando.current = false
       pararMic()
       stopSpeaking()
       setFase('pausado')
@@ -396,6 +428,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
 
   async function desligar() {
     naChamada.current = false
+    ciclo.current += 1
     processando.current = false
     pararMic()
     stopSpeaking()
@@ -434,7 +467,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         </p>
         {online === false && (
           <p className="offline-warn">
-            📴 <b>Modo offline</b> — o Voca responde com perguntas do próprio curso. Para a conversa
+            <b>Modo offline</b> — o Voca responde com perguntas do próprio curso. Para a conversa
             de verdade, ligue o Modo IA no seu perfil.
           </p>
         )}
@@ -442,10 +475,10 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         <h3 className="sec">Como você quer treinar</h3>
         <div className="modo-row">
           <button className={modo === 'treino' ? 'on' : ''} onClick={() => setModo('treino')}>
-            🎤 treino de fala
+            treino de fala
           </button>
           <button className={modo === 'livre' ? 'on' : ''} onClick={() => setModo('livre')}>
-            💬 conversa livre
+            conversa livre
           </button>
         </div>
         <p className="muted small">
@@ -461,13 +494,12 @@ export function Conversation({ onExit }: { onExit: () => void }) {
         <div className="scen-grid">
           {SCENARIOS.map((s) => (
             <button key={s.id} className={`scen ${scenarioId === s.id ? 'on' : ''}`} onClick={() => setScenarioId(s.id)}>
-              <span className="emoji">{s.emoji}</span>
-              <b>{s.title}</b>
+                            <b>{s.title}</b>
               <small>{s.goal}</small>
             </button>
           ))}
         </div>
-        <button className="btn ligar" onClick={ligar}>📞 ligar para o Voca</button>
+        <button className="btn ligar" onClick={ligar}>ligar para o Voca</button>
       </div>
     )
 
@@ -496,7 +528,7 @@ export function Conversation({ onExit }: { onExit: () => void }) {
                 <h3>Palavras para treinar</h3>
                 <ul>
                   {palavrasDificeis(errosFala.current).map((p) => (
-                    <li key={p.palavra}>🔁 <b>{p.palavra}</b> — travou {p.vezes}x</li>
+                    <li key={p.palavra}><b>{p.palavra}</b> — travou {p.vezes}x</li>
                   ))}
                 </ul>
               </>
@@ -509,16 +541,16 @@ export function Conversation({ onExit }: { onExit: () => void }) {
           <div className="report">
             <p className="rep-summary">{report.summary}</p>
             <h3>Você mandou bem em</h3>
-            <ul>{report.strengths.map((s, i) => <li key={i}>✅ {s}</li>)}</ul>
+            <ul>{report.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
             <h3>Para consertar</h3>
-            <ul>{report.fix.map((f, i) => <li key={i}>🔧 <b>{f.what}</b><br /><span className="ex-good">{f.example}</span></li>)}</ul>
-            <p className="next-goal">🎯 {report.nextGoal}</p>
+            <ul>{report.fix.map((f, i) => <li key={i}><b>{f.what}</b><br /><span className="ex-good">{f.example}</span></li>)}</ul>
+            <p className="next-goal">{report.nextGoal}</p>
           </div>
         )}
         {!report && todas.length > 0 && (
           <div className="report">
             <h3>O que corrigir</h3>
-            <ul>{todas.slice(0, 8).map((c, i) => <li key={i}>🔧 <b>{c.right}</b><br /><small>{c.why}</small></li>)}</ul>
+            <ul>{todas.slice(0, 8).map((c, i) => <li key={i}><b>{c.right}</b><br /><small>{c.why}</small></li>)}</ul>
           </div>
         )}
 
@@ -531,19 +563,19 @@ export function Conversation({ onExit }: { onExit: () => void }) {
   // ----------------------------------------------------- a ligação, ao vivo
   const ultimo = turns[turns.length - 1]
   const statusTexto = {
-    ouvindo: '🎙️ pode falar',
-    pensando: '💭 pensando…',
-    falando: '🔊 falando',
-    pausado: '⏸️ microfone pausado',
+    ouvindo: 'pode falar',
+    pensando: 'pensando…',
+    falando: 'falando',
+    pausado: 'microfone pausado',
     parado: '…',
   }[fase]
 
   return (
     <div className="screen conv-live em-chamada" style={{ ['--mood' as string]: mood.color }}>
       <header className="chamada-top">
-        <span className="chamada-scen">{scenario.emoji} {scenario.title}</span>
+        <span className="chamada-scen">{scenario.title}</span>
         <span className="chamada-tempo">{String(Math.floor(segundos / 60)).padStart(2, '0')}:{String(segundos % 60).padStart(2, '0')}</span>
-        <span className="mode-chip">{online ? '🤖 IA' : '📴 offline'}</span>
+        <span className="mode-chip">{online ? 'IA' : 'offline'}</span>
       </header>
 
       <MoodRow current={save.profile.mood} onPick={switchMood} compact />
@@ -579,13 +611,13 @@ export function Conversation({ onExit }: { onExit: () => void }) {
       {drill && (
         <div className={`drill ${nota ? nota.veredito : ''}`}>
           <div className="drill-top">
-            <b>🎤 repete em voz alta</b>
-            <button className="mini-speak" onClick={() => speak(drill.text, { locale: lang.locale, rate: 0.9, voiceName: save.profile.voiceName })}>🔊</button>
-            <button className="mini-speak" onClick={() => speak(drill.text, { locale: lang.locale, rate: 0.6 })}>🐢</button>
+            <b>repete em voz alta</b>
+            <button className="mini-speak" onClick={() => speak(drill.text, { locale: lang.locale, rate: 0.9, voiceName: save.profile.voiceName })}>▶</button>
+            <button className="mini-speak" onClick={() => speak(drill.text, { locale: lang.locale, rate: 0.6 })}>½×</button>
           </div>
           <p className="drill-text" lang={lang.locale} dir={lang.rtl ? 'rtl' : 'ltr'}>{drill.text}</p>
           {drill.pt && <p className="drill-pt">{drill.pt}</p>}
-          {drill.why && <p className="drill-why">👂 {drill.why}</p>}
+          {drill.why && <p className="drill-why">{drill.why}</p>}
           <p className="muted small">é só falar — o microfone já está aberto</p>
         </div>
       )}
@@ -639,12 +671,12 @@ export function Conversation({ onExit }: { onExit: () => void }) {
       <div className="chamada-controles">
         {speechOk && (
           <button className={`ctl ${pausado ? 'on' : ''}`} onClick={pausar}>
-            {pausado ? '🎤 voltar' : '⏸️ pausar'}
+            {pausado ? 'voltar' : 'pausar'}
           </button>
         )}
-        <button className="ctl desligar" onClick={desligar}>📵 desligar</button>
+        <button className="ctl desligar" onClick={desligar}>desligar</button>
         <button className="ctl" onClick={() => ultimo && falarResposta({ reply: ultimo.text, corrections: [] })}>
-          🔁 repetir
+          repetir
         </button>
       </div>
 
@@ -671,7 +703,7 @@ function MoodRow({ current, onPick, compact }: { current: string; onPick: (id: s
           onClick={() => onPick(m.id)}
           title={m.desc}
         >
-          <span>{m.emoji}</span>
+          <u className="mood-dot" />
           <b>{m.label}</b>
         </button>
       ))}

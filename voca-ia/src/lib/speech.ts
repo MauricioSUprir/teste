@@ -35,6 +35,20 @@ export type SpeakOpts = {
 }
 
 let currentUtterance: SpeechSynthesisUtterance | null = null
+/**
+ * O Chrome corta a sintese de voz perto dos 15 segundos e, pior, as vezes nem
+ * avisa que terminou — a fala some no meio e quem esperava o `onend` fica
+ * plantado. O truque conhecido e dar um pause/resume antes de bater o limite.
+ */
+let resumeTicker: number | null = null
+const ehChromium = () => typeof navigator !== 'undefined' && /Chrome|Chromium|Edg/.test(navigator.userAgent)
+
+function pararTicker() {
+  if (resumeTicker !== null) {
+    clearInterval(resumeTicker)
+    resumeTicker = null
+  }
+}
 
 export function speak(text: string, opts: SpeakOpts) {
   if (!('speechSynthesis' in window) || !text.trim()) {
@@ -53,14 +67,25 @@ export function speak(text: string, opts: SpeakOpts) {
   u.onboundary = (e) => opts.onProgress?.(Math.min(1, (e.charIndex || 0) / Math.max(1, text.length)))
   u.onend = () => {
     currentUtterance = null
+    pararTicker()
     opts.onEnd?.()
   }
   u.onerror = () => {
     currentUtterance = null
+    pararTicker()
     opts.onEnd?.()
   }
   currentUtterance = u
   window.speechSynthesis.speak(u)
+  pararTicker()
+  if (ehChromium()) {
+    resumeTicker = window.setInterval(() => {
+      const s = window.speechSynthesis
+      if (!s.speaking) return pararTicker()
+      s.pause()
+      s.resume()
+    }, 9000)
+  }
   return stopSpeaking
 }
 
@@ -176,6 +201,7 @@ export function speakPt(text: string, opts: PtOpts = {}) {
 }
 
 export function stopSpeaking() {
+  pararTicker()
   if ('speechSynthesis' in window) window.speechSynthesis.cancel()
   currentUtterance = null
   stopAudio()
@@ -217,6 +243,9 @@ export function listen(locale: string, h: ListenHandlers, keepAlive = true) {
 
   const start = () => {
     if (stopped) return
+    // um "final" por escuta: o Chrome as vezes repete o mesmo resultado e
+    // isso disparava duas rodadas de IA ao mesmo tempo
+    let entregou = false
     rec = new Ctor()
     rec.lang = locale
     rec.continuous = false
@@ -228,12 +257,15 @@ export function listen(locale: string, h: ListenHandlers, keepAlive = true) {
         const r = e.results[i]
         if (r.isFinal) {
           const text = (r[0]?.transcript ?? '').trim()
-          if (text) h.onFinal?.(text)
+          if (text && !entregou && !stopped) {
+            entregou = true
+            h.onFinal?.(text)
+          }
         } else {
           interim += r[0]?.transcript ?? ''
         }
       }
-      if (interim) h.onPartial?.(interim.trim())
+      if (interim && !entregou && !stopped) h.onPartial?.(interim.trim())
     }
     rec.onerror = (e: any) => {
       if (e.error === 'no-speech' || e.error === 'aborted') return
