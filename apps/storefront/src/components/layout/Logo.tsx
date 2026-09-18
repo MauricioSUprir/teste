@@ -64,33 +64,54 @@ export function Logo({ altura = 28 }: { altura?: number }) {
     );
   }
   if (LOJA.id === "bradeco") {
-    // identidade oficial (@bradecodistribuidora): "BRADECO" largo e técnico em
-    // branco, com o "A" desenhado como uma seta laranja (sem travessão), e
-    // "Distribuidora" em laranja bem espaçado embaixo
+    // wordmark oficial (@bradecodistribuidora): "BRADECO" largo e quadrado em
+    // branco, com o "A" desenhado como uma seta laranja cheia (sem travessão),
+    // e "Distribuidora" em laranja bem espaçado embaixo.
+    // O A é um SVG e não a letra: nenhuma fonte tem esse desenho.
+    const corpo = altura * 0.52; // tamanho das letras
+    const caixaAlta = corpo * 0.72; // altura da maiúscula, para casar com o A
     return (
-      <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
+      <span
+        className="inline-flex flex-col items-center justify-center"
+        style={{ height: altura }}
+      >
         <span className="sr-only">Bradeco Distribuidora</span>
         <span
           aria-hidden="true"
-          className="font-titulo leading-none"
+          className="leading-none"
           style={{
-            fontSize: altura * 0.62,
-            fontWeight: 700,
+            fontFamily: "var(--font-michroma), Arial, sans-serif",
+            fontSize: corpo,
             color: "var(--bn-tinta)",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap",
           }}
         >
-          BR<span style={{ color: "#ED7B2F" }}>Λ</span>DECO
+          BR
+          <svg
+            viewBox="0 0 100 100"
+            style={{
+              display: "inline-block",
+              verticalAlign: "baseline",
+              height: caixaAlta,
+              width: caixaAlta * 0.92,
+              marginLeft: corpo * 0.06,
+              marginRight: corpo * 0.06,
+            }}
+          >
+            <path d="M50 0 L100 100 L72 100 L50 44 L28 100 L0 100 Z" fill="#ED7B2F" />
+          </svg>
+          DECO
         </span>
         <span
           aria-hidden="true"
           className="leading-none"
           style={{
-            fontSize: altura * 0.245,
-            fontWeight: 600,
+            fontSize: altura * 0.2,
+            fontWeight: 500,
             color: "#ED7B2F",
-            letterSpacing: "0.22em",
-            marginTop: altura * 0.14,
+            letterSpacing: "0.3em",
+            marginTop: altura * 0.17,
           }}
         >
           Distribuidora

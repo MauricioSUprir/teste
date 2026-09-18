@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Fraunces, Inter, Saira } from "next/font/google";
+import { Archivo, Fraunces, Inter, Michroma, Saira } from "next/font/google";
 import { B2BProvider } from "@/lib/b2b/contexto";
 import { CarrinhoProvider } from "@/lib/carrinho/contexto";
 import { ContaProvider } from "@/lib/conta/contexto";
@@ -26,6 +26,8 @@ const archivo = Archivo({
   weight: ["500", "600", "700"],
   variable: "--font-archivo",
   display: "swap",
+  // só a loja dona dessa fonte a usa: sem preload nas outras
+  preload: false,
 });
 
 // fonte display da BRADECO — larga, geométrica e técnica, como o logo da
@@ -35,6 +37,18 @@ const saira = Saira({
   weight: ["500", "600", "700"],
   variable: "--font-saira",
   display: "swap",
+  // só a loja dona dessa fonte a usa: sem preload nas outras
+  preload: false,
+});
+
+// fonte do logo da BRADECO: larga e quadrada, como o wordmark da marca
+const michroma = Michroma({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-michroma",
+  display: "swap",
+  // só a loja dona dessa fonte a usa: sem preload nas outras
+  preload: false,
 });
 
 const tituloLoja =
@@ -151,7 +165,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="pt-BR"
       data-loja={LOJA_ID}
-      className={`${inter.variable} ${fraunces.variable} ${archivo.variable} ${saira.variable}`}
+      className={`${inter.variable} ${fraunces.variable} ${archivo.variable} ${saira.variable} ${michroma.variable}`}
     >
       <body>
         <Analytics />
