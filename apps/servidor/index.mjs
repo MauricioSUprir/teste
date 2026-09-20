@@ -1049,6 +1049,11 @@ aplicacao.post("/pagamentos/webhook", async (req, res) => {
 // O Mauricio sobe as artes aqui; o robô do GitHub coleta em
 // /enviar-banners/exportar e o site ganha o carrossel.
 const BANNERS_SLOTS = ["banner-1", "banner-2", "banner-3", "banner-4", "banner-5"];
+// arte vertical opcional do mesmo banner, só para celular: um banner largo de
+// desktop vira uma tira fininha e ilegível no telefone. Quando o slot "-mobile"
+// existe, o site usa ele nas telas pequenas.
+const BANNERS_SLOTS_MOBILE = BANNERS_SLOTS.map((s) => `${s}-mobile`);
+const TODOS_SLOTS_BANNER = [...BANNERS_SLOTS, ...BANNERS_SLOTS_MOBILE];
 const bannersEnviados = new Map(); // slot → { mime, base64 }
 const ARQ_BANNERS = "/tmp/banners-enviados.json";
 const BANNERS_BACKUP_URL =
@@ -1087,6 +1092,7 @@ aplicacao.get("/banners", (req, res) => {
   const lista = BANNERS_SLOTS.filter((s) => bannersEnviados.has(s)).map((slot) => ({
     slot,
     url: `/banners/imagem/${slot}`,
+    urlMobile: bannersEnviados.has(`${slot}-mobile`) ? `/banners/imagem/${slot}-mobile` : null,
   }));
   res.json({ ok: true, banners: lista });
 });
@@ -1104,7 +1110,7 @@ aplicacao.post("/enviar-banners/excluir", async (req, res) => {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const { slot } = req.body ?? {};
-  if (!BANNERS_SLOTS.includes(slot)) return res.status(400).json({ erro: "Banner inválido." });
+  if (!TODOS_SLOTS_BANNER.includes(slot)) return res.status(400).json({ erro: "Banner inválido." });
   bannersEnviados.delete(slot);
   await salvarBanners();
   res.json({ ok: true, total: bannersEnviados.size });
@@ -1172,7 +1178,7 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const { slot, mime, base64 } = req.body ?? {};
-  if (!BANNERS_SLOTS.includes(slot) || !base64 || !String(mime ?? "").startsWith("image/")) {
+  if (!TODOS_SLOTS_BANNER.includes(slot) || !base64 || !String(mime ?? "").startsWith("image/")) {
     return res.status(400).json({ erro: "Envio inválido." });
   }
   const bytes = Buffer.from(String(base64), "base64");

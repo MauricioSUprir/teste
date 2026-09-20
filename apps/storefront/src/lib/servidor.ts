@@ -352,13 +352,19 @@ export function enviarAvaliacao(dados: {
 export const CHAVE_ADMIN_SERVIDOR = "exporta-bn-2026";
 
 /** Lista os banners ativos, na ordem (URLs absolutas prontas para <img>). */
-export async function listarBanners(): Promise<{ slot: string; url: string }[]> {
+export type BannerDaLoja = { slot: string; url: string; urlMobile: string | null };
+
+export async function listarBanners(): Promise<BannerDaLoja[]> {
   if (!servidorConfigurado()) return [];
   try {
     const resposta = await fetchComTimeout(`${SERVIDOR_URL}/banners`, 65_000, {});
     if (!resposta.ok) return [];
-    const dados = (await resposta.json()) as { banners?: { slot: string; url: string }[] };
-    return (dados.banners ?? []).map((b) => ({ ...b, url: `${SERVIDOR_URL}${b.url}` }));
+    const dados = (await resposta.json()) as { banners?: BannerDaLoja[] };
+    return (dados.banners ?? []).map((b) => ({
+      ...b,
+      url: `${SERVIDOR_URL}${b.url}`,
+      urlMobile: b.urlMobile ? `${SERVIDOR_URL}${b.urlMobile}` : null,
+    }));
   } catch {
     return [];
   }

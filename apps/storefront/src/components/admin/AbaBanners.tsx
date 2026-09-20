@@ -13,6 +13,8 @@ import {
 } from "@/lib/servidor";
 
 const SLOTS = ["banner-1", "banner-2", "banner-3", "banner-4", "banner-5"];
+/** arte vertical opcional do mesmo banner, usada só nas telas de celular */
+const slotMobile = (slot: string) => `${slot}-mobile`;
 
 export function AbaBanners() {
   const [ativos, setAtivos] = useState<Record<string, string>>({});
@@ -22,7 +24,11 @@ export function AbaBanners() {
   async function carregar() {
     const lista = await listarBanners();
     const mapa: Record<string, string> = {};
-    for (const b of lista) mapa[b.slot] = `${b.url}?v=${Date.now()}`;
+    const versao = Date.now();
+    for (const b of lista) {
+      mapa[b.slot] = `${b.url}?v=${versao}`;
+      if (b.urlMobile) mapa[slotMobile(b.slot)] = `${b.urlMobile}?v=${versao}`;
+    }
     setAtivos(mapa);
     setCarregando(false);
   }
@@ -68,6 +74,10 @@ export function AbaBanners() {
         As artes aparecem no topo da home, na ordem dos números, trocando sozinhas a cada
         20 segundos. <b>Formato ideal: deitado, 1600×600</b> (mínimo 1200 de largura), até 7MB.
         A troca vale na hora, sem esperar atualização do site.
+        <br />
+        <b>Versão de celular:</b> a arte deitada vira uma tira fininha no telefone e o texto
+        some. Suba também a arte em pé (<b>1080×1350</b>) para cada banner — quem abrir o site
+        no celular vê ela no lugar da deitada.
       </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -104,6 +114,58 @@ export function AbaBanners() {
                 <button type="button" onClick={() => remover(slot)} className="text-[0.8125rem] text-erro underline">
                   Remover
                 </button>
+              )}
+            </div>
+
+            {/* arte em pé, usada só no celular */}
+            <div className="mt-4 border-t border-linha pt-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[0.8125rem] font-semibold text-grafite">
+                  Versão de celular{" "}
+                  <span className="font-normal text-cinza">(em pé, 1080×1350)</span>
+                </p>
+                {status[slotMobile(slot)] && (
+                  <span className="text-[0.75rem] text-grafite">{status[slotMobile(slot)]}</span>
+                )}
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="flex h-20 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-dashed border-linha bg-superficie">
+                  {ativos[slotMobile(slot)] ? (
+                    /* eslint-disable-next-line @next/next/no-img-element -- prévia da arte do lojista */
+                    <img
+                      src={ativos[slotMobile(slot)]}
+                      alt={`Banner ${i + 1} no celular`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[0.6875rem] text-cinza">vazio</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="cursor-pointer rounded-[999px] border border-roxo px-4 py-2 text-[0.8125rem] font-semibold text-roxo hover:bg-violeta-claro">
+                    {ativos[slotMobile(slot)] ? "Trocar" : "Enviar"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => aoEscolher(slotMobile(slot), e.currentTarget)}
+                    />
+                  </label>
+                  {ativos[slotMobile(slot)] && (
+                    <button
+                      type="button"
+                      onClick={() => remover(slotMobile(slot))}
+                      className="text-[0.8125rem] text-erro underline"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+              </div>
+              {!ativos[slot] && (
+                <p className="mt-2 text-[0.75rem] text-cinza">
+                  Sem a arte deitada, este banner não aparece no site.
+                </p>
               )}
             </div>
           </div>
