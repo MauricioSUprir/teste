@@ -7,8 +7,10 @@
  * repositório. É desses arquivos que o servidor se recupera quando sobe de
  * novo (ver os *_BACKUP_URL em apps/servidor/index.mjs).
  *
- * Regra de segurança: um backup NUNCA é substituído por um arquivo vazio.
- * Se o servidor tiver acabado de perder os dados, o backup bom fica de pé.
+ * Regra de segurança: o servidor diz em restauracaoOk se conseguiu recuperar
+ * a memória ao subir. Se não conseguiu, um conjunto vazio significa dado
+ * perdido e o backup anterior é preservado. Se conseguiu, um conjunto vazio
+ * significa exclusão de verdade feita no painel — e essa sim é gravada.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
@@ -36,7 +38,7 @@ const CONJUNTOS = [
   {
     rota: "/catalogo/precos/exportar",
     arquivo: "precos-backup.json",
-    contar: (d) => Object.values(d ?? {}).reduce((s, v) => s + Object.keys(v ?? {}).length, 0),
+    contar: (d) => Object.values(d?.precos ?? {}).reduce((s, v) => s + Object.keys(v ?? {}).length, 0),
   },
   { rota: "/enviar-banners/exportar", arquivo: "banners-enviados.json", contar: (d) => Object.keys(d?.banners ?? {}).length },
 ];
@@ -70,9 +72,9 @@ async function baixar(rota) {
   return null;
 }
 
-/** Compara ignorando o carimbo de hora, para não commitar mudança fantasma. */
+/** Compara só os dados, para não commitar mudança fantasma a cada hora. */
 function semCarimbo(dados) {
-  const { geradoEm, ...resto } = dados ?? {};
+  const { geradoEm, restauracaoOk, ...resto } = dados ?? {};
   return JSON.stringify(resto);
 }
 
@@ -97,9 +99,12 @@ for (const conjunto of CONJUNTOS) {
   }
   const quantosAntigo = antigo ? conjunto.contar(antigo) : 0;
 
-  if (quantosNovo === 0 && quantosAntigo > 0) {
+  // vazio + servidor que não conseguiu recuperar a memória = dado perdido,
+  // não exclusão: o backup bom fica de pé
+  if (quantosNovo === 0 && quantosAntigo > 0 && novo.restauracaoOk !== true) {
     console.log(
-      `${conjunto.arquivo}: servidor devolveu VAZIO e o backup tem ${quantosAntigo} registro(s) — backup PRESERVADO.`,
+      `${conjunto.arquivo}: servidor devolveu VAZIO sem confirmar a restauração ` +
+        `e o backup tem ${quantosAntigo} registro(s) — backup PRESERVADO.`,
     );
     continue;
   }

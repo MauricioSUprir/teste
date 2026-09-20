@@ -23,6 +23,20 @@ import { randomInt } from "node:crypto";
 
 // Render/Heroku definem PORT; localmente usamos PORTA (padrão 4000)
 const PORTA = Number(process.env.PORTA ?? process.env.PORT ?? 4000);
+/**
+ * O disco do Render é temporário: no boot, cada conjunto de dados tenta voltar
+ * do backup versionado no GitHub. Se ALGUMA dessas restaurações falhar, o
+ * servidor está com a memória incompleta — e o robô de backup precisa saber
+ * disso para não gravar um arquivo vazio por cima de um backup bom.
+ * Conjunto vazio com restauracaoOk = true é exclusão de verdade e pode ser
+ * gravada; com false, o robô preserva o backup anterior.
+ */
+let restauracaoFalhou = false;
+function marcarFalhaRestauracao(conjunto) {
+  restauracaoFalhou = true;
+  console.error(`[backup] não consegui restaurar ${conjunto} — o robô vai preservar o backup anterior.`);
+}
+
 /** e-mails de administrador que recebem a notificação de cada venda */
 const EMAILS_NOTIFICACAO = (process.env.ADMIN_NOTIFICACAO_EMAILS ?? "lojabeautynow@gmail.com")
   .split(",")
@@ -729,6 +743,8 @@ try {
       const dados = await r.json();
       pedidosLoja = Array.isArray(dados) ? dados : (dados.pedidos ?? []);
       console.log(`[pedidos] histórico restaurado do backup: ${pedidosLoja.length} pedido(s)`);
+    } else if (r?.status !== 404) {
+      marcarFalhaRestauracao("pedidos");
     }
   }
 } catch {
@@ -791,7 +807,7 @@ aplicacao.get("/pedidos/exportar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({ geradoEm: new Date().toISOString(), pedidos: pedidosLoja });
+  res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, pedidos: pedidosLoja });
 });
 
 // admin marca pago (venda fora do MP) ou cancela
@@ -1049,6 +1065,8 @@ try {
     if (r?.ok) {
       const backup = (await r.json())?.banners ?? {};
       for (const [k, v] of Object.entries(backup)) bannersEnviados.set(k, v);
+    } else if (r?.status !== 404) {
+      marcarFalhaRestauracao("banners");
     }
   }
 } catch {
@@ -1171,7 +1189,11 @@ aplicacao.get("/enviar-banners/exportar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({ total: bannersEnviados.size, banners: Object.fromEntries(bannersEnviados) });
+  res.json({
+    total: bannersEnviados.size,
+    restauracaoOk: !restauracaoFalhou,
+    banners: Object.fromEntries(bannersEnviados),
+  });
 });
 
 // ===== Bling (ERP) =====
@@ -1348,6 +1370,7 @@ try {
   } else {
     const r = await fetch(AVALIACOES_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) avaliacoes = (await r.json())?.avaliacoes ?? [];
+    else if (r?.status !== 404) marcarFalhaRestauracao("avaliações");
   }
 } catch {
   avaliacoes = [];
@@ -1407,7 +1430,7 @@ aplicacao.get("/avaliacoes/exportar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({ geradoEm: new Date().toISOString(), avaliacoes });
+  res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, avaliacoes });
 });
 
 // ===== Cadastro profissional Be2Beauty (B2B) =====
@@ -1426,6 +1449,7 @@ try {
   } else {
     const r = await fetch(B2B_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) cadastrosB2B = (await r.json())?.cadastros ?? [];
+    else if (r?.status !== 404) marcarFalhaRestauracao("cadastros B2B");
   }
 } catch {
   cadastrosB2B = [];
@@ -1615,7 +1639,7 @@ aplicacao.get("/b2b/exportar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({ geradoEm: new Date().toISOString(), cadastros: cadastrosB2B });
+  res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, cadastros: cadastrosB2B });
 });
 
 // ===== Preços manuais (admin) =====
@@ -1635,7 +1659,12 @@ try {
     precosManuais = JSON.parse(fs.readFileSync(ARQ_PRECOS_MANUAIS, "utf8"));
   } else {
     const r = await fetch(PRECOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
-    if (r?.ok) precosManuais = await r.json();
+    if (r?.ok) {
+      const dados = await r.json();
+      precosManuais = dados?.precos ?? dados;
+    } else if (r?.status !== 404) {
+      marcarFalhaRestauracao("preços manuais");
+    }
   }
   precosManuais.beautynow ??= {};
   precosManuais.be2beauty ??= {};
@@ -1706,7 +1735,7 @@ aplicacao.get("/catalogo/precos/exportar", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json(precosManuais);
+  res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, precos: precosManuais });
 });
 
 // ===== Afiliados — programa independente do B2B =====
@@ -1744,6 +1773,8 @@ try {
       vendasAfiliados = dados?.vendas ?? [];
       pendentesAfiliados = dados?.pendentes ?? {};
       saquesAfiliados = dados?.saques ?? [];
+    } else if (r?.status !== 404) {
+      marcarFalhaRestauracao("afiliados");
     }
   }
   if (fs.existsSync(ARQ_AFILIADOS_VENDAS)) {
@@ -2245,6 +2276,7 @@ aplicacao.get("/afiliados/exportar", (req, res) => {
   }
   res.json({
     geradoEm: new Date().toISOString(),
+    restauracaoOk: !restauracaoFalhou,
     cadastro: afiliadosCadastro,
     vendas: vendasAfiliados,
     pendentes: pendentesAfiliados,
