@@ -12,10 +12,13 @@ on:
     # quanto menor esta janela, menos coisa se perde no caminho
     - cron: "*/10 * * * *"
   workflow_dispatch:
-  # para rodar na hora: basta mudar o arquivo .github/pedido-backup.txt
   push:
     paths:
+      # para rodar na hora: basta mudar este arquivo
       - ".github/pedido-backup.txt"
+      # mexer no servidor dispara uma publicação no Render, que apaga o /tmp.
+      # O robô corre junto e salva o estado antes da troca de instância.
+      - "apps/servidor/**"
 
 permissions:
   contents: write
