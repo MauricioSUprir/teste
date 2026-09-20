@@ -713,11 +713,23 @@ aplicacao.post("/codigo/verificar", (req, res) => {
 // endereço de entrega, contato) para o admin abrir no painel e ver o detalhe.
 // O status vira "pago" quando o webhook do Mercado Pago confirma.
 const ARQ_PEDIDOS_LOJA = "/tmp/pedidos-loja.json";
+// o disco do Render é temporário: some a cada publicação. O robô de backup
+// versiona este arquivo no GitHub de hora em hora e é dele que o histórico
+// volta quando o servidor sobe de novo.
+const PEDIDOS_BACKUP_URL =
+  "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/pedidos-backup.json";
 let pedidosLoja = [];
 try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_PEDIDOS_LOJA)) {
     pedidosLoja = JSON.parse(fs.readFileSync(ARQ_PEDIDOS_LOJA, "utf8"));
+  } else {
+    const r = await fetch(PEDIDOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    if (r?.ok) {
+      const dados = await r.json();
+      pedidosLoja = Array.isArray(dados) ? dados : (dados.pedidos ?? []);
+      console.log(`[pedidos] histórico restaurado do backup: ${pedidosLoja.length} pedido(s)`);
+    }
   }
 } catch {
   pedidosLoja = [];
@@ -772,6 +784,14 @@ aplicacao.get("/pedidos/lista", (req, res) => {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ ok: true, total: pedidosLoja.length, pedidos: pedidosLoja.slice(0, 300) });
+});
+
+// backup para o robô do GitHub versionar (o histórico sobrevive à publicação)
+aplicacao.get("/pedidos/exportar", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.json({ geradoEm: new Date().toISOString(), pedidos: pedidosLoja });
 });
 
 // admin marca pago (venda fora do MP) ou cancela
