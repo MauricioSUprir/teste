@@ -3,7 +3,7 @@ name: backup-dados
 # Rede de segurança dos dados do site.
 #
 # O servidor roda no Render em plano free: o disco é temporário e some a cada
-# publicação. Este robô roda de hora em hora, baixa cadastros B2B, pedidos,
+# publicação. Este robô roda de 10 em 10 minutos, baixa cadastros B2B, pedidos,
 # avaliações, afiliados, preços manuais e banners, e versiona tudo no
 # repositório. É daí que o servidor se recupera quando sobe de novo.
 #
@@ -11,7 +11,9 @@ name: backup-dados
 # arquivo mora aqui, mas todo o trabalho acontece na branch de trabalho.
 on:
   schedule:
-    - cron: "23 * * * *"
+    # de 10 em 10 minutos: uma publicação do servidor apaga o /tmp, então
+    # quanto menor esta janela, menos coisa se perde no caminho
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
