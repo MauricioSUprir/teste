@@ -8,7 +8,9 @@ name: backup-dados
 # repositório. É daqui que o servidor se recupera quando sobe de novo.
 on:
   schedule:
-    - cron: "23 * * * *"
+    # de 10 em 10 minutos: uma publicação do servidor apaga o /tmp, então
+    # quanto menor esta janela, menos coisa se perde no caminho
+    - cron: "*/10 * * * *"
   workflow_dispatch:
   # para rodar na hora: basta mudar o arquivo .github/pedido-backup.txt
   push:
