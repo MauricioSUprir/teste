@@ -8,6 +8,10 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // BASE_PATH é lido pelo servidor; o <img> comum roda no navegador e precisa
+  // do mesmo valor. Derivar aqui evita o bug de definir um e esquecer o outro,
+  // que deixou as logos das marcas quebradas em /pro, /pulse e /bradeco.
+  env: { NEXT_PUBLIC_BASE_PATH: process.env.BASE_PATH ?? "" },
   ...(process.env.STATIC_EXPORT === "1" && {
     output: "export" as const,
     basePath: process.env.BASE_PATH ?? "",

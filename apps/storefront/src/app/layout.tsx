@@ -51,6 +51,12 @@ const michroma = Michroma({
   preload: false,
 });
 
+// O site pode ser servido num subcaminho (/pro, /pulse, /bradeco). Caminho
+// relativo em ícone e manifest faz o navegador procurar o arquivo DENTRO da
+// pasta da página aberta (/categoria/cabelos/icone-192.png → 404), então todos
+// levam o prefixo na frente.
+const prefixo = process.env.BASE_PATH ?? "";
+
 const tituloLoja =
   LOJA_ID === "be2beauty"
     ? "Be2Beauty: o e-commerce do cabeleireiro"
@@ -93,42 +99,42 @@ export const metadata: Metadata = {
     LOJA_ID === "be2beauty"
       ? {
           icon: [
-            { url: "icone-b2b-192.png", sizes: "192x192", type: "image/png" },
-            { url: "icone-b2b-512.png", sizes: "512x512", type: "image/png" },
+            { url: `${prefixo}/icone-b2b-192.png`, sizes: "192x192", type: "image/png" },
+            { url: `${prefixo}/icone-b2b-512.png`, sizes: "512x512", type: "image/png" },
           ],
-          apple: "apple-touch-icon-b2b.png",
+          apple: `${prefixo}/apple-touch-icon-b2b.png`,
         }
       : LOJA_ID === "pulse"
         ? {
             icon: [
-              { url: "icone-pulse-192.png", sizes: "192x192", type: "image/png" },
-              { url: "icone-pulse-512.png", sizes: "512x512", type: "image/png" },
+              { url: `${prefixo}/icone-pulse-192.png`, sizes: "192x192", type: "image/png" },
+              { url: `${prefixo}/icone-pulse-512.png`, sizes: "512x512", type: "image/png" },
             ],
-            apple: "apple-touch-icon-pulse.png",
+            apple: `${prefixo}/apple-touch-icon-pulse.png`,
           }
         : LOJA_ID === "bradeco"
           ? {
               icon: [
-                { url: "icone-bradeco-192.png", sizes: "192x192", type: "image/png" },
-                { url: "icone-bradeco-512.png", sizes: "512x512", type: "image/png" },
+                { url: `${prefixo}/icone-bradeco-192.png`, sizes: "192x192", type: "image/png" },
+                { url: `${prefixo}/icone-bradeco-512.png`, sizes: "512x512", type: "image/png" },
               ],
-              apple: "apple-touch-icon-bradeco.png",
+              apple: `${prefixo}/apple-touch-icon-bradeco.png`,
             }
           : {
               icon: [
-                { url: "icone-192.png", sizes: "192x192", type: "image/png" },
-                { url: "icone-512.png", sizes: "512x512", type: "image/png" },
+                { url: `${prefixo}/icone-192.png`, sizes: "192x192", type: "image/png" },
+                { url: `${prefixo}/icone-512.png`, sizes: "512x512", type: "image/png" },
               ],
-              apple: "apple-touch-icon.png",
+              apple: `${prefixo}/apple-touch-icon.png`,
             },
   manifest:
     LOJA_ID === "be2beauty"
-      ? "manifest-b2b.webmanifest"
+      ? `${prefixo}/manifest-b2b.webmanifest`
       : LOJA_ID === "pulse"
-        ? "manifest-pulse.webmanifest"
+        ? `${prefixo}/manifest-pulse.webmanifest`
         : LOJA_ID === "bradeco"
-          ? "manifest-bradeco.webmanifest"
-          : "manifest.webmanifest",
+          ? `${prefixo}/manifest-bradeco.webmanifest`
+          : `${prefixo}/manifest.webmanifest`,
   // prévia com imagem ao compartilhar o link (WhatsApp, Instagram, etc.)
   openGraph: {
     type: "website",
