@@ -78,8 +78,9 @@ export default function Home() {
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
           <ProdutosLocaisDestaque />
-          {destaques.slice(0, 5).map((p) => (
-            <CardProduto key={p.slug} produto={p} />
+          {destaques.slice(0, 5).map((p, i) => (
+            // as duas primeiras já nascem na tela do celular: carregam na frente
+            <CardProduto key={p.slug} produto={p} prioridade={i < 2} />
           ))}
         </div>
       </section>

@@ -7,6 +7,10 @@ import { LOJA } from "@/lib/loja";
  * "O E-COMMERCE DO CABELEIREIRO." — como no site oficial da marca.
  * As cores vêm das variáveis do tema, então cada pele pinta com a própria
  * paleta (roxo ou azul-marinho).
+ *
+ * Acessibilidade: o desenho do wordmark é decorativo (aria-hidden) e o nome da
+ * loja aparece uma única vez, em sr-only. Sem isso o leitor de tela anunciava
+ * o texto visível junto do rótulo do link e os dois não batiam.
  */
 export function Logo({ altura = 28 }: { altura?: number }) {
   if (LOJA.id === "pulse") {
@@ -39,7 +43,8 @@ export function Logo({ altura = 28 }: { altura?: number }) {
             PULSE
           </span>
         </span>
-        <span className="inline-flex flex-col justify-center">
+        <span className="sr-only">Pulse Beauty Store</span>
+        <span aria-hidden="true" className="inline-flex flex-col justify-center">
           <span className="leading-none" style={{ fontSize: altura * 0.72 }}>
             <span style={{ fontWeight: 700, color: "var(--bn-tinta)", letterSpacing: "-0.01em" }}>
               pulse
@@ -122,7 +127,9 @@ export function Logo({ altura = 28 }: { altura?: number }) {
   if (LOJA.id === "be2beauty") {
     return (
       <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
+        <span className="sr-only">Be2Beauty — o e-commerce do cabeleireiro</span>
         <span
+          aria-hidden="true"
           className="leading-none"
           style={{ fontSize: altura * 0.72, color: "var(--bn-roxo)", letterSpacing: "0.04em" }}
         >
@@ -130,6 +137,7 @@ export function Logo({ altura = 28 }: { altura?: number }) {
           <span className="font-light">BEAUTY</span>
         </span>
         <span
+          aria-hidden="true"
           className="font-semibold leading-none"
           style={{
             fontSize: altura * 0.22,
@@ -148,6 +156,7 @@ export function Logo({ altura = 28 }: { altura?: number }) {
       className="inline-flex items-baseline"
       style={{ gap: altura * 0.35, height: altura }}
     >
+      <span className="sr-only">BeautyNow</span>
       <span
         aria-hidden="true"
         className="font-titulo font-semibold leading-none"
@@ -156,6 +165,7 @@ export function Logo({ altura = 28 }: { altura?: number }) {
         BN
       </span>
       <span
+        aria-hidden="true"
         className="font-medium leading-none"
         style={{
           fontSize: altura * 0.4,

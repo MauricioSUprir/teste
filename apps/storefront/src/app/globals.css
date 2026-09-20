@@ -9,11 +9,11 @@
   --color-violeta-claro: #EFEBFA;
   --color-tinta: #14161A;
   --color-grafite: #4A4F57;
-  --color-cinza: #8A9099;
+  --color-cinza: #697078;
   --color-linha: #E4E6EA;
   --color-superficie: #F7F8FA;
-  --color-sucesso: #1E8E5A;
-  --color-alerta: #B8730C;
+  --color-sucesso: #17794C;
+  --color-alerta: #8C5A0A;
   --color-erro: #C6273E;
   --color-oferta: #381D65;
   --font-titulo: var(--font-fraunces), Georgia, serif;
@@ -56,7 +56,7 @@ html[data-loja="pulse"] {
   --color-roxo: #a34e24;
   --color-roxo-escuro: #7a3a1b;
   --color-roxo-claro: #f8efe8;
-  --color-violeta: #c0764e;
+  --color-violeta: #a15a34;
   --color-violeta-claro: #f5e6da;
   --color-oferta: #1c1714;
   --color-tinta: #1c1714;
@@ -65,7 +65,7 @@ html[data-loja="pulse"] {
   --bn-roxo: #a34e24;
   --bn-roxo-escuro: #7a3a1b;
   --bn-roxo-claro: #f8efe8;
-  --bn-violeta: #c0764e;
+  --bn-violeta: #a15a34;
   --bn-violeta-claro: #f5e6da;
   --bn-oferta: #1c1714;
   --bn-tinta: #1c1714;
@@ -155,26 +155,29 @@ html[data-loja="pulse"] main .text-center h2.font-titulo::after {
  * industrial — e o acento vira uma barra inclinada, eco do "Λ" do logo.
  */
 html[data-loja="bradeco"] {
-  --color-roxo: #ed7b2f;
-  --color-roxo-escuro: #cf6317;
+  /* nas áreas claras o laranja da marca precisa ser mais fundo: o vivo
+     (#ed7b2f) marcava 2,8 de contraste como texto e como fundo de botão.
+     O vivo segue no topo e no rodapé pretos, onde marca 7,0. */
+  --color-roxo: #b4540a;
+  --color-roxo-escuro: #8f4205;
   --color-roxo-claro: #fff1e6;
-  --color-violeta: #f0904a;
+  --color-violeta: #a8500a;
   --color-violeta-claro: #ffe7d4;
-  --color-oferta: #cf6317;
+  --color-oferta: #8f4205;
   --color-tinta: #101012;
   --color-grafite: #4a4d55;
-  --color-cinza: #8b8f98;
+  --color-cinza: #696d76;
   --color-superficie: #f5f5f7;
   --color-linha: #e2e2e6;
-  --bn-roxo: #ed7b2f;
-  --bn-roxo-escuro: #cf6317;
+  --bn-roxo: #b4540a;
+  --bn-roxo-escuro: #8f4205;
   --bn-roxo-claro: #fff1e6;
-  --bn-violeta: #f0904a;
+  --bn-violeta: #a8500a;
   --bn-violeta-claro: #ffe7d4;
-  --bn-oferta: #cf6317;
+  --bn-oferta: #8f4205;
   --bn-tinta: #101012;
   --bn-grafite: #4a4d55;
-  --bn-cinza: #8b8f98;
+  --bn-cinza: #696d76;
   --bn-superficie: #f5f5f7;
   --bn-linha: #e2e2e6;
   --fonte-titulo: var(--font-saira), Arial, sans-serif;

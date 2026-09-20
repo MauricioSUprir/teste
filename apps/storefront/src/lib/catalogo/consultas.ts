@@ -19,13 +19,38 @@ import type { Categoria, CategoriaSlug, Marca, Necessidade, Produto } from "./ti
 interface CatalogoHub {
   origem: string;
   atualizadoEm: string | null;
+  /** prefixo das fotos, guardado uma vez em vez de repetido em cada URL */
+  baseImagem?: string;
   categorias: Categoria[];
   marcas: Marca[];
   produtos: Produto[];
 }
 
+/**
+ * O catálogo vai inteiro para o navegador de quem visita o site, então ele é
+ * gravado enxuto: as fotos guardam só o número e o `visual` (o desenho de
+ * frasco usado quando não há foto) não é repetido produto a produto, já que
+ * era sempre igual. Aqui os dois voltam ao formato que o resto do site espera.
+ * A ponta que grava é `compactar()`, em scripts/sincronizar-catalogo.mjs.
+ */
+const VISUAL_PADRAO = { corA: "#4A2882", corB: "#B9A6E8", forma: "frasco" } as const;
+
+function expandirCatalogo(catalogo: CatalogoHub) {
+  const base = catalogo.baseImagem;
+  if (!base) return; // catálogo antigo, já vem por extenso
+  const inteiro = (u: string) => (/^\d+$/.test(u) ? `${base}${u}` : u);
+  for (const p of catalogo.produtos) {
+    if (p.imagens?.length) p.imagens = p.imagens.map(inteiro);
+    p.visual ??= { ...VISUAL_PADRAO };
+  }
+  for (const m of catalogo.marcas) {
+    if (m.imagem) m.imagem = inteiro(m.imagem);
+  }
+}
+
 const hub = dadosHub as unknown as CatalogoHub;
 const usaHub = hub.produtos.length > 0;
+if (usaHub) expandirCatalogo(hub);
 
 // dados-hub.json guarda o preço do Hub (tabela profissional). A política de
 // preço de cada loja entra AQUI, num ponto único: BeautyNow ×1,7 e

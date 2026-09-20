@@ -75,7 +75,7 @@ export function Footer() {
             {["Pix", "Visa", "Master", "Elo", "Boleto"].map((meio) => (
               <li
                 key={meio}
-                className="rounded-[6px] border border-linha bg-white px-2.5 py-1 text-[0.75rem] font-medium text-grafite"
+                className="rounded-[6px] border border-linha bg-superficie px-2.5 py-1 text-[0.75rem] font-medium text-grafite"
               >
                 {meio}
               </li>
@@ -85,10 +85,10 @@ export function Footer() {
             {copy.rodape.seguranca}
           </p>
           <ul className="mt-3 flex flex-wrap gap-2">
-            <li className="rounded-[6px] border border-linha bg-white px-2.5 py-1 text-[0.75rem] font-medium text-grafite">
+            <li className="rounded-[6px] border border-linha bg-superficie px-2.5 py-1 text-[0.75rem] font-medium text-grafite">
               🔒 SSL
             </li>
-            <li className="rounded-[6px] border border-linha bg-white px-2.5 py-1 text-[0.75rem] font-medium text-grafite">
+            <li className="rounded-[6px] border border-linha bg-superficie px-2.5 py-1 text-[0.75rem] font-medium text-grafite">
               ✓ {copy.pdp.distribuidorAutorizado}
             </li>
           </ul>

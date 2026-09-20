@@ -52,7 +52,7 @@ export function Header() {
           </svg>
         </button>
 
-        <Link href="/" aria-label={`${copy.marca.nome}: página inicial`} className="shrink-0">
+        <Link href="/" className="shrink-0">
           <Logo />
         </Link>
 

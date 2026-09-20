@@ -166,6 +166,16 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Hosts de onde vêm as fotos de produto e os dados ao vivo (banners, preços).
+ * Avisar o navegador cedo economiza o DNS + TLS na hora de buscar a primeira
+ * foto, que é justamente o que o Google cronometra na primeira dobra.
+ */
+const HOSTS_EXTERNOS = [
+  "https://comercial.thebeautyhub.app",
+  process.env.NEXT_PUBLIC_SERVIDOR_URL,
+].filter((h): h is string => Boolean(h));
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -174,6 +184,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${fraunces.variable} ${archivo.variable} ${saira.variable} ${michroma.variable}`}
     >
       <body>
+        {HOSTS_EXTERNOS.map((host) => (
+          <link key={host} rel="preconnect" href={host} crossOrigin="" />
+        ))}
         <Analytics />
         <ContaProvider>
           <B2BProvider>

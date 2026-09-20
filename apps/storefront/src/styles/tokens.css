@@ -10,17 +10,18 @@
   --bn-violeta: #6847C8;
   --bn-violeta-claro: #EFEBFA;
 
-  /* Neutros */
+  /* Neutros — cinza escurecido para passar em contraste (4,5:1 em branco
+     e na superfície), exigência de acessibilidade do projeto */
   --bn-tinta: #14161A;
   --bn-grafite: #4A4F57;
-  --bn-cinza: #8A9099;
+  --bn-cinza: #697078;
   --bn-linha: #E4E6EA;
   --bn-superficie: #F7F8FA;
   --bn-branco: #FFFFFF;
 
   /* Semânticos */
-  --bn-sucesso: #1E8E5A;
-  --bn-alerta: #B8730C;
+  --bn-sucesso: #17794C;
+  --bn-alerta: #8C5A0A;
   --bn-erro: #C6273E;
   --bn-oferta: #381D65;
 

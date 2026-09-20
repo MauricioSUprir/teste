@@ -22,7 +22,7 @@ const COR_BARRA = "#6847C8"; // violeta — validada (banda de luminância, cont
 const COR_BARRA_ATIVA = "#4A2882";
 const COR_GRADE = "#E4E6EA";
 const COR_TEXTO = "#4A4F57";
-const COR_TEXTO_FRACO = "#8A9099";
+const COR_TEXTO_FRACO = "#697078";
 
 /** teto "bonito" para o eixo: 1/2/5 × 10^n */
 function tetoEixo(maximo: number): number {

@@ -88,6 +88,10 @@ export const copy = {
     filtroTipoPele: "Tipo de pele",
     filtroBeneficios: "Características",
     disponiveis: "Somente disponíveis",
+    /** título da região de resultados — só para leitor de tela */
+    tituloResultados: "Produtos encontrados",
+    verMais: "Ver mais produtos",
+    de: "de",
     ordenacao: {
       relevancia: "Relevância",
       maisVendidos: "Mais vendidos",

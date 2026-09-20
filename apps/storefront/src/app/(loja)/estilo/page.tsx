@@ -13,11 +13,11 @@ const cores = [
   ["--bn-violeta-claro", "#EFEBFA", "Fundo informativo"],
   ["--bn-tinta", "#14161A", "Texto principal"],
   ["--bn-grafite", "#4A4F57", "Texto secundário"],
-  ["--bn-cinza", "#8A9099", "Texto terciário, placeholder"],
+  ["--bn-cinza", "#697078", "Texto terciário, placeholder"],
   ["--bn-linha", "#E4E6EA", "Bordas, divisores"],
   ["--bn-superficie", "#F7F8FA", "Fundo de seção"],
-  ["--bn-sucesso", "#1E8E5A", "Em estoque, Pix, aprovado"],
-  ["--bn-alerta", "#B8730C", "Últimas unidades, aviso"],
+  ["--bn-sucesso", "#17794C", "Em estoque, Pix, aprovado"],
+  ["--bn-alerta", "#8C5A0A", "Últimas unidades, aviso"],
   ["--bn-erro", "#C6273E", "Erro, indisponível"],
 ] as const;
 

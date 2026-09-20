@@ -162,10 +162,36 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
     ],
     avaliacoes: [],
     imagens: listaImagens(bruto).concat(detalhe ? listaImagens(detalhe).filter((u) => !listaImagens(bruto).includes(u)) : []),
-    visual: { corA: "#4A2882", corB: "#B9A6E8", forma: "frasco" },
     _marcaNome: marcaNome,
     _categoriaNome: categoriaNome,
   };
+}
+
+/** prefixo das fotos do Hub — repetido em milhares de URLs se ficar por extenso */
+const BASE_IMAGEM = "https://comercial.thebeautyhub.app/api/ecom/imagem/";
+
+/**
+ * Enxuga o catálogo ANTES de gravar. Este arquivo é importado pelo site e vai
+ * inteiro para o navegador de quem visita, então cada byte aqui é byte no 4G
+ * do cliente. Duas gorduras óbvias:
+ *
+ * - toda foto repetia os 50 caracteres do endereço do Hub; fica só o número;
+ * - `visual` (a cor do desenho de frasco usado quando não há foto) era o mesmo
+ *   objeto idêntico em todos os produtos; sai daqui e o site preenche na
+ *   leitura.
+ *
+ * lib/catalogo/consultas.ts desfaz isso ao ler. Os dois lados andam juntos.
+ */
+function compactar(saida) {
+  const encurtar = (u) => (u.startsWith(BASE_IMAGEM) ? u.slice(BASE_IMAGEM.length) : u);
+  for (const p of saida.produtos) {
+    if (p.imagens?.length) p.imagens = p.imagens.map(encurtar);
+    delete p.visual;
+  }
+  for (const m of saida.marcas) {
+    if (m.imagem) m.imagem = encurtar(m.imagem);
+  }
+  return { ...saida, baseImagem: BASE_IMAGEM };
 }
 
 async function coletarOnline() {
@@ -286,13 +312,13 @@ async function principal() {
   mkdirSync(dirname(BRUTO), { recursive: true });
   writeFileSync(BRUTO, JSON.stringify({ brutos, detalhes: [...detalhes.entries()] }, null, 1));
 
-  const saida = {
+  const saida = compactar({
     origem: URL_BASE,
     atualizadoEm: new Date().toISOString(),
     categorias: [...categoriasMapa.values()],
     marcas: [...marcasMapa.values()],
     produtos,
-  };
+  });
   writeFileSync(SAIDA, JSON.stringify(saida));
   console.log(
     `OK: ${produtos.length} produtos, ${marcasMapa.size} marcas, ${categoriasMapa.size} categorias → dados-hub.json`

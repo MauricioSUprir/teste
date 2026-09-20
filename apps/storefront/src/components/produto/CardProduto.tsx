@@ -21,7 +21,14 @@ export function urlProduto(produto: Produto): string {
  * Em mobile o card inteiro é link; não há botão "Adicionar" (menos toque acidental).
  * Após a hidratação aplica os ajustes manuais do admin (editar/excluir).
  */
-export function CardProduto({ produto: produtoBase }: { produto: Produto }) {
+export function CardProduto({
+  produto: produtoBase,
+  prioridade = false,
+}: {
+  produto: Produto;
+  /** cards da primeira dobra: a foto carrega na frente, sem esperar o scroll */
+  prioridade?: boolean;
+}) {
   const [produto, setProduto] = useState(produtoBase);
   const [oculto, setOculto] = useState(false);
 
@@ -73,7 +80,7 @@ export function CardProduto({ produto: produtoBase }: { produto: Produto }) {
           )}
         </div>
         <div className={disponivel ? "" : "opacity-45 grayscale"}>
-          <ImagemProduto produto={produto} alt={alt} />
+          <ImagemProduto produto={produto} alt={alt} prioridade={prioridade} />
         </div>
         {!disponivel && (
           <span className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-[999px] bg-tinta/80 px-3 py-1 text-[0.75rem] font-medium text-white">

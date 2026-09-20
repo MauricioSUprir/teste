@@ -21,6 +21,9 @@ type Ordenacao =
   | "lancamentos"
   | "melhor-avaliados";
 
+/** cards montados por vez — o resto entra no botão "ver mais" */
+const POR_PAGINA = 24;
+
 const faixasPreco = [
   { id: "ate-50", rotulo: "Até R$ 50", min: 0, max: 5000 },
   { id: "50-100", rotulo: "R$ 50 a R$ 100", min: 5000, max: 10000 },
@@ -56,6 +59,10 @@ export function GradeFiltrada({
   const pathname = usePathname();
   const params = useSearchParams();
   const [filtrosAbertosMobile, setFiltrosAbertosMobile] = useState(false);
+  // quantos cards estão montados na tela. Uma categoria grande tem 700 itens:
+  // jogar todos de uma vez trava a rolagem no celular e faz a página demorar
+  // a responder. Entram aos poucos, com botão de ver mais.
+  const [visiveis, setVisiveis] = useState(POR_PAGINA);
   const [base, setBase] = useState(produtos);
 
   // após a hidratação: aplica edições/exclusões do admin e soma os produtos locais
@@ -85,6 +92,22 @@ export function GradeFiltrada({
   const filtroCarac = lerLista("carac");
   const soDisponiveis = params.get("disp") === "1";
   const ordenacao = (params.get("ordem") as Ordenacao) ?? "relevancia";
+  /**
+   * lerLista() devolve um array novo a cada render, então usar os arrays como
+   * dependência fazia o React achar que os filtros mudaram sempre: a lista de
+   * 706 produtos era filtrada e ordenada de novo em todo render, e a contagem
+   * do "ver mais" voltava para o começo antes de o clique valer. Esta string
+   * muda só quando o filtro muda de verdade.
+   */
+  const assinaturaFiltros = [
+    filtroMarcas.join(),
+    filtroPreco.join(),
+    filtroCabelo.join(),
+    filtroPele.join(),
+    filtroCarac.join(),
+    soDisponiveis,
+    ordenacao,
+  ].join("|");
 
   const atualizarParam = useCallback(
     (chave: string, valores: string[] | string | null) => {
@@ -159,7 +182,14 @@ export function GradeFiltrada({
         );
     }
     return lista;
-  }, [base, filtroMarcas, filtroPreco, filtroCabelo, filtroPele, filtroCarac, soDisponiveis, ordenacao]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- assinaturaFiltros
+    // resume todos os filtros numa string estável (ver comentário acima)
+  }, [base, assinaturaFiltros]);
+
+  // mexeu num filtro, na ordem ou trocou de categoria: a lista recomeça do topo
+  useEffect(() => {
+    setVisiveis(POR_PAGINA);
+  }, [base, assinaturaFiltros]);
 
   const marcasPresentes = useMemo(() => {
     const slugs = new Set(base.map((p) => p.marca));
@@ -276,6 +306,9 @@ export function GradeFiltrada({
             <label className="flex items-center gap-2 text-[0.875rem] text-grafite">
               <span className="hidden sm:inline">{copy.plp.ordenar}</span>
               <select
+                /* o rótulo visível some no celular (hidden), então o campo
+                   precisa carregar o próprio nome para o leitor de tela */
+                aria-label={copy.plp.ordenar}
                 value={ordenacao}
                 onChange={(e) => atualizarParam("ordem", e.target.value === "relevancia" ? null : e.target.value)}
                 className="h-10 rounded-[6px] border border-linha bg-white px-2 text-[0.875rem]"
@@ -302,9 +335,27 @@ export function GradeFiltrada({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-            {filtrados.map((p) => (
-              <CardProduto key={p.slug} produto={p} />
+            {/* os cards são h3; sem este h2 a hierarquia pula do h1 para o h3 */}
+            <h2 className="sr-only">{copy.plp.tituloResultados}</h2>
+            {filtrados.slice(0, visiveis).map((p, i) => (
+              // primeira fileira da grade: fotos fora da fila preguiçosa
+              <CardProduto key={p.slug} produto={p} prioridade={i < 4} />
             ))}
+          </div>
+        )}
+
+        {filtrados.length > visiveis && (
+          <div className="mt-8 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setVisiveis((v) => v + POR_PAGINA)}
+              className="rounded-[999px] border border-roxo px-8 py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
+            >
+              {copy.plp.verMais}
+            </button>
+            <p className="num text-[0.8125rem] text-grafite" aria-live="polite">
+              {visiveis} {copy.plp.de} {filtrados.length}
+            </p>
           </div>
         )}
       </div>

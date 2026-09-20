@@ -10,12 +10,19 @@ export function ImagemProduto({
   alt,
   variacao = 0,
   className = "",
+  prioridade = false,
 }: {
   produto: Produto;
   alt: string;
   /** índice da foto — real (catálogo do Hub) ou variação do placeholder */
   variacao?: number;
   className?: string;
+  /**
+   * Foto que já nasce visível na tela. Sai da fila preguiçosa e entra na
+   * frente: é ela que costuma ser o maior elemento da primeira dobra, e é
+   * esse tempo que o Google mede (LCP).
+   */
+  prioridade?: boolean;
 }) {
   // foto real do catálogo do Hub Suprir, servida direto da URL pública
   const fotoReal = produto.imagens?.[variacao] ?? produto.imagens?.[0];
@@ -28,7 +35,9 @@ export function ImagemProduto({
         /* alt vazio = imagem decorativa (o botão em volta já tem a descrição):
            marcar como oculta evita o leitor de tela anunciar duas vezes */
         aria-hidden={alt === "" ? "true" : undefined}
-        loading="lazy"
+        loading={prioridade ? "eager" : "lazy"}
+        fetchPriority={prioridade ? "high" : undefined}
+        decoding={prioridade ? "sync" : "async"}
         className={className}
         style={{ aspectRatio: "1 / 1", display: "block", width: "100%", height: "auto", objectFit: "contain", background: "#FFFFFF" }}
       />

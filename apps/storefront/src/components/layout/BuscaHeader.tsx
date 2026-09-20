@@ -75,7 +75,7 @@ export function BuscaHeader() {
           }}
           onFocus={() => setFocado(true)}
           onKeyDown={aoTeclar}
-          className="h-11 w-full bg-transparent px-3 text-[0.9375rem] outline-none placeholder:text-cinza"
+          className="h-11 w-full bg-transparent px-3 text-[0.9375rem] text-tinta outline-none placeholder:text-cinza"
         />
       </div>
 
