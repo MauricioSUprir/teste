@@ -74,7 +74,7 @@ export function CadastroProfissional() {
         </h2>
         {enviado && (
           <p role="status" className="mt-2 text-[0.9375rem] font-medium text-sucesso">
-            {copy.b2b.enviadoOk}
+            {status === "aprovado" ? copy.b2b.enviadoLiberado : copy.b2b.enviadoOk}
           </p>
         )}
         <p className="num mt-3 text-[0.9375rem] text-grafite">CNPJ {formatarCnpj(cnpj)}</p>

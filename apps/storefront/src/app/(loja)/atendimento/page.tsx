@@ -16,11 +16,11 @@ const faq: Array<{ pergunta: string; resposta: string }> = LOJA.b2b
   ? [
       {
         pergunta: "Quem pode comprar aqui?",
-        resposta: `A ${LOJA.nome} vende para empresas: basta ter CNPJ ativo. Cadastre o CNPJ em "Cadastro de lojista", e assim que a gente aprovar os preços e a compra ficam liberados no seu navegador.`,
+        resposta: `A ${LOJA.nome} vende para empresas: basta ter CNPJ ativo. Informe o CNPJ na página de cadastro — a gente confere na Receita Federal na hora e, estando ativo, os preços e a compra liberam na mesma hora.`,
       },
       {
-        pergunta: "Quanto tempo leva para aprovar meu cadastro?",
-        resposta: `Conferimos os dados em horário comercial (${NEGOCIO.horario}). ${NEGOCIO.promessaResposta} Assim que aprovar, você recebe um aviso por e-mail.`,
+        pergunta: "Quanto tempo leva para liberar meu cadastro?",
+        resposta: `Com CNPJ ativo na Receita Federal, a liberação é na hora, sem esperar ninguém aprovar. Se o CNPJ estiver com outra situação (baixado, suspenso, inapto), o cadastro vai para conferência da nossa equipe em horário comercial (${NEGOCIO.horario}). ${NEGOCIO.promessaResposta}`,
       },
       {
         pergunta: "Os produtos são originais e com nota fiscal?",

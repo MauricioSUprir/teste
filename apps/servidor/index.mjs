@@ -1433,6 +1433,47 @@ function cnpjValido(cnpj) {
   return calc(12) === Number(d[12]) && calc(13) === Number(d[13]);
 }
 
+/**
+ * Confere o CNPJ na base pública da Receita Federal.
+ * Dígito verificador sozinho não prova nada: qualquer gerador de CNPJ da
+ * internet devolve número com dígito certo. Aqui a pergunta é outra —
+ * essa empresa existe e está ativa?
+ *
+ * Devolve { achou, ativa, razao, situacao, uf, cidade } ou null quando não
+ * deu para consultar (API fora do ar, limite de uso, rede). null NÃO é
+ * reprovação: nesse caso o cadastro segue para aprovação manual.
+ */
+async function consultarReceita(cnpj) {
+  const fontes = [
+    {
+      url: `https://publica.cnpj.ws/cnpj/${cnpj}`,
+      ler: (d) => ({
+        razao: d.razao_social ?? "",
+        situacao: d.estabelecimento?.situacao_cadastral ?? "",
+        uf: d.estabelecimento?.estado?.sigla ?? "",
+        cidade: d.estabelecimento?.cidade?.nome ?? "",
+      }),
+    },
+    {
+      url: `https://www.receitaws.com.br/v1/cnpj/${cnpj}`,
+      ler: (d) => (d.status === "ERROR" ? null : { razao: d.nome ?? "", situacao: d.situacao ?? "", uf: d.uf ?? "", cidade: d.municipio ?? "" }),
+    },
+  ];
+  for (const fonte of fontes) {
+    try {
+      const r = await fetch(fonte.url, { signal: AbortSignal.timeout(12_000) });
+      if (r.status === 404) return { achou: false, ativa: false, razao: "", situacao: "", uf: "", cidade: "" };
+      if (!r.ok) continue; // 429 (limite) ou 5xx: tenta a próxima fonte
+      const dados = fonte.ler(await r.json());
+      if (!dados) return { achou: false, ativa: false, razao: "", situacao: "", uf: "", cidade: "" };
+      return { achou: true, ativa: /ativa/i.test(dados.situacao), ...dados };
+    } catch {
+      // rede ou timeout: tenta a próxima
+    }
+  }
+  return null;
+}
+
 const ultimoCadastroB2B = new Map(); // IP → timestamp (freio anti-spam)
 
 aplicacao.post("/b2b/cadastro", async (req, res) => {
@@ -1449,32 +1490,57 @@ aplicacao.post("/b2b/cadastro", async (req, res) => {
   if (existente) {
     return res.json({ ok: true, status: existente.status });
   }
+  // CNPJ ativo na Receita libera na hora; o resto vai para a fila do admin
+  const receita = await consultarReceita(cnpj);
+  if (receita && !receita.achou) {
+    return res.status(400).json({
+      erro: "Esse CNPJ não consta na Receita Federal. Confira os 14 dígitos.",
+    });
+  }
+  const aprovadoDireto = !!receita?.ativa;
+  const motivo = !receita
+    ? "consulta indisponível"
+    : receita.ativa
+      ? "ativo na Receita"
+      : `situação "${receita.situacao}"`;
+
   const cadastro = {
     cnpj,
-    razao: limpo(req.body?.razao, 120),
+    // a razão social da Receita vale mais que a digitada no formulário
+    razao: receita?.razao || limpo(req.body?.razao, 120),
+    razaoInformada: limpo(req.body?.razao, 120),
     nome: limpo(req.body?.nome, 80),
     email: limpo(req.body?.email, 120).toLowerCase(),
     whatsapp: limpo(req.body?.whatsapp, 20),
     criadoEm: new Date().toISOString(),
-    status: "pendente",
+    status: aprovadoDireto ? "aprovado" : "pendente",
+    receita: receita
+      ? { situacao: receita.situacao, uf: receita.uf, cidade: receita.cidade, conferidoEm: new Date().toISOString() }
+      : null,
+    liberacao: aprovadoDireto ? "automatica" : "manual",
   };
   cadastrosB2B.push(cadastro);
   if (cadastrosB2B.length > 5000) cadastrosB2B = cadastrosB2B.slice(-5000);
   ultimoCadastroB2B.set(ip, Date.now());
   await salvarB2B();
-  console.log(`[b2b] novo cadastro: ${cadastro.razao || cadastro.nome} (${cnpj})`);
+  console.log(`[b2b] cadastro ${cadastro.status} (${motivo}): ${cadastro.razao || cadastro.nome} (${cnpj})`);
   for (const destino of EMAILS_NOTIFICACAO) {
     enviarEmail({
       para: destino,
-      assunto: `💼 Novo cadastro profissional Be2Beauty — ${cadastro.razao || cadastro.nome}`,
+      assunto: aprovadoDireto
+        ? `✅ Novo lojista liberado — ${cadastro.razao || cadastro.nome}`
+        : `💼 Cadastro profissional para aprovar — ${cadastro.razao || cadastro.nome}`,
       texto:
-        `Novo cadastro B2B aguardando aprovação:\n\n` +
-        `CNPJ: ${cnpj}\nRazão social: ${cadastro.razao}\nResponsável: ${cadastro.nome}\n` +
-        `E-mail: ${cadastro.email}\nWhatsApp: ${cadastro.whatsapp}\n\n` +
-        `Aprove no painel do admin (aba Profissionais).`,
+        (aprovadoDireto
+          ? `Cadastro liberado automaticamente: o CNPJ está ATIVO na Receita Federal.\n\n`
+          : `Cadastro aguardando sua aprovação (${motivo}).\n\n`) +
+        `CNPJ: ${cnpj}\nRazão social (Receita): ${cadastro.razao}\n` +
+        `Responsável: ${cadastro.nome}\nE-mail: ${cadastro.email}\nWhatsApp: ${cadastro.whatsapp}\n` +
+        (receita ? `Situação: ${receita.situacao} · ${receita.cidade}/${receita.uf}\n` : "") +
+        `\nPainel do admin, aba Profissionais.`,
     }).catch((erro) => console.error(`[b2b] falha ao notificar: ${erro.message}`));
   }
-  res.json({ ok: true, status: "pendente" });
+  res.json({ ok: true, status: cadastro.status, razao: cadastro.razao });
 });
 
 // consulta pública de situação (o navegador do profissional pergunta por aqui)

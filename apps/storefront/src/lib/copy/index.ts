@@ -268,7 +268,8 @@ export const copy = {
   b2b: {
     precoFechado: LOJA.id === "bradeco" ? "Preço de distribuidora" : "Preço para profissionais",
     liberarPrecos: "Cadastre seu CNPJ para ver os preços",
-    aguardandoAprovacao: "Cadastro em análise. Avisamos por e-mail quando for aprovado",
+    aguardandoAprovacao:
+      "Cadastro em análise. Isso acontece quando o CNPJ não está como ativo na Receita — avisamos por e-mail assim que liberar",
     recusado:
       LOJA.id === "bradeco"
         ? "Cadastro não aprovado. Fale com a gente: admbradeco@gmail.com"
@@ -276,8 +277,8 @@ export const copy = {
     paginaTitulo: LOJA.id === "bradeco" ? "Cadastro de lojista" : "Cadastro profissional",
     paginaTexto:
       LOJA.id === "bradeco"
-        ? "A Bradeco Distribuidora atende lojistas, farmácias, salões e redes em todo o estado de São Paulo. Cadastre o CNPJ da sua empresa: após a aprovação, os preços de distribuidora e a compra ficam liberados neste navegador."
-        : "A Be2Beauty vende exclusivamente para profissionais e lojistas. Cadastre o CNPJ do seu salão, clínica ou loja: após a aprovação, os preços e a compra ficam liberados neste navegador.",
+        ? "A Bradeco Distribuidora atende lojistas, farmácias, salões e redes em todo o estado de São Paulo. Informe o CNPJ da sua empresa: a gente confere na Receita Federal e, estando ativo, os preços de distribuidora e a compra liberam na hora."
+        : "A Be2Beauty vende exclusivamente para profissionais e lojistas. Informe o CNPJ do seu salão, clínica ou loja: a gente confere na Receita Federal e, estando ativo, os preços e a compra liberam na hora.",
     semCnpj: "Não tem CNPJ? Compre no varejo pela BeautyNow →",
     semCnpjUrl: "https://www.beautynowstore.com.br",
     cnpj: "CNPJ",
@@ -288,6 +289,7 @@ export const copy = {
     enviar: "Enviar cadastro",
     enviando: "Enviando…",
     enviadoOk: "✅ Cadastro recebido! Vamos analisar e avisar por e-mail.",
+    enviadoLiberado: "✅ CNPJ conferido na Receita Federal. Preços liberados neste navegador.",
     cnpjInvalido: "CNPJ inválido. Confira os 14 dígitos.",
     falha: "Não foi possível enviar agora. Tente novamente em instantes.",
     statusTitulo: "Situação do seu cadastro",
@@ -387,6 +389,7 @@ export const copy = {
     enviar: "Enviar cadastro",
     enviando: "Enviando…",
     enviadoOk: "✅ Cadastro recebido! Vamos analisar e avisar por e-mail.",
+    enviadoLiberado: "✅ CNPJ conferido na Receita Federal. Preços liberados neste navegador.",
     cnpjInvalido: "CNPJ inválido. Confira os 14 dígitos ou deixe o campo em branco.",
     falha: "Não foi possível enviar agora. Tente novamente em instantes.",
     statusPendenteTitulo: "⏳ Cadastro em análise",
