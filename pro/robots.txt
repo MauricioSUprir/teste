@@ -1,0 +1,8 @@
+User-Agent: *
+Allow: /
+Disallow: /checkout
+Disallow: /conta
+Disallow: /admin
+Disallow: /afiliado
+
+Sitemap: https://www.be2beauty.com.br/sitemap.xml
