@@ -8,7 +8,7 @@ export const fogUniforms = {
   uFogTau: { value: 0.5 },
   uFogSunPower: { value: 1 },
   uFogDensity: { value: 0.00006 },
-  uFogHeightFalloff: { value: 1 / 1100 },
+  uFogHeightFalloff: { value: 1 / 800 },
   uFogViewToWorld: { value: new THREE.Matrix3() },
   uFogCamY: { value: 0 },
   uFogStormTint: { value: 0 },

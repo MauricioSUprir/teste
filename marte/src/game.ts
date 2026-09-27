@@ -12,6 +12,7 @@ import { buildCrashSite, carveCrash, makeLanderMaterials } from './world/lander'
 import { Footprints, Dust, Tracks, DustDevils } from './world/effects';
 import { Rover } from './world/rover';
 import { sfx } from './audio/sfx';
+import { BAL } from './sim/balance';
 import { Pipeline } from './render/pipeline';
 import { Physics, initRapier } from './core/physics';
 import { Input } from './core/input';
@@ -49,6 +50,7 @@ export class Game {
   private skyLum = 0.1;
   private probeTimer = 0;
   private lastEnvSun = new THREE.Vector3();
+  private lastEnvTau = -1;
   // tempo: sóis desde o pouso (fração = hora local / 24)
   sol = 1 + 8.2 / 24;
   timeScale = 24 * 60 / 40 / 60; // 1 sol = 40 min reais (sóis por segundo × 3600... ver tick)
@@ -103,7 +105,9 @@ export class Game {
   }
 
   pixelRatio() {
-    const dpr = Math.min(devicePixelRatio || 1, this.q.pixelRatioCap);
+    let dpr = Math.min(devicePixelRatio || 1, this.q.pixelRatioCap);
+    // orçamento de pixels (exceto Máxima): evita renderizar 4K nativo em GPUs médias
+    if (this.q.id !== 'max') dpr = Math.min(dpr, Math.sqrt((this.q.id === 'ultra' ? 5.5e6 : 3.7e6) / Math.max(1, innerWidth * innerHeight)));
     const s = this.opts.resScale === 'dynamic' ? this.dyn.scale : this.opts.resScale;
     return Math.max(0.35, dpr * s);
   }
@@ -212,7 +216,7 @@ export class Game {
     this.scene.add(this.footprints.mesh);
     this.rover = new Rover(this.physics, this.terrain);
     this.rover.spawn(16, -16, 1.9);
-    this.scene.add(this.rover.root);
+    this.scene.add(this.rover.root, this.rover.blob);
     this.tracks = new Tracks(this.terrain);
     this.scene.add(this.tracks.mesh);
     this.devils = new DustDevils(this.terrain);
@@ -339,13 +343,13 @@ export class Game {
     fogUniforms.uFogSun.value.copy(sun);
     fogUniforms.uFogTau.value = this.tau;
     fogUniforms.uFogSunPower.value = power * 1.25;
-    fogUniforms.uFogDensity.value = 0.00026 * this.tau + THREE.MathUtils.smoothstep(this.tau, 1.2, 5) * 0.004;
+    fogUniforms.uFogDensity.value = 0.00036 * this.tau + THREE.MathUtils.smoothstep(this.tau, 1.2, 5) * 0.004;
     // exposição automática (estimativa analítica da luminância média da cena)
     const amb = skyAmbient(sun.y, this.tau, power * 1.25, this.ambC);
     const ambL = amb.r * 0.2126 + amb.g * 0.7152 + amb.b * 0.0722;
     void ambL;
     // luminância da cena ≈ solo iluminado pelo Sol + céu medido (sonda cúbica do próprio shader do céu)
-    const lampL = this.lampOn ? 0.25 : 0;
+    const lampL = this.driving && this.rover?.lightsOn ? 0.9 : this.lampOn && !this.driving ? 0.25 : 0;
     const sceneL = 0.3 * sunI * Math.max(sun.y, 0.0) / Math.PI + 0.55 * this.skyLum + lampL + 0.0006;
     // adaptação parcial (como o olho/câmera): cenas escuras continuam mais escuras que o dia
     const key = 0.27 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.5), 0.04, 1.05);
@@ -356,7 +360,13 @@ export class Game {
   }
 
   /** mede a radiância média do céu/horizonte renderizando o céu num cubo 8×8 */
-  measureSky() {
+  measureSky(exact = false) {
+    if (!exact) {
+      // estimativa analítica (sem leitura síncrona da GPU): céu médio + brilho noturno residual
+      const c = skyAmbient(this.sky.uniforms.uSun.value.y, this.tau, this.sky.uniforms.uSunPower.value, this.ambC);
+      this.skyLum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b + 0.0003;
+      return;
+    }
     this.probeCam.update(this.renderer, this.envScene);
     let sum = 0, n = 0;
     const H = THREE.DataUtils.fromHalfFloat;
@@ -373,9 +383,10 @@ export class Game {
 
   updateEnv(force = false) {
     const s = this.sky.uniforms.uSun.value as THREE.Vector3;
-    if (!force && s.angleTo(this.lastEnvSun) < THREE.MathUtils.degToRad(0.6)) return;
+    if (!force && s.angleTo(this.lastEnvSun) < THREE.MathUtils.degToRad(1.5) && Math.abs(this.tau - this.lastEnvTau) < 0.15) return;
+    this.lastEnvTau = this.tau;
     this.lastEnvSun.copy(s);
-    const rt = this.pmrem.fromScene(this.envScene, 0, 1, 20000);
+    const rt = this.pmrem.fromScene(this.envScene, 0, 1, 20000, { size: 128 });
     this.scene.environment = rt.texture;
     this.envRT?.dispose();
     this.envRT = rt;
@@ -429,20 +440,22 @@ export class Game {
     while (this.acc >= STEP && n < 4) {
       if (this.driving) {
         const i = this.input;
-        this.rover.step(STEP, i.move.y, i.move.x, i.isHeld('jump'));
+        const on = i.enabled;
+        this.rover.step(STEP, on ? i.move.y : 0, on ? i.move.x : 0, on ? i.isHeld('jump') : true);
         // o astronauta acompanha o assento do motorista (colisor desativado)
         const seat = new THREE.Vector3(-0.45, 0.9, 0.6).applyQuaternion(this.rover.quat).add(this.rover.pos);
         this.player.prevPos.copy(this.player.pos);
         this.player.pos.set(seat.x, seat.y - 0.9, seat.z);
         this.player.body.setNextKinematicTranslation({ x: seat.x, y: seat.y + 20, z: seat.z });
-      } else this.player.step(STEP, this.input);
+      } else if (this.input.enabled) { this.rover.step(STEP, 0, 0, true, false); this.player.step(STEP, this.input); }
+      else { this.rover.step(STEP, 0, 0, true, false); this.player.frozen = true; this.player.step(STEP, this.input); this.player.frozen = false; }
       this.physics.step();
       this.acc -= STEP;
       n++;
     }
     if (n === 4) this.acc = 0;
     // relógio marciano
-    this.sol += dt / (40 * 60);
+    this.sol += dt / (BAL.realMinPerSol * 60);
     this.onFrame?.(dt);
   }
 
@@ -467,12 +480,21 @@ export class Game {
     void alpha;
   }
 
+  forceExitVehicle() {
+    if (!this.driving) return;
+    this.driving = false;
+    this.player.collider.setEnabled(true);
+    this.astro.root.visible = true;
+    this.input.clearPressed();
+  }
+
   /** entra/sai do rover (F) */
   toggleVehicle(): 'enter' | 'exit' | 'far' | 'blocked' {
     if (this.driving) {
       const door = this.rover.driverDoor();
       if (Math.abs(this.rover.speed) > 1.2) return 'blocked';
       this.driving = false;
+      this.input.clearPressed();
       this.player.collider.setEnabled(true);
       this.player.teleport(door.x, door.z, 0.4);
       this.astro.root.visible = true;
@@ -481,6 +503,7 @@ export class Game {
     }
     if (this.player.pos.distanceTo(this.rover.pos) > 4.2) return 'far';
     this.driving = true;
+    this.input.clearPressed();
     this.player.collider.setEnabled(false);
     this.astro.root.visible = false;
     this.player.yaw = this.rover.yaw() + Math.PI;

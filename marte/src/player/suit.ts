@@ -41,8 +41,8 @@ function fabricNormalTexture(size = 512) {
 
 export function makeSuitMaterials() {
   const fabricN = fabricNormalTexture();
-  const fabric = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.8, 0.79, 0.76), roughness: 0.88, sheen: 1, sheenRoughness: 0.7, sheenColor: new THREE.Color(0.85, 0.83, 0.8), normalMap: fabricN, normalScale: new THREE.Vector2(0.55, 0.55) });
-  const hard = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.86, 0.86, 0.84), roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.4 });
+  const fabric = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.72, 0.71, 0.68), roughness: 0.88, sheen: 1, sheenRoughness: 0.7, sheenColor: new THREE.Color(0.85, 0.83, 0.8), normalMap: fabricN, normalScale: new THREE.Vector2(0.55, 0.55) });
+  const hard = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.76, 0.76, 0.74), roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.4 });
   const metal = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.62, 0.64, 0.67), roughness: 0.28, metalness: 1 });
   const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.06, 0.065, 0.07), roughness: 0.6, metalness: 0.2 });
   const glove = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.7, 0.69, 0.66), roughness: 0.75, sheen: 0.6, sheenRoughness: 0.8, normalMap: fabricN, normalScale: new THREE.Vector2(0.3, 0.3) });

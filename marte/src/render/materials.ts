@@ -41,9 +41,11 @@ function wire(mat: THREE.Material) {
     csmHook = mat.onBeforeCompile as unknown as (s: THREE.WebGLProgramParametersWithUniforms) => void;
   }
   m.defines.MARS_FOG = '';
+  const dusty = info.key === 'std';
   mat.onBeforeCompile = (shader, renderer) => {
     if (csmHook) csmHook(shader);
     applyMarsFog(shader);
+    if (dusty) applyDust(shader);
     info.patch?.(shader, renderer);
   };
   mat.customProgramCacheKey = () => info.key + (csmRef ? `|csm${csmRef.cascades}` : '');
@@ -58,6 +60,19 @@ export function enhance<T extends THREE.Material>(mat: T, key = 'std', patch?: P
   return mat;
 }
 
+/** poeira marciana assentada nas faces voltadas para cima + véu leve em tudo (desgaste) */
+function applyDust(shader: THREE.WebGLProgramParametersWithUniforms) {
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vDustN;')
+    .replace('#include <project_vertex>', '#include <project_vertex>\n vDustN = normalize(mat3(modelMatrix) * objectNormal);');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vDustN;')
+    .replace('#include <color_fragment>', `#include <color_fragment>
+      float dustAmt = smoothstep(0.3, 0.9, normalize(vDustN).y) * 0.42 + 0.07;
+      diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.58, 0.40, 0.28) * 0.9, dustAmt);`)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, 0.92, dustAmt);');
+}
+
 export function unregister(mat: THREE.Material) {
   registry.delete(mat);
 }
@@ -67,6 +82,6 @@ export function enhanceObject(obj: THREE.Object3D) {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    for (const m of mats) if (!registry.has(m) && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) enhance(m);
+    for (const m of mats) if (!registry.has(m) && (m as THREE.MeshStandardMaterial).isMeshStandardMaterial) enhance(m, m.userData.noDust || (m as THREE.MeshStandardMaterial).emissiveIntensity > 0.5 ? 'clean' : 'std');
   });
 }

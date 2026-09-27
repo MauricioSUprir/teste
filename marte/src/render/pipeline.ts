@@ -71,10 +71,10 @@ export class Pipeline {
     this.n8ao = null;
     if (q.ao) {
       const ao = new N8AOPostPass(this.scene, this.camera, w, h);
-      ao.configuration.aoRadius = 1.6;
+      ao.configuration.aoRadius = 1.1;
       ao.configuration.distanceFalloff = 0.6;
-      ao.configuration.intensity = 2.2;
-      ao.configuration.halfRes = q.aoHalfRes;
+      ao.configuration.intensity = 1.35;
+      ao.configuration.halfRes = q.aoHalfRes || w * h > 4e6;
       ao.configuration.depthAwareUpsampling = true;
       ao.configuration.gammaCorrection = false;
       ao.configuration.aoSamples = q.id === 'max' ? 24 : 16;
@@ -87,7 +87,7 @@ export class Pipeline {
     const effects: Effect[] = [this.exposure];
     this.bloom = null;
     if (q.bloom) {
-      this.bloom = new BloomEffect({ intensity: 0.55, luminanceThreshold: 1.1, luminanceSmoothing: 0.35, mipmapBlur: true, radius: 0.75 });
+      this.bloom = new BloomEffect({ intensity: 0.55, luminanceThreshold: 0.95, luminanceSmoothing: 0.35, mipmapBlur: true, radius: 0.75 });
       effects.push(this.bloom);
     }
     effects.push(new ToneMappingEffect({ mode: ToneMappingMode.AGX }));

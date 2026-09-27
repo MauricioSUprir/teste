@@ -12,6 +12,9 @@ await ev(() => { __debug.freeze(true); __debug.newGame('normal'); __debug.setTim
 await ev(() => { const r = __game.rover; __debug.teleport(r.pos.x + 5.5, r.pos.z + 4); __game.player.yaw = Math.atan2(-(r.pos.x - __game.player.pos.x), -(r.pos.z - __game.player.pos.z)) + 0.35; __debug.camDist(5); __game.player.pitch = -0.12; });
 await ev(() => __debug.renderOnce(2));
 const r0 = await ev(() => ({ pos: __game.rover.pos.toArray(), up: !__game.rover.isFlipped() }));
+const wc = await ev(() => { const r = __game.rover; let mn = 1e9; r.wheels.forEach((w) => { const p = __game.camera.position.clone(); w.getWorldPosition(p); mn = Math.min(mn, p.y - 0.52 - __game.terrain.heightAt(p.x, p.z)); }); return mn; });
+console.log('folga roda-solo (m):', wc.toFixed(3));
+check(Math.abs(wc) < 0.12, 'rodas tocam o solo');
 check(r0.up, `rover estável parado (y=${r0.pos[1].toFixed(2)})`);
 await shot('01_rover_parado');
 await ev(() => { const r = __game.rover; __debug.teleport(r.pos.x + 2.5, r.pos.z); });
@@ -32,7 +35,7 @@ await ev(() => __debug.renderOnce(4));
 await ev(() => __game.input.setHeld('jump', false));
 const sp = await ev(() => __game.rover.speed);
 check(Math.abs(sp) < 0.6, `freou (${sp.toFixed(2)} m/s)`);
-await ev(() => { __debug.setTime(21); __game.rover.setLights(true); });
+await ev(() => { __debug.setTime(21); __game.rover.setLights(true); __game.updateSky(0); });
 await ev(() => __debug.renderOnce(0.5));
 await shot('03_farois_noite');
 await ev(() => __game.input.fire('vehicle'));

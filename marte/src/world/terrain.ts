@@ -110,6 +110,7 @@ export class Terrain {
   private chunks: { cx: number; cz: number; lod: number; meshes: (THREE.Mesh | null)[]; center: THREE.Vector3 }[] = [];
   readonly uniforms: Record<string, THREE.IUniform>;
   private buildQueue = 0;
+  private lastCam = new THREE.Vector3(1e9, 0, 0);
 
   constructor(public data: TerrainData, tex: TerrainTextures, antiTiling: boolean) {
     this.heights = data.heights;
@@ -282,6 +283,8 @@ export class Terrain {
   /** Atualiza LODs; build limitado por quadro para não travar. */
   update(cam: THREE.Vector3, lodScale: number, budget = 3, force = false) {
     const d0 = 170 * lodScale, d1 = 400 * lodScale, d2 = 850 * lodScale;
+    if (!force && this.lastCam.distanceToSquared(cam) < 16 && this.buildQueue === 0) return 0;
+    this.lastCam.copy(cam);
     let built = 0;
     // ordena por distância para construir primeiro os mais próximos
     const order = this.chunks

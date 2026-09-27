@@ -38,6 +38,7 @@ export class Play {
     this.hud = new Hud(document.getElementById('hud')!);
     this.hud.buildMap(game.terrain.heights, WORLD.res);
     this.hud.onBuildPick = (b) => this.pickBuild(b);
+    this.hud.onBuildClose = () => this.closeBuildMenu();
     this.hud.onSleep = () => this.sleep();
     this.hud.onExit = () => this.exitHab();
     this.hud.onRespawn = () => this.respawn();
@@ -50,16 +51,17 @@ export class Play {
     this.dead = false;
     this.won = !!st.flags.won;
     this.inHab = false;
-    sfx.door();
     this.hud.closeHab(); this.hud.closeBuild(); this.hud.hideEnd(); this.hud.toggleMap(false);
     this.world.cancelGhost();
     this.world.sync(st);
     const g = this.game;
     g.sol = st.sol;
     g.tau = st.tau;
+    g.forceExitVehicle();
     g.player.teleport(st.player.x, st.player.z, 0.3);
     g.player.yaw = st.player.yaw;
-    if (g.driving) g.toggleVehicle();
+    g.input.clearPressed();
+    g.input.enabled = !this.won;
     g.player.frozen = false;
     g.astro.root.visible = true;
     g.rover.reset(st.rover.x, st.rover.z, st.rover.yaw);
@@ -67,6 +69,8 @@ export class Play {
     this.lastPos.copy(g.player.pos);
     this.objAnnounced = -1;
     this.active = true;
+    if (st.suit.health <= 0) { this.dead = false; this.respawnFrom(st); return; }
+    if (this.won) this.hud.showEnd(true, Math.floor(st.sol));
     g.updateEnv(true);
     g.measureSky();
     g.updateSky(0);
@@ -85,7 +89,9 @@ export class Play {
 
   persist(showToast = true) {
     const g = this.game;
-    this.st.player = { x: g.player.pos.x, y: g.player.pos.y, z: g.player.pos.z, yaw: g.player.yaw };
+    if (this.dead) return;
+    const pp = g.driving ? g.rover.driverDoor() : g.player.pos;
+    this.st.player = { x: pp.x, y: pp.y, z: pp.z, yaw: g.player.yaw };
     this.st.sol = g.sol;
     this.st.rover = { x: g.rover.pos.x, z: g.rover.pos.z, yaw: g.rover.yaw(), batt: g.rover.battery };
     if (save(this.st) && showToast) this.hud.toast(t('saved'), 'ok');
@@ -125,8 +131,9 @@ export class Play {
     if (this.hud.mapOpen) this.drawMap();
 
     // objetivos
-    let oi = OBJECTIVES.findIndex((o) => !o.done(st));
-    if (oi < 0) oi = OBJECTIVES.length - 1;
+    // objetivos nunca regridem: avança a partir do atual
+    let oi = st.objective;
+    while (oi < OBJECTIVES.length - 1 && OBJECTIVES[oi].done(st)) oi++;
     if (oi !== st.objective) {
       if (oi > st.objective) this.hud.toast(`✓ ${t('obj_done')}`, 'ok');
       st.objective = oi;
@@ -136,7 +143,7 @@ export class Play {
 
     // autossalvamento (só em estado estável)
     this.autoSaveT += dt;
-    if (this.autoSaveT > 90 && g.player.grounded && !this.dead) { this.autoSaveT = 0; this.persist(false); }
+    if (this.autoSaveT > 90 && g.player.grounded && !g.driving && !this.dead && !this.won) { this.autoSaveT = 0; this.persist(false); }
 
     sfx.update(dt, { tau: st.tau, exertion: Math.min(1, g.player.horizontalSpeed() / 3.4 + (this.holdT > 0 ? 0.3 : 0)), o2Frac: st.suit.o2 / BAL.suitO2Cap, inHelmet: !this.inHab && !g.driving, roverSpeed: g.rover.speed, driving: g.driving, paused: g.paused });
     this.hudT += dt;
@@ -167,8 +174,8 @@ export class Play {
     const g = this.game, input = g.input, st = this.st, r = g.rover;
     // recarga perto do habitat (cabo umbilical automático)
     const hab = this.world.habitat(st);
-    if (hab && Math.hypot(r.pos.x - hab.x, r.pos.z - hab.z) < 16 && r.battery < r.batteryCap && st.hab.batt > 1) {
-      const kwh = Math.min(r.batteryCap - r.battery, (2 * dt) / 3600 * 60, st.hab.batt - 1);
+    if (hab && Math.hypot(r.pos.x - hab.x, r.pos.z - hab.z) < 16 && r.battery < r.batteryCap && st.hab.batt > 4) {
+      const kwh = Math.min(r.batteryCap - r.battery, (2 * dt) / 3600 * 60, st.hab.batt - 4);
       r.battery += kwh; st.hab.batt -= kwh;
     }
     if (input.consume('vehicle')) {
@@ -185,7 +192,7 @@ export class Play {
       } else { this.flipT = 0; this.hud.showPrompt(null); }
       input.consume('interact');
     } else if (g.player.pos.distanceTo(r.pos) < 4.2) {
-      this.hud.showPrompt(`${t('act_rover')} (F)`, 0, false);
+      this.hud.showPrompt(`${t('act_rover')}${g.input.touchMode ? ' 🚙' : ' (F)'}`, 0, false);
       this.roverPromptShown = true;
     } else if (this.roverPromptShown) { this.roverPromptShown = false; this.hud.showPrompt(null); }
   }
@@ -197,7 +204,7 @@ export class Play {
     if (this.world.ghost) { this.hud.showPrompt(null); return; }
     const fwd = new THREE.Vector3(-Math.sin(g.player.yaw), 0, -Math.cos(g.player.yaw));
     const target = this.world.nearest(st, g.player.pos, fwd);
-    if (!target) { this.hud.showPrompt(null); this.holdT = 0; input.consume('interact'); return; }
+    if (!target) { if (!this.roverPromptShown) this.hud.showPrompt(null); this.holdT = 0; input.consume('interact'); return; }
     const need = HOLD[target.kind] ?? 1;
     let label = t(target.label as Key);
     if (target.kind === 'antenna') label += ` — ${t('need')}: ${ANTENNA_COST.scrap}× ${t('it_scrap')}, ${ANTENNA_COST.electronics}× ${t('it_electronics')}, ${ANTENNA_KWH} kWh`;
@@ -245,6 +252,7 @@ export class Play {
         break;
       }
       case 'antenna': {
+        if (st.objective < OBJECTIVES.findIndex((o) => o.key === 'obj_antenna')) { this.hud.toast(t('antenna_locked'), 'warn'); break; }
         const ok = Object.entries(ANTENNA_COST).every(([k, v]) => st.inv[k as ItemId] >= (v as number));
         if (!ok) { this.hud.toast(t('not_enough'), 'warn'); break; }
         if (st.hab.batt < ANTENNA_KWH) { this.hud.toast(t('no_power'), 'warn'); break; }
@@ -344,6 +352,8 @@ export class Play {
     this.speak('vo_dead');
     this.game.player.frozen = true;
     this.game.input.enabled = false;
+    this.game.input.move.x = this.game.input.move.y = 0;
+    this.hud.closeBuild(); this.hud.toggleMap(false); this.world.cancelGhost();
     if (document.pointerLockElement) document.exitPointerLock();
     this.hud.closeHab();
     this.hud.showEnd(false, Math.floor(this.st.sol));
@@ -357,7 +367,10 @@ export class Play {
     this.hud.showEnd(true, Math.floor(this.st.sol));
   }
   private respawn() {
-    const saved = load();
+    this.respawnFrom(null);
+  }
+  private respawnFrom(loaded: GameState | null) {
+    const saved = loaded ?? load();
     const deaths = this.st.stats.deaths + 1;
     const st = saved ?? newState(this.st.difficulty);
     st.stats.deaths = deaths;
@@ -365,6 +378,7 @@ export class Play {
     // renasce na eclusa com o traje recarregado a partir da base (se houver)
     const door = this.world.doorPos(st);
     if (door) { st.player.x = door.x; st.player.z = door.z; }
+    this.dead = false;
     st.suit.health = Math.max(st.suit.health, 60);
     st.suit.o2 = Math.max(st.suit.o2, BAL.suitO2Cap * 0.5);
     st.suit.batt = Math.max(st.suit.batt, BAL.suitBattCap * 0.5);

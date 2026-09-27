@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { Play } from './play';
 import { marsTemp } from './sim/survival';
 import { sfx } from './audio/sfx';
-import { hasSave, clearSave } from './sim/state';
+import { hasSave, clearSave, load as loadSave } from './sim/state';
 import * as __mat from './render/materials';
 (window as any).__mat = __mat;
 
@@ -35,7 +35,7 @@ document.documentElement.lang = getLang();
 translateDom();
 
 if (!canvas.getContext('webgl2')) {
-  $('load-msg').textContent = 'WebGL 2 não disponível neste navegador.';
+  $('load-msg').textContent = t('err_webgl');
   throw new Error('no webgl2');
 }
 
@@ -69,7 +69,7 @@ game.load((key, frac) => {
   (window as unknown as { __ready: boolean }).__ready = true;
 }).catch((e) => {
   console.error(e);
-  $('load-msg').textContent = `Erro: ${e?.message ?? e}`;
+  $('load-msg').textContent = `${t('err_load')}: ${e?.message ?? e}`;
 });
 
 // ---------------------------------------------------------------- menus
@@ -81,7 +81,7 @@ let returnTo: 'menu' | 'pause' = 'menu';
 
 function showMenu() {
   $('menu').classList.remove('hidden');
-  $('btn-continue').classList.toggle('hidden', !hasSave());
+  $('btn-continue').classList.toggle('hidden', !hasSave() || !!loadSave()?.flags.won);
   $('diff').classList.add('hidden');
   confirmNew = false;
   $('hud').classList.add('hidden');
@@ -113,10 +113,12 @@ function play() {
   inGame = true;
   game.menuMode = false;
   game.paused = false;
-  game.input.enabled = true;
+  game.input.clearPressed();
+  const overlay = !!(play_ && (play_.inHab || play_.hud.buildOpen || play_.dead || play_.won));
+  game.input.enabled = !overlay;
   const touch = isMobile || game.input.touchMode;
   $('touch').classList.toggle('hidden', !touch);
-  if (!touch) game.input.requestLock();
+  if (!touch && !overlay) game.input.requestLock();
   checkOrientation();
 }
 
@@ -149,7 +151,11 @@ function toastMenu(s: string) {
   el.textContent = s;
 }
 function toMenu() {
-  if (play_) { play_.persist(false); play_.active = false; }
+  if (play_) {
+    play_.persist(false); play_.active = false;
+    play_.hud.closeHab(); play_.hud.closeBuild(); play_.hud.toggleMap(false); play_.hud.hideEnd(); play_.world.cancelGhost();
+    play_.inHab = false; game.forceExitVehicle(); play_.voice.stop();
+  }
   inGame = false;
   game.paused = true;
   game.menuMode = true;
@@ -218,8 +224,8 @@ function bindRange(id: string, out: string, val: number, fmt: (v: number) => str
 
 function fillControls() {
   const rows: [string, Key][] = isMobile
-    ? [['🕹 esq.', 'ctl_move'], ['☝ dir.', 'ctl_look'], ['🕹 máx.', 'ctl_run'], ['⤒', 'ctl_jump'], ['✋', 'ctl_interact'], ['👁', 'ctl_camera'], ['💡', 'ctl_light']]
-    : [['W A S D', 'ctl_move'], ['Mouse', 'ctl_look'], ['Shift', 'ctl_run'], ['Espaço', 'ctl_jump'], ['E / clique', 'ctl_interact'], ['V', 'ctl_camera'], ['L', 'ctl_light'], ['B', 'ctl_build'], ['M', 'ctl_map'], ['Tab / I', 'ctl_inventory'], ['F', 'ctl_vehicle'], ['Esc', 'ctl_pause']];
+    ? [[t('t_left'), 'ctl_move'], [t('t_right'), 'ctl_look'], [t('t_max'), 'ctl_run'], ['⤒', 'ctl_jump'], ['✋', 'ctl_interact'], ['👁', 'ctl_camera'], ['💡', 'ctl_light'], ['🔧', 'ctl_build'], ['🗺', 'ctl_map'], ['🚙', 'ctl_vehicle'], ['⤒ (🚙)', 'ctl_brake']]
+    : [['W A S D', 'ctl_move'], [t('k_mouse'), 'ctl_look'], ['Shift', 'ctl_run'], [t('k_space'), 'ctl_jump'], [t('k_click'), 'ctl_interact'], ['V', 'ctl_camera'], ['L', 'ctl_light'], ['B', 'ctl_build'], ['M', 'ctl_map'], ['F', 'ctl_vehicle'], [`${t('k_space')} (🚙)`, 'ctl_brake'], ['Esc', 'ctl_pause']];
   $('keys').innerHTML = rows.map(([k, a]) => `<tr><td>${k}</td><td>${t(a)}</td></tr>`).join('');
 }
 
@@ -235,12 +241,12 @@ onLang(() => {
 // pointer lock / pausa
 document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
-  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.inHab || !!play_?.hud.buildOpen || !!play_?.dead);
+  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.inHab || !!play_?.hud.buildOpen || !!play_?.dead || !!play_?.won);
   if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.buildOpen && !play_?.inHab && !play_?.dead && !play_?.won) pause();
 });
 canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.buildOpen && !play_?.inHab) game.input.requestLock(); });
 addEventListener('keydown', (e) => {
-  if (e.code === 'Escape' && inGame && game.paused && !$('pause').classList.contains('hidden')) play();
+  if (e.code === 'Escape' && inGame && game.paused && !$('pause').classList.contains('hidden')) { e.preventDefault(); setTimeout(() => { game.input.clearPressed(); play(); }, 0); }
 });
 setInterval(() => {
   if (!game.input.consume('pause')) return;

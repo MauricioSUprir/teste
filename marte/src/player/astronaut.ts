@@ -17,6 +17,7 @@ export class Astronaut {
   constructor() {
     this.headlamp = new THREE.SpotLight(0xfff1dd, 0, 60, THREE.MathUtils.degToRad(32), 0.55, 1.6);
     this.headlamp.castShadow = false;
+    this.headlamp.visible = false;
   }
 
   async load(url: string) {
@@ -63,7 +64,8 @@ export class Astronaut {
     const shell = new THREE.Mesh(new THREE.SphereGeometry(0.19, 48, 32), suit);
     shell.scale.set(1, 1.08, 1.05);
     const visorGeo = new THREE.SphereGeometry(0.197, 48, 32, Math.PI / 2 - Math.PI * 0.4, Math.PI * 0.8, Math.PI * 0.2, Math.PI * 0.45);
-    this.visorMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(1.0, 0.76, 0.33), metalness: 1, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.4 });
+    this.visorMat = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(1.0, 0.76, 0.33), metalness: 1, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 2 });
+    this.visorMat.userData.noDust = true;
     const visor = new THREE.Mesh(visorGeo, this.visorMat);
     visor.scale.set(1, 1.08, 1.05);
     const ringGeo = new THREE.TorusGeometry(0.165, 0.026, 16, 48);
@@ -143,6 +145,7 @@ export class Astronaut {
 
   setLamp(on: boolean) {
     this.headlamp.intensity = on ? 160 : 0;
+    this.headlamp.visible = on;
     this.helmet.traverse((o) => {
       if (o.name === 'lamp') ((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = on ? 8 : 0;
     });

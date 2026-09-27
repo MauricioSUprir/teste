@@ -90,7 +90,8 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
     // consumo do astronauta (água e comida vêm sempre da base)
     st.hab.water = Math.max(0, st.hab.water - BAL.habWaterPerSol * k * dtSol);
     st.hab.food = Math.max(0, st.hab.food - 1 * k * dtSol);
-    if (c.inHabitat) st.hab.o2 = Math.max(0, st.hab.o2 - BAL.o2RestKgH * dtH);
+    if (c.inHabitat) st.hab.o2 = Math.max(0, st.hab.o2 - BAL.o2RestKgH * k * dtH);
+    else st.hab.o2 = Math.max(0, st.hab.o2 - BAL.o2RestKgH * 0.3 * dtH); // vazamento/purga da eclusa
   }
 
   // ---------------- traje
@@ -115,8 +116,9 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
   let dmg = 0;
   if (st.suit.o2 <= 0 && !c.inHabitat) dmg += BAL.suffocationHpPerMin * 60 * dtH;
   if (st.suit.batt <= 0 && !c.inHabitat && T < -20) dmg += BAL.hypothermiaHpPerMin * 60 * dtH * ((-20 - T) / 40);
-  if (hab && st.hab.water <= 0) dmg += 25 * dtSol * 24 / 24;
-  if (hab && st.hab.food <= 0) dmg += 8 * dtSol;
+  if (hab && st.hab.water <= 0) dmg += 30 * dtSol;
+  if (hab && st.hab.food <= 0) dmg += 25 * dtSol;
+  if (c.inHabitat && st.hab.o2 <= 0) dmg += 30 * dtH;
   if (st.suit.rad > BAL.radLethal) dmg += 20 * dtSol;
   st.suit.health = Math.max(0, st.suit.health - dmg);
 

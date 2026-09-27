@@ -32,7 +32,7 @@ export const ROVER = {
   wheelR: 0.52,
   wheelW: 0.38,
   susRest: 0.42,
-  maxForce: 2600, // N por roda motriz
+  maxForce: 2600, // N (total, dividido entre as 6 rodas)
   brake: 90,
   maxSteer: 0.52,
   maxSpeed: 5.6,
@@ -45,6 +45,8 @@ export class Rover {
   vc!: RAPIER.DynamicRayCastVehicleController;
   wheels: THREE.Object3D[] = [];
   lights: THREE.SpotLight[] = [];
+  blob!: THREE.Mesh;
+  courtesy!: THREE.PointLight;
   private ledMat: THREE.MeshStandardMaterial;
   private tailMat: THREE.MeshStandardMaterial;
   steer = 0;
@@ -59,7 +61,7 @@ export class Rover {
   readonly wheelPos: [number, number][] = [[-1.22, 1.55], [1.22, 1.55], [-1.22, 0], [1.22, 0], [-1.22, -1.55], [1.22, -1.55]];
 
   constructor(private phys: Physics, private terrain: Terrain) {
-    this.ledMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: new THREE.Color(0.85, 0.93, 1), emissiveIntensity: 0.6, roughness: 0.3 });
+    this.ledMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: new THREE.Color(0.85, 0.93, 1), emissiveIntensity: 3, roughness: 0.3 });
     this.tailMat = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: new THREE.Color(1, 0.05, 0.02), emissiveIntensity: 1.5 });
     this.buildVisual();
     enhanceObject(this.root);
@@ -67,7 +69,7 @@ export class Rover {
   }
 
   private buildVisual() {
-    const paint = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.86, 0.86, 0.84), roughness: 0.32, metalness: 0.15, clearcoat: 1, clearcoatRoughness: 0.12 });
+    const paint = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.86, 0.86, 0.84), roughness: 0.42, metalness: 0.1, clearcoat: 0.45, clearcoatRoughness: 0.25 });
     const steel = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.62, 0.64, 0.66), roughness: 0.28, metalness: 1, clearcoat: 0.3 });
     const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.045, 0.047, 0.05), roughness: 0.55, metalness: 0.3 });
     const glass = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.02, 0.025, 0.03), roughness: 0.04, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.6 });
@@ -85,7 +87,7 @@ export class Rover {
     prof.moveTo(P[0][0], P[0][1]);
     for (const [x, y] of P.slice(1)) prof.lineTo(x, y);
     prof.closePath();
-    const bodyGeo = new THREE.ExtrudeGeometry(prof, { depth: 2.1, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 3, curveSegments: 1 });
+    const bodyGeo = new THREE.ExtrudeGeometry(prof, { depth: 2.1, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.14, bevelSegments: 6, curveSegments: 1 });
     bodyGeo.translate(0, 0, -1.05);
     bodyGeo.rotateY(-Math.PI / 2); // x do perfil → z do mundo (frente = +z)
     bodyGeo.computeVertexNormals();
@@ -111,7 +113,7 @@ export class Rover {
       w.rotation.y = s * Math.PI / 2;
       chassis.add(w);
       // faixa de LED lateral
-      const led = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 3.6), this.ledMat);
+      const led = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 3.6), this.ledMat);
       led.position.set(s * 1.155, 0.62, -0.1);
       chassis.add(led);
       // porta com contorno
@@ -120,7 +122,7 @@ export class Rover {
       chassis.add(door);
     }
     // barra de LED frontal (assinatura como na referência)
-    const frontLed = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.035, 0.03), this.ledMat);
+    const frontLed = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.06, 0.03), this.ledMat);
     frontLed.position.set(0, 0.95, 2.49);
     chassis.add(frontLed);
     for (const s of [-1, 1]) {
@@ -130,12 +132,19 @@ export class Rover {
       const tl = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.03), this.tailMat);
       tl.position.set(s * 0.75, 1.1, -2.47);
       chassis.add(tl);
-      const spot = new THREE.SpotLight(0xe8f1ff, 0, 70, THREE.MathUtils.degToRad(30), 0.5, 1.4);
+      const spot = new THREE.SpotLight(0xfff1e0, 0, 80, THREE.MathUtils.degToRad(26), 0.85, 1.6);
       spot.position.set(s * 0.72, 0.62, 2.7);
       spot.target.position.set(s * 0.72, -0.8, 14);
       chassis.add(spot, spot.target);
+      spot.visible = false;
       this.lights.push(spot);
     }
+    // luz de posição/cortesia no teto (silhueta do veículo à noite)
+    const courtesy = new THREE.PointLight(0xffd9b0, 0, 9, 1.6);
+    courtesy.position.set(0, 2.6, -0.3);
+    courtesy.visible = false;
+    chassis.add(courtesy);
+    this.courtesy = courtesy;
     // teto solar, antena, câmeras, para-lamas, faixa laranja
     const roof = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.04, 2.4), solar);
     roof.position.set(0, 1.95, -0.6);
@@ -185,6 +194,16 @@ export class Rover {
       g.add(w);
     }
     g.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // sombra de contato (oclusão sob o veículo)
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const cg = c.getContext('2d')!;
+    const grd = cg.createRadialGradient(64, 64, 8, 64, 64, 64);
+    grd.addColorStop(0, 'rgba(0,0,0,0.75)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    cg.fillStyle = grd; cg.fillRect(0, 0, 128, 128);
+    const blob = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 5.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    blob.rotation.x = -Math.PI / 2;
+    blob.renderOrder = 2;
+    this.blob = blob;
   }
 
   spawn(x: number, z: number, yaw: number) {
@@ -195,7 +214,7 @@ export class Rover {
     const h = ROVER.halfExt;
     // massa com centro baixo: colisor principal leve + lastro inferior
     this.collider = W.createCollider(R.ColliderDesc.cuboid(h.x, h.y, h.z).setTranslation(0, 0.75, 0).setDensity(ROVER.mass * 0.35 / (8 * h.x * h.y * h.z)).setFriction(0.5), this.body);
-    W.createCollider(R.ColliderDesc.cuboid(h.x * 0.9, 0.45, 1.3).setTranslation(0, 1.55, 0.2).setDensity(40).setFriction(0.5), this.body);
+    W.createCollider(R.ColliderDesc.cuboid(h.x * 0.9, 0.45, 1.3).setTranslation(0, 1.55, 0.2).setDensity(1).setFriction(0.5), this.body);
     W.createCollider(R.ColliderDesc.cuboid(0.9, 0.12, 2.0).setTranslation(0, 0.35, 0).setDensity(ROVER.mass * 0.6 / (8 * 0.9 * 0.12 * 2.0)).setFriction(0.5), this.body);
     this.vc = W.createVehicleController(this.body);
     for (const [wx, wz] of this.wheelPos) {
@@ -223,7 +242,7 @@ export class Rover {
   }
 
   /** passo fixo: throttle −1..1, steer −1..1, brake 0..1 */
-  step(dt: number, throttle: number, steerIn: number, brake: boolean) {
+  step(dt: number, throttle: number, steerIn: number, brake: boolean, occupied = true) {
     this.prevPos.copy(this.pos); this.prevQuat.copy(this.quat);
     const v = this.body.linvel();
     const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.quat);
@@ -250,7 +269,9 @@ export class Rover {
     }
     this.vc.updateVehicle(dt);
     // consumo: ~0,8 kWh/km + 0,15 kW base
-    this.battery = Math.max(0, this.battery - (Math.abs(force) * Math.abs(this.speed) / 0.85) * dt / 3.6e6 - 0.15 * dt / 3600);
+    // tração + resistência ao rolamento (Crr≈0,12 em regolito) + base de 0,4 kW [compromisso]
+    const rr = 0.12 * ROVER.mass * 3.721;
+    if (occupied) this.battery = Math.max(0, this.battery - ((Math.abs(force) + (Math.abs(this.speed) > 0.2 ? rr : 0)) * Math.abs(this.speed) / 0.85) * dt / 3.6e6 - 0.4 * dt / 3600);
     this.syncFromBody();
     // rede de segurança contra atravessar o chão / NaN
     const hg = this.terrain.heightAt(this.pos.x, this.pos.z);
@@ -280,8 +301,9 @@ export class Rover {
 
   setLights(on: boolean) {
     this.lightsOn = on;
-    for (const l of this.lights) l.intensity = on ? 900 : 0;
-    this.ledMat.emissiveIntensity = on ? 4 : 0.6;
+    for (const l of this.lights) { l.intensity = on ? 220 : 0; l.visible = on; }
+    this.courtesy.visible = on; this.courtesy.intensity = on ? 6 : 0;
+    this.ledMat.emissiveIntensity = on ? 6 : 3;
   }
 
   /** atualiza a malha interpolada e a pose das rodas */
@@ -302,6 +324,12 @@ export class Rover {
       if (w.parent !== this.root) this.root.add(w);
     }
     this.tailMat.emissiveIntensity = this.speed < -0.2 || !this.lightsOn ? 1.5 : 3;
+    // sombra de contato no solo sob o veículo
+    const rp = this.root.position;
+    this.blob.position.set(rp.x, this.terrain.heightAt(rp.x, rp.z) + 0.04, rp.z);
+    this.blob.rotation.set(-Math.PI / 2, 0, this.yaw(), 'YXZ');
+    this.blob.rotation.set(-Math.PI / 2, 0, 0);
+    this.blob.rotateZ(this.yaw());
   }
 
   driverDoor() {

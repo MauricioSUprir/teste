@@ -36,7 +36,10 @@ function equToHoriz(decl: number, hourAngle: number, lat: number) {
 /** @param solFloat sóis desde o início (ex.: 3.25 = sol 3, 06:00 LTST) @param ls0 Ls inicial em graus */
 export function computeSky(solFloat: number, ls0 = 20): SkyState {
   const lat = WORLD.latitudeDeg * D2R;
-  const ls = (ls0 + solFloat * 0.5240) % 360; // ~0,524°/sol
+  // anomalia média avança 0,5384°/sol (360°/668,6 sóis); equação do centro não uniforme
+  const M0 = ls0 - 251 - 10.691 * Math.sin((ls0 - 251) * D2R);
+  const M = (M0 + solFloat * 0.5384) * D2R;
+  const ls = (((251 + M / D2R + 10.691 * Math.sin(M) + 0.623 * Math.sin(2 * M) + 0.05 * Math.sin(3 * M)) % 360) + 360) % 360;
   const lsR = ls * D2R;
   // distância heliocêntrica (e = 0,0934, periélio em Ls 251°)
   const e = 0.0934;
@@ -50,14 +53,14 @@ export function computeSky(solFloat: number, ls0 = 20): SkyState {
   // Fobos: órbita retrógrada aparente (nasce a oeste), período sinódico ~11,1 h, inclinação ~1°
   // Aproximação: move-se no plano equatorial; altitude máxima ~62° ao sul de Jezero (paralaxe grande).
   const phPhase = ((solFloat * 24.66) / 11.12) % 1; // voltas aparentes
-  const phHA = (0.5 - phPhase) * 2 * Math.PI * -1; // sentido oposto ao do Sol
+  const phHA = (0.5 - phPhase) * 2 * Math.PI; // ângulo horário decrescente: nasce a OESTE
   const ph = equToHoriz(-0.0 * D2R, phHA, lat);
-  const phAltTopo = ph.alt - 0.35 * Math.cos(ph.alt) ; // paralaxe forte (~9400 km de raio orbital)
+  const phAltTopo = Math.atan2(Math.sin(ph.alt) - 0.3616, Math.cos(ph.alt)); // paralaxe topocêntrica (R_Marte/a = 0,3616)
   // Deimos: quase síncrono; nasce a leste e fica ~2,5 sóis no céu (ciclo ~5,4 sóis)
   const dePhase = (solFloat / 5.4) % 1;
   const deHA = (dePhase - 0.5) * 2 * Math.PI;
   const de = equToHoriz(0, deHA, lat);
-  const deAltTopo = de.alt - 0.14 * Math.cos(de.alt);
+  const deAltTopo = Math.atan2(Math.sin(de.alt) - 0.1445, Math.cos(de.alt));
   // Terra: estrela azul próxima ao Sol (≤47° de elongação) — posição fixa relativa ao Sol nesta campanha
   const earth = equToHoriz(decl - 0.18, H + 0.62, lat);
 

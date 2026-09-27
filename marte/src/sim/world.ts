@@ -34,8 +34,8 @@ export class WorldSim {
       { kit_habitat: 1, kit_panel: 1 },
       { culture: 1, electronics: 2 },
       { scrap: 3, electronics: 2 },
-      { scrap: 2, electronics: 1 },
-      { scrap: 3 },
+      { scrap: 2, electronics: 2 },
+      { scrap: 3, electronics: 1 },
     ];
     crates.forEach((p, i) => this.loot.push({ id: `crate${i}`, kind: 'crate', pos: p.clone(), give: crateLoot[i] ?? { scrap: 1 }, label: 'loot_crate', site: 'crash' }));
     this.antennaPos.set(landerPos.x - 1.0, this.terrain.heightAt(landerPos.x, landerPos.z) + 1.0, landerPos.z + 2.4);
@@ -44,7 +44,7 @@ export class WorldSim {
     // locais de destroços (a distâncias crescentes)
     const wreckSites: { id: string; name: string; x: number; z: number; n: number; give: Partial<Record<ItemId, number>> }[] = [
       { id: 'crash', name: 'site_crash', x: -4, z: 2, n: 5, give: { scrap: 2 } },
-      { id: 'shield', name: 'site_shield', x: 62, z: 78, n: 5, give: { scrap: 3 } },
+      { id: 'shield', name: 'site_shield', x: 62, z: 78, n: 5, give: { scrap: 3, electronics: 1 } },
       { id: 'chute', name: 'site_chute', x: 118, z: -18, n: 5, give: { scrap: 2, electronics: 1 } },
       { id: 'cruise', name: 'site_cruise', x: -330, z: -390, n: 6, give: { scrap: 2, electronics: 2 } },
       { id: 'probe', name: 'site_probe', x: 470, z: -360, n: 4, give: { scrap: 2, electronics: 3 } },

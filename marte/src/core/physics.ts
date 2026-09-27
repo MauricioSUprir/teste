@@ -1,10 +1,11 @@
-import RAPIER from '@dimforge/rapier3d-compat';
+import type RAPIER from '@dimforge/rapier3d-compat';
 import { WORLD } from '../world/config';
 
 export type Rapier = typeof RAPIER;
 let ready: Promise<Rapier> | null = null;
+/** carregado sob demanda (chunk separado) para a página inicial abrir mais rápido */
 export function initRapier() {
-  if (!ready) ready = RAPIER.init().then(() => RAPIER);
+  if (!ready) ready = import('@dimforge/rapier3d-compat').then(async (m) => { const R = ((m as unknown as { default?: Rapier }).default ?? m) as Rapier; await R.init(); return R; });
   return ready;
 }
 

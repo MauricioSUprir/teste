@@ -140,36 +140,50 @@ export class Rocks {
       .map((i) => ({ x: i.x, y: i.y + this.assets[i.type].height * i.s * 0.45, z: i.z, r: Math.max(0.2, i.s * 0.78), h: this.assets[i.type].height * i.s }));
   }
 
-  update(cam: THREE.Vector3, force = false) {
-    if (!force && cam.distanceToSquared(this.lastCam) < 9) return;
-    this.lastCam.copy(cam);
-    for (let t = 0; t < this.byType.length; t++) {
-      const counts = [0, 0, 0, 0];
-      for (const inst of this.byType[t]) {
-        const d = Math.hypot(inst.x - cam.x, inst.y - cam.y, inst.z - cam.z) / Math.max(0.35, inst.s);
-        let l = 0;
-        while (l < 4 && d > LOD_DIST[l] * 1.0) l++;
-        if (l >= 4) {
-          if (inst.s < 1.2 || d > LOD_DIST[3] * 3) continue;
-          l = 3;
-        }
-        const im = this.meshes[t][l];
+  private pre: { m: Float32Array; c: Float32Array }[] = [];
+  private precompute() {
+    this.pre = this.byType.map((list) => {
+      const m = new Float32Array(list.length * 16), c = new Float32Array(list.length * 3);
+      list.forEach((inst, i) => {
         this.tmpE.set(inst.tilt, inst.rot, inst.tilt * 0.6);
         this.tmpQ.setFromEuler(this.tmpE);
         this.tmpS.setScalar(inst.s);
         this.tmpP.set(inst.x, inst.y, inst.z);
         this.tmpM.compose(this.tmpP, this.tmpQ, this.tmpS);
-        im.setMatrixAt(counts[l], this.tmpM);
+        this.tmpM.toArray(m, i * 16);
         const k = 0.8 + inst.tint * 0.35;
-        this.tmpC.setRGB(k, k * (0.96 + inst.tint * 0.04), k * (0.92 + inst.tint * 0.06));
-        im.setColorAt(counts[l], this.tmpC);
-        counts[l]++;
+        c[i * 3] = k; c[i * 3 + 1] = k * (0.96 + inst.tint * 0.04); c[i * 3 + 2] = k * (0.92 + inst.tint * 0.06);
+      });
+      return { m, c };
+    });
+  }
+
+  /** distribui as instâncias entre os LODs (matrizes pré-calculadas; só copia floats) */
+  update(cam: THREE.Vector3, force = false) {
+    if (!force && cam.distanceToSquared(this.lastCam) < 36) return;
+    this.lastCam.copy(cam);
+    if (!this.pre.length) this.precompute();
+    for (let t = 0; t < this.byType.length; t++) {
+      const list = this.byType[t], P = this.pre[t];
+      const counts = [0, 0, 0, 0];
+      const meshes = this.meshes[t];
+      for (let i = 0; i < list.length; i++) {
+        const inst = list[i];
+        const dx = inst.x - cam.x, dy = inst.y - cam.y, dz = inst.z - cam.z;
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz) / Math.max(0.35, inst.s);
+        let l = 0;
+        while (l < 4 && d > LOD_DIST[l]) l++;
+        if (l >= 4) { if (inst.s < 1.2 || d > LOD_DIST[3] * 3) continue; l = 3; }
+        const im = meshes[l];
+        const n = counts[l]++;
+        (im.instanceMatrix.array as Float32Array).set(P.m.subarray(i * 16, i * 16 + 16), n * 16);
+        (im.instanceColor!.array as Float32Array).set(P.c.subarray(i * 3, i * 3 + 3), n * 3);
       }
       for (let l = 0; l < 4; l++) {
-        const im = this.meshes[t][l];
+        const im = meshes[l];
         im.count = counts[l];
-        im.instanceMatrix.needsUpdate = true;
-        if (im.instanceColor) im.instanceColor.needsUpdate = true;
+        im.instanceMatrix.clearUpdateRanges(); im.instanceMatrix.addUpdateRange(0, counts[l] * 16); im.instanceMatrix.needsUpdate = true;
+        im.instanceColor!.clearUpdateRanges(); im.instanceColor!.addUpdateRange(0, counts[l] * 3); im.instanceColor!.needsUpdate = true;
       }
     }
   }

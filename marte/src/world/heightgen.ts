@@ -23,7 +23,7 @@ export function makeHeightFn(seed: number) {
     { x: -250, z: 90, D: 38, age: 1 },
     { x: 120, z: -150, D: 24, age: 1 },
   ];
-  for (const f of fixed) craters.push({ x: f.x, z: f.z, r: f.D / 2, depth: 0.2 * f.D * (0.55 + 0.45 * f.age), rim: 0.04 * f.D * (0.5 + 0.5 * f.age), age: f.age });
+  for (const f of fixed) craters.push({ x: f.x, z: f.z, r: f.D / 2, depth: 0.16 * f.D * (0.55 + 0.45 * f.age), rim: 0.04 * f.D * (0.5 + 0.5 * f.age), age: f.age });
   while (craters.length < 420 && tries++ < 8000) {
     const u = rnd();
     const D = Dmin / Math.sqrt(1 - u * (1 - (Dmin / Dmax) ** 2)); // CDF inversa de N(>D) ∝ D^-2
@@ -33,7 +33,7 @@ export function makeHeightFn(seed: number) {
     if (Math.hypot(x, z) < 90 + R * 2 && R > 3) continue;
     if (x < -620 && R > 40) continue; // delta
     const age = 0.35 + 0.65 * rnd();
-    craters.push({ x, z, r: R, depth: 0.2 * D * (0.55 + 0.45 * age), rim: 0.04 * D * (0.5 + 0.5 * age), age });
+    craters.push({ x, z, r: R, depth: 0.16 * D * (0.55 + 0.45 * age), rim: 0.04 * D * (0.5 + 0.5 * age), age });
   }
   // grade espacial para busca rápida
   const CELL = 64, GN = Math.ceil((half * 2) / CELL) + 1;
@@ -98,11 +98,11 @@ export function makeHeightFn(seed: number) {
         const warp = 1 + 0.035 * n1.noise((x - c.x) / (c.r * 1.3) + i * 3.7, (z - c.z) / (c.r * 1.3));
         const r = (d / c.r) * warp;
         if (r > 3.2) continue;
-        const inner = -c.depth + (c.depth + c.rim) * Math.pow(r, 2.0 + c.age);
+        const inner = -c.depth + (c.depth + c.rim) * Math.pow(r, 2.0 + 1.2 * (1 - c.age));
         const outer = c.rim * Math.pow(Math.max(r, 1), -3) * (1 - smoothstep(2.4, 3.2, r));
         const k = smoothstep(0.92, 1.08, r);
         const prof = inner * (1 - k) + outer * k;
-        h += prof * (0.55 + 0.45 * c.age);
+        h += prof;
       }
     }
 

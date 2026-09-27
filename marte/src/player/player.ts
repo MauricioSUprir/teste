@@ -10,7 +10,7 @@ import { WORLD } from '../world/config';
 // - salto: v0 ≈ 2,1 m/s → altura ≈ 0,6 m, tempo no ar ≈ 1,1 s
 // - transição caminhada→galope ≈ 1,3 m/s; galope máx. ~3,4 m/s
 export const MOVE = {
-  walk: 1.45,
+  walk: 1.3, // ≈ transição caminhada→galope em Marte (Froude 0,5)
   run: 3.4,
   accelGround: 3.2,
   accelAir: 0.35,
@@ -46,7 +46,7 @@ export class Player {
     this.collider = phys.world.createCollider(R.ColliderDesc.capsule(MOVE.capsuleHalf, MOVE.capsuleRadius).setFriction(0.8), this.body);
     this.controller = phys.world.createCharacterController(0.02);
     this.controller.setUp({ x: 0, y: 1, z: 0 });
-    this.controller.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(38));
+    this.controller.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(41));
     this.controller.setMinSlopeSlideAngle(THREE.MathUtils.degToRad(34));
     this.controller.enableAutostep(0.28, 0.2, false);
     this.controller.enableSnapToGround(0.25);

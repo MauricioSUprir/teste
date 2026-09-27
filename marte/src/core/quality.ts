@@ -63,9 +63,10 @@ export class DynamicResolution {
     if (this.samples.length < 30) return false;
     const sorted = [...this.samples].sort((a, b) => a - b);
     const p90 = sorted[27];
-    if (p90 > this.targetMs * 1.15) { this.overT += dt; this.underT = 0; } else if (p90 < this.targetMs * 0.8) { this.underT += dt; this.overT = 0; } else { this.overT = 0; this.underT = 0; }
-    if (this.overT > 0.6 && this.scale > this.min) { this.scale = Math.max(this.min, this.scale - 0.1); this.overT = 0; this.samples.length = 0; return true; }
-    if (this.underT > 3 && this.scale < 1) { this.scale = Math.min(1, this.scale + 0.05); this.underT = 0; this.samples.length = 0; return true; }
+    // a tela a 60 Hz prende o tempo de quadro em ~16,7 ms: subir quando estável perto do alvo
+    if (p90 > this.targetMs * 1.3) { this.overT += dt; this.underT = 0; } else if (p90 < this.targetMs * 1.06) { this.underT += dt; this.overT = 0; } else { this.overT = 0; this.underT = 0; }
+    if (this.overT > 1.0 && this.scale > this.min) { this.scale = Math.max(this.min, this.scale - 0.1); this.overT = 0; this.samples.length = 0; return true; }
+    if (this.underT > 4 && this.scale < 1) { this.scale = Math.min(1, this.scale + 0.05); this.underT = 0; this.samples.length = 0; return true; }
     return false;
   }
 }

@@ -33,6 +33,7 @@ export class Hud {
   storm = el('div', 'stormtag hidden');
   roverHud = el('div', 'roverhud hidden');
   onBuildPick?: (b: BuildId) => void;
+  onBuildClose?: () => void;
   onSleep?: () => void;
   onExit?: () => void;
   onRespawn?: () => void;
@@ -56,6 +57,7 @@ export class Hud {
     this.prompt.append(this.promptRing, this.promptText);
     this.waypoint.innerHTML = '<div class="wp-dot"></div><div class="wp-dist"></div>';
     this.mapPanel.appendChild(this.mapCanvas);
+    this.mapPanel.addEventListener('pointerdown', () => this.toggleMap(false));
     parent.append(this.vitals, this.objective, this.prompt, this.toasts, this.subtitle, this.waypoint, this.inv, this.storm, this.roverHud);
     document.body.append(this.build, this.habPanel, this.endScreen, this.mapPanel);
     this.relabel();
@@ -112,7 +114,8 @@ export class Hud {
   showPrompt(text: string | null, progress = 0, hold = true) {
     if (!text) { this.prompt.classList.add('hidden'); return; }
     this.prompt.classList.remove('hidden');
-    this.promptText.innerHTML = `<kbd>${hold ? t('ctl_hold_e') : 'E'}</kbd> ${text}`;
+    const touch = matchMedia('(pointer: coarse)').matches;
+    this.promptText.innerHTML = `<kbd>${hold ? (touch ? t('tap_hold') : t('ctl_hold_e')) : touch ? '✋' : 'E'}</kbd> ${text}`;
     this.promptRing.style.setProperty('--p', `${Math.round(progress * 100)}`);
   }
 
@@ -126,7 +129,8 @@ export class Hud {
   // ---------- construção
   openBuild(st: GameState, canAfford: (b: BuildId) => boolean) {
     const hasHab = st.buildings.some((b) => b.type === 'habitat');
-    this.build.innerHTML = `<div class="panel-inner wide"><h2>${t('build_menu')}</h2><div class="bgrid"></div><p class="bhint">${t('build_hint')}</p></div>`;
+    this.build.innerHTML = `<div class="panel-inner wide"><h2>${t('build_menu')}</h2><div class="bgrid"></div><p class="bhint">${t('build_hint')}</p><button class="closeb" id="build-close">${t('close')}</button></div>`;
+    (this.build.querySelector('#build-close') as HTMLElement).onclick = () => this.onBuildClose?.();
     const grid = this.build.querySelector('.bgrid')!;
     for (const b of BUILD_ORDER) {
       if (b === 'habitat' && hasHab) continue;

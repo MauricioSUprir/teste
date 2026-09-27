@@ -146,3 +146,4 @@ input[type=range] { accent-color: var(--accent); }
 .roverhud .rb { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
 @media (pointer: coarse) { .roverhud { bottom: auto; top: calc(90px + var(--safe-t)); } }
 #tb-car { right: 154px; bottom: 30px; width: 46px; height: 46px; font-size: 18px; bottom: 170px; right: 120px; }
+.closeb { margin-top: 10px; align-self: flex-end; appearance: none; border: 1px solid var(--line); background: var(--glass); color: var(--ink); padding: 10px 18px; border-radius: 8px; font-family: 'Rajdhani', sans-serif; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
