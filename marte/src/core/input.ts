@@ -97,16 +97,30 @@ export class Input {
     this.touchMode = true;
     if (!this.enabled) return;
     const w = innerWidth;
-    if (e.clientX < w * 0.42 && this.joyId === null) {
+    if (e.clientX < w * 0.45 && e.clientY > innerHeight * 0.3 && this.joyId === null) {
       this.joyId = e.pointerId;
-      this.joyOrigin = { x: e.clientX, y: e.clientY };
       this.joyVec = { x: 0, y: 0 };
-      if (this.joyEl) { this.joyEl.style.left = `${e.clientX}px`; this.joyEl.style.top = `${e.clientY}px`; this.joyEl.classList.add('on'); }
+      // joystick fixo: se o toque for perto da base, usa a base; senão a base vai até o dedo
+      const home = this.joyHome();
+      if (home && Math.hypot(e.clientX - home.x, e.clientY - home.y) < 110) this.joyOrigin = home;
+      else {
+        this.joyOrigin = { x: e.clientX, y: e.clientY };
+        if (this.joyEl) { this.joyEl.style.left = `${e.clientX}px`; this.joyEl.style.top = `${e.clientY}px`; }
+      }
+      this.joyEl?.classList.add('on');
+      this.onPointerMove(e);
     } else if (this.lookId === null) {
       this.lookId = e.pointerId;
       this.lookLast = { x: e.clientX, y: e.clientY };
     }
     try { this.canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
+  /** centro da base do joystick na posição de repouso */
+  private joyHome() {
+    if (!this.joyEl) return null;
+    const r = this.joyEl.getBoundingClientRect();
+    if (!r.width) return null;
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
   private onPointerMove(e: PointerEvent) {
     if (e.pointerId === this.joyId) {
@@ -120,6 +134,7 @@ export class Input {
       this.move.x = nx; this.move.y = ny;
       this.sprint = m > 0.92;
       if (this.joyKnob) this.joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      this.joyEl?.classList.toggle('run', this.sprint);
     } else if (e.pointerId === this.lookId) {
       const dx = e.clientX - this.lookLast.x, dy = e.clientY - this.lookLast.y;
       this.lookLast = { x: e.clientX, y: e.clientY };
@@ -130,7 +145,7 @@ export class Input {
   private onPointerUp(e: PointerEvent) {
     if (e.pointerId === this.joyId) {
       this.joyId = null; this.move.x = this.move.y = 0; this.sprint = false;
-      if (this.joyEl) this.joyEl.classList.remove('on');
+      if (this.joyEl) { this.joyEl.classList.remove('on', 'run'); this.joyEl.style.left = ''; this.joyEl.style.top = ''; }
       if (this.joyKnob) this.joyKnob.style.transform = '';
     }
     if (e.pointerId === this.lookId) this.lookId = null;

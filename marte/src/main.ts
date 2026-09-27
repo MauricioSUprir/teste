@@ -118,6 +118,7 @@ function play() {
   game.input.enabled = !overlay;
   const touch = isMobile || game.input.touchMode;
   $('touch').classList.toggle('hidden', !touch);
+  document.body.classList.toggle('touch', touch);
   if (!touch && !overlay) game.input.requestLock();
   checkOrientation();
 }
@@ -279,7 +280,7 @@ document.addEventListener('gesturestart', (e) => e.preventDefault());
 // na vertical o jogo funciona normalmente; só mostramos uma dica rápida (uma vez por sessão)
 let rotateHintShown = false;
 function checkOrientation() {
-  const portrait = innerHeight > innerWidth;
+  const portrait = matchMedia('(orientation: portrait)').matches;
   document.body.classList.toggle('portrait', portrait);
   if (portrait && inGame && isMobile && !rotateHintShown) {
     rotateHintShown = true;
@@ -290,7 +291,24 @@ function checkOrientation() {
   if (!portrait) $('rotate').classList.add('hidden');
 }
 checkOrientation();
-addEventListener('resize', checkOrientation);
+// iOS (principalmente como app web) às vezes não dispara/atrasa o resize ao girar: verificamos por vários caminhos
+let lastW = innerWidth, lastH = innerHeight;
+function onViewportChange() {
+  checkOrientation();
+  game.resize();
+  // o iOS atualiza as dimensões com atraso após girar
+  setTimeout(() => { checkOrientation(); game.resize(); }, 250);
+  setTimeout(() => { checkOrientation(); game.resize(); }, 700);
+}
+addEventListener('resize', onViewportChange);
+addEventListener('orientationchange', onViewportChange);
+window.visualViewport?.addEventListener('resize', onViewportChange);
+screen.orientation?.addEventListener?.('change', onViewportChange);
+matchMedia('(orientation: portrait)').addEventListener?.('change', onViewportChange);
+setInterval(() => {
+  const w = document.documentElement.clientWidth || innerWidth, h = document.documentElement.clientHeight || innerHeight;
+  if (w !== lastW || h !== lastH) { lastW = w; lastH = h; onViewportChange(); }
+}, 400);
 
 // ---------------------------------------------------------------- HUD
 const DIRS: Record<number, string> = { 0: 'N', 45: 'NE', 90: 'L', 135: 'SE', 180: 'S', 225: 'SO', 270: 'O', 315: 'NO' };

@@ -1,0 +1,37 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'pt-BR', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+const p = await ctx.newPage();
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+const check = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
+await p.goto('http://localhost:4173/?debug=1&quality=low');
+await p.waitForFunction(() => window.__ready === true, null, { timeout: 240000 });
+await p.tap('#btn-play'); await p.tap('#btn-play');
+await p.evaluate(() => { __debug.freeze(true); __debug.setTime(9); __debug.renderOnce(0.3); });
+const cdp = await ctx.newCDPSession(p);
+const drive = async (label) => {
+  const home = await p.evaluate(() => { const r = document.getElementById('joy').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, vis: getComputedStyle(document.getElementById('joy')).opacity }; });
+  const pos0 = await p.evaluate(() => [__game.player.pos.x, __game.player.pos.z]);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: home.x, y: home.y, id: 1 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: home.x, y: home.y - 70, id: 1 }] });
+  const run = await p.evaluate(() => document.getElementById('joy').classList.contains('run'));
+  await p.evaluate(() => __debug.renderOnce(2));
+  await p.screenshot({ path: `test-output/rot_${label}.png`, timeout: 120000 });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  const pos1 = await p.evaluate(() => [__game.player.pos.x, __game.player.pos.z]);
+  const d = Math.hypot(pos1[0] - pos0[0], pos1[1] - pos0[1]);
+  check(d > 1.5, `${label}: joystick visível (opacidade ${home.vis}) em (${home.x.toFixed(0)},${home.y.toFixed(0)}) moveu ${d.toFixed(1)} m, correndo=${run}`);
+};
+await drive('vertical');
+// gira para a horizontal
+await p.setViewportSize({ width: 844, height: 390 });
+await p.waitForTimeout(1200);
+const st = await p.evaluate(() => ({ portrait: document.body.classList.contains('portrait'), aspect: __game.camera.aspect, canvasW: __game.renderer.domElement.width, canvasH: __game.renderer.domElement.height }));
+check(!st.portrait && st.aspect > 1.5 && st.canvasW > st.canvasH, `girou para horizontal: aspecto ${st.aspect.toFixed(2)}, canvas ${st.canvasW}x${st.canvasH}`);
+await drive('horizontal');
+await p.setViewportSize({ width: 390, height: 844 });
+await p.waitForTimeout(1200);
+const st2 = await p.evaluate(() => ({ portrait: document.body.classList.contains('portrait'), aspect: __game.camera.aspect }));
+check(st2.portrait && st2.aspect < 1, `voltou para vertical: aspecto ${st2.aspect.toFixed(2)}`);
+console.log('erros:', errs.join('\n') || 'nenhum');
+await b.close();
