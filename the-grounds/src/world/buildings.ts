@@ -9,6 +9,7 @@
 
 import * as THREE from 'three'
 import { hash2, lerp, makeRng, pick, randInt, randRange, type Rng } from '../core/math'
+import { geometriaPlaca, PROPORCAO_PLACA } from './signage'
 import { GeometryBatcher, makeBox, makeCylinder, transform, withColor, type NivelDetalhe } from './geometry'
 import { PALETTE } from './materials'
 import type { CollisionWorld } from './collision'
@@ -419,12 +420,18 @@ function addFacadeDetails(
       batcher.add('metal', withColor(place(makeBox(0.06, 0.5, 0.06, { uvScale: 1 }), -tw / 2 + 0.1, groundH - 0.62, hd + 1.4), dark))
       batcher.add('metal', withColor(place(makeBox(0.06, 0.5, 0.06, { uvScale: 1 }), tw / 2 - 0.1, groundH - 0.62, hd + 1.4), dark))
     }
-    // Letreiro
+    // Letreiro com o nome da loja escrito. A largura segue a proporção da
+    // célula do atlas, para a letra nunca esticar; a altura sai dela.
     if (spec.label) {
-      batcher.add('plastico', withColor(place(makeBox(Math.min(w - 1, vw + 1.2), 0.62, 0.12, { uvScale: 1 }), 0, groundH - 0.05, hd + 0.16),
-        new THREE.Color(pick(rng, PALETTE.roupas))))
-      batcher.add('luz', withColor(place(makeBox(Math.min(w - 1.4, vw + 0.9), 0.36, 0.05, { uvScale: 1 }), 0, groundH - 0.05, hd + 0.24),
-        new THREE.Color(0xfff4d8)))
+      const larg = Math.min(w - 1, vw + 1.2, 3.6)
+      const alt = larg / PROPORCAO_PLACA
+      // Caixa de fundo, um pouco maior: dá espessura e sombra à placa.
+      batcher.add('plastico', withColor(
+        place(makeBox(larg + 0.16, alt + 0.16, 0.12, { uvScale: 1 }), 0, groundH - 0.05, hd + 0.08),
+        new THREE.Color(0x2a2c2f)))
+      batcher.add('placa', withColor(
+        place(geometriaPlaca(spec.label, larg, alt), 0, groundH - 0.05, hd + 0.145),
+        new THREE.Color(0xffffff)))
     }
   }
 

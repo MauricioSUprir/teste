@@ -104,6 +104,20 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
     tp: (px: number, pz: number) => game.player.teleport(px, pz),
     bola: () => game.soltarBola(),
     /** Vai até a porta do prédio mais próximo e entra. */
+    /** Leva o jogador para a calçada de frente para a loja com letreiro mais próxima. */
+    loja: () => {
+      const p = game.player.position
+      const perto = game.world.buildingsNear(p.x, p.z, 260).filter((b) => b.label && b.door)
+      if (perto.length === 0) return null
+      perto.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))
+      const b = perto[0]
+      const fx = Math.sin(b.yaw)
+      const fz = Math.cos(b.yaw)
+      game.player.teleport(b.door.x + fx * 7.5, b.door.z + fz * 7.5, b.yaw + Math.PI)
+      game.player.rig.yaw = b.yaw + Math.PI
+      game.player.rig.pitch = 0.18
+      return { nome: b.label, tipo: b.type }
+    },
     porta: (dentro = true) => {
       const p = game.player.position
       const perto = game.world.buildingsNear(p.x, p.z, 80)

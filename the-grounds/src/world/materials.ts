@@ -5,6 +5,7 @@
  */
 
 import * as THREE from 'three'
+import { atlasPlacas } from './signage'
 import { TextureLibrary, type MaterialKey as TexKey, type TextureSizeProfile } from '../assets/textures'
 
 export type WorldMaterialKey =
@@ -13,7 +14,7 @@ export type WorldMaterialKey =
   | 'madeiraEscura' | 'azulejo' | 'pisoInterno' | 'tecido' | 'paralelepipedo'
   | 'folhagem' | 'tronco' | 'pintura' | 'plastico' | 'luz' | 'borracha' | 'cromo'
   | 'telha' | 'toldo' | 'rede' | 'fachadaGasta' | 'fachadaPastilha' | 'asfaltoGasto'
-  | 'metalPintado' | 'grade' | 'telhaCeramica' | 'vidroPredio'
+  | 'metalPintado' | 'grade' | 'telhaCeramica' | 'vidroPredio' | 'placa'
 
 export class MaterialLibrary {
   readonly textures: TextureLibrary
@@ -129,6 +130,14 @@ export class MaterialLibrary {
         return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.02 })
       case 'borracha':
         return new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 })
+      case 'placa':
+        // Atlas de placas de loja: o nome de cada comércio vem desenhado. À
+        // noite a placa acende junto com as luzes da cidade.
+        return new THREE.MeshStandardMaterial({
+          vertexColors: true, map: atlasPlacas().textura,
+          emissive: 0xffffff, emissiveMap: atlasPlacas().textura, emissiveIntensity: 0,
+          roughness: 0.62, metalness: 0,
+        })
       case 'luz':
         return new THREE.MeshStandardMaterial({
           vertexColors: true, roughness: 0.4, metalness: 0,
@@ -156,6 +165,9 @@ export class MaterialLibrary {
   setNightLights(intensity: number): void {
     const luz = this.cache.get('luz') as THREE.MeshStandardMaterial | undefined
     if (luz) luz.emissiveIntensity = intensity
+    // Placa iluminada por dentro: acende menos que a lâmpada, senão estoura.
+    const placa = this.cache.get('placa') as THREE.MeshStandardMaterial | undefined
+    if (placa) placa.emissiveIntensity = intensity * 0.35
   }
 
   setEnvironment(env: THREE.Texture | null): void {
