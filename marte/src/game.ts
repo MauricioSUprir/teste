@@ -116,6 +116,9 @@ export class Game {
     this.renderer.setPixelRatio(this.pixelRatio());
     this.renderer.setSize(innerWidth, innerHeight, false);
     this.camera.aspect = innerWidth / innerHeight;
+    // na vertical, abre o campo de visão para não ficar "espremido" (limitado a 95°)
+    const a = this.camera.aspect;
+    this.camera.fov = a < 1 ? Math.min(95, this.opts.fov * Math.pow(1 / a, 0.5)) : this.opts.fov;
     this.camera.updateProjectionMatrix();
     this.pipeline?.setSize(innerWidth, innerHeight);
     this.csm?.updateFrustums();

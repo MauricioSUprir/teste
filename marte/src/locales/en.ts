@@ -39,7 +39,7 @@ export const en: Record<keyof typeof pt, string> = {
   off: 'Off',
   fps: 'FPS',
   click_to_play: 'Click to control the camera',
-  rotate_device: 'Rotate your device to landscape',
+  rotate_device: 'Tip: landscape gives you a wider view',
   ctl_move: 'Move',
   ctl_look: 'Look',
   ctl_run: 'Run (lope)',

@@ -38,7 +38,7 @@ export const pt = {
   off: 'Desligado',
   fps: 'FPS',
   click_to_play: 'Clique para controlar a câmera',
-  rotate_device: 'Gire o aparelho para a horizontal',
+  rotate_device: 'Dica: na horizontal a visão fica mais ampla',
   ctl_move: 'Mover',
   ctl_look: 'Olhar',
   ctl_run: 'Correr (galope)',

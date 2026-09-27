@@ -207,7 +207,7 @@ function fillSettings() {
     game.dyn.scale = 1;
     game.resize();
   };
-  bindRange('set-fov', 'out-fov', prefs.fov, (v) => `${v}°`, (v) => { prefs.fov = v; game.camera.fov = v; game.camera.updateProjectionMatrix(); });
+  bindRange('set-fov', 'out-fov', prefs.fov, (v) => `${v}°`, (v) => { prefs.fov = v; game.opts.fov = v; game.resize(); });
   bindRange('set-sens', 'out-sens', prefs.sens, (v) => v.toFixed(2), (v) => { prefs.sens = v; game.input.sensitivity = v; });
   bindRange('set-vol', 'out-vol', prefs.vol, (v) => `${Math.round(v * 100)}%`, (v) => { prefs.vol = v; sfx.setVolume(v); if (play_) play_.voice.volume = v; });
   const iy = $<HTMLInputElement>('set-invy');
@@ -276,10 +276,20 @@ bindTouchBtn('tb-car', 'vehicle');
 $('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
+// na vertical o jogo funciona normalmente; só mostramos uma dica rápida (uma vez por sessão)
+let rotateHintShown = false;
 function checkOrientation() {
-  const portrait = isMobile && innerHeight > innerWidth;
-  $('rotate').classList.toggle('hidden', !portrait || !inGame);
+  const portrait = innerHeight > innerWidth;
+  document.body.classList.toggle('portrait', portrait);
+  if (portrait && inGame && isMobile && !rotateHintShown) {
+    rotateHintShown = true;
+    const el = $('rotate');
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+  if (!portrait) $('rotate').classList.add('hidden');
 }
+checkOrientation();
 addEventListener('resize', checkOrientation);
 
 // ---------------------------------------------------------------- HUD

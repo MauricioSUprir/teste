@@ -1,0 +1,23 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'pt-BR', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+const p = await ctx.newPage();
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+await p.goto('http://localhost:4173/?debug=1&quality=low');
+await p.waitForFunction(() => window.__ready === true, null, { timeout: 240000 });
+await p.evaluate(() => { __debug.freeze(true); __debug.renderOnce(0); });
+await p.screenshot({ path: 'test-output/pt_menu.png', timeout: 120000 });
+await p.tap('#btn-play'); await p.tap('#btn-play');
+await p.evaluate(() => { __debug.setTime(9); __debug.renderOnce(0.5); __debug.renderOnce(0); });
+await p.screenshot({ path: 'test-output/pt_jogo.png', timeout: 120000 });
+// joystick: arrasta no lado esquerdo e verifica movimento
+const pos0 = await p.evaluate(() => __game.player.pos.x + __game.player.pos.z);
+const cdp = await ctx.newCDPSession(p);
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 90, y: 680, id: 1 }] });
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 90, y: 620, id: 1 }] });
+await p.evaluate(() => __debug.renderOnce(2));
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+const pos1 = await p.evaluate(() => __game.player.pos.x + __game.player.pos.z);
+console.log((Math.abs(pos1 - pos0) > 0.5 ? 'PASS' : 'FAIL') + ' joystick move na vertical', (pos1 - pos0).toFixed(2));
+console.log('erros:', errs.join('\n') || 'nenhum');
+await b.close();
