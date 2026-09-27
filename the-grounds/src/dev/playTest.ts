@@ -104,6 +104,23 @@ export async function runPlayTest(canvas: HTMLCanvasElement): Promise<void> {
     tp: (px: number, pz: number) => game.player.teleport(px, pz),
     bola: () => game.soltarBola(),
     /** Vai até a porta do prédio mais próximo e entra. */
+    /**
+     * Posição dos ossos no referencial do próprio personagem (X = lado
+     * esquerdo dele, Y = cima, Z = frente). Diz se o braço está abrindo ou
+     * entrando no tronco sem depender de olhar uma imagem.
+     */
+    ossos: () => {
+      const ch = game.player.character
+      ch.group.updateMatrixWorld(true)
+      const out: Record<string, string> = {}
+      for (const n of ['ombroE', 'bracoE', 'antebracoE', 'maoE', 'bracoD', 'antebracoD', 'maoD', 'torax'] as const) {
+        const w = new THREE.Vector3()
+        ch.bone(n).getWorldPosition(w)
+        const l = ch.group.worldToLocal(w)
+        out[n] = `${l.x.toFixed(3)},${l.y.toFixed(3)},${l.z.toFixed(3)}`
+      }
+      return out
+    },
     /** Leva o jogador para a calçada de frente para a loja com letreiro mais próxima. */
     loja: () => {
       const p = game.player.position

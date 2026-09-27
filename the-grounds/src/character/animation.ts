@@ -116,8 +116,11 @@ function poseIdle(t: number, comBola: boolean): Pose {
     pescoco: [-0.02, 0, 0],
     ombroE: [0, 0, -0.06],
     ombroD: [0, 0, 0.06],
-    bracoE: [comBola ? -0.28 : -0.06, 0, -0.10 + Math.sin(t * 0.7) * 0.012],
-    bracoD: [comBola ? -0.28 : -0.06, 0, 0.10 - Math.sin(t * 0.7 + 1) * 0.012],
+    // Braço caído com folga: a clavícula já inclina o braço 0,06 para dentro,
+    // então ele precisa abrir mais que isso para a mão não entrar no quadril.
+    // Sinal: positivo abre o braço esquerdo, negativo abre o direito.
+    bracoE: [comBola ? -0.28 : -0.06, 0, 0.17 + Math.sin(t * 0.7) * 0.012],
+    bracoD: [comBola ? -0.28 : -0.06, 0, -0.17 - Math.sin(t * 0.7 + 1) * 0.012],
     antebracoE: [comBola ? -0.55 : -0.16, 0, 0],
     antebracoD: [comBola ? -0.55 : -0.16, 0, 0],
     maoE: [0, 0, 0], maoD: [0, 0, 0],
@@ -160,8 +163,8 @@ function poseLocomotion(phase: number, intensity: number, forwardness: number, c
 
     ombroE: [0, 0, -0.06 - amp * 0.05],
     ombroD: [0, 0, 0.06 + amp * 0.05],
-    bracoE: [comBola ? -0.30 : sinR * armAmp * dir, 0, -0.12 - amp * 0.08],
-    bracoD: [comBola ? -0.30 : sinL * armAmp * dir, 0, 0.12 + amp * 0.08],
+    bracoE: [comBola ? -0.30 : sinR * armAmp * dir, 0, 0.17 + amp * 0.08],
+    bracoD: [comBola ? -0.30 : sinL * armAmp * dir, 0, -0.17 - amp * 0.08],
     antebracoE: [comBola ? -0.60 : -(0.22 + Math.max(0, sinR * dir) * lerp(0.35, 1.0, amp)), 0, 0],
     antebracoD: [comBola ? -0.60 : -(0.22 + Math.max(0, sinL * dir) * lerp(0.35, 1.0, amp)), 0, 0],
 
@@ -186,8 +189,8 @@ function poseStrafe(phase: number, strafe: number, intensity: number): Pose {
     coxaD: [Math.sin(a + Math.PI) * amp * 0.5, 0, s * 0.18 + Math.sin(a + Math.PI) * 0.1],
     canelaE: [-Math.max(0, Math.sin(a - 0.8)) * amp, 0, 0],
     canelaD: [-Math.max(0, Math.sin(a + Math.PI - 0.8)) * amp, 0, 0],
-    bracoE: [0, 0, -0.22],
-    bracoD: [0, 0, 0.22],
+    bracoE: [0, 0, 0.22],
+    bracoD: [0, 0, -0.22],
   }
 }
 
@@ -198,8 +201,8 @@ function poseAir(verticalSpeed: number): Pose {
     quadril: [0.06, 0, 0],
     lombar: [0.05 + rising * 0.05, 0, 0],
     torax: [0.06 - rising * 0.08, 0, 0],
-    bracoE: [-0.9 - rising * 0.5, 0, -0.45],
-    bracoD: [-0.9 - rising * 0.5, 0, 0.45],
+    bracoE: [-0.9 - rising * 0.5, 0, 0.45],
+    bracoD: [-0.9 - rising * 0.5, 0, -0.45],
     antebracoE: [-0.7, 0, 0],
     antebracoD: [-0.7, 0, 0],
     coxaE: [0.45 + tuck * 0.55, 0, 0.05],
@@ -218,8 +221,8 @@ function poseCrouch(t: number): Pose {
     lombar: [0.14 + breath, 0, 0],
     torax: [0.10, 0, 0],
     pescoco: [-0.18, 0, 0],
-    bracoE: [-0.25, 0, -0.16],
-    bracoD: [-0.25, 0, 0.16],
+    bracoE: [-0.25, 0, 0.16],
+    bracoD: [-0.25, 0, -0.16],
     antebracoE: [-0.55, 0, 0],
     antebracoD: [-0.55, 0, 0],
     coxaE: [1.05, 0, 0.10],
@@ -279,8 +282,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
         canelaE: [-0.26 - plant * 0.20, 0, 0],
         peE: [0.12, 0, 0],
         // Braços fazem contrapeso
-        bracoE: [-s * 0.85, 0, -0.55 - Math.max(0, s) * 0.35],
-        bracoD: [s * 0.55, 0, 0.42],
+        bracoE: [-s * 0.85, 0, -(-0.55 - Math.max(0, s) * 0.35)],
+        bracoD: [s * 0.55, 0, -0.42],
         antebracoE: [-0.55, 0, 0],
         antebracoD: [-0.42, 0, 0],
       }
@@ -295,8 +298,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
         peD: [0.10, 0.45 * Math.max(0, s), 0],
         coxaE: [-0.10, 0, 0.12],
         canelaE: [-0.18, 0, 0],
-        bracoE: [-s * 0.45, 0, -0.42],
-        bracoD: [s * 0.30, 0, 0.32],
+        bracoE: [-s * 0.45, 0, 0.42],
+        bracoD: [s * 0.30, 0, -0.32],
       }
     }
     case 'cabeceio': {
@@ -307,8 +310,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
         torax: [-s * 0.30, 0, 0],
         pescoco: [-s * 0.34, 0, 0],
         cabeca: [-s * 0.20, 0, 0],
-        bracoE: [-0.7 - s * 0.4, 0, -0.65],
-        bracoD: [-0.7 - s * 0.4, 0, 0.65],
+        bracoE: [-0.7 - s * 0.4, 0, 0.65],
+        bracoD: [-0.7 - s * 0.4, 0, -0.65],
         coxaE: [0.25 + Math.max(0, -s) * 0.3, 0, 0.1],
         coxaD: [0.25 + Math.max(0, -s) * 0.3, 0, -0.1],
         canelaE: [-0.40, 0, 0],
@@ -325,8 +328,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
         canelaD: [-0.12, 0, 0],
         coxaE: [slide * 0.55, 0, 0.18],
         canelaE: [-slide * 1.55, 0, 0],
-        bracoE: [-slide * 1.2, 0, -0.8],
-        bracoD: [-slide * 0.8, 0, 0.5],
+        bracoE: [-slide * 1.2, 0, 0.8],
+        bracoD: [-slide * 0.8, 0, -0.5],
       }
     }
     case 'drible': {
@@ -337,8 +340,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
         coxaD: [s * 0.55, 0, -0.26 * s],
         canelaD: [-s * 0.7, 0, 0],
         coxaE: [-s * 0.15, 0, 0.1],
-        bracoE: [-s * 0.4, 0, -0.5],
-        bracoD: [s * 0.3, 0, 0.45],
+        bracoE: [-s * 0.4, 0, 0.5],
+        bracoD: [s * 0.3, 0, -0.45],
       }
     }
     case 'defesaGoleiro': {
@@ -346,8 +349,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
       return {
         quadril: [0.1, 0, s * 0.5],
         torax: [0.12, 0, s * 0.35],
-        bracoE: [-2.2 * s - 0.3, 0, -0.9 * s - 0.3],
-        bracoD: [-2.2 * s - 0.3, 0, 0.9 * s + 0.3],
+        bracoE: [-2.2 * s - 0.3, 0, -(-0.9 * s - 0.3)],
+        bracoD: [-2.2 * s - 0.3, 0, -(0.9 * s + 0.3)],
         antebracoE: [-0.25, 0, 0],
         antebracoD: [-0.25, 0, 0],
         coxaE: [0.5 + s * 0.4, 0, 0.25],
@@ -359,7 +362,7 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
     case 'aceno': {
       const wave = Math.sin(p * Math.PI * 4) * smoothstep(0, 0.2, p) * (1 - smoothstep(0.8, 1, p))
       return {
-        bracoD: [-2.35, 0, 0.55 + wave * 0.30],
+        bracoD: [-2.35, 0, -(0.55 + wave * 0.30)],
         antebracoD: [-0.32, 0, wave * 0.55],
         maoD: [0, 0, wave * 0.5],
         torax: [0, -0.10, 0],
@@ -369,9 +372,9 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
     case 'conversa': {
       const g = Math.sin(p * Math.PI * 2.5)
       return {
-        bracoE: [-0.55 - Math.max(0, g) * 0.35, 0, -0.30],
+        bracoE: [-0.55 - Math.max(0, g) * 0.35, 0, 0.30],
         antebracoE: [-1.15 - g * 0.25, 0, 0],
-        bracoD: [-0.45 + g * 0.2, 0, 0.28],
+        bracoD: [-0.45 + g * 0.2, 0, -0.28],
         antebracoD: [-0.95 + g * 0.3, 0, 0],
         torax: [0.02, g * 0.06, 0],
         cabeca: [g * 0.05, -g * 0.08, 0],
@@ -380,7 +383,7 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
     case 'interagir': {
       const reach = Math.sin(p * Math.PI)
       return {
-        bracoD: [-1.15 * reach - 0.08, 0, 0.22],
+        bracoD: [-1.15 * reach - 0.08, 0, -0.22],
         antebracoD: [-0.42 * reach - 0.12, 0, 0],
         torax: [reach * 0.10, -reach * 0.14, 0],
         lombar: [reach * 0.06, 0, 0],
@@ -390,8 +393,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
       const up = smoothstep(0, 0.25, p) * (1 - smoothstep(0.75, 1, p))
       const shake = Math.sin(p * Math.PI * 6) * up
       return {
-        bracoE: [-2.6 * up - 0.1, 0, -0.55 - up * 0.25],
-        bracoD: [-2.6 * up - 0.1, 0, 0.55 + up * 0.25],
+        bracoE: [-2.6 * up - 0.1, 0, -(-0.55 - up * 0.25)],
+        bracoD: [-2.6 * up - 0.1, 0, -(0.55 + up * 0.25)],
         antebracoE: [-0.2, 0, 0],
         antebracoD: [-0.2, 0, 0],
         torax: [-up * 0.22, shake * 0.12, 0],
@@ -408,8 +411,8 @@ function poseAction(kind: ActionKind, p: number, comBola: boolean): Pose {
         coxaD: [crouch * 0.75, 0, -0.1],
         canelaE: [-crouch * 1.1, 0, 0],
         canelaD: [-crouch * 1.1, 0, 0],
-        bracoE: [crouch * 0.5, 0, -0.3],
-        bracoD: [crouch * 0.5, 0, 0.3],
+        bracoE: [crouch * 0.5, 0, 0.3],
+        bracoD: [crouch * 0.5, 0, -0.3],
       }
     }
     default:

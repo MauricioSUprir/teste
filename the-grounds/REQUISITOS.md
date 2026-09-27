@@ -115,6 +115,7 @@ Legenda: ✅ feito e verificado · 🔨 em andamento · ⬜ não começado · �
 | Colisão estável, escadas, inclinações | ✅ | Degraus até 46 cm, escorrega acima de 48° |
 | Prevenção de atravessar paredes | ✅ | |
 | Animações articuladas e transições | ✅ | Mistura ponderada com inércia por osso |
+| Braços fora do tronco | ✅ | Corrigido: o sinal de abertura do braço estava invertido em todas as 30 linhas de pose, e a mão parava a 7,5 cm do centro do corpo, dentro do quadril. Medido depois da correção: pulso a 24 cm, fora do quadril |
 | Sem pés deslizando | ✅ | Cinemática inversa assenta o pé no terreno |
 | Terceira pessoa | ✅ | Braço elástico com desvio de parede |
 | Primeira pessoa | ✅ | |

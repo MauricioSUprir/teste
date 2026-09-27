@@ -722,22 +722,17 @@ function buildAccessories(app: Appearance, shape: BodyShape): THREE.BufferGeomet
     faixa.scale(1, 1, (HZ + 0.016 * kc) / (HX + 0.016 * kc))
     attach(p, put(faixa, c.x, c.y + cy + HY * 0.30, c.z), head)
 
-    // Aba: três lâminas que estreitam e caem, em vez de uma placa reta. Vista
-    // de frente a placa lisa virava uma agulha atravessando a cabeça.
+    // Aba: meio disco achatado — a forma real de uma aba de boné. Três
+    // lâminas empilhadas liam como um leque espetado para fora; uma placa
+    // reta, vista de frente, como uma agulha atravessando a cabeça.
     const dir = app.chapeu === 'bone' ? 1 : -1
-    const larguraBase = (HX + 0.015 * kc) * 1.78
-    const passos = 3
-    for (let i = 0; i < passos; i++) {
-      const t = i / passos
-      const t1 = (i + 1) / passos
-      const larg = larguraBase * (1 - t * 0.34)
-      const prof = 0.040 * kc
-      const zz = (HZ + 0.012 * kc) + (0.030 * kc) + t * prof * 0.92 + prof / 2
-      // Cai um pouco mais a cada lâmina: é isso que curva a aba.
-      const queda = (t + t1) * 0.5 * 0.055 * kc
-      attach(p, put(box(larg, 0.009 * kc, prof),
-        c.x, c.y + cy + HY * 0.30 - queda, c.z + dir * zz, dir * (0.16 + t * 0.20)), head)
-    }
+    const aba = new THREE.CylinderGeometry(1, 1, 1, 18, 1, false, -Math.PI / 2, Math.PI)
+    // Achata e dimensiona: largura da testa, profundidade de aba, espessura fina.
+    aba.scale((HX + 0.012 * kc) * 0.98, 0.007 * kc, 0.095 * kc)
+    // O meio disco nasce voltado para a frente; boné virado vai para a nuca.
+    if (dir < 0) aba.rotateY(Math.PI)
+    attach(p, put(aba,
+      c.x, c.y + cy + HY * 0.28, c.z + dir * (HZ * 0.80), dir * 0.20), head)
   } else if (app.chapeu === 'gorro') {
     const g = new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.62)
     g.scale(HX + 0.016 * kc, HY + 0.012 * kc, HZ + 0.016 * kc)

@@ -34,12 +34,12 @@ export const BONE_DEFS: BoneDef[] = [
   { name: 'cabeca', parent: 'pescoco', offset: [0, 0.092, 0] },
 
   { name: 'ombroE', parent: 'torax', offset: [0.050, 0.126, 0] },
-  { name: 'bracoE', parent: 'ombroE', offset: [0.108, -0.028, 0] },
+  { name: 'bracoE', parent: 'ombroE', offset: [0.124, -0.030, 0] },
   { name: 'antebracoE', parent: 'bracoE', offset: [0, -0.295, 0] },
   { name: 'maoE', parent: 'antebracoE', offset: [0, -0.265, 0] },
 
   { name: 'ombroD', parent: 'torax', offset: [-0.050, 0.126, 0] },
-  { name: 'bracoD', parent: 'ombroD', offset: [-0.108, -0.028, 0] },
+  { name: 'bracoD', parent: 'ombroD', offset: [-0.124, -0.030, 0] },
   { name: 'antebracoD', parent: 'bracoD', offset: [0, -0.295, 0] },
   { name: 'maoD', parent: 'antebracoD', offset: [0, -0.265, 0] },
 
@@ -216,9 +216,10 @@ const SEGMENTS: Segment[] = [
           * s.musculatura * biceps * lerp(1, s.corpo, 0.4)
         return { rx: r, rz: r * 0.95 }
       },
-      // Deltoide: elipsoide alargado em X, que costura tórax e braço.
-      jointStart: 0.047,
-      jointScale: [1.34, 1.02, 0.98],
+      // Deltoide: arredonda o ombro e costura tórax e braço. Alargado demais
+      // em X ele vira uma bola saltada, com cara de ombreira.
+      jointStart: 0.049,
+      jointScale: [1.12, 1.0, 1.0],
     },
     {
       from: `antebraco${side}` as BoneName, to: `mao${side}` as BoneName, region: 'antebraco', rings: 5, sides: 12,
@@ -597,10 +598,17 @@ export function defaultFaceShape(): FaceShape {
   return { largura: 1, alongamento: 1, queixo: 1, macas: 1, nariz: 1, orbitas: 1, mandibula: 1 }
 }
 
-/** Raios do crânio de referência (1,75 m), em metros. */
-export const HEAD_RADII = { x: 0.079, y: 0.113, z: 0.098 }
+/**
+ * Raios do crânio de referência (1,75 m), em metros.
+ *
+ * Levemente maiores que a anatomia real (~8%). Com medida de gente de verdade
+ * a cabeça lia pequena demais sobre ombro e tronco estilizados, e o pescoço
+ * parecia comprido. Aumentar o crânio desce o queixo e encurta o pescoço
+ * visível ao mesmo tempo — é a correção que personagem de jogo costuma fazer.
+ */
+export const HEAD_RADII = { x: 0.085, y: 0.122, z: 0.106 }
 /** Deslocamento do centro do crânio acima do osso da cabeça. */
-export const HEAD_CENTER_Y = 0.048
+export const HEAD_CENTER_Y = 0.050
 
 function addHead(
   shape: BodyShape,
