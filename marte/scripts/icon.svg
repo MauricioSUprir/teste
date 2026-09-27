@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="80%">
+      <stop offset="0" stop-color="#2e140a"/><stop offset="0.6" stop-color="#150905"/><stop offset="1" stop-color="#080302"/>
+    </radialGradient>
+    <radialGradient id="mars" cx="38%" cy="34%" r="72%">
+      <stop offset="0" stop-color="#f0a86e"/><stop offset="0.4" stop-color="#d06c38"/><stop offset="0.75" stop-color="#8e3a1c"/><stop offset="1" stop-color="#3a1208"/>
+    </radialGradient>
+    <radialGradient id="shade" cx="32%" cy="30%" r="82%">
+      <stop offset="0.5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.8"/>
+    </radialGradient>
+    <radialGradient id="crater" cx="45%" cy="40%" r="55%">
+      <stop offset="0" stop-color="#6e2a12"/><stop offset="0.8" stop-color="#8a3a1a"/><stop offset="1" stop-color="#e59a62"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0.62" stop-color="#ff7a30" stop-opacity="0.45"/><stop offset="1" stop-color="#ff7a30" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="c"><circle cx="512" cy="530" r="290"/></clipPath>
+    <clipPath id="front"><rect x="0" y="530" width="1024" height="494"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <g fill="#fff">
+    <circle cx="150" cy="170" r="4" opacity=".8"/><circle cx="870" cy="150" r="5" opacity=".9"/><circle cx="800" cy="330" r="3" opacity=".6"/><circle cx="190" cy="420" r="3" opacity=".6"/>
+    <circle cx="130" cy="800" r="4" opacity=".7"/><circle cx="890" cy="840" r="3" opacity=".6"/><circle cx="340" cy="110" r="2.5" opacity=".7"/><circle cx="650" cy="80" r="3" opacity=".8"/>
+  </g>
+  <!-- órbita de Fobos: metade de trás -->
+  <g transform="rotate(-16 512 530)">
+    <ellipse cx="512" cy="530" rx="430" ry="112" fill="none" stroke="#ffc58a" stroke-width="9" stroke-opacity="0.45"/>
+  </g>
+  <circle cx="512" cy="530" r="350" fill="url(#glow)"/>
+  <circle cx="512" cy="530" r="290" fill="url(#mars)"/>
+  <g clip-path="url(#c)">
+    <!-- Valles Marineris / albedo escuro -->
+    <path d="M250 560 C 330 530, 420 590, 540 555 S 720 520, 800 570 L 800 610 C 700 590, 610 640, 480 622 S 320 600, 250 620 Z" fill="#6a2610" opacity="0.55"/>
+    <path d="M360 640 C 420 660, 520 700, 620 670 L 640 700 C 540 740, 430 720, 350 680 Z" fill="#6a2610" opacity="0.35"/>
+    <!-- calota polar norte -->
+    <ellipse cx="505" cy="262" rx="150" ry="42" fill="#fbf2e6" opacity="0.92"/>
+    <ellipse cx="505" cy="270" rx="185" ry="50" fill="#fbf2e6" opacity="0.25"/>
+    <!-- crateras -->
+    <circle cx="400" cy="450" r="30" fill="url(#crater)"/>
+    <circle cx="630" cy="470" r="18" fill="url(#crater)"/>
+    <circle cx="560" cy="700" r="40" fill="url(#crater)"/>
+    <circle cx="340" cy="600" r="16" fill="url(#crater)"/>
+  </g>
+  <circle cx="512" cy="530" r="290" fill="url(#shade)"/>
+  <!-- borda atmosférica fina -->
+  <circle cx="512" cy="530" r="291" fill="none" stroke="#ffb07a" stroke-width="3" stroke-opacity="0.5"/>
+  <!-- órbita: metade da frente (passa na frente do planeta) -->
+  <g transform="rotate(-16 512 530)" clip-path="url(#front)">
+    <ellipse cx="512" cy="530" rx="430" ry="112" fill="none" stroke="#ffc58a" stroke-width="9" stroke-opacity="0.95"/>
+  </g>
+  <!-- Fobos -->
+  <g transform="rotate(-16 512 530)"><ellipse cx="190" cy="600" rx="26" ry="20" fill="#d8c9b4"/><ellipse cx="184" cy="596" rx="8" ry="6" fill="#a8977f"/></g>
+</svg>
