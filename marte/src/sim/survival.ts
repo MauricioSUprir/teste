@@ -99,10 +99,10 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
   if (c.inHabitat) {
     // reabastece pela eclusa
     const needO2 = BAL.suitO2Cap - st.suit.o2;
-    const give = Math.min(needO2, 0.4 * dtH, st.hab.o2);
+    const give = Math.min(needO2, 3 * dtH, st.hab.o2);
     st.suit.o2 += give; st.hab.o2 -= give;
     const needWh = BAL.suitBattCap - st.suit.batt;
-    const wh = Math.min(needWh, 600 * dtH, st.hab.batt * 1000);
+    const wh = Math.min(needWh, 5000 * dtH, st.hab.batt * 1000);
     st.suit.batt += wh; st.hab.batt -= wh / 1000;
     st.suit.health = Math.min(100, st.suit.health + 6 * dtH * (st.hab.food > 0 && st.hab.water > 0 ? 1 : 0));
   } else {

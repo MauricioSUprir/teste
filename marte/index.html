@@ -30,7 +30,11 @@
       <div class="logo">ARES</div>
       <div class="tag" data-i18n="subtitle"></div>
       <div class="menu-buttons">
-        <button id="btn-play" class="primary" data-i18n="play"></button>
+        <button id="btn-continue" class="primary hidden" data-i18n="continue_game"></button>
+        <button id="btn-play" data-i18n="new_game"></button>
+        <div id="diff" class="diff hidden">
+          <button data-d="easy" data-i18n="d_easy"></button><button data-d="normal" class="on" data-i18n="d_normal"></button><button data-d="hard" data-i18n="d_hard"></button>
+        </div>
         <button id="btn-settings" data-i18n="settings"></button>
         <button id="btn-controls" data-i18n="controls"></button>
       </div>
@@ -67,6 +71,7 @@
       <button class="primary" id="btn-resume" data-i18n="resume"></button>
       <button id="btn-psettings" data-i18n="settings"></button>
       <button id="btn-pcontrols" data-i18n="controls"></button>
+      <button id="btn-pmenu" data-i18n="quit_menu"></button>
     </div>
   </div>
 
@@ -76,7 +81,6 @@
       <div class="time" id="hud-time"></div>
       <div class="env" id="hud-env"></div>
     </div>
-    <div id="hud-vitals"></div>
     <div id="hud-fps"></div>
     <div id="clicktoplay" class="hidden" data-i18n="click_to_play"></div>
     <div id="touch" class="hidden">
@@ -87,6 +91,8 @@
         <button class="tb small" id="tb-cam" aria-label="camera">👁</button>
         <button class="tb small" id="tb-light" aria-label="light">💡</button>
         <button class="tb small" id="tb-pause" aria-label="pause">❚❚</button>
+        <button class="tb small" id="tb-build" aria-label="build">🔧</button>
+        <button class="tb small" id="tb-map" aria-label="map">🗺</button>
       </div>
     </div>
   </div>

@@ -11,7 +11,7 @@ export const BAL = {
   lampW: 12,
   heaterWPerC: 1.2, // W por °C abaixo de -10 °C
   // saúde
-  suffocationHpPerMin: 22, // por minuto de JOGO sem O2 (morte em ~4-5 min de jogo)
+  suffocationHpPerMin: 7, // por minuto de JOGO sem O2 (morte em ~4-5 min de jogo)
   hypothermiaHpPerMin: 1.2,
   radLethal: 1000, // mSv (doença aguda ~1 Sv)
   radSurfaceMsvSol: 0.67,
@@ -24,8 +24,8 @@ export const BAL = {
   habFoodStart: 7, // rações (1 por sol)
   habO2PerSol: 0.84,
   habWaterPerSol: 1.5, // perda líquida após reciclagem
-  habBaseLoadW: 300, // suporte de vida
-  habHeaterW: 250, // noite (proporcional ao frio)
+  habBaseLoadW: 150, // suporte de vida (ventilação, CO2, controle)
+  habHeaterW: 180, // noite (proporcional ao frio)
   habBattStart: 10, // kWh
   habBattCap: 10,
   // produção

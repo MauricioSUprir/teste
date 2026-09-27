@@ -41,8 +41,9 @@ export class Input {
     });
     addEventListener('mousedown', (e) => {
       if (!this.locked || !this.enabled) return;
-      if (e.button === 0) this.fire('interact');
+      if (e.button === 0) { this.fire('interact'); this.held.add('interact'); }
     });
+    addEventListener('mouseup', (e) => { if (e.button === 0 && !this.keys.has('KeyE')) this.held.delete('interact'); });
     canvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     addEventListener('pointermove', (e) => this.onPointerMove(e));
     addEventListener('pointerup', (e) => this.onPointerUp(e));

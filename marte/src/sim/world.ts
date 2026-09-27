@@ -44,9 +44,9 @@ export class WorldSim {
     // locais de destroços (a distâncias crescentes)
     const wreckSites: { id: string; name: string; x: number; z: number; n: number; give: Partial<Record<ItemId, number>> }[] = [
       { id: 'crash', name: 'site_crash', x: -4, z: 2, n: 5, give: { scrap: 2 } },
-      { id: 'shield', name: 'site_shield', x: 38, z: -55, n: 5, give: { scrap: 3 } },
-      { id: 'chute', name: 'site_chute', x: 60, z: 34, n: 5, give: { scrap: 2, electronics: 1 } },
-      { id: 'cruise', name: 'site_cruise', x: -310, z: 380, n: 6, give: { scrap: 2, electronics: 2 } },
+      { id: 'shield', name: 'site_shield', x: 62, z: 78, n: 5, give: { scrap: 3 } },
+      { id: 'chute', name: 'site_chute', x: 118, z: -18, n: 5, give: { scrap: 2, electronics: 1 } },
+      { id: 'cruise', name: 'site_cruise', x: -330, z: -390, n: 6, give: { scrap: 2, electronics: 2 } },
       { id: 'probe', name: 'site_probe', x: 470, z: -360, n: 4, give: { scrap: 2, electronics: 3 } },
     ];
     let seed = 11;
@@ -60,6 +60,39 @@ export class WorldSim {
         this.group.add(obj);
         this.loot.push({ id: `${w.id}${i}`, kind: 'wreck', pos: obj.position.clone(), give: w.give, label: 'loot_wreck', obj, site: w.id });
       }
+    }
+    // marcos grandes visíveis de longe
+    {
+      const M = this.mats;
+      const cruise = new THREE.Group();
+      const disk = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.9, 32, 1, true, 0, Math.PI * 1.6), M.silver);
+      (disk.material as THREE.Material).side = THREE.DoubleSide;
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.06, 32, 1, false, 0, Math.PI * 1.6), M.solar);
+      top.position.y = 0.46;
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.08, 8, 40, Math.PI * 1.6), M.metal);
+      ring.rotation.x = Math.PI / 2;
+      cruise.add(disk, top, ring);
+      for (let i = 0; i < 4; i++) { const tk = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 12), M.white); tk.position.set(Math.cos(i * 1.4) * 1.2, 0, Math.sin(i * 1.4) * 1.2); cruise.add(tk); }
+      cruise.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      this.placeOnGround(cruise, -330, -390, 0.7);
+      cruise.position.y += 0.2;
+      cruise.rotateX(0.5);
+      this.group.add(cruise);
+      const probe = new THREE.Group();
+      const deck = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.35, 6), M.gold);
+      deck.position.y = 1.0;
+      probe.add(deck);
+      for (const s of [-1, 1]) {
+        const arr = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.03, 10, 1, false, 0, Math.PI), M.solar);
+        arr.position.set(s * 1.6, 1.1, 0);
+        arr.rotation.y = s > 0 ? Math.PI / 2 : -Math.PI / 2;
+        probe.add(arr);
+      }
+      for (let i = 0; i < 3; i++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), M.metal); const a = i * 2.1; leg.position.set(Math.cos(a) * 0.6, 0.5, Math.sin(a) * 0.6); leg.rotation.z = 0.3; probe.add(leg); }
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.6, 8), M.white); arm.position.set(0.4, 1.5, 0.6); arm.rotation.x = 0.9; probe.add(arm);
+      probe.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      this.placeOnGround(probe, 470, -360, 2.2);
+      this.group.add(probe);
     }
     // afloramentos de gesso (base de escarpas / paredes de crateras)
     const gyps = [[-560, 40], [-530, -120], [255, 60], [-120, -440], [120, 150], [-600, 260], [300, 215]];

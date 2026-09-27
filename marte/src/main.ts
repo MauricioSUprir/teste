@@ -2,6 +2,9 @@ import { Game, type GameOptions } from './game';
 import { t, translateDom, setLang, getLang, LANGS, onLang, type Key, type Lang } from './core/i18n';
 import { autoQuality, isMobile, type QualityId } from './core/quality';
 import * as THREE from 'three';
+import { Play } from './play';
+import { marsTemp } from './sim/survival';
+import { hasSave, clearSave } from './sim/state';
 import * as __mat from './render/materials';
 (window as any).__mat = __mat;
 
@@ -55,6 +58,8 @@ game.load((key, frac) => {
   $('load-fill').style.width = `${Math.round(frac * 100)}%`;
   $('load-msg').textContent = t(loadKey);
 }).then(() => {
+  play_ = new Play(game);
+  play_.onQuitToMenu = () => toMenu();
   $('loading').classList.add('hidden');
   showMenu();
   game.start();
@@ -68,10 +73,16 @@ game.load((key, frac) => {
 
 // ---------------------------------------------------------------- menus
 let inGame = false;
+let play_: Play | null = null;
+let difficulty: 'easy' | 'normal' | 'hard' = 'normal';
+let confirmNew = false;
 let returnTo: 'menu' | 'pause' = 'menu';
 
 function showMenu() {
   $('menu').classList.remove('hidden');
+  $('btn-continue').classList.toggle('hidden', !hasSave());
+  $('diff').classList.add('hidden');
+  confirmNew = false;
   $('hud').classList.add('hidden');
   buildLangs();
   // cena de fundo do menu: câmera em 3ª pessoa, relógio andando
@@ -111,7 +122,36 @@ function pause() {
   if (document.pointerLockElement) document.exitPointerLock();
 }
 
-$('btn-play').onclick = play;
+$('btn-continue').onclick = () => { play_?.continueGame(); play(); };
+$('btn-play').onclick = () => {
+  const d = $('diff');
+  if (d.classList.contains('hidden')) { d.classList.remove('hidden'); return; }
+  if (hasSave() && !confirmNew) { confirmNew = true; $('load-msg').textContent = ''; toastMenu(t('confirm_new')); return; }
+  clearSave();
+  play_?.newGame(difficulty);
+  play();
+};
+document.querySelectorAll<HTMLElement>('#diff button').forEach((b) => (b.onclick = () => {
+  difficulty = b.dataset.d as typeof difficulty;
+  document.querySelectorAll('#diff button').forEach((x) => x.classList.toggle('on', x === b));
+}));
+function toastMenu(s: string) {
+  let el = document.getElementById('menu-note');
+  if (!el) { el = document.createElement('div'); el.id = 'menu-note'; el.className = 'menu-note'; $('diff').after(el); }
+  el.textContent = s;
+}
+function toMenu() {
+  if (play_) { play_.persist(false); play_.active = false; }
+  inGame = false;
+  game.paused = true;
+  game.menuMode = true;
+  game.input.enabled = false;
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('pause').classList.add('hidden');
+  $('touch').classList.add('hidden');
+  showMenu();
+}
+$('btn-pmenu').onclick = toMenu;
 $('btn-resume').onclick = play;
 $('btn-settings').onclick = () => { returnTo = 'menu'; openPanel('settings'); };
 $('btn-controls').onclick = () => { returnTo = 'menu'; openPanel('controls'); };
@@ -177,6 +217,7 @@ function fillControls() {
 
 onLang(() => {
   translateDom();
+  play_?.hud.relabel();
   buildLangs();
   if (!$('settings').classList.contains('hidden')) fillSettings();
   if (!$('controls').classList.contains('hidden')) fillControls();
@@ -186,14 +227,20 @@ onLang(() => {
 // pointer lock / pausa
 document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
-  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused);
-  if (!locked && inGame && !game.paused && !game.input.touchMode) pause();
+  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.inHab || !!play_?.hud.buildOpen || !!play_?.dead);
+  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.buildOpen && !play_?.inHab && !play_?.dead && !play_?.won) pause();
 });
-canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement) game.input.requestLock(); });
+canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.buildOpen && !play_?.inHab) game.input.requestLock(); });
 addEventListener('keydown', (e) => {
   if (e.code === 'Escape' && inGame && game.paused && !$('pause').classList.contains('hidden')) play();
 });
-setInterval(() => { if (game.input.consume('pause')) { if (!game.paused) pause(); } }, 50);
+setInterval(() => {
+  if (!game.input.consume('pause')) return;
+  if (play_?.hud.buildOpen) { play_.closeBuildMenu(); return; }
+  if (play_?.hud.mapOpen) { play_.hud.toggleMap(false); return; }
+  if (play_?.world.ghost) { play_.world.cancelGhost(); return; }
+  if (!game.paused && !play_?.inHab) pause();
+}, 50);
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
 // botões de toque
@@ -209,6 +256,8 @@ bindTouchBtn('tb-jump', 'jump');
 bindTouchBtn('tb-use', 'interact');
 bindTouchBtn('tb-cam', 'camera');
 bindTouchBtn('tb-light', 'light');
+bindTouchBtn('tb-build', 'build');
+bindTouchBtn('tb-map', 'map');
 $('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
@@ -240,6 +289,7 @@ onLang(buildCompass);
 
 let hudT = 0;
 game.onFrame = (dt) => {
+  play_?.update(dt);
   hudT += dt;
   // bússola (yaw 0 = olhando para -Z = norte)
   const heading = ((-game.player.yaw * 180) / Math.PI % 360 + 360) % 360;
@@ -251,22 +301,13 @@ game.onFrame = (dt) => {
   const solN = Math.floor(game.sol);
   const hh = Math.floor(s.ltstHours), mm = Math.floor((s.ltstHours - hh) * 60);
   $('hud-time').textContent = `${t('sol')} ${solN} · ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-  const temp = marsTemp(s.ltstHours);
+  const temp = marsTemp(s.ltstHours, game.tau);
   $('hud-env').innerHTML = `${t('hud_temp')} ${temp.toFixed(0)} °C · ${t('hud_pressure')} 7,2 hPa<br>${t('hud_tau')} ${game.tau.toFixed(2)} · Ls ${s.ls.toFixed(1)}°`;
   if (params.has('debug') || params.has('fps')) {
     const d = game.debugState();
     $('hud-fps').textContent = `${d.fps} fps · ${d.quality} · ${d.tex}\n${d.calls} calls · ${(d.tris / 1e6).toFixed(2)}M tris`;
   } else $('hud-fps').textContent = `${Math.round(game.fps)} ${t('fps')}`;
 };
-
-/** temperatura do ar a 1,5 m em Jezero (MEDA): mín. ≈ -80 °C antes do amanhecer, máx. ≈ -15 °C às 13h30 */
-function marsTemp(h: number) {
-  const min = -80, max = -15;
-  const x = ((h - 5.8 + 24) % 24) / 24;
-  const peak = (13.5 - 5.8) / 24;
-  const f = x < peak ? Math.sin((x / peak) * Math.PI / 2) : Math.cos(((x - peak) / (1 - peak)) * Math.PI / 2);
-  return min + (max - min) * Math.max(0, f);
-}
 
 // ---------------------------------------------------------------- API de teste (?debug)
 Object.assign(window, {
@@ -281,6 +322,9 @@ Object.assign(window, {
     camera: (fp: boolean) => { if (game.player.firstPerson !== fp) game.toggleCamera(); },
     lamp: (on: boolean) => game.setLamp(on),
     quality: (q: QualityId) => game.setQuality(q),
+    play_: () => play_,
+    give: (k: string, n: number) => { (play_!.st.inv as Record<string, number>)[k] += n; },
+    newGame: (d: 'easy' | 'normal' | 'hard' = 'normal') => { clearSave(); play_!.newGame(d); play(); },
     camDist: (d: number) => { game.player.camDist = d; },
     freeze: (on: boolean) => game.freeze(on),
     spheres: () => {

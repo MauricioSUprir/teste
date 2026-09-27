@@ -203,7 +203,7 @@ export function buildCrashSite(terrain: Terrain, M: LanderMats) {
   // escudo térmico caído (visto a distância)
   const shield = new THREE.Mesh(new THREE.SphereGeometry(4.5, 48, 12, 0, Math.PI * 2, 0, 0.45), M.shield);
   (shield.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
-  place(shield, 38, -55, 0.3, 0.8);
+  place(shield, 70, 84, 0.3, 0.8);
   shield.rotateX(Math.PI * 0.92);
   shadowAll(shield);
 
@@ -220,7 +220,7 @@ export function buildCrashSite(terrain: Terrain, M: LanderMats) {
   gore.rotation.x = -Math.PI / 2;
   gore.position.y = 0.26;
   chuteG.add(gore);
-  place(chuteG, 60, 34, 1.2, 0, true);
+  place(chuteG, 126, -10, 1.2, 0, true);
   shadowAll(chuteG);
 
   // caixas de suprimentos espalhadas (interativas na etapa 2)
@@ -243,7 +243,7 @@ export function buildCrashSite(terrain: Terrain, M: LanderMats) {
     place(frag, x, z, rnd() * 6, -0.02);
     frag.rotateX((rnd() - 0.5) * 0.6);
   }
-  return { group, colliders, crates, landerPos: new THREE.Vector3(-8, 0, -4) };
+  return { group, colliders, crates, landerPos: new THREE.Vector3(-8, 0, -4), mats: M };
 }
 
 /** marca de arrasto / cratera de impacto no relevo antes de gerar malha e física */
