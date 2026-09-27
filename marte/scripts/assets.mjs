@@ -12,10 +12,10 @@ const PH = 'https://dl.polyhaven.org/file/ph-assets';
 
 // Camadas do terreno. target = cor média sRGB desejada (regolito marciano, albedo ~0,2-0,3).
 const LAYERS = [
-  { id: 'dust', src: 'red_sand', target: [182, 124, 86], chroma: 0.25, contrast: 1.0 },
-  { id: 'soil', src: 'red_laterite_soil_stones', target: [160, 104, 72], chroma: 0.3, contrast: 1.15 },
-  { id: 'gravel', src: 'dry_ground_rocks', target: [150, 100, 72], chroma: 0.3, contrast: 1.2 },
-  { id: 'cliff', src: 'cliff_side', target: [158, 106, 74], chroma: 0.35, contrast: 1.1 },
+  { id: 'dust', src: 'red_sand', target: [178, 134, 102], chroma: 0.18, contrast: 1.0 },
+  { id: 'soil', src: 'red_laterite_soil_stones', target: [166, 124, 94], chroma: 0.2, contrast: 1.1 },
+  { id: 'gravel', src: 'dry_ground_rocks', target: [158, 118, 90], chroma: 0.2, contrast: 1.15 },
+  { id: 'cliff', src: 'cliff_side', target: [166, 124, 94], chroma: 0.25, contrast: 1.1 },
 ];
 const ROCKS = [
   { id: 'rock_a', src: 'namaqualand_boulder_02' },
@@ -25,7 +25,7 @@ const ROCKS = [
   { id: 'rock_e', src: 'moon_rock_03' },
   { id: 'rock_f', src: 'moon_rock_05' },
 ];
-const ROCK_TARGET = [128, 88, 66];
+const ROCK_TARGET = [132, 102, 84];
 const SIZES = { '1k': 1024, '2k': 2048, '4k': 4096 };
 
 async function exists(p) { try { await fs.access(p); return true; } catch { return false; } }
@@ -170,7 +170,7 @@ async function buildRock(R) {
   for (const [tier, size] of Object.entries({ '1k': 1024, '2k': 2048 })) {
     const aOut = path.join(dir, `${R.id}_${tier}_a.webp`), nOut = path.join(dir, `${R.id}_${tier}_n.webp`);
     if ((await exists(aOut)) && (await exists(nOut))) continue;
-    const diff = marsify(await raw(tex.diff, size), ROCK_TARGET, 0.3, 1.05);
+    const diff = marsify(await raw(tex.diff, size), ROCK_TARGET, 0.2, 1.05);
     const nor = await raw(tex.nor, size), arm = await raw(tex.arm, size);
     const n = size * size, N = Buffer.alloc(n * 3);
     for (let i = 0; i < n; i++) {

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 
 export const ATMOS_GLSL = /* glsl */ `
 const vec3 DUST_COL = vec3(0.60, 0.33, 0.155);
-const vec3 DUST_HORIZON = vec3(0.66, 0.40, 0.21);
+const vec3 DUST_HORIZON = vec3(0.78, 0.55, 0.36);
 const vec3 HALO_COL = vec3(0.30, 0.50, 0.95);
 const vec3 SUN_EXT = vec3(0.90, 1.0, 1.18);
 float hgPhase(float mu, float g){ float g2=g*g; return (1.0-g2)/(4.0*3.14159265*pow(max(1.0+g2-2.0*g*mu,1e-4),1.5)); }
@@ -48,7 +48,7 @@ vec3 marsGround(vec3 s, float tau, float sunPower){
 `;
 
 const DUST_COL = [0.6, 0.33, 0.155];
-const DUST_HORIZON = [0.66, 0.4, 0.21];
+const DUST_HORIZON = [0.78, 0.55, 0.36];
 const SUN_EXT = [0.9, 1.0, 1.18];
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 

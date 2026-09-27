@@ -1,5 +1,7 @@
 import type { pt } from './pt';
+import { game_en } from './game_en';
 export const en: Record<keyof typeof pt, string> = {
+  ...game_en,
   title: 'ARES',
   subtitle: 'Mars Survival',
   loading: 'Loading',

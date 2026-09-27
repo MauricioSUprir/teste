@@ -25,7 +25,7 @@ export class Player {
   prevPos = new THREE.Vector3();
   vel = new THREE.Vector3();
   yaw = 0;
-  pitch = -0.05;
+  pitch = -0.22;
   grounded = false;
   firstPerson = false;
   body: RAPIER.RigidBody;
@@ -34,8 +34,8 @@ export class Player {
   lastImpact = 0; // m/s no último impacto (para dano)
   private airTime = 0;
   frozen = false;
-  camDist = 3.4;
-  private camDistSmooth = 3.4;
+  camDist = 4.6;
+  private camDistSmooth = 4.6;
   headBob = 0;
 
   constructor(private phys: Physics, private terrain: Terrain, spawn: THREE.Vector3) {
@@ -144,8 +144,8 @@ export class Player {
     }
     // 3ª pessoa: câmera sobre o ombro com colisão
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    const pivot = eye.clone().addScaledVector(right, 0.45);
-    pivot.y += 0.1;
+    const pivot = eye.clone().addScaledVector(right, 0.35);
+    pivot.y += 0.35;
     const back = dir.clone().negate();
     let want = this.camDist;
     const hit = collide(pivot, back, want + 0.3);

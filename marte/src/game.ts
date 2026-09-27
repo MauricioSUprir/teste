@@ -273,7 +273,7 @@ export class Game {
     this.csm.fade = true;
     for (const l of this.csm.lights) {
       l.shadow.normalBias = 0.035;
-      l.shadow.radius = 2;
+      l.shadow.radius = 3.5;
       l.shadow.camera.layers.enable(1);
     }
     setCSM(this.csm);
@@ -314,7 +314,7 @@ export class Game {
     const T = sunTransmit(sun.y, this.tau);
     const direct = directTransmittance(this.tau, Math.max(sun.y, 0));
     const horizonFade = THREE.MathUtils.smoothstep(sun.y, -0.01, 0.03);
-    const sunI = 3.2 * power * Math.max(direct, 0.02) * horizonFade;
+    const sunI = 4.2 * power * Math.max(direct, 0.02) * horizonFade;
     const color = new THREE.Color(1, 0.96, 0.9).multiply(new THREE.Color(Math.pow(T.r, 0.25), Math.pow(T.g, 0.25), Math.pow(T.b, 0.25)));
     this.sunColI.copy(color).multiplyScalar(sunI / Math.PI);
     if (this.csm) {
@@ -325,7 +325,7 @@ export class Game {
     fogUniforms.uFogSun.value.copy(sun);
     fogUniforms.uFogTau.value = this.tau;
     fogUniforms.uFogSunPower.value = power * 1.25;
-    fogUniforms.uFogDensity.value = 0.000055 * this.tau + THREE.MathUtils.smoothstep(this.tau, 1.2, 5) * 0.004;
+    fogUniforms.uFogDensity.value = 0.00026 * this.tau + THREE.MathUtils.smoothstep(this.tau, 1.2, 5) * 0.004;
     // exposição automática (estimativa analítica da luminância média da cena)
     const amb = skyAmbient(sun.y, this.tau, power * 1.25, this.ambC);
     const ambL = amb.r * 0.2126 + amb.g * 0.7152 + amb.b * 0.0722;
@@ -334,7 +334,7 @@ export class Game {
     const lampL = this.lampOn ? 0.25 : 0;
     const sceneL = 0.3 * sunI * Math.max(sun.y, 0.0) / Math.PI + 0.55 * this.skyLum + lampL + 0.0006;
     // adaptação parcial (como o olho/câmera): cenas escuras continuam mais escuras que o dia
-    const key = 0.19 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.33), 0.1, 1.05);
+    const key = 0.27 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.33), 0.1, 1.05);
     const targetExp = THREE.MathUtils.clamp(key / sceneL, 0.3, 40);
     this.exposure = dt > 0 ? THREE.MathUtils.damp(this.exposure, targetExp, 1.2, dt) : targetExp;
     this.pipeline && (this.pipeline.exposure.exposure = this.exposure);

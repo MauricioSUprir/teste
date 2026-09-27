@@ -59,8 +59,24 @@ const terrainGLSL_main = /* glsl */ `
   vec3 tn = vec3(N.rg*2.0-1.0, 0.0);
   float nStr = mix(1.25, 0.35, smoothstep(30.0, 500.0, tdist));
   vec3 terrN = normalize(nW + vec3(tn.x, 0.0, tn.y)*nStr);
-  float terrRough = (uRough.x*b0 + uRough.y*b1 + uRough.z*b2)/bs; float terrAO = 1.0;
   vec3 terrAlb = A.rgb;
+  float terrRough = (uRough.x*b0 + uRough.y*b1 + uRough.z*b2)/bs; float terrAO = 1.0;
+  // ondulações eólicas (ripples ~0,5-0,8 m) nas áreas de areia, somem com a distância
+  {
+    float sand = clamp((b0*1.0 + b1*0.45)/bs, 0.0, 1.0) * (1.0 - wCliff);
+    float rmask = smoothstep(0.25, 0.7, vnoise(vTW.xz*0.045 + 3.1));
+    float rf = sand * rmask * (1.0 - smoothstep(6.0, 34.0, tdist));
+    if (rf > 0.01) {
+      vec2 wd = normalize(vec2(0.83, 0.56));
+      float warp = vnoise(vTW.xz*0.35)*5.0 + vnoise(vTW.xz*1.7)*0.8;
+      float ph = dot(vTW.xz, wd)*(9.0 + 3.0*vnoise(vTW.xz*0.02)) + warp;
+      float sl = cos(ph) + 0.35*cos(2.0*ph + 1.3); // perfil assimétrico (barlavento suave, sotavento íngreme)
+      vec2 perp = vec2(-wd.y, wd.x);
+      float ph2 = dot(vTW.xz, perp)*3.1 + warp*0.5;
+      terrN = normalize(terrN + (vec3(wd.x,0.0,wd.y)*sl*0.13 + vec3(perp.x,0.0,perp.y)*cos(ph2)*0.03) * rf);
+      terrAlb *= 1.0 + 0.05*sin(ph)*rf;
+    }
+  }
   if (wCliff > 0.01) {
     // biplanar para paredões: estratos horizontais em XY/ZY + topo em XZ
     vec3 bw = pow(abs(nW), vec3(4.0)); bw /= (bw.x+bw.y+bw.z);

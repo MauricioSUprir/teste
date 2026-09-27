@@ -108,9 +108,9 @@ export function makeHeightFn(seed: number) {
 
     // borda distante da cratera Jezero (45 km de diâmetro) — horizonte montanhoso
     const dist = Math.hypot(x, z);
-    if (dist > 2500) {
+    if (dist > 1800) {
       const ang = Math.atan2(z, x);
-      const rim = smoothstep(2500, 9500, dist) * (140 + 220 * (0.5 + 0.5 * Math.sin(ang * 2.0 + 1.3)));
+      const rim = smoothstep(1800, 9000, dist) * (320 + 480 * (0.5 + 0.5 * Math.sin(ang * 2.0 + 1.3)));
       h += rim * (0.55 + 0.45 * n1.ridged(x / 1600, z / 1600, 5)) + 30 * n2.fbm(x / 900, z / 900, 4) * smoothstep(2500, 5000, dist);
     }
 

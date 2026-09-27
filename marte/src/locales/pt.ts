@@ -1,4 +1,6 @@
+import { game_pt } from './game_pt';
 export const pt = {
+  ...game_pt,
   title: 'ARES',
   subtitle: 'Sobrevivência em Marte',
   loading: 'Carregando',

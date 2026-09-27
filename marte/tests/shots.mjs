@@ -20,6 +20,8 @@ await page.evaluate(() => { window.__debug.play(); window.__debug.freeze(true); 
 const S = {
   suit: async () => { await page.evaluate(() => { __debug.setTime(9.2); __debug.camDist(2.0); __debug.look(160, -5); }); },
   crash: async () => { await page.evaluate(() => { __debug.setTime(8.6); __debug.teleport(6, 8); __debug.look(52, -4); __debug.camDist(4.5); }); },
+  ref: async () => { await page.evaluate(() => { __debug.setTau(0.5); __debug.lamp(false); __debug.camera(false); __debug.setTime(8.0); __debug.teleport(150, 260); __debug.look(115, -24); __debug.camDist(5.5); }); },
+  ref2: async () => { await page.evaluate(() => { __debug.setTime(16.2); __debug.teleport(-420, 120); __debug.look(-60, -10); __debug.camDist(5); }); },
   morning: async () => { await page.evaluate(() => { __debug.setTime(8.3); __debug.look(30, -6); }); },
   noon: async () => { await page.evaluate(() => { __debug.setTime(12.5); __debug.look(200, -8); }); },
   sunset: async () => { await page.evaluate(() => { __debug.setTime(17.75); __debug.look(80, 4); }); },

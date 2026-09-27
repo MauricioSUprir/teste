@@ -15,8 +15,8 @@ class ExposureEffect extends Effect {
       }`, {
       uniforms: new Map<string, THREE.Uniform>([
         ['exposure', new THREE.Uniform(1)],
-        ['saturation', new THREE.Uniform(1.0)],
-        ['lift', new THREE.Uniform(new THREE.Vector3(0, 0, 0))],
+        ['saturation', new THREE.Uniform(0.96)],
+        ['lift', new THREE.Uniform(new THREE.Vector3(0.0025, 0.002, 0.0016))],
       ]),
     });
   }
@@ -89,7 +89,7 @@ export class Pipeline {
       this.bloom = new BloomEffect({ intensity: 0.55, luminanceThreshold: 1.1, luminanceSmoothing: 0.35, mipmapBlur: true, radius: 0.75 });
       effects.push(this.bloom);
     }
-    effects.push(new ToneMappingEffect({ mode: ToneMappingMode.ACES_FILMIC }));
+    effects.push(new ToneMappingEffect({ mode: ToneMappingMode.AGX }));
     effects.push(new VignetteEffect({ offset: 0.32, darkness: 0.42, blendFunction: BlendFunction.NORMAL }));
     effects.push(this.visor);
     if (q.smaa) effects.push(new SMAAEffect({ preset: q.id === 'max' || q.id === 'ultra' ? SMAAPreset.ULTRA : SMAAPreset.HIGH }));
