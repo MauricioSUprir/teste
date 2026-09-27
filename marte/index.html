@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a0d08" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>ARES — Sobrevivência em Marte</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="loading" class="screen">
+    <div class="load-inner">
+      <div class="logo">ARES</div>
+      <div class="tag" data-i18n="subtitle"></div>
+      <div class="bar"><div class="fill" id="load-fill"></div></div>
+      <div class="load-msg" id="load-msg"></div>
+    </div>
+  </div>
+
+  <div id="menu" class="screen hidden">
+    <div class="menu-inner">
+      <div class="logo">ARES</div>
+      <div class="tag" data-i18n="subtitle"></div>
+      <div class="menu-buttons">
+        <button id="btn-play" class="primary" data-i18n="play"></button>
+        <button id="btn-settings" data-i18n="settings"></button>
+        <button id="btn-controls" data-i18n="controls"></button>
+      </div>
+      <div class="langs" id="langs"></div>
+      <div class="credits" data-i18n="credits"></div>
+    </div>
+  </div>
+
+  <div id="settings" class="screen panel hidden">
+    <div class="panel-inner">
+      <h2 data-i18n="settings"></h2>
+      <label><span data-i18n="language"></span><select id="set-lang"></select></label>
+      <label><span data-i18n="quality"></span><select id="set-quality"></select></label>
+      <label><span data-i18n="resolution"></span><select id="set-res"></select></label>
+      <label><span data-i18n="fov"></span><input type="range" id="set-fov" min="55" max="100" step="1" /><output id="out-fov"></output></label>
+      <label><span data-i18n="sensitivity"></span><input type="range" id="set-sens" min="0.2" max="3" step="0.05" /><output id="out-sens"></output></label>
+      <label><span data-i18n="invert_y"></span><input type="checkbox" id="set-invy" /></label>
+      <label><span data-i18n="volume"></span><input type="range" id="set-vol" min="0" max="1" step="0.05" /><output id="out-vol"></output></label>
+      <button class="primary" data-back data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="controls" class="screen panel hidden">
+    <div class="panel-inner">
+      <h2 data-i18n="controls"></h2>
+      <table class="keys" id="keys"></table>
+      <button class="primary" data-back data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="pause" class="screen panel hidden">
+    <div class="panel-inner">
+      <h2 data-i18n="paused"></h2>
+      <button class="primary" id="btn-resume" data-i18n="resume"></button>
+      <button id="btn-psettings" data-i18n="settings"></button>
+      <button id="btn-pcontrols" data-i18n="controls"></button>
+    </div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div id="compass"><div id="compass-strip"></div><div class="compass-mark"></div></div>
+    <div id="hud-tl">
+      <div class="time" id="hud-time"></div>
+      <div class="env" id="hud-env"></div>
+    </div>
+    <div id="hud-vitals"></div>
+    <div id="hud-fps"></div>
+    <div id="clicktoplay" class="hidden" data-i18n="click_to_play"></div>
+    <div id="touch" class="hidden">
+      <div id="joy"><div id="joy-knob"></div></div>
+      <div class="tbtns">
+        <button class="tb" id="tb-jump" aria-label="jump">⤒</button>
+        <button class="tb" id="tb-use" aria-label="use">✋</button>
+        <button class="tb small" id="tb-cam" aria-label="camera">👁</button>
+        <button class="tb small" id="tb-light" aria-label="light">💡</button>
+        <button class="tb small" id="tb-pause" aria-label="pause">❚❚</button>
+      </div>
+    </div>
+  </div>
+  <div id="rotate" class="hidden"><div data-i18n="rotate_device"></div></div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
