@@ -39,7 +39,7 @@ export const es: Record<keyof typeof pt, string> = {
   off: 'Desactivado',
   fps: 'FPS',
   click_to_play: 'Haz clic para controlar la cámara',
-  rotate_device: 'Consejo: en horizontal la vista es más amplia',
+  rotate_device: '¿Rotación bloqueada? Toca ⟳ para jugar en horizontal',
   ctl_move: 'Moverse',
   ctl_look: 'Mirar',
   ctl_run: 'Correr (galope)',

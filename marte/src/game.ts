@@ -19,6 +19,7 @@ import { Input } from './core/input';
 import { QUALITY, DynamicResolution, type QualityId, type QualitySettings } from './core/quality';
 import { Player } from './player/player';
 import { Astronaut } from './player/astronaut';
+import { viewSize } from './core/viewport';
 
 export type Progress = (key: string, frac: number) => void;
 const ASSETS = './assets';
@@ -113,7 +114,7 @@ export class Game {
   }
 
   resize() {
-    const w = document.documentElement.clientWidth || innerWidth, h = document.documentElement.clientHeight || innerHeight;
+    const { w, h } = viewSize();
     this.renderer.setPixelRatio(this.pixelRatio());
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;

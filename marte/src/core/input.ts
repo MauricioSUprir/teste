@@ -1,3 +1,5 @@
+import { toView, viewSize } from './viewport';
+
 // Entrada unificada: teclado/mouse (pointer lock) e toque (joystick flutuante + arrastar para olhar).
 export type Action = 'jump' | 'interact' | 'camera' | 'light' | 'build' | 'map' | 'inventory' | 'pause' | 'sprint' | 'crouch' | 'vehicle';
 
@@ -96,22 +98,23 @@ export class Input {
     if (e.pointerType === 'mouse') { this.touchMode = false; return; }
     this.touchMode = true;
     if (!this.enabled) return;
-    const w = innerWidth;
-    if (e.clientX < w * 0.45 && e.clientY > innerHeight * 0.3 && this.joyId === null) {
+    const { w, h } = viewSize();
+    const p = toView(e.clientX, e.clientY);
+    if (p.x < w * 0.45 && p.y > h * 0.3 && this.joyId === null) {
       this.joyId = e.pointerId;
       this.joyVec = { x: 0, y: 0 };
       // joystick fixo: se o toque for perto da base, usa a base; senão a base vai até o dedo
       const home = this.joyHome();
-      if (home && Math.hypot(e.clientX - home.x, e.clientY - home.y) < 110) this.joyOrigin = home;
+      if (home && Math.hypot(p.x - home.x, p.y - home.y) < 110) this.joyOrigin = home;
       else {
-        this.joyOrigin = { x: e.clientX, y: e.clientY };
-        if (this.joyEl) { this.joyEl.style.left = `${e.clientX}px`; this.joyEl.style.top = `${e.clientY}px`; }
+        this.joyOrigin = { x: p.x, y: p.y };
+        if (this.joyEl) { this.joyEl.style.left = `${p.x}px`; this.joyEl.style.top = `${p.y}px`; }
       }
       this.joyEl?.classList.add('on');
       this.onPointerMove(e);
     } else if (this.lookId === null) {
       this.lookId = e.pointerId;
-      this.lookLast = { x: e.clientX, y: e.clientY };
+      this.lookLast = p;
     }
     try { this.canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
   }
@@ -120,12 +123,13 @@ export class Input {
     if (!this.joyEl) return null;
     const r = this.joyEl.getBoundingClientRect();
     if (!r.width) return null;
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    return toView(r.left + r.width / 2, r.top + r.height / 2);
   }
   private onPointerMove(e: PointerEvent) {
+    const p = toView(e.clientX, e.clientY);
     if (e.pointerId === this.joyId) {
       const R = 60;
-      let dx = e.clientX - this.joyOrigin.x, dy = e.clientY - this.joyOrigin.y;
+      let dx = p.x - this.joyOrigin.x, dy = p.y - this.joyOrigin.y;
       const l = Math.hypot(dx, dy);
       if (l > R) { dx *= R / l; dy *= R / l; }
       let nx = dx / R, ny = -dy / R;
@@ -136,8 +140,8 @@ export class Input {
       if (this.joyKnob) this.joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
       this.joyEl?.classList.toggle('run', this.sprint);
     } else if (e.pointerId === this.lookId) {
-      const dx = e.clientX - this.lookLast.x, dy = e.clientY - this.lookLast.y;
-      this.lookLast = { x: e.clientX, y: e.clientY };
+      const dx = p.x - this.lookLast.x, dy = p.y - this.lookLast.y;
+      this.lookLast = p;
       this.look.x += dx * 1.6 * this.sensitivity;
       this.look.y += dy * 1.6 * this.sensitivity * (this.invertY ? -1 : 1);
     }

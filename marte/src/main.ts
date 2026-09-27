@@ -1,6 +1,7 @@
 import { Game, type GameOptions } from './game';
 import { t, translateDom, setLang, getLang, LANGS, onLang, type Key, type Lang } from './core/i18n';
 import { autoQuality, isMobile, type QualityId } from './core/quality';
+import { applyViewport } from './core/viewport';
 import * as THREE from 'three';
 import { Play } from './play';
 import { marsTemp } from './sim/survival';
@@ -277,19 +278,32 @@ bindTouchBtn('tb-car', 'vehicle');
 $('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-// na vertical o jogo funciona normalmente; só mostramos uma dica rápida (uma vez por sessão)
+// na vertical o jogo funciona normalmente; se a rotação do iPhone estiver travada, o botão ⟳ gira o jogo
+// por CSS ("modo deitado"): 0 → 90° horário → 90° anti-horário → normal
 let rotateHintShown = false;
+let rotPref: 0 | 1 | -1 = 0;
+try { const v = Number(localStorage.getItem('ares.rot')); if (v === 1 || v === -1) rotPref = v; } catch { /* ignore */ }
 function checkOrientation() {
-  const portrait = matchMedia('(orientation: portrait)').matches;
+  const realPortrait = matchMedia('(orientation: portrait)').matches;
+  const rot = realPortrait && isMobile ? rotPref : 0;
+  applyViewport(rot);
+  const portrait = realPortrait && !rot;
   document.body.classList.toggle('portrait', portrait);
+  $('btn-rot').classList.toggle('hidden', !(realPortrait && isMobile));
   if (portrait && inGame && isMobile && !rotateHintShown) {
     rotateHintShown = true;
     const el = $('rotate');
     el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), 4000);
+    setTimeout(() => el.classList.add('hidden'), 6000);
   }
   if (!portrait) $('rotate').classList.add('hidden');
 }
+$('btn-rot').addEventListener('pointerdown', (e) => {
+  e.stopPropagation(); e.preventDefault();
+  rotPref = rotPref === 0 ? 1 : rotPref === 1 ? -1 : 0;
+  try { localStorage.setItem('ares.rot', String(rotPref)); } catch { /* ignore */ }
+  onViewportChange();
+});
 checkOrientation();
 // iOS (principalmente como app web) às vezes não dispara/atrasa o resize ao girar: verificamos por vários caminhos
 let lastW = innerWidth, lastH = innerHeight;

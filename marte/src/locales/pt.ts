@@ -38,7 +38,7 @@ export const pt = {
   off: 'Desligado',
   fps: 'FPS',
   click_to_play: 'Clique para controlar a câmera',
-  rotate_device: 'Dica: na horizontal a visão fica mais ampla',
+  rotate_device: 'Rotação travada? Toque em ⟳ para jogar deitado',
   ctl_move: 'Mover',
   ctl_look: 'Olhar',
   ctl_run: 'Correr (galope)',

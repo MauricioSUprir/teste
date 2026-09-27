@@ -11,6 +11,7 @@ import { t, type Key } from './core/i18n';
 import { WORLD } from './world/config';
 import { Voice } from './audio/voice';
 import { sfx } from './audio/sfx';
+import { viewSize } from './core/viewport';
 
 const HOLD: Record<string, number> = { crate: 1.2, wreck: 2.0, gypsum: 2.6, antenna: 4.0, door: 0, panel_clean: 2.0 };
 
@@ -409,7 +410,7 @@ export class Play {
     const dist = Math.hypot(p.x - g.player.pos.x, p.z - g.player.pos.z);
     if (dist < 3) { this.hud.setWaypoint(null); return; }
     const v = p.clone().project(g.camera);
-    const W = innerWidth, H = innerHeight;
+    const { w: W, h: H } = viewSize();
     let x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * H;
     const behind = v.z > 1;
     if (behind) { x = W - x; y = H - 40; }
