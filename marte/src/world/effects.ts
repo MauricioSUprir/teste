@@ -127,7 +127,8 @@ export class Dust {
           float soft = smoothstep(0.25, 0.0, r);
           float fwd = pow(max(dot(vDir, uSunDir), 0.0), 8.0); // espalhamento frontal
           vec3 col = uAmb + uSunCol * (0.25 + 3.5*fwd);
-          gl_FragColor = vec4(col * vec3(0.95,0.7,0.5), soft * vA * 0.5 * uDensity);
+          float lit = smoothstep(0.0, 0.08, dot(uAmb + uSunCol, vec3(0.33)));
+          gl_FragColor = vec4(col * vec3(0.95,0.7,0.5), soft * vA * 0.5 * uDensity * lit);
         }`,
     });
     this.points = new THREE.Points(g, mat);

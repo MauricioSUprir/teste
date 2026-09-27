@@ -348,8 +348,8 @@ export class Game {
     const lampL = this.lampOn ? 0.25 : 0;
     const sceneL = 0.3 * sunI * Math.max(sun.y, 0.0) / Math.PI + 0.55 * this.skyLum + lampL + 0.0006;
     // adaptação parcial (como o olho/câmera): cenas escuras continuam mais escuras que o dia
-    const key = 0.27 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.33), 0.1, 1.05);
-    const targetExp = THREE.MathUtils.clamp(key / sceneL, 0.3, 40);
+    const key = 0.27 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.5), 0.04, 1.05);
+    const targetExp = THREE.MathUtils.clamp(key / sceneL, 0.3, 12);
     this.exposure = dt > 0 ? THREE.MathUtils.damp(this.exposure, targetExp, 1.2, dt) : targetExp;
     this.pipeline && (this.pipeline.exposure.exposure = this.exposure);
     this.renderer.toneMappingExposure = this.exposure;

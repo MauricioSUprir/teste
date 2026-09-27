@@ -321,8 +321,8 @@ game.onFrame = (dt) => {
 // ---------------------------------------------------------------- API de teste (?debug)
 Object.assign(window, {
   __debug: {
-    setTime: (hours: number) => { game.sol = Math.floor(game.sol) + hours / 24; game.updateEnv(true); game.measureSky(); game.updateSky(0); },
-    setTau: (tau: number) => { game.tau = tau; game.updateSky(0); game.updateEnv(true); game.measureSky(); game.updateSky(0); },
+    setTime: (hours: number) => { game.sol = Math.floor(game.sol) + hours / 24; game.updateSky(0); game.updateEnv(true); game.measureSky(); game.updateSky(0); },
+    setTau: (tau: number) => { game.tau = tau; if (play_) play_.st.tau = tau; game.updateSky(0); game.updateEnv(true); game.measureSky(); game.updateSky(0); },
     teleport: (x: number, z: number) => game.player.teleport(x, z),
     look: (yawDeg: number, pitchDeg: number) => { game.player.yaw = THREE.MathUtils.degToRad(yawDeg); game.player.pitch = THREE.MathUtils.degToRad(pitchDeg); },
     play,

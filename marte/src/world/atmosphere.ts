@@ -38,7 +38,7 @@ vec3 marsSky(vec3 v, vec3 s, float tau, float sunPower){
   vec3 col = (iso*0.9 + halo*0.55 + glare) * T + twilight;
   col = mix(col, stormCol * max(max(T.r,T.g),T.b) * 1.1, storm*0.75);
   // luz noturna residual (estrelas + airglow + Fobos/Deimos): muito fraca, azul-acinzentada
-  col += vec3(0.0006, 0.0007, 0.0010) * (0.6 + 0.4*hv) * (1.0 - storm*0.8) / max(sunPower, 0.1);
+  col += vec3(0.00022, 0.00024, 0.0003) * (0.6 + 0.4*hv) * (1.0 - storm*0.8) / max(sunPower, 0.1);
   return col * sunPower;
 }
 vec3 marsGround(vec3 s, float tau, float sunPower){

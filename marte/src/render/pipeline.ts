@@ -6,9 +6,9 @@ import type { QualitySettings } from '../core/quality';
 class ExposureEffect extends Effect {
   constructor() {
     super('ExposureEffect', /* glsl */ `
-      uniform float exposure; uniform float saturation; uniform vec3 lift;
+      uniform float exposure; uniform float saturation; uniform vec3 lift; uniform float blackPoint;
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor){
-        vec3 c = inputColor.rgb * exposure;
+        vec3 c = max(inputColor.rgb * exposure - blackPoint, 0.0);
         float l = dot(c, vec3(0.2126,0.7152,0.0722));
         c = mix(vec3(l), c, saturation) + lift;
         outputColor = vec4(max(c, 0.0), inputColor.a);
@@ -16,7 +16,8 @@ class ExposureEffect extends Effect {
       uniforms: new Map<string, THREE.Uniform>([
         ['exposure', new THREE.Uniform(1)],
         ['saturation', new THREE.Uniform(0.96)],
-        ['lift', new THREE.Uniform(new THREE.Vector3(0.0025, 0.002, 0.0016))],
+        ['lift', new THREE.Uniform(new THREE.Vector3(0, 0, 0))],
+        ['blackPoint', new THREE.Uniform(0.0042)],
       ]),
     });
   }

@@ -1,0 +1,12 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 640, height: 360 } });
+await p.goto('http://localhost:4173/?debug=1&quality=low');
+await p.waitForFunction(() => window.__ready === true, null, { timeout: 240000 });
+await p.evaluate(() => { __debug.freeze(true); __debug.play(); __debug.lamp(false); __debug.setTime(3.1); __debug.look(180, 60); __debug.renderOnce(0); });
+const px = async (n) => { await p.evaluate(() => __debug.renderOnce(0)); const buf = await p.screenshot({ clip: { x: 320, y: 60, width: 1, height: 1 } }); console.log(n, 'exp', await p.evaluate(() => __game.exposure.toFixed(2)), buf.length); await p.screenshot({ path: `test-output/p7_${n}.png` }); };
+await px('base');
+await p.evaluate(() => { __game.dust.points.visible = false; }); await px('nodust');
+await p.evaluate(() => { __game.sky.phobos.visible = false; __game.sky.deimos.visible = false; __game.sky.phobos.scale.setScalar(0.0001); __game.sky.deimos.scale.setScalar(0.0001); }); await px('nomoons');
+await p.evaluate(() => { __game.devils.group.visible = false; __game.astro.root.visible = false; }); await px('noastro');
+await b.close();
