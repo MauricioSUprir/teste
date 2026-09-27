@@ -21,6 +21,7 @@ export interface GameState {
   stats: { distance: number; deaths: number; built: number };
   storm: { active: boolean; peakTau: number; startSol: number; endSol: number } | null;
   nextStormSol: number;
+  rover: { x: number; z: number; yaw: number; batt: number };
 }
 
 export function newState(difficulty: GameState['difficulty'] = 'normal'): GameState {
@@ -42,6 +43,7 @@ export function newState(difficulty: GameState['difficulty'] = 'normal'): GameSt
     stats: { distance: 0, deaths: 0, built: 0 },
     storm: null,
     nextStormSol: 4.4,
+    rover: { x: 16, z: -16, yaw: 1.9, batt: 30 },
   };
 }
 
@@ -82,7 +84,7 @@ function migrate(st: GameState): GameState | null {
   if (!st || typeof st !== 'object') return null;
   const base = newState(st.difficulty ?? 'normal');
   // completa campos novos com padrões (robusto a versões futuras/antigas)
-  const merged = { ...base, ...st, suit: { ...base.suit, ...st.suit }, inv: { ...base.inv, ...st.inv }, hab: { ...base.hab, ...st.hab }, stats: { ...base.stats, ...st.stats }, flags: { ...st.flags } };
+  const merged = { ...base, ...st, suit: { ...base.suit, ...st.suit }, inv: { ...base.inv, ...st.inv }, hab: { ...base.hab, ...st.hab }, stats: { ...base.stats, ...st.stats }, flags: { ...st.flags }, rover: { ...base.rover, ...st.rover } };
   merged.version = SAVE_VERSION;
   const nums = [merged.sol, merged.player.x, merged.player.z, merged.suit.o2, merged.suit.batt, merged.suit.health];
   if (nums.some((n) => !Number.isFinite(n))) return null;

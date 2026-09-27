@@ -142,3 +142,50 @@ export class Dust {
     this.uniforms.uDensity.value = density;
   }
 }
+
+/** Marcas de pneu (faixas contínuas por roda traseira) */
+export class Tracks {
+  mesh: THREE.InstancedMesh;
+  private idx = 0;
+  private count = 0;
+  private last: THREE.Vector3[] = [new THREE.Vector3(1e9, 0, 0), new THREE.Vector3(1e9, 0, 0)];
+  private m = new THREE.Matrix4();
+  constructor(private terrain: Terrain, max = 1500) {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 64;
+    const g = c.getContext('2d')!;
+    for (let y = 0; y < 64; y++) { const v = (y % 16) < 7 ? 255 : 150; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(2, y, 28, 1); }
+    const alpha = new THREE.CanvasTexture(c);
+    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.42, 0.26, 0.17), roughness: 1, transparent: true, opacity: 0.8, alphaMap: alpha, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+    enhance(mat, 'tracks');
+    const geo = new THREE.PlaneGeometry(0.36, 0.62);
+    geo.rotateX(-Math.PI / 2);
+    this.mesh = new THREE.InstancedMesh(geo, mat, max);
+    this.mesh.count = 0;
+    this.mesh.frustumCulled = false;
+    this.mesh.receiveShadow = true;
+  }
+  update(rover: { root: THREE.Object3D; wheels: THREE.Object3D[]; speed: number }) {
+    if (Math.abs(rover.speed) < 0.3) return;
+    const ids = [4, 5];
+    for (let k = 0; k < 2; k++) {
+      const w = rover.wheels[ids[k]];
+      const p = new THREE.Vector3();
+      w.getWorldPosition(p);
+      if (p.distanceTo(this.last[k]) < 0.55) continue;
+      const dir = p.clone().sub(this.last[k]);
+      const far = dir.length() > 3;
+      this.last[k].copy(p);
+      if (far) continue;
+      const y = this.terrain.heightAt(p.x, p.z) + 0.015;
+      const n = this.terrain.normalAt(p.x, p.z);
+      const yaw = Math.atan2(dir.x, dir.z);
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw));
+      this.m.compose(new THREE.Vector3(p.x, y, p.z), q, new THREE.Vector3(1, 1, 1));
+      this.mesh.setMatrixAt(this.idx, this.m);
+      this.idx = (this.idx + 1) % this.mesh.instanceMatrix.count;
+      this.count = Math.min(this.count + 1, this.mesh.instanceMatrix.count);
+      this.mesh.count = this.count;
+      this.mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+}

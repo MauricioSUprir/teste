@@ -104,5 +104,13 @@ export const game_en: Record<keyof typeof game_pt, string> = {
   continue_game: 'Continue game',
   confirm_new: 'Starting a new game erases your saved progress. Click again to confirm.',
   saved: 'Progress saved',
+  act_rover: 'Enter rover',
+  act_rover_exit: 'Exit rover',
+  rover: 'Rover',
+  rover_far: 'Get closer to the rover',
+  rover_fast: 'Stop the rover before getting out',
+  rover_flip: 'Flip the rover upright',
+  rover_charging: 'Rover charging at the base',
+  rover_empty: 'Rover battery depleted',
   ctl_hold_e: 'Hold E',
 };

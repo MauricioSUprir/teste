@@ -107,5 +107,13 @@ export const game_pt = {
   continue_game: 'Continuar jogo',
   confirm_new: 'Iniciar um novo jogo apaga o progresso salvo. Clique de novo para confirmar.',
   saved: 'Progresso salvo',
+  act_rover: 'Entrar no rover',
+  act_rover_exit: 'Sair do rover',
+  rover: 'Rover',
+  rover_far: 'Chegue mais perto do rover',
+  rover_fast: 'Pare o rover antes de sair',
+  rover_flip: 'Desvirar o rover',
+  rover_charging: 'Rover carregando na base',
+  rover_empty: 'Bateria do rover esgotada',
   ctl_hold_e: 'Segure E',
 };

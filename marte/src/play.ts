@@ -57,8 +57,11 @@ export class Play {
     g.tau = st.tau;
     g.player.teleport(st.player.x, st.player.z, 0.3);
     g.player.yaw = st.player.yaw;
+    if (g.driving) g.toggleVehicle();
     g.player.frozen = false;
     g.astro.root.visible = true;
+    g.rover.reset(st.rover.x, st.rover.z, st.rover.yaw);
+    g.rover.battery = st.rover.batt;
     this.lastPos.copy(g.player.pos);
     this.objAnnounced = -1;
     this.active = true;
@@ -82,6 +85,7 @@ export class Play {
     const g = this.game;
     this.st.player = { x: g.player.pos.x, y: g.player.pos.y, z: g.player.pos.z, yaw: g.player.yaw };
     this.st.sol = g.sol;
+    this.st.rover = { x: g.rover.pos.x, z: g.rover.pos.z, yaw: g.rover.yaw(), batt: g.rover.battery };
     if (save(this.st) && showToast) this.hud.toast(t('saved'), 'ok');
   }
 
@@ -111,8 +115,8 @@ export class Play {
     }
 
     if (!this.inHab && !this.dead && !this.won) {
-      this.handleInteraction(dt);
-      this.handleBuild();
+      this.handleVehicle(dt);
+      if (!g.driving) { this.handleInteraction(dt); this.handleBuild(); }
     }
     if (input.consume('map')) this.hud.toggleMap();
     if (this.hud.mapOpen) this.drawMap();
@@ -132,7 +136,7 @@ export class Play {
     if (this.autoSaveT > 90 && g.player.grounded && !this.dead) { this.autoSaveT = 0; this.persist(false); }
 
     this.hudT += dt;
-    if (this.hudT > 0.1) { this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hudT = 0; }
+    if (this.hudT > 0.1) { this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
   }
 
   speak(key: Key) {
@@ -151,6 +155,36 @@ export class Play {
       case 'win': this.win(); break;
     }
   }
+
+  // ------------------------------------------------ rover
+  private flipT = 0;
+  private handleVehicle(dt: number) {
+    const g = this.game, input = g.input, st = this.st, r = g.rover;
+    // recarga perto do habitat (cabo umbilical automático)
+    const hab = this.world.habitat(st);
+    if (hab && Math.hypot(r.pos.x - hab.x, r.pos.z - hab.z) < 16 && r.battery < r.batteryCap && st.hab.batt > 1) {
+      const kwh = Math.min(r.batteryCap - r.battery, (2 * dt) / 3600 * 60, st.hab.batt - 1);
+      r.battery += kwh; st.hab.batt -= kwh;
+    }
+    if (input.consume('vehicle')) {
+      const res = g.toggleVehicle();
+      if (res === 'far') this.hud.toast(t('rover_far'), 'info');
+      if (res === 'blocked') this.hud.toast(t('rover_fast'), 'warn');
+      if (res === 'enter' && r.battery <= 0.01) this.hud.toast(t('rover_empty'), 'warn');
+    }
+    if (g.driving) {
+      if (r.isFlipped() && Math.abs(r.speed) < 0.5) {
+        this.flipT += dt;
+        this.hud.showPrompt(t('rover_flip'), Math.min(1, this.flipT / 2), true);
+        if (this.flipT > 2 && input.isHeld('interact')) { r.reset(r.pos.x, r.pos.z, r.yaw()); this.flipT = 0; }
+      } else { this.flipT = 0; this.hud.showPrompt(null); }
+      input.consume('interact');
+    } else if (g.player.pos.distanceTo(r.pos) < 4.2) {
+      this.hud.showPrompt(`${t('act_rover')} (F)`, 0, false);
+      this.roverPromptShown = true;
+    } else if (this.roverPromptShown) { this.roverPromptShown = false; this.hud.showPrompt(null); }
+  }
+  private roverPromptShown = false;
 
   // ------------------------------------------------ interação (segurar E)
   private handleInteraction(dt: number) {

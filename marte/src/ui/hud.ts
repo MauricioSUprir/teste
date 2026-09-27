@@ -31,6 +31,7 @@ export class Hud {
   mapPanel = el('div', 'overlay mapp hidden');
   mapCanvas = el('canvas', 'mapc');
   storm = el('div', 'stormtag hidden');
+  roverHud = el('div', 'roverhud hidden');
   onBuildPick?: (b: BuildId) => void;
   onSleep?: () => void;
   onExit?: () => void;
@@ -55,7 +56,7 @@ export class Hud {
     this.prompt.append(this.promptRing, this.promptText);
     this.waypoint.innerHTML = '<div class="wp-dot"></div><div class="wp-dist"></div>';
     this.mapPanel.appendChild(this.mapCanvas);
-    parent.append(this.vitals, this.objective, this.prompt, this.toasts, this.subtitle, this.waypoint, this.inv, this.storm);
+    parent.append(this.vitals, this.objective, this.prompt, this.toasts, this.subtitle, this.waypoint, this.inv, this.storm, this.roverHud);
     document.body.append(this.build, this.habPanel, this.endScreen, this.mapPanel);
     this.relabel();
   }
@@ -86,6 +87,11 @@ export class Hud {
     this.inv.innerHTML = parts.join('');
     this.storm.classList.toggle('hidden', !st.storm);
     if (this.subTimer > 0) { this.subTimer -= dt; if (this.subTimer <= 0) this.subtitle.classList.add('hidden'); }
+  }
+
+  setRover(on: boolean, speed = 0, batt = 0, cap = 1) {
+    this.roverHud.classList.toggle('hidden', !on);
+    if (on) this.roverHud.innerHTML = `<div class="rs"><b>${Math.abs(speed * 3.6).toFixed(0)}</b> km/h</div><div class="rb">${t('rover')} ⚡ ${(batt).toFixed(1)} / ${cap} kWh</div>`;
   }
 
   say(key: Key, seconds?: number) {

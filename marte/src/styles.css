@@ -140,3 +140,9 @@ input[type=range] { accent-color: var(--accent); }
   .subtitle { font-size: 12.5px; bottom: calc(96px + var(--safe-b)); width: 60vw; }
   .inv { font-size: 11px; bottom: auto; top: calc(40px + var(--safe-t)); }
 }
+
+.roverhud { position: absolute; right: calc(24px + var(--safe-r)); bottom: calc(22px + var(--safe-b)); text-align: right; text-shadow: 0 1px 3px #000; }
+.roverhud .rs { font-size: 16px; letter-spacing: .1em; } .roverhud .rs b { font-size: 46px; font-weight: 700; margin-right: 4px; }
+.roverhud .rb { font-size: 13px; color: var(--muted); letter-spacing: .06em; }
+@media (pointer: coarse) { .roverhud { bottom: auto; top: calc(90px + var(--safe-t)); } }
+#tb-car { right: 154px; bottom: 30px; width: 46px; height: 46px; font-size: 18px; bottom: 170px; right: 120px; }

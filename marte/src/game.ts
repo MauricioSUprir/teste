@@ -9,7 +9,8 @@ import { sunTransmit, skyAmbient } from './world/atmosphere';
 import { fogUniforms, installMarsFog } from './render/marsfog';
 import { setCSM, enhanceObject } from './render/materials';
 import { buildCrashSite, carveCrash, makeLanderMaterials } from './world/lander';
-import { Footprints, Dust } from './world/effects';
+import { Footprints, Dust, Tracks } from './world/effects';
+import { Rover } from './world/rover';
 import { Pipeline } from './render/pipeline';
 import { Physics, initRapier } from './core/physics';
 import { Input } from './core/input';
@@ -69,6 +70,10 @@ export class Game {
   onFrame?: (dt: number) => void;
   crash!: ReturnType<typeof buildCrashSite>;
   footprints!: Footprints;
+  rover!: Rover;
+  tracks!: Tracks;
+  driving = false;
+  private driveCamYaw = 0;
   dust!: Dust;
   private sunColI = new THREE.Color();
   private ambC = new THREE.Color();
@@ -187,7 +192,7 @@ export class Game {
     enhanceObject(crash.group);
     this.scene.add(crash.group);
     this.crash = crash;
-    const avoid = [{ x: -8, z: -4, r: 9 }, { x: 0, z: 0, r: 6 }, { x: 15, z: -2, r: 10 }, ...crash.crates.map((c) => ({ x: c.x, z: c.z, r: 2 }))];
+    const avoid = [{ x: -8, z: -4, r: 9 }, { x: 0, z: 0, r: 6 }, { x: 15, z: -2, r: 10 }, { x: 16, z: -16, r: 6 }, ...crash.crates.map((c) => ({ x: c.x, z: c.z, r: 2 }))];
     this.rocks = new Rocks(rockAssets, this.terrain, this.q.rockDensity, avoid);
     this.scene.add(this.rocks.group);
 
@@ -203,6 +208,11 @@ export class Game {
     this.scene.add(this.astro.root, this.astro.headlamp, this.astro.headlamp.target);
     this.footprints = new Footprints(this.terrain);
     this.scene.add(this.footprints.mesh);
+    this.rover = new Rover(this.physics, this.terrain);
+    this.rover.spawn(16, -16, 1.9);
+    this.scene.add(this.rover.root);
+    this.tracks = new Tracks(this.terrain);
+    this.scene.add(this.tracks.mesh);
     this.dust = new Dust(this.q.particles);
     this.scene.add(this.dust.points);
     this.physics.world.step();
@@ -411,9 +421,17 @@ export class Game {
     this.player.yaw -= look.x * k;
     this.player.pitch = THREE.MathUtils.clamp(this.player.pitch - look.y * k, -1.35, 1.35);
     if (this.input.consume('camera')) this.toggleCamera();
-    if (this.input.consume('light')) this.setLamp(!this.lampOn);
+    if (this.input.consume('light')) { if (this.driving) this.rover.setLights(!this.rover.lightsOn); else this.setLamp(!this.lampOn); }
     while (this.acc >= STEP && n < 4) {
-      this.player.step(STEP, this.input);
+      if (this.driving) {
+        const i = this.input;
+        this.rover.step(STEP, i.move.y, i.move.x, i.isHeld('jump'));
+        // o astronauta acompanha o assento do motorista (colisor desativado)
+        const seat = new THREE.Vector3(-0.45, 0.9, 0.6).applyQuaternion(this.rover.quat).add(this.rover.pos);
+        this.player.prevPos.copy(this.player.pos);
+        this.player.pos.set(seat.x, seat.y - 0.9, seat.z);
+        this.player.body.setNextKinematicTranslation({ x: seat.x, y: seat.y + 20, z: seat.z });
+      } else this.player.step(STEP, this.input);
       this.physics.step();
       this.acc -= STEP;
       n++;
@@ -422,6 +440,48 @@ export class Game {
     // relógio marciano
     this.sol += dt / (40 * 60);
     this.onFrame?.(dt);
+  }
+
+  /** câmera de perseguição do rover: o mouse/toque orbita, com retorno suave para trás do veículo */
+  private driveCamera(dt: number, alpha: number) {
+    const rp = this.rover.root.position;
+    const ry = this.rover.yaw();
+    const idle = Math.abs(this.input.move.x) + Math.abs(this.input.move.y) > 0.1;
+    let off = this.player.yaw - (ry + Math.PI);
+    off = Math.atan2(Math.sin(off), Math.cos(off));
+    if (idle && Math.abs(this.rover.speed) > 1) this.player.yaw -= off * Math.min(1, dt * 1.5);
+    const yaw = this.player.yaw;
+    const pitch = Math.min(-0.05, this.player.pitch);
+    const dist = 9.5;
+    const pivot = new THREE.Vector3(rp.x, rp.y + 2.3, rp.z);
+    const dir = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
+    const cam = pivot.clone().addScaledVector(dir, -dist);
+    const gh = this.terrain.heightAt(cam.x, cam.z) + 0.6;
+    if (cam.y < gh) cam.y = gh;
+    this.camera.position.copy(cam);
+    this.camera.lookAt(pivot);
+    void alpha;
+  }
+
+  /** entra/sai do rover (F) */
+  toggleVehicle(): 'enter' | 'exit' | 'far' | 'blocked' {
+    if (this.driving) {
+      const door = this.rover.driverDoor();
+      if (Math.abs(this.rover.speed) > 1.2) return 'blocked';
+      this.driving = false;
+      this.player.collider.setEnabled(true);
+      this.player.teleport(door.x, door.z, 0.4);
+      this.astro.root.visible = true;
+      if (this.rover.lightsOn && this.lampOn === false) { /* mantém faróis ligados */ }
+      return 'exit';
+    }
+    if (this.player.pos.distanceTo(this.rover.pos) > 4.2) return 'far';
+    this.driving = true;
+    this.player.collider.setEnabled(false);
+    this.astro.root.visible = false;
+    this.player.yaw = this.rover.yaw() + Math.PI;
+    this.player.pitch = -0.28;
+    return 'enter';
   }
 
   toggleCamera() {
@@ -460,7 +520,8 @@ export class Game {
       this.camera.position.set(feet.x + Math.sin(a) * r + 2.2, 0, feet.z + Math.cos(a) * r + 1.5);
       this.camera.position.y = Math.max(this.terrain.heightAt(this.camera.position.x, this.camera.position.z) + 1.0, feet.y + 1.55);
       this.camera.lookAt((feet.x + lx) / 2 - 1.2, feet.y + 1.35, (feet.z + lz) / 2 - 1.0);
-    } else this.player.updateCamera(this.camera, feet, dt, this.camCollide);
+    } else if (this.driving) this.driveCamera(dt, alpha);
+    else this.player.updateCamera(this.camera, feet, dt, this.camCollide);
     this.camera.updateMatrixWorld();
 
     this.updateSky(dt);
@@ -481,7 +542,9 @@ export class Game {
     this.sky.placeMoon(this.sky.deimos, new THREE.Vector3(...this.sky0.deimosDir), cp, 0.04);
     fogUniforms.uFogViewToWorld.value.setFromMatrix4(this.camera.matrixWorld);
     fogUniforms.uFogCamY.value = cp.y;
-    this.footprints.update(feet, this.player.yaw, this.player.grounded, sp);
+    this.rover.render(Math.min(1, alpha));
+    this.tracks.update(this.rover);
+    if (!this.driving) this.footprints.update(feet, this.player.yaw, this.player.grounded, sp);
     this.dust.update(this.paused ? 0 : dt, cp, this.sky.uniforms.uSun.value, this.sunColI, this.ambC, 0.6 + this.tau * 0.6);
     this.terrain.update(cp, this.q.lodScale, 2);
     this.rocks.update(cp);

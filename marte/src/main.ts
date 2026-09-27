@@ -258,6 +258,7 @@ bindTouchBtn('tb-cam', 'camera');
 bindTouchBtn('tb-light', 'light');
 bindTouchBtn('tb-build', 'build');
 bindTouchBtn('tb-map', 'map');
+bindTouchBtn('tb-car', 'vehicle');
 $('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
