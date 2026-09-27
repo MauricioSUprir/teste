@@ -10,6 +10,7 @@ import { OBJECTIVES, type ObjWorld } from './sim/objectives';
 import { t, type Key } from './core/i18n';
 import { WORLD } from './world/config';
 import { Voice } from './audio/voice';
+import { sfx } from './audio/sfx';
 
 const HOLD: Record<string, number> = { crate: 1.2, wreck: 2.0, gypsum: 2.6, antenna: 4.0, door: 0, panel_clean: 2.0 };
 
@@ -49,6 +50,7 @@ export class Play {
     this.dead = false;
     this.won = !!st.flags.won;
     this.inHab = false;
+    sfx.door();
     this.hud.closeHab(); this.hud.closeBuild(); this.hud.hideEnd(); this.hud.toggleMap(false);
     this.world.cancelGhost();
     this.world.sync(st);
@@ -109,6 +111,7 @@ export class Play {
       if (g.player.lastImpact > 0) {
         const v = g.player.lastImpact;
         g.player.lastImpact = 0;
+        if (v > 1.2) sfx.land(v);
         if (v > BAL.fallSafe) { st.suit.health = Math.max(0, st.suit.health - (v - BAL.fallSafe) * BAL.fallDamagePerMs); this.hud.toast(`−${Math.round((v - BAL.fallSafe) * BAL.fallDamagePerMs)} ${t('hud_health')}`, 'warn'); if (st.suit.health <= 0) out.events.push('dead'); }
       }
       for (const e of out.events) this.onEvent(e);
@@ -135,20 +138,22 @@ export class Play {
     this.autoSaveT += dt;
     if (this.autoSaveT > 90 && g.player.grounded && !this.dead) { this.autoSaveT = 0; this.persist(false); }
 
+    sfx.update(dt, { tau: st.tau, exertion: Math.min(1, g.player.horizontalSpeed() / 3.4 + (this.holdT > 0 ? 0.3 : 0)), o2Frac: st.suit.o2 / BAL.suitO2Cap, inHelmet: !this.inHab && !g.driving, roverSpeed: g.rover.speed, driving: g.driving, paused: g.paused });
     this.hudT += dt;
     if (this.hudT > 0.1) { this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
   }
 
   speak(key: Key) {
+    sfx.radio();
     this.hud.say(key);
     this.voice.play(key);
   }
 
   private onEvent(e: string) {
     switch (e) {
-      case 'o2_low': this.speak('vo_o2_low'); break;
-      case 'o2_crit': this.speak('vo_o2_crit'); break;
-      case 'batt_low': this.speak('vo_batt_low'); break;
+      case 'o2_low': sfx.alarm(1); this.speak('vo_o2_low'); break;
+      case 'o2_crit': sfx.alarm(2); this.speak('vo_o2_crit'); break;
+      case 'batt_low': sfx.alarm(1); this.speak('vo_batt_low'); break;
       case 'storm_start': this.speak('vo_storm'); break;
       case 'storm_end': this.speak('vo_storm_end'); break;
       case 'dead': this.die(); break;
@@ -217,7 +222,7 @@ export class Play {
       this.st.inv[k as ItemId] += v as number;
       got.push(`+${v}${k === 'gypsum' ? ' kg' : ''} ${t(`it_${k}` as Key)}`);
     }
-    if (got.length) this.hud.toast(got.join(' · '), 'ok');
+    if (got.length) { this.hud.toast(got.join(' · '), 'ok'); sfx.pickup(); }
   }
 
   private activate(l: LootPoint) {
@@ -269,7 +274,7 @@ export class Play {
       this.hud.showPrompt(this.world.ghostValid ? t('build_hint') : t('build_invalid'), 0, false);
       if (input.consume('interact')) {
         const b = this.world.placeGhost(st);
-        if (b) this.hud.toast(`✓ ${t(`b_${b.type}` as Key)}`, 'ok');
+        if (b) { this.hud.toast(`✓ ${t(`b_${b.type}` as Key)}`, 'ok'); sfx.build(); }
         else this.hud.toast(t('build_invalid'), 'warn');
       }
     }
@@ -288,6 +293,7 @@ export class Play {
   private enterHab() {
     const g = this.game;
     this.inHab = true;
+    sfx.door();
     this.st.flags.enteredHab = true;
     g.player.frozen = true;
     g.astro.root.visible = false;
@@ -301,6 +307,7 @@ export class Play {
   private exitHab() {
     const g = this.game;
     this.inHab = false;
+    sfx.door();
     this.hud.closeHab();
     g.player.frozen = false;
     g.astro.root.visible = true;

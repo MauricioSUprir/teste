@@ -4,6 +4,7 @@ import { autoQuality, isMobile, type QualityId } from './core/quality';
 import * as THREE from 'three';
 import { Play } from './play';
 import { marsTemp } from './sim/survival';
+import { sfx } from './audio/sfx';
 import { hasSave, clearSave } from './sim/state';
 import * as __mat from './render/materials';
 (window as any).__mat = __mat;
@@ -101,6 +102,11 @@ function buildLangs() {
 }
 
 function play() {
+  if (play_ && !play_.active) play_.continueGame();
+  sfx.unlock();
+  sfx.suspend(false);
+  sfx.setVolume(prefs.vol);
+  if (play_) play_.voice.volume = prefs.vol;
   $('menu').classList.add('hidden');
   $('pause').classList.add('hidden');
   $('hud').classList.remove('hidden');
@@ -116,6 +122,8 @@ function play() {
 
 function pause() {
   if (!inGame) return;
+  sfx.suspend(true);
+  play_?.voice.stop();
   game.paused = true;
   game.input.enabled = false;
   $('pause').classList.remove('hidden');
@@ -195,7 +203,7 @@ function fillSettings() {
   };
   bindRange('set-fov', 'out-fov', prefs.fov, (v) => `${v}°`, (v) => { prefs.fov = v; game.camera.fov = v; game.camera.updateProjectionMatrix(); });
   bindRange('set-sens', 'out-sens', prefs.sens, (v) => v.toFixed(2), (v) => { prefs.sens = v; game.input.sensitivity = v; });
-  bindRange('set-vol', 'out-vol', prefs.vol, (v) => `${Math.round(v * 100)}%`, (v) => { prefs.vol = v; });
+  bindRange('set-vol', 'out-vol', prefs.vol, (v) => `${Math.round(v * 100)}%`, (v) => { prefs.vol = v; sfx.setVolume(v); if (play_) play_.voice.volume = v; });
   const iy = $<HTMLInputElement>('set-invy');
   iy.checked = prefs.invY;
   iy.onchange = () => { prefs.invY = iy.checked; game.input.invertY = iy.checked; savePrefs(prefs); };
@@ -346,3 +354,6 @@ Object.assign(window, {
     renderOnce: (sim = 0) => game.renderOnce(sim),
   },
 });
+
+// som de clique na interface
+document.addEventListener('click', (e) => { if ((e.target as HTMLElement)?.closest?.('button')) { sfx.unlock(); sfx.click(); } }, true);

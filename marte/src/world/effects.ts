@@ -55,12 +55,12 @@ export class Footprints {
   }
 
   /** chame a cada passo; cria pegada alternando pés quando o personagem anda no chão */
-  update(feet: THREE.Vector3, yaw: number, grounded: boolean, speed: number) {
-    if (!grounded || speed < 0.3) { this.last.copy(feet); return; }
+  update(feet: THREE.Vector3, yaw: number, grounded: boolean, speed: number): boolean {
+    if (!grounded || speed < 0.3) { this.last.copy(feet); return false; }
     this.dist += feet.distanceTo(this.last);
     this.last.copy(feet);
     const stride = speed > 2 ? 1.25 : 0.72;
-    if (this.dist < stride) return;
+    if (this.dist < stride) return false;
     this.dist = 0;
     this.left = !this.left;
     const side = this.left ? -0.13 : 0.13;
@@ -74,6 +74,7 @@ export class Footprints {
     this.count = Math.min(this.count + 1, this.mesh.instanceMatrix.count);
     this.mesh.count = this.count;
     this.mesh.instanceMatrix.needsUpdate = true;
+    return true;
   }
 }
 
@@ -187,5 +188,66 @@ export class Tracks {
       this.mesh.count = this.count;
       this.mesh.instanceMatrix.needsUpdate = true;
     }
+  }
+}
+
+/** Redemoinhos de poeira (dust devils): colunas translúcidas animadas por ruído, ativas ~10h–15h. */
+export class DustDevils {
+  group = new THREE.Group();
+  private devils: { mesh: THREE.Mesh; x: number; z: number; vx: number; vz: number; life: number; max: number; h: number }[] = [];
+  private mat: THREE.ShaderMaterial;
+  uniforms = { uTime: { value: 0 }, uSunCol: { value: new THREE.Color(1, 1, 1) }, uAmb: { value: new THREE.Color(0.2, 0.12, 0.07) }, uFade: { value: 1 } };
+  constructor(private terrain: Terrain) {
+    this.mat = new THREE.ShaderMaterial({
+      uniforms: { ...this.uniforms, uAlpha: { value: 1 } },
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      vertexShader: /* glsl */ `varying vec2 vUv; varying vec3 vN; void main(){ vUv = uv; vN = normalize(normalMatrix*normal); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: /* glsl */ `
+        uniform float uTime; uniform vec3 uSunCol; uniform vec3 uAmb; uniform float uAlpha;
+        varying vec2 vUv; varying vec3 vN;
+        float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
+        float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
+        void main(){
+          float swirl = vUv.x*6.2831 + uTime*2.4 - vUv.y*9.0;
+          float d = n(vec2(swirl*1.3, vUv.y*6.0 - uTime*1.5))*0.6 + n(vec2(swirl*3.1, vUv.y*14.0 - uTime*3.0))*0.4;
+          float rim = pow(1.0 - abs(vN.z), 1.5);
+          float a = smoothstep(0.35, 0.8, d) * (0.35 + 0.65*rim) * smoothstep(0.0, 0.08, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
+          vec3 col = (uAmb*1.2 + uSunCol*0.55) * vec3(0.9,0.62,0.42);
+          gl_FragColor = vec4(col, a * 0.5 * uAlpha);
+        }`,
+    });
+  }
+  update(dt: number, cam: THREE.Vector3, ltst: number, tau: number, sunCol: THREE.Color, amb: THREE.Color) {
+    this.uniforms.uTime.value += dt;
+    (this.mat.uniforms.uSunCol.value as THREE.Color).copy(sunCol);
+    (this.mat.uniforms.uAmb.value as THREE.Color).copy(amb);
+    const active = ltst > 10 && ltst < 15.5 && tau < 2;
+    if (active && this.devils.length < 3 && Math.random() < dt * 0.05) {
+      const a = Math.random() * Math.PI * 2, r = 140 + Math.random() * 300;
+      const h = 60 + Math.random() * 180; // dezenas a centenas de metros de altura
+      const geo = new THREE.CylinderGeometry(h * 0.16, h * 0.035, h, 32, 12, true);
+      geo.translate(0, h / 2, 0);
+      const mat = this.mat.clone();
+      mat.uniforms.uTime = this.uniforms.uTime;
+      mat.uniforms.uSunCol = { value: (this.mat.uniforms.uSunCol.value as THREE.Color) };
+      mat.uniforms.uAmb = { value: (this.mat.uniforms.uAmb.value as THREE.Color) };
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.renderOrder = 4;
+      const ang = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 5;
+      this.devils.push({ mesh, x: cam.x + Math.cos(a) * r, z: cam.z + Math.sin(a) * r, vx: Math.cos(ang) * sp, vz: Math.sin(ang) * sp, life: 0, max: 60 + Math.random() * 120, h });
+      this.group.add(mesh);
+    }
+    for (let i = this.devils.length - 1; i >= 0; i--) {
+      const d = this.devils[i];
+      d.life += dt; d.x += d.vx * dt; d.z += d.vz * dt;
+      const fade = Math.min(1, d.life / 8) * Math.min(1, (d.max - d.life) / 8);
+      (d.mesh.material as THREE.ShaderMaterial).uniforms.uAlpha.value = Math.max(0, fade);
+      d.mesh.position.set(d.x, this.terrain.heightAt(d.x, d.z) - 2, d.z);
+      d.mesh.rotation.y += dt * 1.5;
+      if (d.life > d.max || !this.terrain.inBounds(d.x, d.z, -2000)) { this.group.remove(d.mesh); d.mesh.geometry.dispose(); (d.mesh.material as THREE.Material).dispose(); this.devils.splice(i, 1); }
+    }
+  }
+  spawnNear(cam: THREE.Vector3) { // para testes
+    this.update(0, cam, 12, 0.5, new THREE.Color(1, 1, 1), new THREE.Color(0.2, 0.1, 0.05));
   }
 }
