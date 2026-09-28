@@ -278,8 +278,8 @@ bindTouchBtn('tb-car', 'vehicle');
 $('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-// na vertical o jogo funciona normalmente; se a rotação do iPhone estiver travada, o botão ⟳ gira o jogo
-// por CSS ("modo deitado"): 0 → 90° horário → 90° anti-horário → normal
+// na vertical o jogo funciona normalmente; se a rotação do iPhone estiver travada, o jogo gira sozinho
+// pelo sensor de movimento (abaixo) ou pelo botão ⟳ (0 → 90° horário → 90° anti-horário → normal)
 let rotateHintShown = false;
 let rotPref: 0 | 1 | -1 = 0;
 try { const v = Number(localStorage.getItem('ares.rot')); if (v === 1 || v === -1) rotPref = v; } catch { /* ignore */ }
@@ -300,10 +300,52 @@ function checkOrientation() {
 }
 $('btn-rot').addEventListener('pointerdown', (e) => {
   e.stopPropagation(); e.preventDefault();
-  rotPref = rotPref === 0 ? 1 : rotPref === 1 ? -1 : 0;
-  try { localStorage.setItem('ares.rot', String(rotPref)); } catch { /* ignore */ }
-  onViewportChange();
+  setRot(rotPref === 0 ? 1 : rotPref === 1 ? -1 : 0);
 });
+// ---- automático: o sensor de gravidade diz como o aparelho está sendo segurado, mesmo com a rotação travada.
+// Só age quando o sistema NÃO girou a tela (se a trava estiver desligada, o próprio iOS/Android gira).
+// Convenção de sinal difere entre iOS e Android → calibramos com o aparelho em pé (a posição mais comum).
+let gSign = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? -1 : 1;
+let calibT = 0, calibrated = false;
+let candidate: 0 | 1 | -1 | null = null, candidateSince = 0;
+function setRot(r: 0 | 1 | -1) {
+  if (r === rotPref) return;
+  rotPref = r;
+  try { localStorage.setItem('ares.rot', String(r)); } catch { /* ignore */ }
+  onViewportChange();
+}
+function onMotion(e: DeviceMotionEvent) {
+  const a = e.accelerationIncludingGravity;
+  if (!a || a.x == null || a.y == null) return;
+  const x = a.x, y = a.y, z = a.z ?? 0, now = performance.now();
+  // calibração: em pé na vertical, |y| domina; o sinal visto define a convenção deste aparelho
+  if (!calibrated && Math.abs(y) > 8 && Math.abs(x) < 2.5) {
+    if (!calibT) calibT = now;
+    else if (now - calibT > 500) { gSign = Math.sign(y) || gSign; calibrated = true; }
+  } else if (!calibrated) calibT = 0;
+  if (Math.abs(z) > 8.5) { candidate = null; return; } // deitado na mesa: mantém como está
+  let want: 0 | 1 | -1 | null = null;
+  if (Math.abs(x) > 6 && Math.abs(x) > Math.abs(y) * 1.6) want = x * gSign > 0 ? 1 : -1; // topo à esquerda → gira 90° horário
+  else if (y * gSign > 6 && Math.abs(y) > Math.abs(x) * 1.6) want = 0;
+  if (want === null) { candidate = null; return; }
+  if (!matchMedia('(orientation: portrait)').matches) { candidate = null; return; } // o sistema já girou
+  if (want !== candidate) { candidate = want; candidateSince = now; return; }
+  // espera um pouco: dá tempo do sistema girar sozinho (trava desligada) e evita girar em movimentos rápidos
+  if (now - candidateSince > 700) setRot(want);
+}
+let motionAsked = false;
+function enableMotion() {
+  if (motionAsked || !isMobile) return;
+  motionAsked = true;
+  const DM = window.DeviceMotionEvent as unknown as { requestPermission?: () => Promise<string> } | undefined;
+  if (!DM) return;
+  const start = () => addEventListener('devicemotion', onMotion);
+  if (typeof DM.requestPermission === 'function') DM.requestPermission().then((r) => { if (r === 'granted') start(); }).catch(() => { motionAsked = false; });
+  else start();
+}
+// iOS exige um toque do usuário para liberar o sensor
+addEventListener('pointerdown', enableMotion, { capture: true });
+addEventListener('touchend', enableMotion, { capture: true });
 checkOrientation();
 // iOS (principalmente como app web) às vezes não dispara/atrasa o resize ao girar: verificamos por vários caminhos
 let lastW = innerWidth, lastH = innerHeight;

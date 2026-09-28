@@ -39,7 +39,7 @@ export const fr: Record<keyof typeof pt, string> = {
   off: 'Désactivé',
   fps: 'IPS',
   click_to_play: 'Cliquez pour contrôler la caméra',
-  rotate_device: 'Rotation verrouillée ? Touchez ⟳ pour jouer en paysage',
+  rotate_device: 'Astuce : tournez le téléphone pour une vue plus large',
   ctl_move: 'Se déplacer',
   ctl_look: 'Regarder',
   ctl_run: 'Courir (galop)',
