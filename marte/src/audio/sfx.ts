@@ -124,6 +124,7 @@ export class Sfx {
   pickup() { this.blip(880, 0.08, 'sine', 0.06); this.blip(1320, 0.12, 'sine', 0.05, 0.07); }
   build() { this.thud(0.3, 60); this.blip(520, 0.2, 'triangle', 0.05, 0.05); this.blip(780, 0.25, 'triangle', 0.05, 0.18); }
   click() { this.blip(1400, 0.04, 'square', 0.02); }
+  objective() { this.blip(660, 0.18, 'sine', 0.05); this.blip(880, 0.18, 'sine', 0.05, 0.12); this.blip(1320, 0.35, 'sine', 0.045, 0.24); }
   alarm(level: 1 | 2) { for (let i = 0; i < (level === 2 ? 3 : 2); i++) this.blip(level === 2 ? 1250 : 880, 0.14, 'square', 0.035, i * 0.22); }
   radio() { this.blip(2200, 0.05, 'sine', 0.025); this.blip(1600, 0.06, 'sine', 0.02, 0.06); }
   door() { this.thud(0.25, 50); const ctx = this.ctx; if (!ctx) return; const s = ctx.createBufferSource(); s.buffer = this.noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500; const g = ctx.createGain(); const t = ctx.currentTime; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.06, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.4); s.connect(f).connect(g).connect(this.master); s.start(t); s.stop(t + 1.5); }

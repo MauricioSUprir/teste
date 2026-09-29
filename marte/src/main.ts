@@ -257,7 +257,10 @@ setInterval(() => {
   if (play_?.world.ghost) { play_.world.cancelGhost(); return; }
   if (!game.paused && !play_?.inHab) pause();
 }, 50);
-document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); if (play_?.active) play_.persist(false); } });
+// iOS pode descartar o contexto WebGL em segundo plano: pausa, salva e recarrega quando ele voltar
+game.renderer.domElement.addEventListener('webglcontextlost', () => { pause(); if (play_?.active) play_.persist(false); });
+game.renderer.domElement.addEventListener('webglcontextrestored', () => location.reload());
 
 // botões de toque
 function bindTouchBtn(id: string, action: Parameters<typeof game.input.fire>[0]) {
@@ -346,6 +349,7 @@ function enableMotion() {
 // iOS exige um toque do usuário para liberar o sensor
 addEventListener('pointerdown', enableMotion, { capture: true });
 addEventListener('touchend', enableMotion, { capture: true });
+addEventListener('click', enableMotion, { capture: true });
 checkOrientation();
 // iOS (principalmente como app web) às vezes não dispara/atrasa o resize ao girar: verificamos por vários caminhos
 let lastW = innerWidth, lastH = innerHeight;

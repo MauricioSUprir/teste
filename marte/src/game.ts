@@ -320,6 +320,7 @@ export class Game {
     const s = computeSky(this.sol);
     this.sky0 = s;
     const sun = new THREE.Vector3(...s.sunDir);
+    this.astro?.updateLamp(THREE.MathUtils.smoothstep(sun.y, -0.05, 0.15));
     const U = this.sky.uniforms;
     U.uSun.value.copy(sun);
     U.uTau.value = this.tau;
@@ -348,7 +349,7 @@ export class Game {
     fogUniforms.uFogSun.value.copy(sun);
     fogUniforms.uFogTau.value = this.tau;
     fogUniforms.uFogSunPower.value = power * 1.25;
-    fogUniforms.uFogDensity.value = 0.00036 * this.tau + THREE.MathUtils.smoothstep(this.tau, 1.2, 5) * 0.004;
+    fogUniforms.uFogDensity.value = 0.0008 * this.tau + THREE.MathUtils.smoothstep(this.tau, 1.2, 5) * 0.004;
     // exposição automática (estimativa analítica da luminância média da cena)
     const amb = skyAmbient(sun.y, this.tau, power * 1.25, this.ambC);
     const ambL = amb.r * 0.2126 + amb.g * 0.7152 + amb.b * 0.0722;
@@ -417,17 +418,20 @@ export class Game {
     this.lastT += 16.7;
   }
 
+  private pauseSkip = 0;
   private frame(now: number) {
     const rawDt = (now - this.lastT) / 1000;
     this.lastT = now;
     const dt = Math.min(rawDt, 0.1); // aba escondida / travadas não explodem a simulação
     const t0 = performance.now();
     if (!this.paused) this.tick(dt);
-    this.render(dt);
+    // pausado (fora do menu): desenha a ~15 fps para poupar bateria e aquecimento
+    this.pauseSkip = this.paused && !this.menuMode ? (this.pauseSkip + 1) % 4 : 0;
+    if (this.pauseSkip === 0) this.render(dt);
     this.frameMs = THREE.MathUtils.lerp(this.frameMs, rawDt * 1000, 0.1);
     this.fpsAcc += rawDt; this.fpsN++;
     if (this.fpsAcc > 0.5) { this.fps = this.fpsN / this.fpsAcc; this.fpsAcc = 0; this.fpsN = 0; }
-    if (this.opts.resScale === 'dynamic' && this.dyn.update(rawDt * 1000, dt)) this.resize();
+    if (this.opts.resScale === 'dynamic' && !this.paused && this.dyn.update(rawDt * 1000, dt)) this.resize();
     void t0;
   }
 
@@ -455,6 +459,7 @@ export class Game {
       } else if (this.input.enabled) { this.rover.step(STEP, 0, 0, true, false); this.player.step(STEP, this.input); }
       else { this.rover.step(STEP, 0, 0, true, false); this.player.frozen = true; this.player.step(STEP, this.input); this.player.frozen = false; }
       this.physics.step();
+      this.rover.postStep();
       this.acc -= STEP;
       n++;
     }
@@ -464,6 +469,9 @@ export class Game {
     this.onFrame?.(dt);
   }
 
+  private camPivot = new THREE.Vector3();
+  private camPivotV = new THREE.Vector3();
+  private camPivotInit = false;
   /** câmera de perseguição do rover: o mouse/toque orbita, com retorno suave para trás do veículo */
   private driveCamera(dt: number, alpha: number) {
     const rp = this.rover.root.position;
@@ -475,7 +483,15 @@ export class Game {
     const yaw = this.player.yaw;
     const pitch = Math.min(-0.05, this.player.pitch);
     const dist = 9.5;
-    const pivot = new THREE.Vector3(rp.x, rp.y + 2.3, rp.z);
+    // pivô com mola criticamente amortecida: a suspensão balança o rover, não a câmera
+    const target = new THREE.Vector3(rp.x, rp.y + 2.3, rp.z);
+    if (!this.camPivotInit || this.camPivot.distanceTo(target) > 8) { this.camPivot.copy(target); this.camPivotV.set(0, 0, 0); this.camPivotInit = true; }
+    const h = Math.min(dt, 1 / 30);
+    for (const [ax, w] of [['x', 9], ['y', 4.5], ['z', 9]] as const) {
+      const a = w * w * (target[ax] - this.camPivot[ax]) - 2 * w * this.camPivotV[ax];
+      this.camPivotV[ax] += a * h; this.camPivot[ax] += this.camPivotV[ax] * h;
+    }
+    const pivot = this.camPivot;
     const dir = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
     const cam = pivot.clone().addScaledVector(dir, -dist);
     const gh = this.terrain.heightAt(cam.x, cam.z) + 0.6;
@@ -508,6 +524,7 @@ export class Game {
     }
     if (this.player.pos.distanceTo(this.rover.pos) > 4.2) return 'far';
     this.driving = true;
+    this.camPivotInit = false;
     this.input.clearPressed();
     this.player.collider.setEnabled(false);
     this.astro.root.visible = false;

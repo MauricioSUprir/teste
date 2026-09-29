@@ -136,13 +136,11 @@ export class Rover {
       spot.position.set(s * 0.72, 0.62, 2.7);
       spot.target.position.set(s * 0.72, -0.8, 14);
       chassis.add(spot, spot.target);
-      spot.visible = false;
       this.lights.push(spot);
     }
     // luz de posição/cortesia no teto (silhueta do veículo à noite)
     const courtesy = new THREE.PointLight(0xffd9b0, 0, 9, 1.6);
     courtesy.position.set(0, 2.6, -0.3);
-    courtesy.visible = false;
     chassis.add(courtesy);
     this.courtesy = courtesy;
     // teto solar, antena, câmeras, para-lamas, faixa laranja
@@ -210,7 +208,7 @@ export class Rover {
     const R = this.phys.R, W = this.phys.world;
     const y = this.terrain.heightAt(x, z) + 1.4;
     const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
-    this.body = W.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(x, y, z).setRotation(q).setLinearDamping(0.05).setAngularDamping(0.6).setCcdEnabled(true).setCanSleep(true));
+    this.body = W.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(x, y, z).setRotation(q).setLinearDamping(0.02).setAngularDamping(0.15).setCcdEnabled(true).setCanSleep(true));
     const h = ROVER.halfExt;
     // massa com centro baixo: colisor principal leve + lastro inferior
     this.collider = W.createCollider(R.ColliderDesc.cuboid(h.x, h.y, h.z).setTranslation(0, 0.75, 0).setDensity(ROVER.mass * 0.35 / (8 * h.x * h.y * h.z)).setFriction(0.5), this.body);
@@ -221,13 +219,14 @@ export class Rover {
       this.vc.addWheel({ x: wx, y: 0.45, z: wz }, { x: 0, y: -1, z: 0 }, { x: -1, y: 0, z: 0 }, ROVER.susRest, ROVER.wheelR);
     }
     for (let i = 0; i < 6; i++) {
-      this.vc.setWheelSuspensionStiffness(i, 26);
-      this.vc.setWheelSuspensionCompression(i, 3.2);
-      this.vc.setWheelSuspensionRelaxation(i, 3.8);
+      // suspensão mais macia (~1,5 Hz, balanço visível na baixa gravidade) e atrito de regolito (μ≈0,9)
+      this.vc.setWheelSuspensionStiffness(i, 16);
+      this.vc.setWheelSuspensionCompression(i, 2.4);
+      this.vc.setWheelSuspensionRelaxation(i, 3.4);
       this.vc.setWheelMaxSuspensionTravel(i, 0.35);
       this.vc.setWheelMaxSuspensionForce(i, 12000);
-      this.vc.setWheelFrictionSlip(i, 1.35);
-      this.vc.setWheelSideFrictionStiffness(i, 1.0);
+      this.vc.setWheelFrictionSlip(i, 0.95);
+      this.vc.setWheelSideFrictionStiffness(i, 0.85);
     }
     this.vc.indexUpAxis = 1;
     this.vc.setIndexForwardAxis = 2;
@@ -272,6 +271,10 @@ export class Rover {
     // tração + resistência ao rolamento (Crr≈0,12 em regolito) + base de 0,4 kW [compromisso]
     const rr = 0.12 * ROVER.mass * 3.721;
     if (occupied) this.battery = Math.max(0, this.battery - ((Math.abs(force) + (Math.abs(this.speed) > 0.2 ? rr : 0)) * Math.abs(this.speed) / 0.85) * dt / 3.6e6 - 0.4 * dt / 3600);
+  }
+
+  /** depois do passo do mundo físico: pose atual (sem atraso de 1 tick) + rede de segurança */
+  postStep() {
     this.syncFromBody();
     // rede de segurança contra atravessar o chão / NaN
     const hg = this.terrain.heightAt(this.pos.x, this.pos.z);
@@ -301,8 +304,8 @@ export class Rover {
 
   setLights(on: boolean) {
     this.lightsOn = on;
-    for (const l of this.lights) { l.intensity = on ? 220 : 0; l.visible = on; }
-    this.courtesy.visible = on; this.courtesy.intensity = on ? 6 : 0;
+    for (const l of this.lights) l.intensity = on ? 220 : 0; // sempre visíveis: evita recompilar shaders
+    this.courtesy.intensity = on ? 6 : 0;
     this.ledMat.emissiveIntensity = on ? 6 : 3;
   }
 

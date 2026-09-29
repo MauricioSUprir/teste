@@ -36,7 +36,7 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
   const k = DIFF[st.difficulty];
   const T = marsTemp(c.ltst, st.tau);
   const dtSol = dtH / 24.66;
-  const prev = { o2: st.suit.o2 / BAL.suitO2Cap, batt: st.suit.batt / BAL.suitBattCap, health: st.suit.health };
+  const prev = { o2: st.suit.o2 / BAL.suitO2Cap, batt: st.suit.batt / BAL.suitBattCap, health: st.suit.health, ho2: st.hab.o2, hw: st.hab.water, hf: st.hab.food, hb: st.hab.batt };
 
   // ---------------- tempestades
   if (!st.storm && st.sol >= st.nextStormSol) {
@@ -132,6 +132,14 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
     if (prev.batt > 0 && batt <= 0) ev.push('batt_empty');
   }
   if (prev.health > 30 && st.suit.health <= 30) ev.push('health_low');
+  // avisos da base (reserva para menos de ~1,5 sol)
+  if (hab) {
+    const cap = st.hab.battCap || BAL.habBattCap;
+    if (prev.ho2 > BAL.habO2PerSol * 1.5 && st.hab.o2 <= BAL.habO2PerSol * 1.5) ev.push('hab_o2_low');
+    if (prev.hw > BAL.habWaterPerSol * 1.5 && st.hab.water <= BAL.habWaterPerSol * 1.5) ev.push('hab_water_low');
+    if (prev.hf > 1.5 && st.hab.food <= 1.5) ev.push('hab_food_low');
+    if (prev.hb > cap * 0.15 && st.hab.batt <= cap * 0.15) ev.push('hab_power_low');
+  }
   if (prev.health > 0 && st.suit.health <= 0) ev.push('dead');
   if (st.antennaFixedSol !== null && st.sol >= st.antennaFixedSol + BAL.rescueSols && !st.flags.won) { st.flags.won = true; ev.push('win'); }
   return { events: ev, suitW, habGenW: gen, habLoadW: load, outsideT: T };

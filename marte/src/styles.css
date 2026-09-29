@@ -174,14 +174,6 @@ body.portrait .menu-inner { width: 88vw; }
 body.portrait .logo { font-size: 64px; }
 body.portrait .menu-buttons { width: 100%; }
 
-/* ---------- celular na horizontal: barras vitais no alto (o joystick ocupa o canto inferior esquerdo) ---------- */
-body.touch:not(.portrait) .vitals { top: calc(112px + var(--safe-t)); bottom: auto; width: 190px; gap: 3px; }
-body.touch:not(.portrait) .vrow { grid-template-columns: 58px 1fr 58px; font-size: 10px; }
-body.touch:not(.portrait) .objective { top: calc(80px + var(--safe-t)); font-size: 13px; }
-body.touch:not(.portrait) #hud-tl .env { font-size: 11px; }
-body.touch:not(.portrait) #hud-tl .time { font-size: 18px; }
-body.touch:not(.portrait) .subtitle { bottom: calc(14px + var(--safe-b)); width: 46vw; font-size: 12px; }
-
 /* ---------- botão ⟳ (jogar deitado com a rotação do iPhone travada) ---------- */
 #btn-rot { position: fixed; z-index: 60; top: calc(8px + var(--safe-t)); right: calc(10px + var(--safe-r)); width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: rgba(12,6,3,.6); color: #fff3e8; font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; padding: 0; touch-action: none; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 #btn-rot.hidden { display: none; }
@@ -200,13 +192,76 @@ body.forceland .prompt { max-width: calc(var(--gw) * .8); }
 body.forceland .panel-inner { width: min(520px, calc(var(--gw) * .92)); max-height: calc(var(--gh) * .88); }
 body.forceland .overlay .panel-inner.wide { width: min(880px, calc(var(--gw) * .94)); }
 body.forceland .mapp .mapc { width: min(calc(var(--gh) * .86), calc(var(--gw) * .92)); }
-body.forceland .logo { font-size: 64px; }
-body.forceland .tag { font-size: 16px; }
 body.forceland #menu { padding-left: calc(var(--gw) * .06 + var(--safe-l)); }
 body.forceland .menu-buttons { width: min(340px, calc(var(--gw) * .8)); }
 body.forceland .load-inner { width: min(560px, calc(var(--gw) * .86)); }
+
+/* ---------- telas baixas (celular deitado, real ou forçado): tudo cabe em ~390 px de altura ---------- */
+@media (max-height: 500px) {
+  body:not(.portrait) .logo { font-size: 46px; }
+  body:not(.portrait) .tag { font-size: 13px; margin-bottom: 12px; }
+  body:not(.portrait) .menu-buttons { gap: 7px; }
+  body:not(.portrait) .menu-buttons button { padding-top: 9px; padding-bottom: 9px; font-size: 16px; }
+  body:not(.portrait) .credits { display: none; }
+  body:not(.portrait) .langs { margin-top: 10px; }
+  body:not(.portrait) .diff button { padding: 7px; }
+  body:not(.portrait) .panel-inner { padding: 12px 16px; gap: 7px; max-height: calc(100% - var(--safe-t) - var(--safe-b) - 12px); }
+  body:not(.portrait) .panel-inner h2 { font-size: 20px; margin: 0; }
+  body:not(.portrait) .panel-inner label { gap: 8px; font-size: 13px; }
+  body:not(.portrait) .panel-inner select { padding: 5px 8px; }
+  body:not(.portrait) .panel-inner > button { padding-top: 9px; padding-bottom: 9px; font-size: 16px; }
+  body:not(.portrait) .keys td, body:not(.portrait) .habt td { padding: 3px 4px; font-size: 13px; }
+  body:not(.portrait) .bgrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 7px; }
+  body:not(.portrait) .bcard { padding: 9px 11px; gap: 3px; }
+  body:not(.portrait) .bname { font-size: 16px; }
+  body:not(.portrait) .bdesc { font-size: 11.5px; }
+  body:not(.portrait) .pactions { position: sticky; bottom: -12px; background: rgba(28,14,9,.97); padding: 6px 0; }
+  body:not(.portrait) .closeb { position: sticky; bottom: -12px; margin-top: 4px; }
+  body.touch:not(.portrait) .vitals { top: calc(112px + var(--safe-t)); bottom: auto; width: 200px; gap: 3px; }
+  body.touch:not(.portrait) .vrow { grid-template-columns: 62px 1fr 58px; font-size: 11.5px; }
+  body.touch:not(.portrait) .objective { top: calc(80px + var(--safe-t)); font-size: 13.5px; }
+  body.touch:not(.portrait) #hud-tl .env { font-size: 12px; }
+  body.touch:not(.portrait) #hud-tl .time { font-size: 18px; }
+  body.touch:not(.portrait) .subtitle { bottom: calc(14px + var(--safe-b)); width: 46%; font-size: 12.5px; }
+  body.touch:not(.portrait) .inv { left: calc(16px + var(--safe-l)); right: auto; top: calc(196px + var(--safe-t)); bottom: auto; transform: none; justify-content: flex-start; max-width: 220px; gap: 4px 10px; font-size: 12px; }
+  body.touch:not(.portrait) .roverhud { top: calc(58px + var(--safe-t)); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); text-align: center; }
+  body.touch:not(.portrait) .roverhud .rs b { font-size: 30px; }
+  body.touch:not(.portrait) .toasts { top: calc(80px + var(--safe-t)); max-width: 42%; }
+}
 body.forceland .logo { font-size: 46px; }
-body.forceland .tag { font-size: 13px; margin-bottom: 14px; }
+body.forceland .tag { font-size: 13px; margin-bottom: 12px; }
 body.forceland .menu-buttons { gap: 7px; }
 body.forceland .menu-buttons button { padding-top: 9px; padding-bottom: 9px; font-size: 16px; }
 body.forceland .credits { display: none; }
+body.forceland .langs { margin-top: 10px; }
+body.forceland .diff button { padding: 7px; }
+body.forceland .panel-inner { padding: 12px 16px; gap: 7px; max-height: calc(100% - var(--safe-t) - var(--safe-b) - 12px); }
+body.forceland .panel-inner h2 { font-size: 20px; margin: 0; }
+body.forceland .panel-inner label { gap: 8px; font-size: 13px; }
+body.forceland .panel-inner select { padding: 5px 8px; }
+body.forceland .panel-inner > button { padding-top: 9px; padding-bottom: 9px; font-size: 16px; }
+body.forceland .keys td, body.forceland .habt td { padding: 3px 4px; font-size: 13px; }
+body.forceland .bgrid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 7px; }
+body.forceland .bcard { padding: 9px 11px; gap: 3px; }
+body.forceland .bname { font-size: 16px; }
+body.forceland .bdesc { font-size: 11.5px; }
+body.forceland .pactions { position: sticky; bottom: -12px; background: rgba(28,14,9,.97); padding: 6px 0; }
+body.forceland .closeb { position: sticky; bottom: -12px; margin-top: 4px; }
+body.forceland.touch .vitals { top: calc(112px + var(--safe-t)); bottom: auto; width: 200px; gap: 3px; }
+body.forceland.touch .vrow { grid-template-columns: 62px 1fr 58px; font-size: 11.5px; }
+body.forceland.touch .objective { top: calc(80px + var(--safe-t)); font-size: 13.5px; }
+body.forceland.touch #hud-tl .env { font-size: 12px; }
+body.forceland.touch #hud-tl .time { font-size: 18px; }
+body.forceland.touch .subtitle { bottom: calc(14px + var(--safe-b)); width: 46%; font-size: 12.5px; }
+body.forceland.touch .inv { left: calc(16px + var(--safe-l)); right: auto; top: calc(196px + var(--safe-t)); bottom: auto; transform: none; justify-content: flex-start; max-width: 220px; gap: 4px 10px; font-size: 12px; }
+body.forceland.touch .roverhud { top: calc(58px + var(--safe-t)); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); text-align: center; }
+body.forceland.touch .roverhud .rs b { font-size: 30px; }
+body.forceland.touch .toasts { top: calc(80px + var(--safe-t)); max-width: 42%; }
+/* painéis respeitam o entalhe (notch) */
+.overlay, .screen.panel { padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l); box-sizing: border-box; }
+.pactions { display: flex; gap: 8px; }
+.pactions > button { flex: 1; appearance: none; border: 1px solid var(--line); background: var(--glass); color: var(--ink); padding: 11px 16px; border-radius: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 17px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.pactions > button.primary { background: linear-gradient(90deg, rgba(255,138,61,0.85), rgba(255,138,61,0.55)); border-color: var(--accent); color: #1a0b04; }
+.stormtag { top: calc(40px + var(--safe-t)); z-index: 2; }
+.tb.gone { display: none; }
+.endstats { color: var(--muted); font-size: 14px; margin: 0; }

@@ -142,8 +142,10 @@ export class Input {
     } else if (e.pointerId === this.lookId) {
       const dx = p.x - this.lookLast.x, dy = p.y - this.lookLast.y;
       this.lookLast = p;
-      this.look.x += dx * 1.6 * this.sensitivity;
-      this.look.y += dy * 1.6 * this.sensitivity * (this.invertY ? -1 : 1);
+      // arrasto rápido gira mais (aceleração): virar 180° cabe num só gesto; movimentos lentos continuam precisos
+      const gain = 2.4 * (1 + Math.min(1.5, Math.hypot(dx, dy) * 0.02));
+      this.look.x += dx * gain * this.sensitivity;
+      this.look.y += dy * gain * 0.8 * this.sensitivity * (this.invertY ? -1 : 1);
     }
   }
   private onPointerUp(e: PointerEvent) {

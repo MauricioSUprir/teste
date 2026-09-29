@@ -32,7 +32,7 @@ export const BAL = {
   panelAreaM2: 5,
   panelEff: 0.22,
   dustPerSol: 0.002,
-  dustStormPerSol: 0.01,
+  dustStormPerSol: 0.06, // uma tempestade tira ~40% dos painéis → limpar importa
   batteryKWh: 10,
   moxieKgPerSol: 1.0,
   moxieW: 150, // [compromisso de jogo: MOXIE-XL ~4× a produção real por watt]
@@ -45,7 +45,7 @@ export const BAL = {
   // coleta
   gypsumPerHarvest: 5, // kg por coleta
   buildRadius: 40, // m do habitat
-  rescueSols: 4,
+  rescueSols: 3, // igual à fala do rádio ("três sóis")
 };
 
 export type ItemId = 'scrap' | 'electronics' | 'gypsum' | 'culture' | 'kit_habitat' | 'kit_panel' | 'ration';

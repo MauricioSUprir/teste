@@ -37,6 +37,9 @@ export function autoQuality(gl: WebGL2RenderingContext | null): QualityId {
   const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
   const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
   const cores = navigator.hardwareConcurrency || 4;
+  // iPhone/iPad (Safari não informa memória e limita núcleos): GPUs Apple aguentam "média";
+  // a resolução dinâmica segura aparelhos mais antigos
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))) return 'medium';
   if (isMobile) return mem >= 6 && cores >= 8 ? 'medium' : 'low';
   let renderer = '';
   const ext = gl.getExtension('WEBGL_debug_renderer_info');
@@ -56,8 +59,13 @@ export class DynamicResolution {
   enabled = true;
   constructor(public targetMs = 16.7, public min = 0.5) {}
   /** retorna true se a escala mudou */
+  private minWin: number[] = [];
   update(frameMs: number, dt: number): boolean {
     if (!this.enabled) return false;
+    // alvo segue a taxa real da tela (iOS em Economia de Energia limita a 30 Hz): sem isso a escala trava no mínimo
+    this.minWin.push(frameMs); if (this.minWin.length > 90) this.minWin.shift();
+    const minMs = Math.min(...this.minWin);
+    this.targetMs = minMs > 25 ? 33.4 : 16.7;
     this.samples.push(frameMs);
     if (this.samples.length > 30) this.samples.shift();
     if (this.samples.length < 30) return false;

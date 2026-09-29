@@ -129,7 +129,7 @@ export class Hud {
   // ---------- construção
   openBuild(st: GameState, canAfford: (b: BuildId) => boolean) {
     const hasHab = st.buildings.some((b) => b.type === 'habitat');
-    this.build.innerHTML = `<div class="panel-inner wide"><h2>${t('build_menu')}</h2><div class="bgrid"></div><p class="bhint">${t('build_hint')}</p><button class="closeb" id="build-close">${t('close')}</button></div>`;
+    this.build.innerHTML = `<div class="panel-inner wide"><h2>${t('build_menu')}</h2><div class="bgrid"></div><p class="bhint">${t(matchMedia('(pointer: coarse)').matches ? 'build_hint_touch' : 'build_hint')}</p><button class="closeb" id="build-close">${t('close')}</button></div>`;
     (this.build.querySelector('#build-close') as HTMLElement).onclick = () => this.onBuildClose?.();
     const grid = this.build.querySelector('.bgrid')!;
     for (const b of BUILD_ORDER) {
@@ -161,7 +161,7 @@ export class Hud {
     ];
     this.habPanel.innerHTML = `<div class="panel-inner"><h2>${t('hab_title')} · ${t('sol')} ${Math.floor(st.sol)}</h2>
       <table class="habt">${rows.map(([k, v]) => `<tr><td>${t(k)}</td><td>${v}</td></tr>`).join('')}</table>
-      <button class="primary" id="hab-sleep">${t('hab_sleep')}</button><button id="hab-exit">${t('hab_exit')}</button></div>`;
+      <div class="pactions"><button class="primary" id="hab-sleep">${t('hab_sleep')}</button><button id="hab-exit">${t('hab_exit')}</button></div></div>`;
     (this.habPanel.querySelector('#hab-sleep') as HTMLElement).onclick = () => this.onSleep?.();
     (this.habPanel.querySelector('#hab-exit') as HTMLElement).onclick = () => this.onExit?.();
     this.habPanel.classList.remove('hidden');
@@ -170,9 +170,13 @@ export class Hud {
   get habOpen() { return !this.habPanel.classList.contains('hidden'); }
 
   // ---------- fim
-  showEnd(win: boolean, sol: number) {
-    this.endScreen.innerHTML = `<div class="panel-inner"><h2>${t(win ? 'win_title' : 'dead_title')}</h2><p>${t(win ? 'win_sub' : 'dead_sub', { sol })}</p>
-      ${win ? '' : `<button class="primary" id="end-respawn">${t('respawn')}</button>`}<button id="end-menu">${t('quit_menu')}</button></div>`;
+  onFreeplay?: () => void;
+  showEnd(win: boolean, sol: number, stats?: { distance: number; built: number; deaths: number }) {
+    const statLine = win && stats ? `<p class="endstats">${t('end_stats', { km: (stats.distance / 1000).toFixed(1), built: stats.built, deaths: stats.deaths })}</p>` : '';
+    this.endScreen.innerHTML = `<div class="panel-inner"><h2>${t(win ? 'win_title' : 'dead_title')}</h2><p>${t(win ? 'win_sub' : 'dead_sub', { sol })}</p>${statLine}
+      <div class="pactions">${win ? `<button class="primary" id="end-free">${t('keep_exploring')}</button>` : `<button class="primary" id="end-respawn">${t('respawn')}</button>`}<button id="end-menu">${t('quit_menu')}</button></div></div>`;
+    const f = this.endScreen.querySelector('#end-free') as HTMLElement | null;
+    if (f) f.onclick = () => this.onFreeplay?.();
     this.endScreen.classList.toggle('win', win);
     const r = this.endScreen.querySelector('#end-respawn') as HTMLElement | null;
     if (r) r.onclick = () => this.onRespawn?.();

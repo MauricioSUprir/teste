@@ -24,6 +24,8 @@ export class WorldSim {
   ghost: THREE.Object3D | null = null;
   ghostType: BuildId | null = null;
   ghostValid = false;
+  /** motivo (chave de texto) quando o local é inválido */
+  ghostReason = '';
   antennaPos = new THREE.Vector3();
 
   constructor(lm: LanderMats, private terrain: Terrain, private phys: Physics, crates: THREE.Vector3[], landerPos: THREE.Vector3) {
@@ -210,24 +212,28 @@ export class WorldSim {
   updateGhost(st: GameState, player: THREE.Vector3, yaw: number) {
     if (!this.ghost || !this.ghostType) return;
     const t = this.ghostType;
-    const dist = t === 'habitat' ? 8 : 3.5;
+    const dist = t === 'habitat' ? 6 : 3.5;
     const x = player.x - Math.sin(yaw) * dist, z = player.z - Math.cos(yaw) * dist;
     this.ghost.position.set(x, this.terrain.heightAt(x, z), z);
     this.ghost.rotation.y = yaw + Math.PI;
-    // validade: inclinação, sobreposição, raio do habitat, dentro do mapa
+    // validade: inclinação, sobreposição, raio do habitat, dentro do mapa (guarda o motivo para o jogador)
     const r = FOOTPRINT[t];
-    let ok = this.terrain.inBounds(x, z, 30);
+    let reason = '';
+    const fail = (k: string) => { if (!reason) reason = k; };
+    if (!this.canAfford(st, t)) fail('build_bad_cost');
+    if (t === 'habitat' && this.habitat(st)) fail('build_bad_hab');
+    if (!this.terrain.inBounds(x, z, 30)) fail('build_bad_far');
+    const hab = this.habitat(st);
+    if (t !== 'habitat' && (!hab || Math.hypot(hab.x - x, hab.z - z) > BAL.buildRadius)) fail('build_bad_far');
+    for (const b of st.buildings) if (Math.hypot(b.x - x, b.z - z) < FOOTPRINT[b.type] + r + 0.6) fail('build_bad_overlap');
+    if (Math.hypot(x + 8, z + 4) < 7 + r) fail('build_bad_overlap'); // módulo de pouso
     let maxSlope = 0;
     for (const [ox, oz] of [[r, 0], [-r, 0], [0, r], [0, -r], [0, 0]]) maxSlope = Math.max(maxSlope, 1 - this.terrain.normalAt(x + ox * 0.7, z + oz * 0.7).y);
     const hmin = Math.min(...[[r, 0], [-r, 0], [0, r], [0, -r]].map(([ox, oz]) => this.terrain.heightAt(x + ox, z + oz)));
     const hmax = Math.max(...[[r, 0], [-r, 0], [0, r], [0, -r]].map(([ox, oz]) => this.terrain.heightAt(x + ox, z + oz)));
-    if (maxSlope > 0.05 || hmax - hmin > (t === 'habitat' ? 0.9 : 0.6)) ok = false;
-    for (const b of st.buildings) if (Math.hypot(b.x - x, b.z - z) < FOOTPRINT[b.type] + r + 0.6) ok = false;
-    if (Math.hypot(x + 8, z + 4) < 7 + r) ok = false; // módulo de pouso
-    const hab = this.habitat(st);
-    if (t !== 'habitat' && (!hab || Math.hypot(hab.x - x, hab.z - z) > BAL.buildRadius)) ok = false;
-    if (t === 'habitat' && hab) ok = false;
-    if (!this.canAfford(st, t)) ok = false;
+    if (maxSlope > (t === 'habitat' ? 0.08 : 0.05) || hmax - hmin > (t === 'habitat' ? 1.0 : 0.6)) fail('build_bad_slope');
+    const ok = !reason;
+    this.ghostReason = reason;
     this.ghostValid = ok;
     const mat = ok ? this.mats.ghostOk : this.mats.ghostBad;
     this.ghost.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = mat; });

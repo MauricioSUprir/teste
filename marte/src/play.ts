@@ -44,13 +44,23 @@ export class Play {
     this.hud.onExit = () => this.exitHab();
     this.hud.onRespawn = () => this.respawn();
     this.hud.onMenu = () => { this.hud.hideEnd(); this.onQuitToMenu?.(); };
+    // depois do resgate confirmado: continuar explorando Marte livremente
+    this.hud.onFreeplay = () => {
+      this.st.flags.freeplay = true;
+      this.won = false;
+      this.hud.hideEnd();
+      this.game.input.enabled = true;
+      this.game.input.clearPressed();
+      this.persist(false);
+      this.game.input.requestLock();
+    };
   }
 
   // ------------------------------------------------ ciclo de vida
   begin(st: GameState) {
     this.st = st;
     this.dead = false;
-    this.won = !!st.flags.won;
+    this.won = !!st.flags.won && !st.flags.freeplay;
     this.inHab = false;
     this.hud.closeHab(); this.hud.closeBuild(); this.hud.hideEnd(); this.hud.toggleMap(false);
     this.world.cancelGhost();
@@ -71,7 +81,7 @@ export class Play {
     this.objAnnounced = -1;
     this.active = true;
     if (st.suit.health <= 0) { this.dead = false; this.respawnFrom(st); return; }
-    if (this.won) this.hud.showEnd(true, Math.floor(st.sol));
+    if (this.won) this.hud.showEnd(true, Math.floor(st.sol), st.stats);
     g.updateEnv(true);
     g.measureSky();
     g.updateSky(0);
@@ -136,7 +146,11 @@ export class Play {
     let oi = st.objective;
     while (oi < OBJECTIVES.length - 1 && OBJECTIVES[oi].done(st)) oi++;
     if (oi !== st.objective) {
-      if (oi > st.objective) this.hud.toast(`✓ ${t('obj_done')}`, 'ok');
+      if (oi > st.objective) {
+        this.hud.toast(`✓ ${t('obj_done')}: ${t(OBJECTIVES[st.objective].key)}`, 'ok');
+        sfx.objective();
+        if (OBJECTIVES[oi].key === 'obj_explore' && !g.driving) setTimeout(() => this.hud.toast(t('hint_rover'), 'info'), 6000);
+      }
       st.objective = oi;
     }
     if (this.objAnnounced !== oi) { this.objAnnounced = oi; this.speak(OBJECTIVES[oi].voice); }
@@ -148,7 +162,11 @@ export class Play {
 
     sfx.update(dt, { tau: st.tau, exertion: Math.min(1, g.player.horizontalSpeed() / 3.4 + (this.holdT > 0 ? 0.3 : 0)), o2Frac: st.suit.o2 / BAL.suitO2Cap, inHelmet: !this.inHab && !g.driving, roverSpeed: g.rover.speed, driving: g.driving, paused: g.paused });
     this.hudT += dt;
-    if (this.hudT > 0.1) { this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
+    if (this.hudT > 0.1) {
+      // botões de toque contextuais: 🚙 só perto do rover, 🔧 some ao dirigir
+      const nearRover = g.driving || g.player.pos.distanceTo(g.rover.pos) < 14;
+      document.getElementById('tb-car')?.classList.toggle('gone', !nearRover);
+      document.getElementById('tb-build')?.classList.toggle('gone', g.driving); this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
   }
 
   speak(key: Key) {
@@ -162,6 +180,11 @@ export class Play {
       case 'o2_low': sfx.alarm(1); this.speak('vo_o2_low'); break;
       case 'o2_crit': sfx.alarm(2); this.speak('vo_o2_crit'); break;
       case 'batt_low': sfx.alarm(1); this.speak('vo_batt_low'); break;
+      case 'o2_empty': sfx.alarm(2); this.hud.toast(t('ev_o2_empty'), 'warn'); break;
+      case 'batt_empty': sfx.alarm(2); this.hud.toast(t('ev_batt_empty'), 'warn'); break;
+      case 'health_low': sfx.alarm(2); this.hud.say('ev_health_low', 6); break;
+      case 'hab_o2_low': case 'hab_water_low': case 'hab_food_low': case 'hab_power_low':
+        sfx.alarm(1); sfx.radio(); this.hud.say(`ev_${e}` as Key, 7); break;
       case 'storm_start': this.speak('vo_storm'); break;
       case 'storm_end': this.speak('vo_storm_end'); break;
       case 'dead': this.die(); break;
@@ -280,11 +303,11 @@ export class Play {
     }
     if (this.world.ghost) {
       this.world.updateGhost(st, g.player.pos, g.player.yaw);
-      this.hud.showPrompt(this.world.ghostValid ? t('build_hint') : t('build_invalid'), 0, false);
+      this.hud.showPrompt(this.world.ghostValid ? t(g.input.touchMode ? 'build_hint_touch' : 'build_hint') : t((this.world.ghostReason || 'build_invalid') as Key), 0, false);
       if (input.consume('interact')) {
         const b = this.world.placeGhost(st);
         if (b) { this.hud.toast(`✓ ${t(`b_${b.type}` as Key)}`, 'ok'); sfx.build(); }
-        else this.hud.toast(t('build_invalid'), 'warn');
+        else { this.hud.toast(t((this.world.ghostReason || 'build_invalid') as Key), 'warn'); sfx.alarm(1); }
       }
     }
   }
@@ -365,7 +388,7 @@ export class Play {
     this.persist(false);
     this.game.input.enabled = false;
     if (document.pointerLockElement) document.exitPointerLock();
-    this.hud.showEnd(true, Math.floor(this.st.sol));
+    this.hud.showEnd(true, Math.floor(this.st.sol), this.st.stats);
   }
   private respawn() {
     this.respawnFrom(null);
@@ -403,7 +426,9 @@ export class Play {
 
   private updateWaypoint(oi: number) {
     const o = OBJECTIVES[oi];
-    const tgt = o.target?.(this.st, this.objWorld()) ?? null;
+    // objetivos sem alvo próprio (construções) apontam de volta para a base
+    const ow = this.objWorld();
+    const tgt = o.target?.(this.st, ow) ?? (this.st.objective > 1 ? ow.door : null);
     const g = this.game;
     if (!tgt || this.inHab || this.dead) { this.hud.setWaypoint(null); return; }
     const p = new THREE.Vector3(tgt.x, g.terrain.heightAt(tgt.x, tgt.z) + 2.2, tgt.z);
