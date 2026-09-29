@@ -394,7 +394,9 @@ export class Play {
       if (pos) this.combat.vfx.burst(pos.setY(pos.y + 0.2), 30, 'dust');
       // continua construindo: mantém o tipo se ainda der para pagar
       const av = this.availableBuilds();
-      if (!av.includes(b.type)) this.buildSel = av[0] ?? null;
+      // nada mais pagável: sai do modo construção sozinho (evita ficar "preso" sem perceber)
+      if (!av.some((x) => this.world.canAfford(st, x))) { this.exitBuild(); return; }
+      if (!av.includes(b.type) || !this.world.canAfford(st, b.type)) this.buildSel = av.find((x) => this.world.canAfford(st, x)) ?? av[0] ?? null;
       if (this.buildSel) this.world.startGhost(this.buildSel);
       this.refreshBuildUi();
     } else { this.hud.toast(t((this.world.ghostReason || 'build_invalid') as Key), 'warn'); sfx.alarm(1); }
