@@ -54,8 +54,8 @@ export class Player {
     this.controller.setCharacterMass(130); // astronauta + traje
   }
 
-  teleport(x: number, z: number, yOff = 0.2) {
-    const y = this.terrain.heightAt(x, z) + yOff;
+  teleport(x: number, z: number, yOff = 0.2, absY?: number) {
+    const y = absY ?? this.terrain.heightAt(x, z) + yOff;
     this.pos.set(x, y, z);
     this.prevPos.copy(this.pos);
     this.vel.set(0, 0, 0);

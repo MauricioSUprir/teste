@@ -29,8 +29,9 @@ class ExposureEffect extends Effect {
 class VisorEffect extends Effect {
   constructor() {
     super('VisorEffect', /* glsl */ `
-      uniform float strength; uniform float dust;
+      uniform float strength; uniform float dust; uniform float frost;
       float h12(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+      float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h12(i),h12(i+vec2(1,0)),f.x), mix(h12(i+vec2(0,1)),h12(i+vec2(1,1)),f.x), f.y); }
       void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor){
         vec2 d = uv - 0.5; float r = length(d*vec2(1.0,0.8));
         vec3 c = inputColor.rgb;
@@ -40,13 +41,25 @@ class VisorEffect extends Effect {
         float g = h12(floor(uv*vec2(420.0,260.0)));
         c += vec3(0.9,0.6,0.4) * step(0.9985, g) * dust * 0.08;
         c = mix(c, c*vec3(1.03,0.99,0.95), strength*0.5);
+        // geada no visor no frio extremo da noite: cristais a partir das bordas
+        if (frost > 0.001) {
+          // cristais finos crescendo das bordas (padrão de samambaia = ruído em várias escalas)
+          float n = vn(uv*vec2(90.0,56.0))*0.5 + vn(uv*vec2(260.0,160.0))*0.3 + vn(uv*vec2(22.0,14.0))*0.2;
+          float veins = smoothstep(0.55, 0.62, vn(uv*vec2(180.0,110.0) + n*4.0));
+          float grow = smoothstep(0.5 - frost*0.1, 0.72, r + (n - 0.5)*0.22);
+          float f = clamp(grow*(0.35 + 0.65*veins), 0.0, 1.0) * frost;
+          float lum = max(max(c.r,c.g),c.b);
+          c = mix(c, vec3(0.7,0.8,0.9)*(0.12 + 0.88*lum) + vec3(0.015,0.02,0.03), f*0.6);
+          c += vec3(0.8,0.9,1.0) * step(0.997, h12(floor(uv*vec2(900.0,560.0)))) * f * 0.25; // brilhos de gelo
+        }
         outputColor = vec4(c, inputColor.a);
       }`, {
-      uniforms: new Map<string, THREE.Uniform>([['strength', new THREE.Uniform(0)], ['dust', new THREE.Uniform(0)]]),
+      uniforms: new Map<string, THREE.Uniform>([['strength', new THREE.Uniform(0)], ['dust', new THREE.Uniform(0)], ['frost', new THREE.Uniform(0)]]),
     });
   }
   set strength(v: number) { (this.uniforms.get('strength') as THREE.Uniform).value = v; }
   set dust(v: number) { (this.uniforms.get('dust') as THREE.Uniform).value = v; }
+  set frost(v: number) { (this.uniforms.get('frost') as THREE.Uniform).value = v; }
 }
 
 export class Pipeline {

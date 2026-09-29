@@ -115,7 +115,7 @@ function play() {
   game.menuMode = false;
   game.paused = false;
   game.input.clearPressed();
-  const overlay = !!(play_ && (play_.inHab || play_.hud.buildOpen || play_.dead || play_.won));
+  const overlay = !!(play_ && (play_.hud.habOpen || play_.hud.buildOpen || play_.dead || play_.won));
   game.input.enabled = !overlay;
   const touch = isMobile || game.input.touchMode;
   $('touch').classList.toggle('hidden', !touch);
@@ -156,7 +156,7 @@ function toMenu() {
   if (play_) {
     play_.persist(false); play_.active = false;
     play_.hud.closeHab(); play_.hud.closeBuild(); play_.hud.toggleMap(false); play_.hud.hideEnd(); play_.world.cancelGhost();
-    play_.inHab = false; game.forceExitVehicle(); play_.voice.stop();
+    play_.inHab = false; game.setInterior(false); game.forceExitVehicle(); play_.voice.stop();
   }
   inGame = false;
   game.paused = true;
@@ -243,10 +243,10 @@ onLang(() => {
 // pointer lock / pausa
 document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
-  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.inHab || !!play_?.hud.buildOpen || !!play_?.dead || !!play_?.won);
-  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.buildOpen && !play_?.inHab && !play_?.dead && !play_?.won) pause();
+  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.hud.habOpen || !!play_?.hud.buildOpen || !!play_?.dead || !!play_?.won);
+  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.buildOpen && !play_?.hud.habOpen && !play_?.dead && !play_?.won) pause();
 });
-canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.buildOpen && !play_?.inHab) game.input.requestLock(); });
+canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.buildOpen && !play_?.hud.habOpen) game.input.requestLock(); });
 addEventListener('keydown', (e) => {
   if (e.code === 'Escape' && inGame && game.paused && !$('pause').classList.contains('hidden')) { e.preventDefault(); setTimeout(() => { game.input.clearPressed(); play(); }, 0); }
 });
@@ -255,7 +255,7 @@ setInterval(() => {
   if (play_?.hud.buildOpen) { play_.closeBuildMenu(); return; }
   if (play_?.hud.mapOpen) { play_.hud.toggleMap(false); return; }
   if (play_?.world.ghost) { play_.world.cancelGhost(); return; }
-  if (!game.paused && !play_?.inHab) pause();
+  if (!game.paused && !play_?.hud.habOpen) pause();
 }, 50);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); if (play_?.active) play_.persist(false); } });
 // iOS pode descartar o contexto WebGL em segundo plano: pausa, salva e recarrega quando ele voltar

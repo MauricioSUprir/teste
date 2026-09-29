@@ -21,6 +21,7 @@ export class Play {
   hud: Hud;
   voice = new Voice();
   inHab = false;
+  private coldWarnSol = -1;
   dead = false;
   won = false;
   private holdT = 0;
@@ -40,8 +41,8 @@ export class Play {
     this.hud.buildMap(game.terrain.heights, WORLD.res);
     this.hud.onBuildPick = (b) => this.pickBuild(b);
     this.hud.onBuildClose = () => this.closeBuildMenu();
-    this.hud.onSleep = () => this.sleep();
-    this.hud.onExit = () => this.exitHab();
+    this.hud.onSleep = () => { this.closeConsole(); this.sleep(); };
+    this.hud.onExit = () => this.closeConsole();
     this.hud.onRespawn = () => this.respawn();
     this.hud.onMenu = () => { this.hud.hideEnd(); this.onQuitToMenu?.(); };
     // depois do resgate confirmado: continuar explorando Marte livremente
@@ -62,6 +63,7 @@ export class Play {
     this.dead = false;
     this.won = !!st.flags.won && !st.flags.freeplay;
     this.inHab = false;
+    this.game.setInterior(false);
     this.hud.closeHab(); this.hud.closeBuild(); this.hud.hideEnd(); this.hud.toggleMap(false);
     this.world.cancelGhost();
     this.world.sync(st);
@@ -101,7 +103,7 @@ export class Play {
   persist(showToast = true) {
     const g = this.game;
     if (this.dead) return;
-    const pp = g.driving ? g.rover.driverDoor() : g.player.pos;
+    const pp = g.driving ? g.rover.driverDoor() : this.inHab ? (this.world.doorPos(this.st) ?? g.player.pos) : g.player.pos;
     this.st.player = { x: pp.x, y: pp.y, z: pp.z, yaw: g.player.yaw };
     this.st.sol = g.sol;
     this.st.rover = { x: g.rover.pos.x, z: g.rover.pos.z, yaw: g.rover.yaw(), batt: g.rover.battery };
@@ -134,6 +136,7 @@ export class Play {
       for (const e of out.events) this.onEvent(e);
     }
 
+    if (this.inHab && !this.dead && !this.won) this.handleInterior(dt);
     if (!this.inHab && !this.dead && !this.won) {
       this.handleVehicle(dt);
       if (!g.driving) { this.handleInteraction(dt); this.handleBuild(); }
@@ -160,7 +163,12 @@ export class Play {
     this.autoSaveT += dt;
     if (this.autoSaveT > 90 && g.player.grounded && !g.driving && !this.dead && !this.won) { this.autoSaveT = 0; this.persist(false); }
 
-    sfx.update(dt, { tau: st.tau, exertion: Math.min(1, g.player.horizontalSpeed() / 3.4 + (this.holdT > 0 ? 0.3 : 0)), o2Frac: st.suit.o2 / BAL.suitO2Cap, inHelmet: !this.inHab && !g.driving, roverSpeed: g.rover.speed, driving: g.driving, paused: g.paused });
+    // frio da noite: geada no visor, zumbido do aquecedor e aviso uma vez por noite
+    const T = this.lastOut?.outsideT ?? -40;
+    const cold = THREE.MathUtils.smoothstep(-T, 55, 78);
+    g.visorFrost = THREE.MathUtils.damp(g.visorFrost, this.inHab || g.driving ? 0 : cold, 0.25, dt);
+    if (T < -68 && !this.inHab && !g.driving && this.coldWarnSol !== Math.floor(st.sol + 0.3)) { this.coldWarnSol = Math.floor(st.sol + 0.3); this.hud.toast(t('ev_cold', { t: Math.round(T) }), 'warn'); }
+    sfx.update(dt, { tau: st.tau, exertion: Math.min(1, g.player.horizontalSpeed() / 3.4 + (this.holdT > 0 ? 0.3 : 0)), o2Frac: st.suit.o2 / BAL.suitO2Cap, inHelmet: !this.inHab && !g.driving, roverSpeed: g.rover.speed, driving: g.driving, paused: g.paused, night: g.night, cold: this.inHab ? 0 : cold, inside: this.inHab });
     this.hudT += dt;
     if (this.hudT > 0.1) {
       // botões de toque contextuais: 🚙 só perto do rover, 🔧 some ao dirigir
@@ -327,26 +335,71 @@ export class Play {
     this.inHab = true;
     sfx.door();
     this.st.flags.enteredHab = true;
-    g.player.frozen = true;
-    g.astro.root.visible = false;
-    g.input.enabled = false;
-    if (document.pointerLockElement) document.exitPointerLock();
+    this.hud.showPrompt(null);
+    // entra andando no interior do habitat
+    g.setInterior(true);
+    const I = g.interior;
+    g.player.teleport(I.spawn.x, I.spawn.z, 0, I.spawn.y);
+    g.player.yaw = I.spawnYaw;
+    g.player.pitch = -0.05;
+    g.player.camDist = Math.min(g.player.camDist, 2.4);
+    g.input.clearPressed();
     if (this.st.inv.gypsum > 0) { this.st.hab.gypsum += this.st.inv.gypsum; this.st.inv.gypsum = 0; this.hud.toast(t('hab_deposit'), 'info'); }
     this.persist(true);
-    this.refreshHab();
+    this.hud.toast(t('int_welcome'), 'info');
   }
   refreshHab() { this.hud.openHab(this.st, this.lastOut?.habGenW ?? 0, this.lastOut?.habLoadW ?? 0); }
+  /** painel de status do console (dentro do habitat) */
+  private openConsole() {
+    const g = this.game;
+    g.input.enabled = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.refreshHab();
+  }
+  private closeConsole() {
+    this.hud.closeHab();
+    this.game.input.enabled = true;
+    this.game.input.clearPressed();
+    this.game.input.requestLock();
+  }
   private exitHab() {
     const g = this.game;
+    this.hud.closeHab();
     this.inHab = false;
     sfx.door();
-    this.hud.closeHab();
+    g.setInterior(false);
     g.player.frozen = false;
     g.astro.root.visible = true;
     const door = this.world.doorPos(this.st);
     if (door) { g.player.teleport(door.x, door.z, 0.3); const h = this.world.habitat(this.st)!; g.player.yaw = h.rot + Math.PI; }
     g.input.enabled = true;
+    g.input.clearPressed();
     g.input.requestLock();
+  }
+  /** interações dentro do habitat */
+  private handleInterior(dt: number) {
+    const g = this.game, st = this.st, input = g.input;
+    const I = g.interior;
+    const out = this.lastOut;
+    I.update(dt, { o2: st.hab.o2, o2Sols: st.hab.o2 / BAL.habO2PerSol, water: st.hab.water, food: st.hab.food, batt: st.hab.batt, battCap: st.hab.battCap, gen: out?.habGenW ?? 0, load: out?.habLoadW ?? 0, sol: st.sol, ltst: g.sky0.ltstHours, outT: out?.outsideT ?? -60 });
+    if (input.consume('build')) this.hud.toast(t('int_nobuild'), 'info');
+    input.consume('vehicle');
+    if (!input.enabled) return;
+    const fwd = new THREE.Vector3(-Math.sin(g.player.yaw), 0, -Math.cos(g.player.yaw));
+    const spot = I.nearest(g.player.pos, fwd);
+    if (!spot) { this.hud.showPrompt(null); input.consume('interact'); return; }
+    this.hud.showPrompt(t(spot.label as Key), 0, false);
+    if (!input.consume('interact')) return;
+    switch (spot.action) {
+      case 'exit': this.exitHab(); break;
+      case 'console': this.openConsole(); break;
+      case 'sleep': this.hud.showPrompt(null); this.sleep(); break;
+      case 'food':
+        if (st.hab.food >= 0.25 && st.suit.health < 100) { st.hab.food -= 0.25; st.suit.health = Math.min(100, st.suit.health + 15); this.hud.toast(t('int_ate'), 'ok'); sfx.pickup(); }
+        else this.hud.toast(t('int_food_info', { n: st.hab.food.toFixed(1) }), 'info');
+        break;
+      case 'plants': this.hud.toast(t(st.buildings.some((b) => b.type === 'bioreactor') ? 'int_plants_ok' : 'int_plants_wait'), 'info'); break;
+    }
   }
   private sleep() {
     // dorme até as 07:00 do próximo sol simulando em passos de 15 min
@@ -366,7 +419,7 @@ export class Play {
     g.tau = st.tau;
     g.updateEnv(true); g.measureSky(); g.updateSky(0);
     this.persist(true);
-    this.refreshHab();
+    this.hud.toast(t('int_woke'), 'ok');
   }
 
   // ------------------------------------------------ fim de jogo
@@ -380,6 +433,8 @@ export class Play {
     this.hud.closeBuild(); this.hud.toggleMap(false); this.world.cancelGhost();
     if (document.pointerLockElement) document.exitPointerLock();
     this.hud.closeHab();
+    this.inHab = false;
+    this.game.setInterior(false);
     this.hud.showEnd(false, Math.floor(this.st.sol));
   }
   private win() {

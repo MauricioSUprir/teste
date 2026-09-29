@@ -12,6 +12,9 @@ export class Sfx {
   private breathGain!: GainNode;
   private breathFilter!: BiquadFilterNode;
   private breathPhase = 0;
+  private humGain: GainNode | null = null;
+  private humOsc: OscillatorNode | null = null;
+  private creakT = 3;
   private noiseBuf!: AudioBuffer;
   volume = 0.8;
   private started = false;
@@ -53,6 +56,7 @@ export class Sfx {
     const hum = ctx.createOscillator(); hum.type = 'sine'; hum.frequency.value = 118;
     const humG = ctx.createGain(); humG.gain.value = 0.006;
     hum.connect(humG).connect(this.master); hum.start();
+    this.humGain = humG; this.humOsc = hum;
     // respiração (ruído filtrado com envelope)
     const br = this.noise();
     this.breathFilter = ctx.createBiquadFilter();
@@ -77,14 +81,31 @@ export class Sfx {
   suspend(on: boolean) { if (!this.ctx) return; if (on) this.ctx.suspend(); else this.ctx.resume(); }
 
   /** atualização contínua */
-  update(dt: number, p: { tau: number; exertion: number; o2Frac: number; inHelmet: boolean; roverSpeed: number; driving: boolean; paused: boolean }) {
+  update(dt: number, p: { tau: number; exertion: number; o2Frac: number; inHelmet: boolean; roverSpeed: number; driving: boolean; paused: boolean; night?: number; cold?: number; inside?: boolean }) {
     const ctx = this.ctx;
     if (!ctx) return;
     const t = ctx.currentTime;
     const storm = Math.min(1, Math.max(0, (p.tau - 1) / 3));
-    this.windGain.gain.setTargetAtTime(p.paused ? 0 : 0.035 + storm * 0.22, t, 0.5);
+    const night = p.night ?? 0, cold = p.cold ?? 0;
+    // à noite o vento quase some (silêncio marciano); dentro do habitat só se ouve a ventilação
+    const wind = p.inside ? 0.004 : (0.035 - night * 0.02) + storm * 0.22;
+    this.windGain.gain.setTargetAtTime(p.paused ? 0 : wind, t, 0.5);
     this.windFilter.frequency.setTargetAtTime(220 + storm * 500, t, 0.8);
-    this.fanGain.gain.setTargetAtTime(p.paused ? 0 : 0.016, t, 0.3);
+    this.fanGain.gain.setTargetAtTime(p.paused ? 0 : p.inside ? 0.03 : 0.016, t, 0.3);
+    // aquecedor do traje trabalha mais no frio (zumbido sobe de volume e tom)
+    if (this.humGain && this.humOsc) {
+      this.humGain.gain.setTargetAtTime(p.paused || p.inside ? 0.002 : 0.006 + cold * 0.02, t, 0.8);
+      this.humOsc.frequency.setTargetAtTime(118 + cold * 40, t, 1.5);
+    }
+    // estalos de contração térmica do traje/regolito nas noites geladas
+    if (!p.paused && !p.inside && cold > 0.3) {
+      this.creakT -= dt;
+      if (this.creakT <= 0) {
+        this.creakT = 4 + Math.random() * 9;
+        this.blip(90 + Math.random() * 60, 0.09, 'triangle', 0.02 * cold, 0, -40);
+        if (Math.random() < 0.5) this.blip(2400 + Math.random() * 1500, 0.02, 'square', 0.004 * cold, 0.05);
+      }
+    }
     // respiração: 14/min em repouso, até 32/min com esforço ou hipóxia
     const rate = (14 + p.exertion * 12 + (p.o2Frac < 0.15 ? 10 : 0)) / 60;
     this.breathPhase += dt * rate;

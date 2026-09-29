@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { LanderMats } from './lander';
+import { beacon, WINDOW_MAT } from './nightfx';
 import type { BuildId } from '../sim/balance';
 
 const shadow = <T extends THREE.Object3D>(o: T): T => { o.traverse((c) => { if ((c as THREE.Mesh).isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
@@ -19,11 +20,14 @@ export function makeStructMats(M: LanderMats) {
 }
 export type StructMats = ReturnType<typeof makeStructMats>;
 
-export const FOOTPRINT: Record<BuildId, number> = { habitat: 5.2, panel: 2.2, battery: 1.1, moxie: 1.2, extractor: 1.4, bioreactor: 1.8 };
+export const FOOTPRINT: Record<BuildId, number> = { habitat: 6.0, panel: 2.2, battery: 1.1, moxie: 1.2, extractor: 1.4, bioreactor: 1.8 };
+
+/** raio do habitat inflável (o interior percorrível usa o mesmo tamanho) */
+export const HAB_R = 4.4;
 
 export function buildHabitat(M: StructMats) {
   const g = new THREE.Group();
-  const R = 3.6;
+  const R = HAB_R;
   const wall = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 2.4, 48, 1, true), M.fabric);
   wall.position.y = 1.2;
   const dome = new THREE.Mesh(new THREE.SphereGeometry(R, 48, 20, 0, Math.PI * 2, 0, Math.PI / 2), M.fabric);
@@ -52,10 +56,11 @@ export function buildHabitat(M: StructMats) {
   const led = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8), M.ledGreen);
   led.position.set(0.62, 1.2, R + 1.93);
   // janela circular
-  const win = new THREE.Mesh(new THREE.CircleGeometry(0.45, 32), new THREE.MeshPhysicalMaterial({ color: 0x0a1016, roughness: 0.05, clearcoat: 1, emissive: new THREE.Color(1, 0.75, 0.45), emissiveIntensity: 0.25 }));
+  const win = new THREE.Mesh(new THREE.CircleGeometry(0.45, 32), WINDOW_MAT);
   win.position.set(R + 0.01, 1.5, 0);
   win.rotation.y = Math.PI / 2;
-  g.add(wall, dome, ring, base, lock, door, light, led, win);
+  const bc = beacon(0.08); bc.position.set(0, 2.4 + R * 0.62 + 0.06, 0);
+  g.add(wall, dome, ring, base, lock, door, light, led, win, bc);
   const pointLight = new THREE.PointLight(0xffe2c0, 8, 14, 1.8);
   pointLight.position.set(0, 2.2, R + 2.2);
   g.add(pointLight);

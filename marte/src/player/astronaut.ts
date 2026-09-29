@@ -15,7 +15,7 @@ export class Astronaut {
   private visorMat!: THREE.MeshPhysicalMaterial;
 
   constructor() {
-    this.headlamp = new THREE.SpotLight(0xfff1dd, 0, 60, THREE.MathUtils.degToRad(32), 0.55, 1.6);
+    this.headlamp = new THREE.SpotLight(0xfff1dd, 0, 45, THREE.MathUtils.degToRad(34), 0.85, 1.8);
     this.headlamp.castShadow = false;
     // sempre "visível" (intensidade 0 quando desligada): mudar o nº de luzes recompila todos os shaders (trava no iPhone)
   }
@@ -146,11 +146,11 @@ export class Astronaut {
   lampOn = false;
   /** dayLight 0 (noite) … 1 (dia): de dia a lanterna quase não aparece, como na realidade */
   updateLamp(dayLight: number) {
-    this.headlamp.intensity = this.lampOn ? 160 * (0.05 + 0.95 * (1 - dayLight)) : 0;
+    this.headlamp.intensity = this.lampOn ? 26 * (0.05 + 0.95 * (1 - dayLight)) : 0;
   }
   setLamp(on: boolean) {
     this.lampOn = on;
-    this.headlamp.intensity = on ? 160 : 0;
+    this.headlamp.intensity = on ? 26 : 0;
     this.helmet.traverse((o) => {
       if (o.name === 'lamp') ((o as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = on ? 8 : 0;
     });

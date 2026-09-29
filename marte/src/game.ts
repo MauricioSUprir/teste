@@ -20,6 +20,8 @@ import { QUALITY, DynamicResolution, type QualityId, type QualitySettings } from
 import { Player } from './player/player';
 import { Astronaut } from './player/astronaut';
 import { viewSize } from './core/viewport';
+import { Interior } from './world/interior';
+import { updateNightFx } from './world/nightfx';
 
 export type Progress = (key: string, frac: number) => void;
 const ASSETS = './assets';
@@ -40,6 +42,14 @@ export class Game {
   physics!: Physics;
   player!: Player;
   astro = new Astronaut();
+  interior = new Interior();
+  /** dentro do habitat: sem Sol/céu, só luz interna */
+  inside = false;
+  /** 0 dia … 1 noite fechada */
+  night = 0;
+  /** gelo no visor (0..1), definido pela simulação de temperatura */
+  visorFrost = 0;
+  private fxT = 0;
   dyn = new DynamicResolution();
   pmrem: THREE.PMREMGenerator;
   envScene = new THREE.Scene();
@@ -212,6 +222,8 @@ export class Game {
     this.physics.addRocks(this.rocks.colliders(0.45));
     this.physics.addBounds(WORLD.size);
     this.physics.addBoxes(crash.colliders);
+    this.interior.addColliders(this.physics);
+    this.scene.add(this.interior.group, ...this.interior.lights);
     const spawn = new THREE.Vector3(1, 0, 3);
     spawn.y = this.terrain.heightAt(spawn.x, spawn.z);
     this.player = new Player(this.physics, this.terrain, spawn);
@@ -320,7 +332,9 @@ export class Game {
     const s = computeSky(this.sol);
     this.sky0 = s;
     const sun = new THREE.Vector3(...s.sunDir);
-    this.astro?.updateLamp(THREE.MathUtils.smoothstep(sun.y, -0.05, 0.15));
+    const dayLight = THREE.MathUtils.smoothstep(sun.y, -0.05, 0.15);
+    this.astro?.updateLamp(this.inside ? 1 : dayLight);
+    this.night = 1 - THREE.MathUtils.smoothstep(sun.y, -0.12, 0.05);
     const U = this.sky.uniforms;
     U.uSun.value.copy(sun);
     U.uTau.value = this.tau;
@@ -341,9 +355,19 @@ export class Game {
     const sunI = 4.2 * power * Math.max(direct, 0.02) * horizonFade;
     const color = new THREE.Color(1, 0.96, 0.9).multiply(new THREE.Color(Math.pow(T.r, 0.25), Math.pow(T.g, 0.25), Math.pow(T.b, 0.25)));
     this.sunColI.copy(color).multiplyScalar(sunI / Math.PI);
+    // à noite a mesma luz direcional vira o luar de Fobos + estrelas: fraca, azulada, com sombras suaves
+    const nightK = 1 - THREE.MathUtils.smoothstep(sun.y, -0.1, 0.02);
+    const moonDir = new THREE.Vector3(...s.phobosDir);
+    if (moonDir.y < 0.25) moonDir.set(0.35, 0.8, -0.45);
+    moonDir.normalize();
+    const nightI = 0.032 * nightK * (1 - THREE.MathUtils.smoothstep(this.tau, 1, 4) * 0.8);
     if (this.csm) {
-      this.csm.lightDirection.copy(sun).negate();
-      for (const l of this.csm.lights) { l.intensity = sunI; l.color.copy(color); }
+      const useMoon = nightI > sunI;
+      this.csm.lightDirection.copy(useMoon ? moonDir : sun).negate();
+      for (const l of this.csm.lights) {
+        l.intensity = this.inside ? 0 : useMoon ? nightI : sunI;
+        if (useMoon) l.color.setRGB(0.55, 0.66, 1.0); else l.color.copy(color);
+      }
     }
     // névoa
     fogUniforms.uFogSun.value.copy(sun);
@@ -355,8 +379,8 @@ export class Game {
     const ambL = amb.r * 0.2126 + amb.g * 0.7152 + amb.b * 0.0722;
     void ambL;
     // luminância da cena ≈ solo iluminado pelo Sol + céu medido (sonda cúbica do próprio shader do céu)
-    const lampL = this.driving && this.rover?.lightsOn ? 0.9 : this.lampOn && !this.driving ? 0.25 : 0;
-    const sceneL = 0.3 * sunI * Math.max(sun.y, 0.0) / Math.PI + 0.55 * this.skyLum + lampL + 0.0006;
+    const lampL = this.driving && this.rover?.lightsOn ? 0.9 : this.lampOn && !this.driving ? 0.12 : 0;
+    const sceneL = this.inside ? 0.5 : 0.3 * sunI * Math.max(sun.y, 0.0) / Math.PI + 0.55 * this.skyLum + lampL + 0.3 * nightI * moonDir.y / Math.PI + 0.0004;
     // adaptação parcial (como o olho/câmera): cenas escuras continuam mais escuras que o dia
     const key = 0.27 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.5), 0.04, 1.05);
     const targetExp = THREE.MathUtils.clamp(key / sceneL, 0.3, 12);
@@ -419,6 +443,7 @@ export class Game {
   }
 
   private pauseSkip = 0;
+  private insideStep = 0;
   private frame(now: number) {
     const rawDt = (now - this.lastT) / 1000;
     this.lastT = now;
@@ -539,6 +564,16 @@ export class Game {
     this.pipeline.visor.strength = this.player.firstPerson ? 1 : 0;
   }
 
+  setInterior(on: boolean) {
+    this.inside = on;
+    this.interior.setActive(on);
+    this.sky.mesh.visible = !on;
+    this.dust.points.visible = !on;
+    this.devils.group.visible = !on;
+    (this.scene as THREE.Scene & { environmentIntensity: number }).environmentIntensity = on ? 0.12 : 1;
+    this.updateSky(0);
+  }
+
   setLamp(on: boolean) {
     this.lampOn = on;
     this.astro.setLamp(on);
@@ -589,11 +624,19 @@ export class Game {
     const cp = this.camera.position;
     this.sky.placeMoon(this.sky.phobos, new THREE.Vector3(...this.sky0.phobosDir), cp, 0.2);
     this.sky.placeMoon(this.sky.deimos, new THREE.Vector3(...this.sky0.deimosDir), cp, 0.04);
+    if (this.inside) { this.sky.phobos.visible = false; this.sky.deimos.visible = false; }
+    this.fxT += dt;
+    updateNightFx(this.fxT, this.night);
+    this.sky.uniforms.uTime.value = this.fxT;
+    this.pipeline.visor.frost = this.player.firstPerson && !this.inside && !this.driving ? this.visorFrost : 0;
     fogUniforms.uFogViewToWorld.value.setFromMatrix4(this.camera.matrixWorld);
     fogUniforms.uFogCamY.value = cp.y;
     this.rover.render(Math.min(1, alpha));
     this.tracks.update(this.rover);
-    if (!this.driving && this.footprints.update(feet, this.player.yaw, this.player.grounded, sp) && !this.paused) sfx.step();
+    if (this.inside) {
+      // passos no piso metálico do habitat (sem pegadas no terreno)
+      if (this.player.grounded && sp > 0.4 && !this.paused) { this.insideStep += dt * sp; if (this.insideStep > 0.75) { this.insideStep = 0; sfx.step(); } }
+    } else if (!this.driving && this.footprints.update(feet, this.player.yaw, this.player.grounded, sp) && !this.paused) sfx.step();
     const storm = THREE.MathUtils.smoothstep(this.tau, 1.2, 4);
     this.dust.uniforms.uWind.value.set(2.5 + storm * 16, 0, 1.2 + storm * 6);
     this.dust.uniforms.uBox.value = 26 - storm * 10;

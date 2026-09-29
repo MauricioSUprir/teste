@@ -161,7 +161,7 @@ export class Hud {
     ];
     this.habPanel.innerHTML = `<div class="panel-inner"><h2>${t('hab_title')} · ${t('sol')} ${Math.floor(st.sol)}</h2>
       <table class="habt">${rows.map(([k, v]) => `<tr><td>${t(k)}</td><td>${v}</td></tr>`).join('')}</table>
-      <div class="pactions"><button class="primary" id="hab-sleep">${t('hab_sleep')}</button><button id="hab-exit">${t('hab_exit')}</button></div></div>`;
+      <div class="pactions"><button class="primary" id="hab-sleep">${t('hab_sleep')}</button><button id="hab-exit">${t('hab_close')}</button></div></div>`;
     (this.habPanel.querySelector('#hab-sleep') as HTMLElement).onclick = () => this.onSleep?.();
     (this.habPanel.querySelector('#hab-exit') as HTMLElement).onclick = () => this.onExit?.();
     this.habPanel.classList.remove('hidden');

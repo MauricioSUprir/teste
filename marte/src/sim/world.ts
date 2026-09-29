@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import type { GameState, Building } from './state';
 import { BAL, COSTS, type BuildId, type ItemId } from './balance';
-import { BUILDERS, FOOTPRINT, buildGypsum, buildWreck, makeStructMats, type StructMats } from '../world/structures';
+import { BUILDERS, FOOTPRINT, HAB_R, buildGypsum, buildWreck, makeStructMats, type StructMats } from '../world/structures';
 import type { LanderMats } from '../world/lander';
 import type { Terrain } from '../world/terrain';
 import type { Physics } from '../core/physics';
@@ -136,9 +136,9 @@ export class WorldSim {
     const colliders: RAPIER.Collider[] = [];
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, b.rot, 0));
     if (b.type === 'habitat') {
-      colliders.push(this.phys.world.createCollider(R.ColliderDesc.cylinder(1.6, 3.6).setTranslation(b.x, obj.position.y + 1.6, b.z), this.body));
-      colliders.push(this.phys.world.createCollider(R.ColliderDesc.ball(3.3).setTranslation(b.x, obj.position.y + 2.2, b.z), this.body));
-      const lock = new THREE.Vector3(0, 1.15, 4.4).applyQuaternion(q);
+      colliders.push(this.phys.world.createCollider(R.ColliderDesc.cylinder(1.6, HAB_R).setTranslation(b.x, obj.position.y + 1.6, b.z), this.body));
+      colliders.push(this.phys.world.createCollider(R.ColliderDesc.ball(HAB_R * 0.92).setTranslation(b.x, obj.position.y + 2.2, b.z), this.body));
+      const lock = new THREE.Vector3(0, 1.15, HAB_R + 0.8).applyQuaternion(q);
       colliders.push(this.phys.world.createCollider(R.ColliderDesc.cuboid(1.0, 1.1, 1.1).setTranslation(b.x + lock.x, obj.position.y + 1.15, b.z + lock.z).setRotation(q), this.body));
     } else {
       const f = FOOTPRINT[b.type] / 2;

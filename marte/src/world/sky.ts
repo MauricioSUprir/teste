@@ -12,7 +12,7 @@ void main(){
 
 const skyFrag = /* glsl */ `
 uniform vec3 uSun; uniform float uTau; uniform float uSunPower; uniform float uSunCos; uniform float uEnv;
-uniform vec3 uEarth; uniform mat3 uStarRot; uniform float uStorm;
+uniform vec3 uEarth; uniform mat3 uStarRot; uniform float uStorm; uniform float uTime;
 varying vec3 vDir;
 ${ATMOS_GLSL}
 float hash13(vec3 p){ p = fract(p*0.1031); p += dot(p, p.zyx+31.32); return fract((p.x+p.y)*p.z); }
@@ -24,10 +24,10 @@ vec3 stars(vec3 d){
   vec3 p = uStarRot * d * 420.0;
   vec3 c = floor(p); vec3 f = fract(p)-0.5;
   float h = hash13(c);
-  if(h < 0.993) return vec3(0.0);
+  if(h < 0.986) return vec3(0.0);
   vec3 o = vec3(hash13(c+1.3), hash13(c+7.1), hash13(c+3.7)) - 0.5;
   float r = length(f - o*0.6);
-  float b = pow((h-0.993)/0.007, 4.0) * 3.0 + 0.04;
+  float b = pow((h-0.986)/0.014, 5.0) * 3.5 + 0.05;
   vec3 tint = mix(vec3(1.0,0.8,0.65), vec3(0.75,0.85,1.0), hash13(c+9.0));
   return tint * b * smoothstep(0.14, 0.0, r);
 }
@@ -41,14 +41,18 @@ void main(){
   float dark = 1.0 - smoothstep(-0.25, 0.02, uSun.y);
   float starVis = dark * exp(-uTau*1.2) * (1.0 - uStorm);
   if (uEnv < 0.5) {
-    col += stars(v) * starVis * horizonFade * (0.4 + 0.6*smoothstep(0.0,0.3,v.y)) * 0.06;
+    // cintilação muito leve (atmosfera rarefeita quase não cintila)
+    float tw = 0.92 + 0.08*sin(dot(floor(uStarRot*v*420.0), vec3(12.9,78.2,37.7)) + uTime*3.0);
+    col += stars(v) * tw * starVis * horizonFade * (0.4 + 0.6*smoothstep(0.0,0.3,v.y)) * 0.09;
     // Via Láctea: faixa difusa ao longo de um grande círculo (plano galáctico inclinado)
     vec3 gp = uStarRot * v;
     float band = exp(-pow(dot(gp, normalize(vec3(0.3, 0.55, 0.78))) * 7.0, 2.0));
     float cloud = fbm3(gp*7.0 + 3.0);
     float dustLane = smoothstep(0.45, 0.7, fbm3(gp*11.0 - 5.0));
     float mw = band * smoothstep(0.3, 0.85, cloud) * (1.0 - 0.7*dustLane*band);
-    col += vec3(0.78, 0.8, 0.9) * mw * (0.6 + 0.4*vn3(gp*40.0)) * 0.00125 * starVis * horizonFade;
+    col += vec3(0.78, 0.8, 0.9) * mw * (0.6 + 0.4*vn3(gp*40.0)) * 0.003 * starVis * horizonFade;
+    // brilho difuso do núcleo galáctico
+    col += vec3(0.9, 0.8, 0.65) * band * smoothstep(0.55, 0.95, dot(gp, normalize(vec3(-0.8, 0.2, 0.5)))) * 0.0015 * starVis * horizonFade;
     // Terra: "estrela" azul brilhante, mag ~ -2,5
     float e = dot(v, uEarth);
     col += vec3(0.35,0.55,1.0) * smoothstep(0.999992, 0.999998, e) * 3.5 * starVis * horizonFade;
@@ -78,6 +82,7 @@ export class Sky {
     uEarth: { value: new THREE.Vector3(0, 1, 0) },
     uStarRot: { value: new THREE.Matrix3() },
     uStorm: { value: 0 },
+    uTime: { value: 0 },
   };
   readonly phobos: THREE.Mesh;
   readonly deimos: THREE.Mesh;

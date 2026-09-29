@@ -1,5 +1,6 @@
 // Módulo de pouso ARES IV (pouso forçado) + destroços. Geometria procedural com materiais PBR.
 import * as THREE from 'three';
+import { beacon, WINDOW_MAT } from './nightfx';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mulberry32 } from './noise';
 import type { Terrain } from './terrain';
@@ -133,7 +134,7 @@ export function buildLander(M: LanderMats) {
   const dome = new THREE.Mesh(new THREE.SphereGeometry(1.35, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), M.white);
   dome.position.y = 4.8;
   g.add(dome);
-  const win = new THREE.Mesh(new RoundedBoxGeometry(0.8, 0.45, 0.2, 3, 0.08), new THREE.MeshPhysicalMaterial({ color: 0x0a0f14, metalness: 0.2, roughness: 0.05, clearcoat: 1 }));
+  const win = new THREE.Mesh(new RoundedBoxGeometry(0.8, 0.45, 0.2, 3, 0.08), WINDOW_MAT);
   win.position.set(0, 4.3, 1.42);
   win.rotation.x = -0.12;
   g.add(win);
@@ -154,6 +155,10 @@ export function buildLander(M: LanderMats) {
   dish.position.set(-1.0, 6.3, 0.3);
   dish.rotation.set(1.9, 0, 0.6);
   g.add(mast, dish);
+  // sinalizador no topo da cabine (ainda com energia da bateria de emergência)
+  const bc = beacon(0.09); bc.position.set(0.3, 6.18, -0.2);
+  const bcBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.1, 10), M.metal); bcBase.position.set(0.3, 6.1, -0.2);
+  g.add(bc, bcBase);
   // painel solar dobrado
   const sp = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.05, 1.3), M.solar);
   sp.position.set(-2.6, 2.5, -1.2);
