@@ -1,7 +1,7 @@
 import { toView, viewSize } from './viewport';
 
 // Entrada unificada: teclado/mouse (pointer lock) e toque (joystick flutuante + arrastar para olhar).
-export type Action = 'jump' | 'interact' | 'camera' | 'light' | 'build' | 'map' | 'inventory' | 'pause' | 'sprint' | 'crouch' | 'vehicle';
+export type Action = 'jump' | 'interact' | 'camera' | 'light' | 'build' | 'map' | 'inventory' | 'pause' | 'sprint' | 'crouch' | 'vehicle' | 'fire' | 'weapon' | 'rotate';
 
 export class Input {
   move = { x: 0, y: 0 }; // x = direita, y = frente
@@ -43,9 +43,11 @@ export class Input {
     });
     addEventListener('mousedown', (e) => {
       if (!this.locked || !this.enabled) return;
-      if (e.button === 0) { this.fire('interact'); this.held.add('interact'); }
+      // botão esquerdo = atirar (E continua sendo interagir); com o fantasma de construção, clique = colocar
+      if (e.button === 0) { this.fire('fire'); this.held.add('fire'); }
     });
-    addEventListener('mouseup', (e) => { if (e.button === 0 && !this.keys.has('KeyE')) this.held.delete('interact'); });
+    addEventListener('mouseup', (e) => { if (e.button === 0) this.held.delete('fire'); });
+    addEventListener('wheel', (e) => { if (this.locked && this.enabled && Math.abs(e.deltaY) > 20) this.fire('weapon'); }, { passive: true });
     canvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     addEventListener('pointermove', (e) => this.onPointerMove(e));
     addEventListener('pointerup', (e) => this.onPointerUp(e));
@@ -61,7 +63,7 @@ export class Input {
   }
 
   private static KEYMAP: Record<string, Action> = {
-    Space: 'jump', KeyE: 'interact', KeyV: 'camera', KeyL: 'light', KeyB: 'build', KeyM: 'map', Tab: 'inventory', KeyI: 'inventory', Escape: 'pause', KeyF: 'vehicle', KeyC: 'crouch', KeyP: 'pause',
+    Space: 'jump', KeyE: 'interact', KeyQ: 'weapon', KeyR: 'rotate', KeyV: 'camera', KeyL: 'light', KeyB: 'build', KeyM: 'map', Tab: 'inventory', KeyI: 'inventory', Escape: 'pause', KeyF: 'vehicle', KeyC: 'crouch', KeyP: 'pause',
   };
 
   private onKey(e: KeyboardEvent, down: boolean) {

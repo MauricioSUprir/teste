@@ -9,7 +9,9 @@ export interface DetailOpts { set: DetailSet; tile: number; albedo?: number; nor
 const TEX: Partial<Record<DetailSet, { d: THREE.Texture; n: THREE.Texture }>> = {};
 const SETS: DetailSet[] = ['panel', 'plate', 'fabric', 'tread'];
 
-export async function loadDetailTextures(load: (url: string, srgb: boolean) => Promise<THREE.Texture>, base: string, tier: '1k' | '2k') {
+let FAST = false;
+export async function loadDetailTextures(load: (url: string, srgb: boolean) => Promise<THREE.Texture>, base: string, tier: '1k' | '2k', fast = false) {
+  FAST = fast;
   await Promise.all(SETS.map(async (s) => {
     const [d, n] = await Promise.all([load(`${base}/tex/obj/${tier}/${s}_d.webp`, false), load(`${base}/tex/obj/${tier}/${s}_n.webp`, false)]);
     for (const t of [d, n]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; t.needsUpdate = true; }
@@ -25,7 +27,7 @@ export function detail<T extends THREE.Material>(mat: T, o: DetailOpts): T {
 
 export function detailKey(mat: THREE.Material) {
   const d = mat.userData.detail as DetailOpts | undefined;
-  return d ? `|det` : '';
+  return d ? (FAST ? '|detF' : '|det') : '';
 }
 
 /** injeta a projeção triplanar no shader (deve rodar ANTES do patch de poeira, que age em color_fragment) */
@@ -36,6 +38,7 @@ export function applyDetail(shader: THREE.WebGLProgramParametersWithUniforms, ma
   shader.uniforms.uDetD = { value: tx.d };
   shader.uniforms.uDetN = { value: tx.n };
   shader.uniforms.uDetP = { value: new THREE.Vector4(1 / o.tile, o.albedo, o.normal, o.rough) };
+  if (FAST) shader.fragmentShader = '#define DETAIL_FAST\n' + shader.fragmentShader;
   shader.vertexShader = shader.vertexShader
     .replace('#include <common>', `#include <common>
       varying vec3 vDetPos; varying vec3 vDetNrm; varying vec3 vDetAX; varying vec3 vDetAY; varying vec3 vDetAZ;`)
@@ -70,6 +73,10 @@ export function applyDetail(shader: THREE.WebGLProgramParametersWithUniforms, ma
       {
         vec3 n = normalize(vDetNrm);
         detW = pow(abs(n), vec3(4.0)); detW /= (detW.x + detW.y + detW.z);
+        #ifdef DETAIL_FAST
+          // celular: só a projeção dominante (1 leitura por mapa)
+          detW = step(max(max(detW.x, detW.y), detW.z) - 1e-4, detW); detW /= (detW.x + detW.y + detW.z);
+        #endif
         vec3 p = vDetPos * uDetP.x;
         detD = detSample(uDetD, p, detW);
         float lum = detD.r * 2.0;

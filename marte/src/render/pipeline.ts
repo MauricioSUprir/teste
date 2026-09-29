@@ -62,6 +62,21 @@ class VisorEffect extends Effect {
   set frost(v: number) { (this.uniforms.get('frost') as THREE.Uniform).value = v; }
 }
 
+/** geada nas bordas (gerada uma vez em canvas) */
+function frostImage() {
+  const W = 512, H = 288, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d')!;
+  for (let i = 0; i < 2600; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    const d = Math.hypot((x - W / 2) / (W / 2), (y - H / 2) / (H / 2));
+    if (d < 0.75 + Math.random() * 0.25) continue;
+    const len = 4 + Math.random() * 14, a = Math.random() * Math.PI;
+    g.strokeStyle = `rgba(215,235,255,${0.05 + Math.random() * 0.25})`; g.lineWidth = 0.6 + Math.random();
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+  }
+  return c.toDataURL();
+}
+
 export class Pipeline {
   composer: EffectComposer;
   exposure = new ExposureEffect();
@@ -77,9 +92,17 @@ export class Pipeline {
     this.build(q);
   }
 
+  /** sem composer: tom AgX + exposição no próprio render (celular) */
+  direct = false;
+  private overlay: HTMLDivElement | null = null;
+  private frostEl: HTMLDivElement | null = null;
+
   build(q: QualitySettings) {
     // remove tudo menos o RenderPass
     for (const p of [...this.composer.passes]) if (p !== this.renderPass) { this.composer.removePass(p); p.dispose(); }
+    this.direct = !q.post;
+    this.renderer.toneMapping = this.direct ? THREE.AgXToneMapping : THREE.NoToneMapping;
+    this.setupOverlay();
     const w = this.renderer.domElement.width, h = this.renderer.domElement.height;
     this.n8ao = null;
     if (q.ao) {
@@ -120,6 +143,24 @@ export class Pipeline {
   }
 
   render(dt: number) {
-    this.composer.render(dt);
+    if (this.direct) this.renderer.render(this.scene, this.camera);
+    else this.composer.render(dt);
   }
+
+  /** vinheta e geada do visor em CSS (modo direto): custo zero na GPU */
+  private setupOverlay() {
+    if (!this.overlay) {
+      const o = document.createElement('div');
+      o.id = 'visorfx';
+      o.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.38) 100%);';
+      const f = document.createElement('div');
+      f.style.cssText = 'position:absolute;inset:0;opacity:0;transition:opacity .6s;background-size:cover;';
+      f.style.backgroundImage = `url(${frostImage()})`;
+      o.appendChild(f);
+      (document.getElementById('c')?.parentElement ?? document.body).appendChild(o);
+      this.overlay = o; this.frostEl = f;
+    }
+    this.overlay.style.display = this.direct ? 'block' : 'none';
+  }
+  setOverlayFrost(v: number) { if (this.frostEl && this.direct) this.frostEl.style.opacity = String(Math.min(0.85, v)); }
 }

@@ -10,7 +10,7 @@ export const INTERIOR_ORIGIN = new THREE.Vector3(0, 1500, 0);
 const R = HAB_R - 0.05; // raio interno (mesmo tamanho do habitat visto de fora)
 const WALL_H = 2.4;
 
-export type InteriorAction = 'exit' | 'console' | 'sleep' | 'food' | 'plants';
+export type InteriorAction = 'exit' | 'console' | 'sleep' | 'food' | 'plants' | 'bench';
 export interface InteriorSpot { action: InteriorAction; pos: THREE.Vector3; label: string }
 
 function canvasTex(w: number, h: number, draw: (c: CanvasRenderingContext2D) => void, srgb = true) {
@@ -222,6 +222,7 @@ export class Interior {
       { action: 'sleep', pos: w(R - 2.0, 0, -0.6), label: 'int_sleep' },
       { action: 'food', pos: w(-R + 1.3, 0, -1.3), label: 'int_food' },
       { action: 'plants', pos: w(-1.6, 0, 2.2), label: 'int_plants' },
+      { action: 'bench', pos: w(1.3, 0, 1.2), label: 'int_bench' },
     ];
     this.spawn.copy(w(0, 0.05, R - 1.2));
     this.spawnYaw = 0; // olhando para −Z (para dentro)

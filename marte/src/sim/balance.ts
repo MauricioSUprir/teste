@@ -48,7 +48,7 @@ export const BAL = {
   rescueSols: 3, // igual à fala do rádio ("três sóis")
 };
 
-export type ItemId = 'scrap' | 'electronics' | 'gypsum' | 'culture' | 'kit_habitat' | 'kit_panel' | 'ration';
+export type ItemId = 'scrap' | 'electronics' | 'gypsum' | 'culture' | 'kit_habitat' | 'kit_panel' | 'ration' | 'chitin';
 export type BuildId = 'habitat' | 'panel' | 'battery' | 'moxie' | 'extractor' | 'bioreactor';
 
 export const COSTS: Record<BuildId, Partial<Record<ItemId, number>>> = {

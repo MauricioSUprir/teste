@@ -1,5 +1,5 @@
 // Níveis de qualidade + escala de resolução dinâmica.
-export type QualityId = 'low' | 'medium' | 'high' | 'ultra' | 'max';
+export type QualityId = 'low' | 'mobile' | 'medium' | 'high' | 'ultra' | 'max';
 
 export interface QualitySettings {
   id: QualityId;
@@ -17,14 +17,24 @@ export interface QualitySettings {
   rockDensity: number; // 0..1
   drawDistance: number;
   particles: number;
+  /** pedrinhas: quantidade e raio (m) */
+  pebbles: [number, number];
+  /** piso da resolução dinâmica em pixels CSS (nunca abaixo disso: evita a imagem "pixelada") */
+  resFloor: number;
+  /** detalhe triplanar só no eixo dominante (1 leitura em vez de 3) */
+  fastDetail: boolean;
+  /** pós-processamento (composer). No celular o tom/exposição vão direto no render: -20..30% de custo por quadro */
+  post: boolean;
 }
 
 export const QUALITY: Record<QualityId, QualitySettings> = {
-  low: { id: 'low', pixelRatioCap: 0.75, texTier: '1k', shadowCascades: 1, shadowMapSize: 1024, shadowFar: 120, ao: false, aoHalfRes: true, bloom: false, smaa: false, antiTiling: false, lodScale: 0.55, rockDensity: 0.25, drawDistance: 2500, particles: 300 },
-  medium: { id: 'medium', pixelRatioCap: 1, texTier: '1k', shadowCascades: 2, shadowMapSize: 1024, shadowFar: 200, ao: false, aoHalfRes: true, bloom: true, smaa: true, antiTiling: true, lodScale: 0.8, rockDensity: 0.45, drawDistance: 5000, particles: 800 },
-  high: { id: 'high', pixelRatioCap: 1.5, texTier: '2k', shadowCascades: 3, shadowMapSize: 2048, shadowFar: 350, ao: true, aoHalfRes: true, bloom: true, smaa: true, antiTiling: true, lodScale: 1, rockDensity: 0.7, drawDistance: 9000, particles: 1500 },
-  ultra: { id: 'ultra', pixelRatioCap: 2, texTier: '2k', shadowCascades: 4, shadowMapSize: 2048, shadowFar: 500, ao: true, aoHalfRes: false, bloom: true, smaa: true, antiTiling: true, lodScale: 1.35, rockDensity: 1, drawDistance: 12000, particles: 2500 },
-  max: { id: 'max', pixelRatioCap: 4, texTier: '4k', shadowCascades: 4, shadowMapSize: 4096, shadowFar: 700, ao: true, aoHalfRes: false, bloom: true, smaa: true, antiTiling: true, lodScale: 1.8, rockDensity: 1, drawDistance: 12000, particles: 4000 },
+  low: { id: 'low', pebbles: [350, 9], resFloor: 0.6, fastDetail: true, post: true, pixelRatioCap: 0.75, texTier: '1k', shadowCascades: 1, shadowMapSize: 1024, shadowFar: 120, ao: false, aoHalfRes: true, bloom: false, smaa: false, antiTiling: false, lodScale: 0.55, rockDensity: 0.25, drawDistance: 2500, particles: 300 },
+  // celular (iPhone/Android): nitidez acima de 1 px CSS, sombras e pós-processamento enxutos
+  mobile: { id: 'mobile', pebbles: [450, 9], resFloor: 1.0, fastDetail: true, post: false, pixelRatioCap: 1.6, texTier: '1k', shadowCascades: 1, shadowMapSize: 1536, shadowFar: 90, ao: false, aoHalfRes: true, bloom: false, smaa: false, antiTiling: false, lodScale: 0.6, rockDensity: 0.35, drawDistance: 3500, particles: 300 },
+  medium: { id: 'medium', pebbles: [900, 11], resFloor: 0.75, fastDetail: false, post: true, pixelRatioCap: 1, texTier: '1k', shadowCascades: 2, shadowMapSize: 1024, shadowFar: 200, ao: false, aoHalfRes: true, bloom: true, smaa: true, antiTiling: true, lodScale: 0.8, rockDensity: 0.45, drawDistance: 5000, particles: 800 },
+  high: { id: 'high', pebbles: [2400, 16], resFloor: 0.9, fastDetail: false, post: true, pixelRatioCap: 1.5, texTier: '2k', shadowCascades: 3, shadowMapSize: 2048, shadowFar: 350, ao: true, aoHalfRes: true, bloom: true, smaa: true, antiTiling: true, lodScale: 1, rockDensity: 0.7, drawDistance: 9000, particles: 1500 },
+  ultra: { id: 'ultra', pebbles: [3600, 20], resFloor: 1.0, fastDetail: false, post: true, pixelRatioCap: 2, texTier: '2k', shadowCascades: 4, shadowMapSize: 2048, shadowFar: 500, ao: true, aoHalfRes: false, bloom: true, smaa: true, antiTiling: true, lodScale: 1.35, rockDensity: 1, drawDistance: 12000, particles: 2500 },
+  max: { id: 'max', pebbles: [4500, 22], resFloor: 1.0, fastDetail: false, post: true, pixelRatioCap: 4, texTier: '4k', shadowCascades: 4, shadowMapSize: 4096, shadowFar: 700, ao: true, aoHalfRes: false, bloom: true, smaa: true, antiTiling: true, lodScale: 1.8, rockDensity: 1, drawDistance: 12000, particles: 4000 },
 };
 
 export const isMobile = (() => {
@@ -39,8 +49,7 @@ export function autoQuality(gl: WebGL2RenderingContext | null): QualityId {
   const cores = navigator.hardwareConcurrency || 4;
   // iPhone/iPad (Safari não informa memória e limita núcleos): GPUs Apple aguentam "média";
   // a resolução dinâmica segura aparelhos mais antigos
-  if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))) return 'medium';
-  if (isMobile) return mem >= 6 && cores >= 8 ? 'medium' : 'low';
+  if (isMobile) return mem >= 3 || /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? 'mobile' : 'low';
   let renderer = '';
   const ext = gl.getExtension('WEBGL_debug_renderer_info');
   if (ext) renderer = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL));

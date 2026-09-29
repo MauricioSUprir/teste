@@ -5,6 +5,7 @@ import type { LanderMats } from './lander';
 import { beacon, WINDOW_MAT } from './nightfx';
 import { detail } from '../render/detail';
 import { crumpledSheet } from './debris';
+import { holoMaterial, HOLO_OK, HOLO_BAD } from '../render/holo';
 import type { BuildId } from '../sim/balance';
 
 const shadow = <T extends THREE.Object3D>(o: T): T => { o.traverse((c) => { if ((c as THREE.Mesh).isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
@@ -17,8 +18,8 @@ export function makeStructMats(M: LanderMats) {
     glassGreen: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.15, 0.55, 0.22), roughness: 0.08, transmission: 0, metalness: 0, clearcoat: 1, emissive: new THREE.Color(0.02, 0.12, 0.03), emissiveIntensity: 1 }),
     lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: new THREE.Color(1, 0.9, 0.75), emissiveIntensity: 6 }),
     ledGreen: new THREE.MeshStandardMaterial({ color: 0x103010, emissive: new THREE.Color(0.2, 1, 0.3), emissiveIntensity: 5 }),
-    ghostOk: new THREE.MeshBasicMaterial({ color: 0x4dff88, transparent: true, opacity: 0.35, depthWrite: false }),
-    ghostBad: new THREE.MeshBasicMaterial({ color: 0xff4d3d, transparent: true, opacity: 0.35, depthWrite: false }),
+    ghostOk: holoMaterial(HOLO_OK),
+    ghostBad: holoMaterial(HOLO_BAD),
   };
 }
 export type StructMats = ReturnType<typeof makeStructMats>;

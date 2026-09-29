@@ -1,7 +1,9 @@
 // Controlador de jogo: liga simulação de sobrevivência, interação, construção, objetivos e HUD ao motor.
 import * as THREE from 'three';
 import type { Game } from './game';
-import { Hud } from './ui/hud';
+import { Hud, WICON, BUILD_ORDER } from './ui/hud';
+import { makeThumbs } from './ui/thumbs';
+import { BUILDERS } from './world/structures';
 import { WorldSim, type LootPoint } from './sim/world';
 import { newState, save, load, type GameState } from './sim/state';
 import { simulate, type SimOut } from './sim/survival';
@@ -12,6 +14,8 @@ import { WORLD } from './world/config';
 import { Voice } from './audio/voice';
 import { sfx } from './audio/sfx';
 import { viewSize } from './core/viewport';
+import { Combat } from './combat/combat';
+import { WEAPONS, UPG_MAX, upgradeCost, type WeaponId, type UpgradeId } from './combat/defs';
 
 const HOLD: Record<string, number> = { crate: 1.2, wreck: 2.0, gypsum: 2.6, antenna: 4.0, door: 0, panel_clean: 2.0 };
 
@@ -21,6 +25,7 @@ export class Play {
   hud: Hud;
   voice = new Voice();
   inHab = false;
+  combat!: Combat;
   private coldWarnSol = -1;
   dead = false;
   won = false;
@@ -36,6 +41,14 @@ export class Play {
 
   constructor(public game: Game) {
     this.world = new WorldSim(game.crash.mats, game.terrain, game.physics, game.crash.crates, game.crash.landerPos, game.nasa);
+    this.combat = new Combat(game, () => this.st, {
+      toast: (k, kind = 'info', vars) => this.hud.toast(t(k as Key, vars), kind),
+      say: (k) => this.speak(k as Key),
+      hurt: (dmg) => this.playerHurt(dmg),
+      hitMarker: (kill) => this.hud.hitMarker(kill),
+      threats: (l) => this.hud.setThreats(l),
+      targetBar: (p, f) => { const { w, h } = viewSize(); this.hud.setTargetBar(p, f, w, h); },
+    });
     // pedrinhas nunca escondem itens coletáveis
     game.pebbleBlock = (x, z) => this.world.loot.some((l) => Math.abs(l.pos.x - x) < 1.6 && Math.abs(l.pos.z - z) < 1.6);
     game.pebbles.update(game.camera.position, true);
@@ -43,11 +56,17 @@ export class Play {
     this.hud = new Hud(document.getElementById('hud')!);
     this.hud.buildMap(game.terrain.heights, WORLD.res);
     this.hud.onBuildPick = (b) => this.pickBuild(b);
-    this.hud.onBuildClose = () => this.closeBuildMenu();
+    this.hud.onBuildClose = () => this.exitBuild();
+    this.hud.onBuildRotate = () => this.rotateGhost();
+    this.hud.onBuildPlace = () => { if (this.world.ghost) { this.world.updateGhost(this.st, this.game.player.pos, this.game.player.yaw); this.placeBuild(); } };
     this.hud.onSleep = () => { this.closeConsole(); this.sleep(); };
     this.hud.onExit = () => this.closeConsole();
     this.hud.onRespawn = () => this.respawn();
     this.hud.onMenu = () => { this.hud.hideEnd(); this.onQuitToMenu?.(); };
+    this.hud.onArmoryClose = () => { this.hud.closeArmory(); this.game.input.enabled = true; this.game.input.clearPressed(); this.game.input.requestLock(); };
+    this.hud.onCraft = (w) => this.craftWeapon(w);
+    this.hud.onUpgrade = (w, u) => this.upgradeWeapon(w, u);
+    this.hud.onEquip = (w) => { this.st.weapons.eq = w; sfx.click(); this.hud.openArmory(this.st); };
     // depois do resgate confirmado: continuar explorando Marte livremente
     this.hud.onFreeplay = () => {
       this.st.flags.freeplay = true;
@@ -63,12 +82,12 @@ export class Play {
   // ------------------------------------------------ ciclo de vida
   begin(st: GameState) {
     this.st = st;
+    this.combat?.reset();
     this.dead = false;
     this.won = !!st.flags.won && !st.flags.freeplay;
     this.inHab = false;
     this.game.setInterior(false);
-    this.hud.closeHab(); this.hud.closeBuild(); this.hud.hideEnd(); this.hud.toggleMap(false);
-    this.world.cancelGhost();
+    this.hud.closeHab(); this.exitBuild(); this.hud.hideEnd(); this.hud.toggleMap(false);
     this.world.sync(st);
     const g = this.game;
     g.sol = st.sol;
@@ -144,6 +163,17 @@ export class Play {
       this.handleVehicle(dt);
       if (!g.driving) { this.handleInteraction(dt); this.handleBuild(); }
     }
+    {
+      const hab = this.world.habitat(st);
+      this.combat.aimAssist = g.input.touchMode;
+      this.combat.update(dt, { active: !this.dead && !this.won && !g.paused, inside: this.inHab, driving: g.driving, habitat: hab ? new THREE.Vector3(hab.x, 0, hab.z) : null, storm: !!st.storm });
+      const armed = !this.inHab && !g.driving && !this.dead && !this.world.ghost && !this.hud.buildOpen;
+      this.hud.setWeapon(st, armed);
+      const tf = document.getElementById('tb-fire'), tw = document.getElementById('tb-wpn');
+      tf?.classList.toggle('gone', !armed);
+      if (tw) { tw.classList.toggle('gone', !armed); const ic = WICON[st.weapons.eq]; if (tw.textContent !== ic) tw.textContent = ic; }
+    }
+    this.world.update(dt);
     if (input.consume('map')) this.hud.toggleMap();
     if (this.hud.mapOpen) this.drawMap();
 
@@ -304,33 +334,73 @@ export class Play {
   // ------------------------------------------------ construção
   private handleBuild() {
     const g = this.game, input = g.input, st = this.st;
-    if (input.consume('build')) {
-      if (this.world.ghost) { this.world.cancelGhost(); return; }
-      if (this.hud.buildOpen) { this.closeBuildMenu(); return; }
-      g.input.enabled = false;
-      if (document.pointerLockElement) document.exitPointerLock();
-      this.hud.openBuild(st, (b) => this.world.canAfford(st, b));
-      return;
-    }
-    if (this.world.ghost) {
-      this.world.updateGhost(st, g.player.pos, g.player.yaw);
-      this.hud.showPrompt(this.world.ghostValid ? t(g.input.touchMode ? 'build_hint_touch' : 'build_hint') : t((this.world.ghostReason || 'build_invalid') as Key), 0, false);
-      if (input.consume('interact')) {
-        const b = this.world.placeGhost(st);
-        if (b) { this.hud.toast(`✓ ${t(`b_${b.type}` as Key)}`, 'ok'); sfx.build(); }
-        else { this.hud.toast(t((this.world.ghostReason || 'build_invalid') as Key), 'warn'); sfx.alarm(1); }
-      }
-    }
+    if (input.consume('build')) { if (this.buildMode) this.exitBuild(); else this.enterBuild(); return; }
+    if (!this.buildMode) return;
+    if (input.consume('weapon')) this.cycleBuild(1);
+    if (input.consume('rotate')) this.rotateGhost();
+    if (!this.world.ghost) { this.hud.showPrompt(t('build_pick'), 0, false); input.consume('interact'); input.consume('fire'); return; }
+    this.world.updateGhost(st, g.player.pos, g.player.yaw);
+    this.hud.showPrompt(this.world.ghostValid ? t(g.input.touchMode ? 'build_hint_touch' : 'build_hint') : t((this.world.ghostReason || 'build_invalid') as Key), 0, false);
+    if (input.consume('interact') || input.consume('fire')) this.placeBuild();
+  }
+  private buildMode = false;
+  private buildSel: BuildId | null = null;
+  private thumbs: Record<string, string> | null = null;
+  private availableBuilds() {
+    const hasHab = !!this.world.habitat(this.st);
+    return BUILD_ORDER.filter((b) => (b === 'habitat') !== hasHab);
+  }
+  private enterBuild() {
+    const g = this.game;
+    if (!this.thumbs) this.thumbs = makeThumbs(g.renderer, Object.fromEntries(BUILD_ORDER.map((b) => [b, () => BUILDERS[b](this.world.mats)])));
+    this.buildMode = true;
+    const av = this.availableBuilds();
+    if (!this.buildSel || !av.includes(this.buildSel)) this.buildSel = av.find((b) => this.world.canAfford(this.st, b)) ?? av[0] ?? null;
+    this.world.ghostRot = 0;
+    if (this.buildSel) this.world.startGhost(this.buildSel);
+    this.refreshBuildUi();
+    sfx.click();
+  }
+  private refreshBuildUi() {
+    this.hud.openBuild(this.st, (b) => this.world.canAfford(this.st, b), this.thumbs ?? {}, this.buildSel, this.game.input.touchMode);
+  }
+  exitBuild() {
+    this.buildMode = false;
+    this.world.cancelGhost();
+    this.hud.closeBuild();
+    this.hud.showPrompt(null);
   }
   private pickBuild(b: BuildId) {
-    this.closeBuildMenu();
+    if (!this.buildMode) { this.buildSel = b; this.enterBuild(); return; }
+    this.buildSel = b;
     this.world.startGhost(b);
+    sfx.click();
+    this.refreshBuildUi();
   }
-  closeBuildMenu() {
-    this.hud.closeBuild();
-    this.game.input.enabled = true;
-    this.game.input.requestLock();
+  private cycleBuild(dir: number) {
+    const av = this.availableBuilds();
+    if (!av.length) return;
+    const i = this.buildSel ? av.indexOf(this.buildSel) : -1;
+    this.pickBuild(av[(i + dir + av.length) % av.length]);
   }
+  private rotateGhost() { this.world.ghostRot += Math.PI / 4; sfx.click(); }
+  private placeBuild() {
+    const g = this.game, st = this.st;
+    const pos = this.world.ghost?.position.clone();
+    const b = this.world.placeGhost(st);
+    if (b) {
+      this.hud.toast(`✓ ${t(`b_${b.type}` as Key)}`, 'ok');
+      sfx.build();
+      if (pos) this.combat.vfx.burst(pos.setY(pos.y + 0.2), 30, 'dust');
+      // continua construindo: mantém o tipo se ainda der para pagar
+      const av = this.availableBuilds();
+      if (!av.includes(b.type)) this.buildSel = av[0] ?? null;
+      if (this.buildSel) this.world.startGhost(this.buildSel);
+      this.refreshBuildUi();
+    } else { this.hud.toast(t((this.world.ghostReason || 'build_invalid') as Key), 'warn'); sfx.alarm(1); }
+    void g;
+  }
+  closeBuildMenu() { this.exitBuild(); }
 
   // ------------------------------------------------ habitat
   private enterHab() {
@@ -402,8 +472,44 @@ export class Play {
         else this.hud.toast(t('int_food_info', { n: st.hab.food.toFixed(1) }), 'info');
         break;
       case 'plants': this.hud.toast(t(st.buildings.some((b) => b.type === 'bioreactor') ? 'int_plants_ok' : 'int_plants_wait'), 'info'); break;
+      case 'bench': g.input.enabled = false; if (document.pointerLockElement) document.exitPointerLock(); this.hud.showPrompt(null); this.hud.openArmory(st); break;
     }
   }
+  // ------------------------------------------------ combate
+  private playerHurt(dmg: number) {
+    const st = this.st;
+    if (this.dead || this.inHab) return;
+    st.suit.health = Math.max(0, st.suit.health - dmg);
+    this.hud.hurtFlash(dmg);
+    sfx.hurt();
+    this.game.shake = Math.min(0.15, this.game.shake + 0.1);
+    if (st.suit.health <= 0) this.die();
+  }
+  private pay(cost: Partial<Record<ItemId, number>>) {
+    const inv = this.st.inv as Record<string, number>;
+    if (!Object.entries(cost).every(([k, v]) => inv[k] >= (v as number))) { sfx.click(); return false; }
+    for (const [k, v] of Object.entries(cost)) inv[k] -= v as number;
+    return true;
+  }
+  private craftWeapon(w: WeaponId) {
+    const W = this.st.weapons;
+    if (W.owned.includes(w) || !this.pay(WEAPONS[w].craft ?? {})) return;
+    W.owned.push(w); W.eq = w;
+    sfx.craft();
+    this.hud.toast(t('crafted', { w: t(`w_${w}` as Key) }), 'ok');
+    this.persist(false);
+    if (this.hud.armoryOpen) this.hud.openArmory(this.st);
+  }
+  private upgradeWeapon(w: WeaponId, u: UpgradeId) {
+    const l = this.st.weapons.lvl[w];
+    if (l[u] >= UPG_MAX || !this.pay(upgradeCost(l[u]))) return;
+    l[u]++;
+    sfx.craft();
+    this.hud.toast(t('upgraded'), 'ok');
+    this.persist(false);
+    if (this.hud.armoryOpen) this.hud.openArmory(this.st);
+  }
+
   private sleep() {
     // dorme até as 07:00 do próximo sol simulando em passos de 15 min
     const g = this.game, st = this.st;
@@ -433,7 +539,7 @@ export class Play {
     this.game.player.frozen = true;
     this.game.input.enabled = false;
     this.game.input.move.x = this.game.input.move.y = 0;
-    this.hud.closeBuild(); this.hud.toggleMap(false); this.world.cancelGhost();
+    this.exitBuild(); this.hud.toggleMap(false);
     if (document.pointerLockElement) document.exitPointerLock();
     this.hud.closeHab();
     this.inHab = false;
@@ -499,6 +605,11 @@ export class Play {
     if (behind) { x = W - x; y = H - 40; }
     x = Math.max(40, Math.min(W - 40, x));
     y = Math.max(70, Math.min(H - 60, y));
+    // no toque, não deixa o marcador cair em cima dos botões (canto inferior direito / joystick)
+    if (this.game.input.touchMode) {
+      if (x > W - 270 && y > H - 230) y = H - 230;
+      if (x < 240 && y > H - 190) y = H - 190;
+    }
     this.hud.setWaypoint(x, y, dist);
   }
 

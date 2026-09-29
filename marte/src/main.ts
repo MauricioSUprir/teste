@@ -1,7 +1,7 @@
 import { Game, type GameOptions } from './game';
 import { t, translateDom, setLang, getLang, LANGS, onLang, type Key, type Lang } from './core/i18n';
 import { autoQuality, isMobile, type QualityId } from './core/quality';
-import { applyViewport } from './core/viewport';
+import { applyViewport, toView } from './core/viewport';
 import * as THREE from 'three';
 import { Play } from './play';
 import { marsTemp } from './sim/survival';
@@ -115,7 +115,7 @@ function play() {
   game.menuMode = false;
   game.paused = false;
   game.input.clearPressed();
-  const overlay = !!(play_ && (play_.hud.habOpen || play_.hud.buildOpen || play_.dead || play_.won));
+  const overlay = !!(play_ && (play_.hud.habOpen || play_.hud.armoryOpen || play_.dead || play_.won));
   game.input.enabled = !overlay;
   const touch = isMobile || game.input.touchMode;
   $('touch').classList.toggle('hidden', !touch);
@@ -155,7 +155,7 @@ function toastMenu(s: string) {
 function toMenu() {
   if (play_) {
     play_.persist(false); play_.active = false;
-    play_.hud.closeHab(); play_.hud.closeBuild(); play_.hud.toggleMap(false); play_.hud.hideEnd(); play_.world.cancelGhost();
+    play_.hud.closeHab(); play_.exitBuild(); play_.hud.toggleMap(false); play_.hud.hideEnd();
     play_.inHab = false; game.setInterior(false); game.forceExitVehicle(); play_.voice.stop();
   }
   inGame = false;
@@ -192,7 +192,7 @@ function fillSettings() {
   sl.innerHTML = LANGS.map((l) => `<option value="${l.id}" ${l.id === getLang() ? 'selected' : ''}>${l.name}</option>`).join('');
   sl.onchange = () => setLang(sl.value as Lang);
   const sq = $<HTMLSelectElement>('set-quality');
-  const qs: (QualityId | 'auto')[] = ['auto', 'low', 'medium', 'high', 'ultra', 'max'];
+  const qs: (QualityId | 'auto')[] = ['auto', 'low', 'mobile', 'medium', 'high', 'ultra', 'max'];
   sq.innerHTML = qs.map((q) => `<option value="${q}" ${q === prefs.quality ? 'selected' : ''}>${t(`q_${q}` as Key)}${q === 'auto' ? ` (${t(`q_${game.q.id}` as Key)})` : ''}</option>`).join('');
   sq.onchange = () => {
     prefs.quality = sq.value as QualityId | 'auto';
@@ -243,19 +243,19 @@ onLang(() => {
 // pointer lock / pausa
 document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
-  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.hud.habOpen || !!play_?.hud.buildOpen || !!play_?.dead || !!play_?.won);
-  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.buildOpen && !play_?.hud.habOpen && !play_?.dead && !play_?.won) pause();
+  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.hud.habOpen || !!play_?.hud.armoryOpen || !!play_?.dead || !!play_?.won);
+  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.habOpen && !play_?.hud.armoryOpen && !play_?.dead && !play_?.won) pause();
 });
-canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.buildOpen && !play_?.hud.habOpen) game.input.requestLock(); });
+canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.habOpen && !play_?.hud.armoryOpen) game.input.requestLock(); });
 addEventListener('keydown', (e) => {
   if (e.code === 'Escape' && inGame && game.paused && !$('pause').classList.contains('hidden')) { e.preventDefault(); setTimeout(() => { game.input.clearPressed(); play(); }, 0); }
 });
 setInterval(() => {
   if (!game.input.consume('pause')) return;
-  if (play_?.hud.buildOpen) { play_.closeBuildMenu(); return; }
+  if (play_?.hud.buildOpen) { play_.exitBuild(); return; }
   if (play_?.hud.mapOpen) { play_.hud.toggleMap(false); return; }
   if (play_?.world.ghost) { play_.world.cancelGhost(); return; }
-  if (!game.paused && !play_?.hud.habOpen) pause();
+  if (!game.paused && !play_?.hud.habOpen && !play_?.hud.armoryOpen) pause();
 }, 50);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); if (play_?.active) play_.persist(false); } });
 // iOS pode descartar o contexto WebGL em segundo plano: pausa, salva e recarrega quando ele voltar
@@ -278,6 +278,29 @@ bindTouchBtn('tb-light', 'light');
 bindTouchBtn('tb-build', 'build');
 bindTouchBtn('tb-map', 'map');
 bindTouchBtn('tb-car', 'vehicle');
+bindTouchBtn('tb-wpn', 'weapon');
+// botão de tiro: segurar = atirar; arrastar o mesmo dedo = mirar (0,8× a sensibilidade do olhar)
+{
+  const b = $('tb-fire');
+  let id = -1, lx = 0, ly = 0;
+  b.addEventListener('pointerdown', (e) => {
+    e.stopPropagation(); e.preventDefault();
+    id = e.pointerId; lx = e.clientX; ly = e.clientY;
+    b.classList.add('down');
+    game.input.fire('fire'); game.input.setHeld('fire', true);
+    try { b.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  });
+  b.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== id) return;
+    const p = toView(e.clientX, e.clientY), q = toView(lx, ly);
+    lx = e.clientX; ly = e.clientY;
+    game.input.look.x += (p.x - q.x) * 1.9 * game.input.sensitivity;
+    game.input.look.y += (p.y - q.y) * 1.5 * game.input.sensitivity * (game.input.invertY ? -1 : 1);
+  });
+  const up = (e: PointerEvent) => { if (e.pointerId !== id) return; id = -1; b.classList.remove('down'); game.input.setHeld('fire', false); };
+  b.addEventListener('pointerup', up);
+  b.addEventListener('pointercancel', up);
+}
 $('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 

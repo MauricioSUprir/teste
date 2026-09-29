@@ -161,13 +161,13 @@ export class Terrain {
   occluders: { x: number; z: number; r: number; s: number; alive?: () => boolean }[] = [];
   addOccluder(x: number, z: number, r: number, s = 0.55, alive?: () => boolean) { this.occluders.push({ x, z, r, s, alive }); }
   /** escolhe os oclusores mais próximos da câmera (+ dinâmicos) e envia ao shader */
-  updateOccluders(cam: THREE.Vector3, dynamic: { x: number; z: number; r: number; s: number }[]) {
+  updateOccluders(cam: THREE.Vector3, dynamic: { x: number; z: number; r: number; s: number }[], max = 24) {
     const arr = this.uniforms.uOcc.value as THREE.Vector4[];
     let n = 0;
-    for (const d of dynamic) if (n < 24) arr[n++].set(d.x, d.z, d.r, d.s);
+    for (const d of dynamic) if (n < max) arr[n++].set(d.x, d.z, d.r, d.s);
     const near = this.occluders.filter((o) => (o.alive?.() ?? true) && Math.abs(o.x - cam.x) < 60 && Math.abs(o.z - cam.z) < 60)
       .sort((a, b) => Math.hypot(a.x - cam.x, a.z - cam.z) - Math.hypot(b.x - cam.x, b.z - cam.z));
-    for (const o of near) { if (n >= 24) break; arr[n++].set(o.x, o.z, o.r, o.s); }
+    for (const o of near) { if (n >= max) break; arr[n++].set(o.x, o.z, o.r, o.s); }
     this.uniforms.uOccN.value = n;
   }
 

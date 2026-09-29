@@ -23,6 +23,7 @@ export const pt = {
   quality: 'Qualidade gráfica',
   q_auto: 'Automática',
   q_low: 'Baixa',
+  q_mobile: 'Celular (otimizada)',
   q_medium: 'Média',
   q_high: 'Alta',
   q_ultra: 'Ultra',

@@ -24,6 +24,7 @@ export const fr: Record<keyof typeof pt, string> = {
   quality: 'Qualité graphique',
   q_auto: 'Automatique',
   q_low: 'Basse',
+  q_mobile: 'Mobile (optimisée)',
   q_medium: 'Moyenne',
   q_high: 'Haute',
   q_ultra: 'Ultra',

@@ -2,6 +2,7 @@
 import { t, type Key } from '../core/i18n';
 import { BAL, COSTS, type BuildId, type ItemId } from '../sim/balance';
 import type { GameState } from '../sim/state';
+import { WEAPONS, WEAPON_ORDER, UPG_MAX, upgradeCost, weaponStats, type WeaponId, type UpgradeId } from '../combat/defs';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', html = '') => {
   const e = document.createElement(tag);
@@ -10,8 +11,9 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', html = '') 
   return e;
 };
 
+export const WICON: Record<WeaponId, string> = { cutter: '⟋', pistol: '⌐', arc: 'ϟ' };
 export const BUILD_ORDER: BuildId[] = ['habitat', 'panel', 'battery', 'moxie', 'extractor', 'bioreactor'];
-const ITEMS: ItemId[] = ['scrap', 'electronics', 'gypsum', 'culture', 'kit_habitat', 'kit_panel'];
+const ITEMS: ItemId[] = ['scrap', 'electronics', 'chitin', 'gypsum', 'culture', 'kit_habitat', 'kit_panel'];
 
 export class Hud {
   root: HTMLElement;
@@ -25,13 +27,25 @@ export class Hud {
   subtitle = el('div', 'subtitle hidden');
   waypoint = el('div', 'waypoint hidden');
   inv = el('div', 'inv');
-  build = el('div', 'overlay build hidden');
+  build = el('div', 'buildui hidden');
   habPanel = el('div', 'overlay hab hidden');
   endScreen = el('div', 'overlay end hidden');
   mapPanel = el('div', 'overlay mapp hidden');
   mapCanvas = el('canvas', 'mapc');
   storm = el('div', 'stormtag hidden');
   roverHud = el('div', 'roverhud hidden');
+  // ---- combate
+  xhair = el('div', 'xhair');
+  hitmark = el('div', 'hitmark');
+  dmg = el('div', 'dmgfx');
+  threatBox = el('div', 'threats');
+  tbar = el('div', 'tbar hidden', '<i></i>');
+  wpn = el('div', 'wpnpill');
+  armory = el('div', 'overlay armory hidden');
+  onArmoryClose?: () => void;
+  onCraft?: (w: WeaponId) => void;
+  onUpgrade?: (w: WeaponId, u: UpgradeId) => void;
+  onEquip?: (w: WeaponId) => void;
   onBuildPick?: (b: BuildId) => void;
   onBuildClose?: () => void;
   onSleep?: () => void;
@@ -58,8 +72,8 @@ export class Hud {
     this.waypoint.innerHTML = '<div class="wp-dot"></div><div class="wp-dist"></div>';
     this.mapPanel.appendChild(this.mapCanvas);
     this.mapPanel.addEventListener('pointerdown', () => this.toggleMap(false));
-    parent.append(this.vitals, this.objective, this.prompt, this.toasts, this.subtitle, this.waypoint, this.inv, this.storm, this.roverHud);
-    document.body.append(this.build, this.habPanel, this.endScreen, this.mapPanel);
+    parent.append(this.vitals, this.objective, this.prompt, this.toasts, this.subtitle, this.waypoint, this.inv, this.storm, this.roverHud, this.xhair, this.hitmark, this.threatBox, this.tbar, this.wpn);
+    document.body.append(this.dmg, this.build, this.habPanel, this.endScreen, this.mapPanel, this.armory);
     this.relabel();
   }
 
@@ -90,6 +104,87 @@ export class Hud {
     this.storm.classList.toggle('hidden', !st.storm);
     if (this.subTimer > 0) { this.subTimer -= dt; if (this.subTimer <= 0) this.subtitle.classList.add('hidden'); }
   }
+
+  // ---------- combate
+  private dmgT = 0;
+  hurtFlash(amount: number) {
+    this.dmg.style.transition = 'none';
+    this.dmg.style.opacity = String(Math.min(0.85, 0.25 + amount / 20));
+    void this.dmg.offsetWidth;
+    this.dmg.style.transition = 'opacity .7s ease-out';
+    this.dmg.style.opacity = '0';
+    this.dmgT = 0.7;
+  }
+  hitMarker(kill: boolean) {
+    this.hitmark.classList.remove('on', 'kill');
+    void this.hitmark.offsetWidth;
+    this.hitmark.classList.add('on');
+    if (kill) this.hitmark.classList.add('kill');
+  }
+  setThreats(list: { x: number; y: number; ang: number; behind: boolean; near: number }[]) {
+    while (this.threatBox.children.length < list.length) this.threatBox.appendChild(el('div', 'threat'));
+    [...this.threatBox.children].forEach((c, i) => {
+      const e = c as HTMLElement, th = list[i];
+      if (!th) { e.style.display = 'none'; return; }
+      e.style.display = 'block';
+      // posição na borda de uma elipse ao redor do centro
+      const rx = 44, ry = 38;
+      e.style.left = `${50 + Math.cos(th.ang) * rx}%`;
+      e.style.top = `${50 - Math.sin(th.ang) * ry}%`;
+      e.style.transform = `translate(-50%,-50%) rotate(${-th.ang}rad)`;
+      e.style.opacity = String(0.45 + th.near * 0.55);
+    });
+  }
+  setTargetBar(p: { x: number; y: number } | null, frac: number, W: number, H: number) {
+    this.tbar.classList.toggle('hidden', !p);
+    if (!p) return;
+    this.tbar.style.left = `${(p.x * 0.5 + 0.5) * W}px`;
+    this.tbar.style.top = `${(-p.y * 0.5 + 0.5) * H}px`;
+    (this.tbar.firstChild as HTMLElement).style.width = `${Math.max(0, frac) * 100}%`;
+  }
+  setWeapon(st: GameState, show: boolean) {
+    this.wpn.classList.toggle('hidden', !show);
+    this.xhair.classList.toggle('hidden', !show);
+    if (!show) return;
+    const w = st.weapons.eq, s = weaponStats(w, st.weapons);
+    const key = `${w}|${s.wh.toFixed(1)}|${st.weapons.owned.length}`;
+    if (this.wpn.dataset.k === key) return;
+    this.wpn.dataset.k = key;
+    this.wpn.innerHTML = `<span class="wi">${WICON[w]}</span><span class="wn">${t(`w_${w}` as Key)}</span>${s.wh > 0 ? `<span class="we">⚡${s.wh.toFixed(1)} Wh</span>` : ''}${st.weapons.owned.length > 1 ? '<span class="ws">⇄</span>' : ''}`;
+    this.xhair.dataset.w = w;
+  }
+
+  /** bancada de armas (dentro do habitat): fabricar, equipar e melhorar */
+  openArmory(st: GameState) {
+    const inv = st.inv as Record<string, number>;
+    const chip = (cost: Partial<Record<ItemId, number>>) => Object.entries(cost).map(([k, v]) => `<span class="chip ${inv[k] >= (v as number) ? 'have' : 'miss'}">${v}× ${t(`it_${k}` as Key)}</span>`).join('');
+    const cards = WEAPON_ORDER.map((id) => {
+      const d = WEAPONS[id], owned = st.weapons.owned.includes(id), s = weaponStats(id, st.weapons), lv = st.weapons.lvl[id];
+      const stats = `<div class="wstats"><span>${t('ws_dmg')} <b>${Math.round(s.dmg)}</b></span><span>${t('ws_rate')} <b>${(1 / s.cooldown).toFixed(1)}/s</b></span><span>${t('ws_range')} <b>${d.range} m</b></span><span>⚡ <b>${s.wh.toFixed(1)} Wh</b></span></div>`;
+      let body = '';
+      if (!owned) {
+        const ok = Object.entries(d.craft ?? {}).every(([k, v]) => inv[k] >= (v as number));
+        body = `<div class="wcost">${chip(d.craft ?? {})}</div><button class="hbtn ${ok ? 'go' : 'dis'}" data-craft="${id}">${t('craft')}</button>`;
+      } else {
+        const ups = (['dmg', 'rate', 'eff'] as UpgradeId[]).map((u) => {
+          const l = lv[u], max = l >= UPG_MAX, cost = upgradeCost(l);
+          const ok = !max && Object.entries(cost).every(([k, v]) => inv[k] >= (v as number));
+          const pips = Array.from({ length: UPG_MAX }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('');
+          return `<div class="uprow"><span class="un">${t(`up_${u}` as Key)}</span><span class="pips">${pips}</span>${max ? `<span class="chip have">MAX</span>` : `<span class="ucost">${chip(cost)}</span><button class="hbtn small ${ok ? 'go' : 'dis'}" data-up="${id}:${u}">+</button>`}</div>`;
+        }).join('');
+        body = `${ups}${st.weapons.eq === id ? `<div class="eqd">✓ ${t('equipped')}</div>` : `<button class="hbtn" data-eq="${id}">${t('equip')}</button>`}`;
+      }
+      return `<div class="wcard ${owned ? 'own' : ''} ${st.weapons.eq === id ? 'eq' : ''}"><div class="wh"><span class="wi">${WICON[id]}</span><div><div class="wn">${t(`w_${id}` as Key)}</div><div class="wd">${t(`wd_${id}` as Key)}</div></div></div>${stats}${body}</div>`;
+    }).join('');
+    this.armory.innerHTML = `<div class="holo"><div class="holo-h"><span>${t('armory')}</span><span class="holo-inv">${chip({ chitin: inv.chitin, electronics: inv.electronics, scrap: inv.scrap } as Partial<Record<ItemId, number>>).replace(/miss|have/g, 'inv')}</span></div><div class="wgrid">${cards}</div><button class="hbtn close" id="arm-close">${t('close')}</button></div>`;
+    this.armory.querySelector('#arm-close')!.addEventListener('click', () => this.onArmoryClose?.());
+    this.armory.querySelectorAll<HTMLElement>('[data-craft]').forEach((b) => b.addEventListener('click', () => this.onCraft?.(b.dataset.craft as WeaponId)));
+    this.armory.querySelectorAll<HTMLElement>('[data-up]').forEach((b) => b.addEventListener('click', () => { const [w, u] = b.dataset.up!.split(':'); this.onUpgrade?.(w as WeaponId, u as UpgradeId); }));
+    this.armory.querySelectorAll<HTMLElement>('[data-eq]').forEach((b) => b.addEventListener('click', () => this.onEquip?.(b.dataset.eq as WeaponId)));
+    this.armory.classList.remove('hidden');
+  }
+  closeArmory() { this.armory.classList.add('hidden'); }
+  get armoryOpen() { return !this.armory.classList.contains('hidden'); }
 
   setRover(on: boolean, speed = 0, batt = 0, cap = 1) {
     this.roverHud.classList.toggle('hidden', !on);
@@ -127,25 +222,28 @@ export class Hud {
   }
 
   // ---------- construção
-  openBuild(st: GameState, canAfford: (b: BuildId) => boolean) {
+  /** modo construção: faixa holográfica vertical à direita (o mundo continua visível e jogável) */
+  onBuildRotate?: () => void;
+  onBuildPlace?: () => void;
+  openBuild(st: GameState, canAfford: (b: BuildId) => boolean, thumbs: Record<string, string>, sel: BuildId | null, touch: boolean) {
     const hasHab = st.buildings.some((b) => b.type === 'habitat');
-    this.build.innerHTML = `<div class="panel-inner wide"><h2>${t('build_menu')}</h2><div class="bgrid"></div><p class="bhint">${t(matchMedia('(pointer: coarse)').matches ? 'build_hint_touch' : 'build_hint')}</p><button class="closeb" id="build-close">${t('close')}</button></div>`;
-    (this.build.querySelector('#build-close') as HTMLElement).onclick = () => this.onBuildClose?.();
-    const grid = this.build.querySelector('.bgrid')!;
-    for (const b of BUILD_ORDER) {
-      if (b === 'habitat' && hasHab) continue;
-      if (b !== 'habitat' && !hasHab) continue;
+    const tiles = BUILD_ORDER.filter((b) => (b === 'habitat') !== hasHab).map((b) => {
       const cost = b === 'panel' && st.inv.kit_panel > 0 ? { kit_panel: 1 } : COSTS[b];
       const ok = canAfford(b);
-      const costTxt = Object.entries(cost).map(([k, v]) => `<span class="${st.inv[k as ItemId] >= (v as number) ? 'have' : 'miss'}">${v}× ${t(`it_${k}` as Key)}</span>`).join(' ');
-      const card = el('button', `bcard ${ok ? '' : 'dis'}`, `<div class="bname">${t(`b_${b}` as Key)}</div><div class="bdesc">${t(`bd_${b}` as Key)}</div><div class="bcost">${costTxt}</div>`);
-      card.onclick = () => { if (ok) this.onBuildPick?.(b); };
-      grid.appendChild(card);
-    }
-    if (!grid.children.length) grid.innerHTML = `<p>${t('not_enough')}</p>`;
+      const chips = Object.entries(cost).map(([k, v]) => `<span class="chip ${st.inv[k as ItemId] >= (v as number) ? 'have' : 'miss'}">${v} ${t(`it_${k}` as Key)}</span>`).join('');
+      return `<button class="btile ${ok ? '' : 'dis'} ${sel === b ? 'sel' : ''}" data-b="${b}"><img src="${thumbs[b] ?? ''}" alt=""><span class="bt-n">${t(`b_${b}` as Key)}</span><span class="bt-c">${chips}</span><span class="bt-d">${t(`bd_${b}` as Key)}</span></button>`;
+    }).join('');
+    this.build.innerHTML = `<div class="bstrip"><div class="bs-h">${t('build_menu')}</div><div class="bs-list">${tiles || `<p>${t('not_enough')}</p>`}</div>${touch ? '' : `<div class="bs-keys">${t('build_keys')}</div>`}</div>
+      <div class="bacts">${touch ? `<button class="hbtn bact" id="b-rot">⟳</button><button class="hbtn go bact big" id="b-place">✔</button>` : ''}<button class="hbtn bact" id="b-exit">✖</button></div>`;
+    this.build.querySelectorAll<HTMLElement>('.btile').forEach((e) => e.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); this.onBuildPick?.(e.dataset.b as BuildId); }));
+    const bind = (id: string, f?: () => void) => this.build.querySelector(id)?.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); f?.(); });
+    bind('#b-rot', this.onBuildRotate); bind('#b-place', this.onBuildPlace); bind('#b-exit', this.onBuildClose);
     this.build.classList.remove('hidden');
+    document.body.classList.add('building');
+    const selEl = this.build.querySelector('.btile.sel') as HTMLElement | null;
+    selEl?.scrollIntoView({ block: 'nearest' });
   }
-  closeBuild() { this.build.classList.add('hidden'); }
+  closeBuild() { this.build.classList.add('hidden'); document.body.classList.remove('building'); }
   get buildOpen() { return !this.build.classList.contains('hidden'); }
 
   // ---------- habitat

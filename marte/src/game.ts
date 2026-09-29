@@ -128,7 +128,9 @@ export class Game {
     // orçamento de pixels (exceto Máxima): evita renderizar 4K nativo em GPUs médias
     if (this.q.id !== 'max') dpr = Math.min(dpr, Math.sqrt((this.q.id === 'ultra' ? 5.5e6 : 3.7e6) / Math.max(1, innerWidth * innerHeight)));
     const s = this.opts.resScale === 'dynamic' ? this.dyn.scale : this.opts.resScale;
-    return Math.max(0.35, dpr * s);
+    // a resolução dinâmica nunca desce abaixo do piso do preset (em px CSS): imagem nítida mesmo sob carga
+    const floor = this.opts.resScale === 'dynamic' ? Math.min(dpr, this.q.resFloor) : 0.35;
+    return Math.max(floor, dpr * s);
   }
 
   resize() {
@@ -206,7 +208,7 @@ export class Game {
     const [data, R, tex, rockAssets] = await Promise.all([
       this.generateTerrain((f) => { parts.terrain = f; report('load_terrain'); }),
       initRapier().then((r) => { parts.physics = 1; report('load_physics'); return r; }),
-      Promise.all([this.loadTerrainTextures(initialTier), loadDetailTextures(this.loadTex, ASSETS, this.q.id === 'high' || this.q.id === 'ultra' || this.q.id === 'max' ? '2k' : '1k')]).then(([t]) => { parts.tex = 1; report('load_textures'); return t; }),
+      Promise.all([this.loadTerrainTextures(initialTier), loadDetailTextures(this.loadTex, ASSETS, this.q.id === 'high' || this.q.id === 'ultra' || this.q.id === 'max' ? '2k' : '1k', this.q.fastDetail)]).then(([t]) => { parts.tex = 1; report('load_textures'); return t; }),
       Promise.all([
         ...ROCK_IDS.map((id) => loadRockAsset(ASSETS, id, this.loadTex, '1k')),
       ]).then(async (r) => {
@@ -242,8 +244,7 @@ export class Game {
     this.physics.addBounds(WORLD.size);
     this.physics.addBoxes(crash.colliders);
     this.interior.addColliders(this.physics);
-    const pc = { low: [350, 9], medium: [900, 11], high: [2400, 16], ultra: [3600, 20], max: [4500, 22] }[this.q.id] as [number, number];
-    this.pebbles = new Pebbles(this.terrain, pc[0], pc[1], (x, z) => this.pebbleBlock(x, z));
+    this.pebbles = new Pebbles(this.terrain, this.q.pebbles[0], this.q.pebbles[1], (x, z) => this.pebbleBlock(x, z));
     this.scene.add(this.pebbles.mesh);
     this.scene.add(this.interior.group, ...this.interior.lights);
     enhanceObject(this.interior.group);
@@ -406,7 +407,7 @@ export class Game {
     const ambL = amb.r * 0.2126 + amb.g * 0.7152 + amb.b * 0.0722;
     void ambL;
     // luminância da cena ≈ solo iluminado pelo Sol + céu medido (sonda cúbica do próprio shader do céu)
-    const lampL = this.driving && this.rover?.lightsOn ? 0.9 : this.lampOn && !this.driving ? 0.12 : 0;
+    const lampL = this.driving && this.rover?.lightsOn ? 0.9 : this.lampOn && !this.driving ? 0.32 : 0;
     const sceneL = this.inside ? 0.5 : 0.3 * sunI * Math.max(sun.y, 0.0) / Math.PI + 0.55 * this.skyLum + lampL + 0.3 * nightI * moonDir.y / Math.PI + 0.0004;
     // adaptação parcial (como o olho/câmera): cenas escuras continuam mais escuras que o dia
     const key = 0.27 * THREE.MathUtils.clamp(Math.pow(sceneL / 0.35, 0.5), 0.04, 1.05);
@@ -470,6 +471,11 @@ export class Game {
   }
 
   private pauseSkip = 0;
+  private strainT = 0;
+  /** modo leve automático (governador de desempenho) */
+  lite = false;
+  /** tremor de câmera ao levar dano (≤0,15; decai rápido) */
+  shake = 0;
   private insideStep = 0;
   private frame(now: number) {
     const rawDt = (now - this.lastT) / 1000;
@@ -484,6 +490,13 @@ export class Game {
     this.fpsAcc += rawDt; this.fpsN++;
     if (this.fpsAcc > 0.5) { this.fps = this.fpsN / this.fpsAcc; this.fpsAcc = 0; this.fpsN = 0; }
     if (this.opts.resScale === 'dynamic' && !this.paused && this.dyn.update(rawDt * 1000, dt)) this.resize();
+    // governador: se mesmo no piso de resolução o quadro continua pesado, corta enfeites baratos (sem recompilar shaders)
+    if (!this.paused && this.opts.resScale === 'dynamic') {
+      const atFloor = this.pixelRatio() <= Math.min(devicePixelRatio || 1, this.q.resFloor) + 0.01 && this.frameMs > this.dyn.targetMs * 1.25;
+      this.strainT = atFloor ? this.strainT + dt : Math.max(0, this.strainT - dt * 0.5);
+      const lite = this.strainT > 5;
+      if (lite !== this.lite) { this.lite = lite; if (this.pebbles) this.pebbles.mesh.visible = !lite; if (this.devils) this.devils.group.visible = !lite && !this.inside; }
+    }
     void t0;
   }
 
@@ -633,6 +646,11 @@ export class Game {
       this.camera.lookAt((feet.x + lx) / 2 - 1.2, feet.y + 1.35, (feet.z + lz) / 2 - 1.0);
     } else if (this.driving) this.driveCamera(dt, alpha);
     else this.player.updateCamera(this.camera, feet, dt, this.camCollide);
+    if (this.shake > 0) {
+      this.camera.position.x += (Math.random() - 0.5) * this.shake * 0.5;
+      this.camera.position.y += (Math.random() - 0.5) * this.shake * 0.5;
+      this.shake = Math.max(0, this.shake - dt * 0.9);
+    }
     this.camera.updateMatrixWorld();
 
     this.updateSky(dt);
@@ -656,6 +674,7 @@ export class Game {
     updateNightFx(this.fxT, this.night);
     this.sky.uniforms.uTime.value = this.fxT;
     this.pipeline.visor.frost = this.player.firstPerson && !this.inside && !this.driving ? this.visorFrost : 0;
+    this.pipeline.setOverlayFrost(this.player.firstPerson && !this.inside && !this.driving ? this.visorFrost : 0);
     fogUniforms.uFogViewToWorld.value.setFromMatrix4(this.camera.matrixWorld);
     fogUniforms.uFogCamY.value = cp.y;
     this.rover.render(Math.min(1, alpha));
@@ -663,13 +682,14 @@ export class Game {
     {
       const dyn: { x: number; z: number; r: number; s: number }[] = [];
       if (!this.driving && !this.inside) dyn.push({ x: feet.x, z: feet.z, r: 0.75, s: 0.5 });
-      const wp = new THREE.Vector3();
-      for (const w of this.rover.wheels) { w.getWorldPosition(wp); dyn.push({ x: wp.x, z: wp.z, r: 0.75, s: 0.55 }); }
       const rp = this.rover.root.position;
       dyn.push({ x: rp.x, z: rp.z, r: 3.2, s: 0.4 });
-      this.terrain.updateOccluders(this.camera.position, dyn);
+      const wp = new THREE.Vector3();
+      const occMax = this.q.id === 'mobile' || this.q.id === 'low' ? 8 : 24;
+      if (occMax > 8) for (const w of this.rover.wheels) { w.getWorldPosition(wp); dyn.push({ x: wp.x, z: wp.z, r: 0.75, s: 0.55 }); }
+      this.terrain.updateOccluders(this.camera.position, dyn, occMax);
     }
-    this.pebbles.mesh.visible = !this.inside;
+    this.pebbles.mesh.visible = !this.inside && !this.lite;
     if (!this.inside) this.pebbles.update(this.camera.position);
     this.tracks.update(this.rover);
     if (this.inside) {

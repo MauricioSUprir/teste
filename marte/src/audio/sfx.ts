@@ -145,6 +145,23 @@ export class Sfx {
   pickup() { this.blip(880, 0.08, 'sine', 0.06); this.blip(1320, 0.12, 'sine', 0.05, 0.07); }
   build() { this.thud(0.3, 60); this.blip(520, 0.2, 'triangle', 0.05, 0.05); this.blip(780, 0.25, 'triangle', 0.05, 0.18); }
   click() { this.blip(1400, 0.04, 'square', 0.02); }
+  // ---- combate (tudo procedural; no ar rarefeito o som chega abafado, pelo traje)
+  private noiseHit(gain: number, type: BiquadFilterType, freq: number, dur: number, q = 0.8) {
+    const ctx = this.ctx; if (!ctx) return;
+    const s = ctx.createBufferSource(); s.buffer = this.noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+    const g = ctx.createGain(); const t = ctx.currentTime;
+    g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(this.master); s.start(t, Math.random()); s.stop(t + dur + 0.02);
+  }
+  zap() { this.noiseHit(0.09, 'bandpass', 2600, 0.16, 2); this.blip(220, 0.14, 'sawtooth', 0.025, 0, 3); }
+  shot() { this.noiseHit(0.16, 'lowpass', 900, 0.12); this.blip(160, 0.08, 'square', 0.04, 0, 0.5); }
+  arcShot() { this.noiseHit(0.12, 'highpass', 3000, 0.25); for (let i = 0; i < 4; i++) this.blip(900 + Math.random() * 1600, 0.03, 'square', 0.02, i * 0.035); }
+  hitFlesh() { this.thud(0.18, 110); this.noiseHit(0.05, 'bandpass', 700, 0.1, 1.5); }
+  screech() { this.blip(1900 + Math.random() * 500, 0.35, 'sawtooth', 0.018, 0, 0.55); this.blip(2600, 0.25, 'triangle', 0.012, 0.08, 0.7); }
+  windup() { this.blip(600, 0.5, 'triangle', 0.03, 0, 2.2); }
+  hurt() { this.thud(0.4, 60); this.blip(300, 0.2, 'square', 0.03, 0, 0.6); }
+  craft() { this.build(); this.blip(1600, 0.15, 'sine', 0.04, 0.3); }
   objective() { this.blip(660, 0.18, 'sine', 0.05); this.blip(880, 0.18, 'sine', 0.05, 0.12); this.blip(1320, 0.35, 'sine', 0.045, 0.24); }
   alarm(level: 1 | 2) { for (let i = 0; i < (level === 2 ? 3 : 2); i++) this.blip(level === 2 ? 1250 : 880, 0.14, 'square', 0.035, i * 0.22); }
   radio() { this.blip(2200, 0.05, 'sine', 0.025); this.blip(1600, 0.06, 'sine', 0.02, 0.06); }

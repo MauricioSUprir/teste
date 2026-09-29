@@ -7,6 +7,7 @@ import type { LanderMats } from '../world/lander';
 import type { Terrain } from '../world/terrain';
 import type { Physics } from '../core/physics';
 import { enhanceObject } from '../render/materials';
+import { groundRing, fitRing, holoTime, HOLO_OK } from '../render/holo';
 import type RAPIER from '@dimforge/rapier3d-compat';
 
 export type LootKind = 'crate' | 'wreck' | 'gypsum' | 'antenna' | 'door' | 'panel_clean';
@@ -24,12 +25,20 @@ export class WorldSim {
   ghost: THREE.Object3D | null = null;
   ghostType: BuildId | null = null;
   ghostValid = false;
+  /** giro extra do fantasma (botão/tecla girar) */
+  ghostRot = 0;
+  radiusRing = groundRing(180, HOLO_OK, 0.55);
+  footRing = groundRing(64, HOLO_OK, 0.9);
+  private prints: { obj: THREE.Object3D; t: number; ring: THREE.Mesh; h: number }[] = [];
+  private printRingMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.85, 0.63), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false });
   /** motivo (chave de texto) quando o local é inválido */
   ghostReason = '';
   antennaPos = new THREE.Vector3();
 
   constructor(lm: LanderMats, private terrain: Terrain, private phys: Physics, crates: THREE.Vector3[], landerPos: THREE.Vector3, nasa: Partial<Record<'perse' | 'inge' | 'viking', THREE.Object3D | null>> = {}) {
     this.mats = makeStructMats(lm);
+    this.radiusRing.visible = false; this.footRing.visible = false;
+    this.group.add(this.radiusRing, this.footRing);
     this.body = phys.world.createRigidBody(phys.R.RigidBodyDesc.fixed());
     // caixas do local da queda
     const crateLoot: Partial<Record<ItemId, number>>[] = [
@@ -242,6 +251,7 @@ export class WorldSim {
     this.group.add(obj);
   }
   cancelGhost() {
+    this.radiusRing.visible = false; this.footRing.visible = false;
     if (this.ghost) this.group.remove(this.ghost);
     this.ghost = null;
     this.ghostType = null;
@@ -252,7 +262,7 @@ export class WorldSim {
     const dist = t === 'habitat' ? 6 : 3.5;
     const x = player.x - Math.sin(yaw) * dist, z = player.z - Math.cos(yaw) * dist;
     this.ghost.position.set(x, this.terrain.heightAt(x, z), z);
-    this.ghost.rotation.y = yaw + Math.PI;
+    this.ghost.rotation.y = yaw + Math.PI + this.ghostRot;
     // validade: inclinação, sobreposição, raio do habitat, dentro do mapa (guarda o motivo para o jogador)
     const r = FOOTPRINT[t];
     let reason = '';
@@ -273,6 +283,13 @@ export class WorldSim {
     this.ghostReason = reason;
     this.ghostValid = ok;
     const mat = ok ? this.mats.ghostOk : this.mats.ghostBad;
+    // anéis no chão: raio de construção ao redor do habitat + marca sob o fantasma
+    const habR = this.habitat(st);
+    this.radiusRing.visible = !!habR && t !== 'habitat';
+    if (habR && t !== 'habitat') fitRing(this.radiusRing, habR.x, habR.z, BAL.buildRadius, (a, b) => this.terrain.heightAt(a, b));
+    this.footRing.visible = true;
+    (this.footRing.material as THREE.LineBasicMaterial).color.copy((mat as THREE.ShaderMaterial).uniforms.uCol.value);
+    fitRing(this.footRing, x, z, FOOTPRINT[t] * 0.6, (a, b) => this.terrain.heightAt(a, b), 0.06);
     this.ghost.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = mat; });
   }
   placeGhost(st: GameState): Building | null {
@@ -282,8 +299,37 @@ export class WorldSim {
     const b: Building = { id: st.nextId++, type: t, x: this.ghost.position.x, z: this.ghost.position.z, rot: this.ghost.rotation.y, dust: 0 };
     st.buildings.push(b);
     st.stats.built++;
+    const keep = this.ghostType;
     this.cancelGhost();
     this.sync(st);
+    // "impressão 3D": a estrutura sobe do chão com uma linha de sinterização brilhante
+    const made = this.buildingObjs.get(b.id)?.obj;
+    if (made) {
+      const box = new THREE.Box3().setFromObject(made);
+      const size = box.getSize(new THREE.Vector3());
+      const ring = new THREE.Mesh(new THREE.RingGeometry(Math.max(size.x, size.z) * 0.45, Math.max(size.x, size.z) * 0.58, 48), this.printRingMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(made.position.x, made.position.y, made.position.z);
+      this.group.add(ring);
+      made.scale.y = 0.02;
+      this.prints.push({ obj: made, t: 0, ring, h: size.y });
+    }
+    void keep;
     return b;
+  }
+
+  /** animações de construção e holograma (a cada quadro) */
+  update(dt: number) {
+    holoTime.value += dt;
+    this.prints = this.prints.filter((p) => {
+      p.t += dt;
+      const k = Math.min(1, p.t / 1.8);
+      const e = 1 - Math.pow(1 - k, 3);
+      p.obj.scale.y = Math.max(0.02, e);
+      p.ring.position.y = p.obj.position.y + p.h * e;
+      (p.ring.material as THREE.MeshBasicMaterial).opacity = 1 - Math.max(0, (k - 0.85) / 0.15);
+      if (k >= 1) { p.obj.scale.y = 1; this.group.remove(p.ring); p.ring.geometry.dispose(); return false; }
+      return true;
+    });
   }
 }
