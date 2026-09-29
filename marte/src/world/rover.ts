@@ -1,6 +1,7 @@
 // Rover pressurizado de exploração (6×6), visual procedural PBR + física de veículo Rapier.
 // Massa 1100 kg, roda Ø 1,0 m, velocidade máx. ~5,5 m/s (≈ 20 km/h), suspensão ajustada para g = 3,721.
 import * as THREE from 'three';
+import { detail } from '../render/detail';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { Physics } from '../core/physics';
@@ -28,8 +29,8 @@ function treadTexture() {
 
 export const ROVER = {
   mass: 1100,
-  halfExt: { x: 1.15, y: 0.45, z: 2.25 },
-  wheelR: 0.52,
+  halfExt: { x: 1.3, y: 0.45, z: 2.95 },
+  wheelR: 0.385,
   wheelW: 0.38,
   susRest: 0.42,
   maxForce: 2600, // N (total, dividido entre as 6 rodas)
@@ -58,7 +59,9 @@ export class Rover {
   pos = new THREE.Vector3();
   prevQuat = new THREE.Quaternion();
   quat = new THREE.Quaternion();
-  readonly wheelPos: [number, number][] = [[-1.22, 1.55], [1.22, 1.55], [-1.22, 0], [1.22, 0], [-1.22, -1.55], [1.22, -1.55]];
+  // rodas nas posições reais do modelo da NASA (SEV): eixos a −1,7 / 0 / +1,7 m
+  readonly wheelPos: [number, number][] = [[-1.7, 1.7], [1.7, 1.7], [-1.7, 0], [1.7, 0], [-1.7, -1.7], [1.7, -1.7]];
+  private modelWheels = false;
 
   constructor(private phys: Physics, private terrain: Terrain) {
     this.ledMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: new THREE.Color(0.85, 0.93, 1), emissiveIntensity: 3, roughness: 0.3 });
@@ -69,12 +72,12 @@ export class Rover {
   }
 
   private buildVisual() {
-    const paint = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.86, 0.86, 0.84), roughness: 0.42, metalness: 0.1, clearcoat: 0.45, clearcoatRoughness: 0.25 });
-    const steel = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.62, 0.64, 0.66), roughness: 0.28, metalness: 1, clearcoat: 0.3 });
-    const dark = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.045, 0.047, 0.05), roughness: 0.55, metalness: 0.3 });
+    const paint = detail(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.86, 0.86, 0.84), roughness: 0.45, metalness: 0.1, clearcoat: 0.35, clearcoatRoughness: 0.3 }), { set: 'panel', tile: 1.3, albedo: 0.65 });
+    const steel = detail(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.62, 0.64, 0.66), roughness: 0.36, metalness: 1, clearcoat: 0.2 }), { set: 'plate', tile: 0.6, albedo: 0.5 });
+    const dark = detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.045, 0.047, 0.05), roughness: 0.55, metalness: 0.3 }), { set: 'tread', tile: 0.5, albedo: 0.8 });
     const glass = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.02, 0.025, 0.03), roughness: 0.04, metalness: 0.4, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.6 });
     const rubber = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.06, 0.06, 0.065), roughness: 0.92, normalMap: treadTexture(), normalScale: new THREE.Vector2(1.8, 1.8) });
-    const orange = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.9, 0.34, 0.07), roughness: 0.5 });
+    const orange = detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.9, 0.34, 0.07), roughness: 0.5 }), { set: 'panel', tile: 1.0, albedo: 0.6 });
     const solar = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.03, 0.06, 0.14), roughness: 0.15, metalness: 0.4, clearcoat: 1 });
     const g = this.root;
     const chassis = new THREE.Group();
@@ -211,8 +214,8 @@ export class Rover {
     this.body = W.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(x, y, z).setRotation(q).setLinearDamping(0.02).setAngularDamping(0.15).setCcdEnabled(true).setCanSleep(true));
     const h = ROVER.halfExt;
     // massa com centro baixo: colisor principal leve + lastro inferior
-    this.collider = W.createCollider(R.ColliderDesc.cuboid(h.x, h.y, h.z).setTranslation(0, 0.75, 0).setDensity(ROVER.mass * 0.35 / (8 * h.x * h.y * h.z)).setFriction(0.5), this.body);
-    W.createCollider(R.ColliderDesc.cuboid(h.x * 0.9, 0.45, 1.3).setTranslation(0, 1.55, 0.2).setDensity(1).setFriction(0.5), this.body);
+    this.collider = W.createCollider(R.ColliderDesc.cuboid(h.x, h.y, h.z).setTranslation(0, 0.75, 0.45).setDensity(ROVER.mass * 0.35 / (8 * h.x * h.y * h.z)).setFriction(0.5), this.body);
+    W.createCollider(R.ColliderDesc.cuboid(h.x * 1.1, 1.0, 2.6).setTranslation(0, 2.2, 0.5).setDensity(0.5).setFriction(0.5), this.body); // cabine alta do SEV
     W.createCollider(R.ColliderDesc.cuboid(0.9, 0.12, 2.0).setTranslation(0, 0.35, 0).setDensity(ROVER.mass * 0.6 / (8 * 0.9 * 0.12 * 2.0)).setFriction(0.5), this.body);
     this.vc = W.createVehicleController(this.body);
     for (const [wx, wz] of this.wheelPos) {
@@ -310,6 +313,50 @@ export class Rover {
   }
 
   /** atualiza a malha interpolada e a pose das rodas */
+  /** troca o visual procedural pelo modelo oficial da NASA (Space Exploration Vehicle) */
+  setModel(model: THREE.Object3D, front: 1 | -1 = 1) {
+    const chassis = this.root.getObjectByName('chassis')!;
+    // esconde as malhas procedurais (mantém as luzes)
+    chassis.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.visible = false; });
+    for (const w of this.wheels) w.clear();
+    model.updateMatrixWorld(true);
+    const holder = new THREE.Group();
+    holder.name = 'sev';
+    holder.rotation.y = front === 1 ? 0 : Math.PI;
+    // centro das rodas do modelo fica na altura de repouso da suspensão; eixo do meio em z = 0
+    const wheelY = 0.45 - ROVER.susRest;
+    holder.position.set(0, wheelY + 1.86, 0);
+    model.position.set(0, 0, 0.87 * front);
+    holder.add(model);
+    chassis.add(holder);
+    this.root.updateMatrixWorld(true);
+    // rodas do modelo → grupos animados pela física (casando pela posição mais próxima)
+    const inv = new THREE.Matrix4().copy(this.root.matrixWorld).invert();
+    const found: THREE.Object3D[] = [];
+    model.traverse((o) => { if (/^wheel_\d$/.test(o.name) && !/^wheel_\d$/.test(o.parent?.name ?? '')) found.push(o); });
+    for (const o of found) {
+      // matriz completa do nó (inclui a desquantização do meshopt) no espaço do root do rover
+      const ml = new THREE.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+      const mesh = o as THREE.Mesh;
+      mesh.geometry.computeBoundingBox();
+      const cl = mesh.geometry.boundingBox!.getCenter(new THREE.Vector3()).applyMatrix4(ml);
+      let best = 0, bd = Infinity;
+      this.wheelPos.forEach(([x, z], i) => { const d = Math.hypot(x - cl.x, z - cl.z); if (d < bd) { bd = d; best = i; } });
+      // a roda gira em torno do próprio centro: desloca a malha para a origem do grupo
+      const local = new THREE.Matrix4().makeTranslation(-cl.x, -cl.y, -cl.z).multiply(ml);
+      o.parent!.remove(o);
+      local.decompose(o.position, o.quaternion, o.scale);
+      this.wheels[best].add(o);
+    }
+    this.modelWheels = true;
+    // faróis na frente do modelo
+    this.lights.forEach((l, i) => { l.position.set(i ? 0.7 : -0.7, 1.0, 3.3); l.target.position.set(i ? 0.7 : -0.7, -0.6, 16); });
+    this.courtesy.position.set(0, 2.9, 0);
+    model.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    enhanceObject(model);
+    for (const w of this.wheels) enhanceObject(w);
+  }
+
   render(alpha: number) {
     this.root.position.lerpVectors(this.prevPos, this.pos, alpha);
     this.root.quaternion.slerpQuaternions(this.prevQuat, this.quat, alpha);
@@ -336,6 +383,6 @@ export class Rover {
   }
 
   driverDoor() {
-    return new THREE.Vector3(-2.0, 0, -0.6).applyQuaternion(this.quat).add(this.pos);
+    return new THREE.Vector3(-2.9, 0, -0.9).applyQuaternion(this.quat).add(this.pos); // escotilha lateral do SEV
   }
 }

@@ -21,6 +21,9 @@ import { Player } from './player/player';
 import { Astronaut } from './player/astronaut';
 import { viewSize } from './core/viewport';
 import { Interior } from './world/interior';
+import { loadModel } from './world/models';
+import { Pebbles } from './world/pebbles';
+import { loadDetailTextures } from './render/detail';
 import { updateNightFx } from './world/nightfx';
 
 export type Progress = (key: string, frac: number) => void;
@@ -43,6 +46,11 @@ export class Game {
   player!: Player;
   astro = new Astronaut();
   interior = new Interior();
+  pebbles!: Pebbles;
+  /** pedrinhas não aparecem perto de itens coletáveis (definido pelo controlador de jogo) */
+  pebbleBlock: (x: number, z: number) => boolean = () => false;
+  /** modelos oficiais da NASA (domínio público) */
+  nasa: Record<'sev' | 'perse' | 'inge' | 'viking', THREE.Object3D | null> = { sev: null, perse: null, inge: null, viking: null };
   /** dentro do habitat: sem Sol/céu, só luz interna */
   inside = false;
   /** 0 dia … 1 noite fechada */
@@ -198,11 +206,20 @@ export class Game {
     const [data, R, tex, rockAssets] = await Promise.all([
       this.generateTerrain((f) => { parts.terrain = f; report('load_terrain'); }),
       initRapier().then((r) => { parts.physics = 1; report('load_physics'); return r; }),
-      this.loadTerrainTextures(initialTier).then((t) => { parts.tex = 1; report('load_textures'); return t; }),
+      Promise.all([this.loadTerrainTextures(initialTier), loadDetailTextures(this.loadTex, ASSETS, this.q.id === 'high' || this.q.id === 'ultra' || this.q.id === 'max' ? '2k' : '1k')]).then(([t]) => { parts.tex = 1; report('load_textures'); return t; }),
       Promise.all([
         ...ROCK_IDS.map((id) => loadRockAsset(ASSETS, id, this.loadTex, '1k')),
-      ]).then(async (r) => { await this.astro.load(`${ASSETS}/models/astronaut_base.glb`); parts.models = 1; report('load_models'); return r; }),
+      ]).then(async (r) => {
+        const [, sev, perse, inge, viking] = await Promise.all([
+          this.astro.load(`${ASSETS}/models/astronaut_base.glb`),
+          loadModel(`${ASSETS}/models/sev.glb`), loadModel(`${ASSETS}/models/perseverance.glb`),
+          loadModel(`${ASSETS}/models/ingenuity.glb`), loadModel(`${ASSETS}/models/viking.glb`),
+        ]);
+        this.nasa = { sev, perse, inge, viking };
+        parts.models = 1; report('load_models'); return r;
+      }),
     ]);
+    const sevModel = this.nasa.sev;
     this.rockAssets = rockAssets;
     this.texTier = initialTier;
     this.setupShadows();
@@ -210,6 +227,8 @@ export class Game {
     this.terrain = new Terrain(data, tex, this.q.antiTiling);
     this.scene.add(this.terrain.group);
     const crash = buildCrashSite(this.terrain, makeLanderMaterials());
+    for (const c of crash.crates) this.terrain.addOccluder(c.x, c.z, 1.2, 0.55);
+    this.terrain.addOccluder(crash.landerPos.x, crash.landerPos.z, 4.2, 0.5);
     enhanceObject(crash.group);
     this.scene.add(crash.group);
     this.crash = crash;
@@ -223,7 +242,11 @@ export class Game {
     this.physics.addBounds(WORLD.size);
     this.physics.addBoxes(crash.colliders);
     this.interior.addColliders(this.physics);
+    const pc = { low: [350, 9], medium: [900, 11], high: [2400, 16], ultra: [3600, 20], max: [4500, 22] }[this.q.id] as [number, number];
+    this.pebbles = new Pebbles(this.terrain, pc[0], pc[1], (x, z) => this.pebbleBlock(x, z));
+    this.scene.add(this.pebbles.mesh);
     this.scene.add(this.interior.group, ...this.interior.lights);
+    enhanceObject(this.interior.group);
     const spawn = new THREE.Vector3(1, 0, 3);
     spawn.y = this.terrain.heightAt(spawn.x, spawn.z);
     this.player = new Player(this.physics, this.terrain, spawn);
@@ -233,7 +256,8 @@ export class Game {
     this.scene.add(this.footprints.mesh);
     this.rover = new Rover(this.physics, this.terrain);
     this.rover.spawn(16, -16, 1.9);
-    this.scene.add(this.rover.root, this.rover.blob);
+    if (sevModel) this.rover.setModel(sevModel);
+    this.scene.add(this.rover.root); // sombra de contato agora vem do shader do terreno
     this.tracks = new Tracks(this.terrain);
     this.scene.add(this.tracks.mesh);
     this.devils = new DustDevils(this.terrain);
@@ -249,7 +273,10 @@ export class Game {
     this.terrain.update(this.camera.position, this.q.lodScale, 0, true);
     this.rocks.update(this.camera.position, true);
     progress('load_shaders', 0.97);
+    // compila também o interior do habitat (invisível agora) para não travar na primeira entrada
+    this.interior.group.visible = true;
     await this.renderer.compileAsync(this.scene, this.camera);
+    this.interior.group.visible = this.interior.active;
     this.updateEnv(true);
     this.measureSky();
     this.updateSky(0);
@@ -507,9 +534,9 @@ export class Game {
     if (idle && Math.abs(this.rover.speed) > 1) this.player.yaw -= off * Math.min(1, dt * 1.5);
     const yaw = this.player.yaw;
     const pitch = Math.min(-0.05, this.player.pitch);
-    const dist = 9.5;
+    const dist = 11.5;
     // pivô com mola criticamente amortecida: a suspensão balança o rover, não a câmera
-    const target = new THREE.Vector3(rp.x, rp.y + 2.3, rp.z);
+    const target = new THREE.Vector3(rp.x, rp.y + 3.2, rp.z);
     if (!this.camPivotInit || this.camPivot.distanceTo(target) > 8) { this.camPivot.copy(target); this.camPivotV.set(0, 0, 0); this.camPivotInit = true; }
     const h = Math.min(dt, 1 / 30);
     for (const [ax, w] of [['x', 9], ['y', 4.5], ['z', 9]] as const) {
@@ -547,7 +574,7 @@ export class Game {
       if (this.rover.lightsOn && this.lampOn === false) { /* mantém faróis ligados */ }
       return 'exit';
     }
-    if (this.player.pos.distanceTo(this.rover.pos) > 4.2) return 'far';
+    if (this.player.pos.distanceTo(this.rover.pos) > 5.4) return 'far';
     this.driving = true;
     this.camPivotInit = false;
     this.input.clearPressed();
@@ -632,6 +659,18 @@ export class Game {
     fogUniforms.uFogViewToWorld.value.setFromMatrix4(this.camera.matrixWorld);
     fogUniforms.uFogCamY.value = cp.y;
     this.rover.render(Math.min(1, alpha));
+    // sombras de contato dinâmicas: pés do astronauta + rodas do rover
+    {
+      const dyn: { x: number; z: number; r: number; s: number }[] = [];
+      if (!this.driving && !this.inside) dyn.push({ x: feet.x, z: feet.z, r: 0.75, s: 0.5 });
+      const wp = new THREE.Vector3();
+      for (const w of this.rover.wheels) { w.getWorldPosition(wp); dyn.push({ x: wp.x, z: wp.z, r: 0.75, s: 0.55 }); }
+      const rp = this.rover.root.position;
+      dyn.push({ x: rp.x, z: rp.z, r: 3.2, s: 0.4 });
+      this.terrain.updateOccluders(this.camera.position, dyn);
+    }
+    this.pebbles.mesh.visible = !this.inside;
+    if (!this.inside) this.pebbles.update(this.camera.position);
     this.tracks.update(this.rover);
     if (this.inside) {
       // passos no piso metálico do habitat (sem pegadas no terreno)

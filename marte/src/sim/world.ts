@@ -28,7 +28,7 @@ export class WorldSim {
   ghostReason = '';
   antennaPos = new THREE.Vector3();
 
-  constructor(lm: LanderMats, private terrain: Terrain, private phys: Physics, crates: THREE.Vector3[], landerPos: THREE.Vector3) {
+  constructor(lm: LanderMats, private terrain: Terrain, private phys: Physics, crates: THREE.Vector3[], landerPos: THREE.Vector3, nasa: Partial<Record<'perse' | 'inge' | 'viking', THREE.Object3D | null>> = {}) {
     this.mats = makeStructMats(lm);
     this.body = phys.world.createRigidBody(phys.R.RigidBodyDesc.fixed());
     // caixas do local da queda
@@ -61,6 +61,7 @@ export class WorldSim {
         this.placeOnGround(obj, x, z, a);
         this.group.add(obj);
         this.loot.push({ id: `${w.id}${i}`, kind: 'wreck', pos: obj.position.clone(), give: w.give, label: 'loot_wreck', obj, site: w.id });
+        this.terrain.addOccluder(x, z, 1.5, 0.45, () => obj.visible);
       }
     }
     // marcos grandes visíveis de longe
@@ -93,8 +94,23 @@ export class WorldSim {
       for (let i = 0; i < 3; i++) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), M.metal); const a = i * 2.1; leg.position.set(Math.cos(a) * 0.6, 0.5, Math.sin(a) * 0.6); leg.rotation.z = 0.3; probe.add(leg); }
       const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.6, 8), M.white); arm.position.set(0.4, 1.5, 0.6); arm.rotation.x = 0.9; probe.add(arm);
       probe.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-      this.placeOnGround(probe, 470, -360, 2.2);
-      this.group.add(probe);
+      // "sonda antiga": modelo oficial da NASA do Viking (se carregou), senão a versão procedural
+      const viking = nasa.viking ? this.fitModel(nasa.viking, 2.1) : probe;
+      this.placeOnGround(viking, 470, -360, 2.2);
+      this.terrain.addOccluder(470, -360, 2.4, 0.5);
+      this.group.add(viking);
+      // Perseverance + Ingenuity abandonados num campo de dunas (modelos oficiais da NASA)
+      if (nasa.perse) {
+        const P = this.fitModel(nasa.perse, 2.2);
+        this.placeOnGround(P, -210, 235, 2.6);
+        this.terrain.addOccluder(-210, 235, 2.8, 0.5);
+        this.group.add(P);
+        this.sites.push({ id: 'perse', name: 'site_perse', pos: new THREE.Vector3(-210, this.terrain.heightAt(-210, 235), 235) });
+        this.loot.push({ id: 'perse0', kind: 'wreck', pos: P.position.clone().add(new THREE.Vector3(0, 1, 0)), give: { electronics: 4, scrap: 2 }, label: 'loot_perse', site: 'perse' });
+        if (nasa.inge) { const I = this.fitModel(nasa.inge, 0.49); this.placeOnGround(I, -204, 239, 0.4); this.group.add(I); }
+        this.colliderBox(-210, 235, 1.4, 1.1, 1.6, 2.6);
+      }
+      if (nasa.viking) this.colliderBox(470, -360, 1.2, 0.9, 1.2, 2.2);
     }
     // afloramentos de gesso (base de escarpas / paredes de crateras)
     const gyps = [[-560, 40], [-530, -120], [255, 60], [-120, -440], [120, 150], [-600, 260], [300, 215]];
@@ -106,6 +122,26 @@ export class WorldSim {
     });
     this.sites.push({ id: 'gypsum', name: 'site_gypsum', pos: new THREE.Vector3(120, this.terrain.heightAt(120, 150), 150) });
     enhanceObject(this.group);
+  }
+
+  /** normaliza um modelo: altura desejada em metros, base no chão (y = 0), centrado em x/z */
+  private fitModel(src: THREE.Object3D, height: number) {
+    const holder = new THREE.Group();
+    const m = src;
+    const box = new THREE.Box3().setFromObject(m);
+    const size = box.getSize(new THREE.Vector3());
+    const k = height / Math.max(0.01, size.y);
+    m.scale.multiplyScalar(k);
+    const b2 = new THREE.Box3().setFromObject(m);
+    const c = b2.getCenter(new THREE.Vector3());
+    m.position.x -= c.x; m.position.z -= c.z; m.position.y -= b2.min.y;
+    holder.add(m);
+    enhanceObject(holder);
+    return holder;
+  }
+  private colliderBox(x: number, z: number, hx: number, hy: number, hz: number, yaw: number) {
+    const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    this.phys.addBoxes([{ pos: { x, y: this.terrain.heightAt(x, z) + hy, z }, half: { x: hx, y: hy, z: hz }, quat: { x: q.x, y: q.y, z: q.z, w: q.w } }]);
   }
 
   placeOnGround(o: THREE.Object3D, x: number, z: number, yaw: number) {
@@ -131,6 +167,7 @@ export class WorldSim {
     obj.position.set(b.x, this.terrain.heightAt(b.x, b.z) - (b.type === 'habitat' ? 0.15 : 0.05), b.z);
     obj.rotation.y = b.rot;
     enhanceObject(obj);
+    this.terrain.addOccluder(b.x, b.z, FOOTPRINT[b.type] * (b.type === 'habitat' ? 0.95 : 0.8), 0.5, () => obj.parent !== null);
     this.group.add(obj);
     const R = this.phys.R;
     const colliders: RAPIER.Collider[] = [];

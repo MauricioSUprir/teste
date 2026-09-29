@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { LanderMats } from './lander';
 import { beacon, WINDOW_MAT } from './nightfx';
+import { detail } from '../render/detail';
+import { crumpledSheet } from './debris';
 import type { BuildId } from '../sim/balance';
 
 const shadow = <T extends THREE.Object3D>(o: T): T => { o.traverse((c) => { if ((c as THREE.Mesh).isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
@@ -10,7 +12,8 @@ const shadow = <T extends THREE.Object3D>(o: T): T => { o.traverse((c) => { if (
 export function makeStructMats(M: LanderMats) {
   return {
     ...M,
-    fabric: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.88, 0.87, 0.84), roughness: 0.85, sheen: 1, sheenRoughness: 0.6, sheenColor: new THREE.Color(0.9, 0.9, 0.88) }),
+    // tecido beta (fibra de vidro revestida) das camadas externas de habitats infláveis
+    fabric: detail(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.86, 0.85, 0.82), roughness: 0.85, sheen: 1, sheenRoughness: 0.6, sheenColor: new THREE.Color(0.9, 0.9, 0.88) }), { set: 'fabric', tile: 0.35, albedo: 0.7 }),
     glassGreen: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.15, 0.55, 0.22), roughness: 0.08, transmission: 0, metalness: 0, clearcoat: 1, emissive: new THREE.Color(0.02, 0.12, 0.03), emissiveIntensity: 1 }),
     lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: new THREE.Color(1, 0.9, 0.75), emissiveIntensity: 6 }),
     ledGreen: new THREE.MeshStandardMaterial({ color: 0x103010, emissive: new THREE.Color(0.2, 1, 0.3), emissiveIntensity: 5 }),
@@ -187,11 +190,12 @@ export function buildWreck(M: StructMats, seed: number) {
   const g = new THREE.Group();
   let s = seed;
   const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-  const mats = [M.gold, M.silver, M.metal, M.white, M.burnt];
+  // ~70% chapa pintada/compósito, ~30% manta térmica (realismo de destroços de espaçonave)
+  const mats = [M.hull, M.white, M.metal, M.burnt, M.white, M.hull, M.gold, M.silver];
   for (let i = 0; i < 4; i++) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(0.4 + r() * 1.6, 0.04 + r() * 0.2, 0.3 + r() * 1.1), mats[Math.floor(r() * mats.length)]);
-    m.position.set((r() - 0.5) * 1.6, 0.08, (r() - 0.5) * 1.6);
-    m.rotation.set((r() - 0.5) * 0.8, r() * 6, (r() - 0.5) * 0.8);
+    const m = crumpledSheet(0.5 + r() * 1.5, 0.35 + r() * 1.0, seed + i * 31, mats[Math.floor(r() * mats.length)]);
+    m.position.set((r() - 0.5) * 1.6, 0, (r() - 0.5) * 1.6);
+    m.rotation.y = r() * 6;
     g.add(m);
   }
   const box = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.3, 0.4, 2, 0.03), M.dark);

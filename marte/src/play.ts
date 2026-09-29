@@ -35,7 +35,10 @@ export class Play {
   onQuitToMenu?: () => void;
 
   constructor(public game: Game) {
-    this.world = new WorldSim(game.crash.mats, game.terrain, game.physics, game.crash.crates, game.crash.landerPos);
+    this.world = new WorldSim(game.crash.mats, game.terrain, game.physics, game.crash.crates, game.crash.landerPos, game.nasa);
+    // pedrinhas nunca escondem itens coletáveis
+    game.pebbleBlock = (x, z) => this.world.loot.some((l) => Math.abs(l.pos.x - x) < 1.6 && Math.abs(l.pos.z - z) < 1.6);
+    game.pebbles.update(game.camera.position, true);
     game.scene.add(this.world.group);
     this.hud = new Hud(document.getElementById('hud')!);
     this.hud.buildMap(game.terrain.heights, WORLD.res);
@@ -223,7 +226,7 @@ export class Play {
         if (this.flipT > 2 && input.isHeld('interact')) { r.reset(r.pos.x, r.pos.z, r.yaw()); this.flipT = 0; }
       } else { this.flipT = 0; this.hud.showPrompt(null); }
       input.consume('interact');
-    } else if (g.player.pos.distanceTo(r.pos) < 4.2) {
+    } else if (g.player.pos.distanceTo(r.pos) < 5.4) {
       this.hud.showPrompt(`${t('act_rover')}${g.input.touchMode ? ' 🚙' : ' (F)'}`, 0, false);
       this.roverPromptShown = true;
     } else if (this.roverPromptShown) { this.roverPromptShown = false; this.hud.showPrompt(null); }

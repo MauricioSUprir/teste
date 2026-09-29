@@ -61,5 +61,5 @@ export const fr: Record<keyof typeof pt, string> = {
   hud_tau: 'Opacité τ',
   hud_pressure: 'Pression',
   hud_speed: 'Vitesse',
-  credits: 'Textures et roches : Poly Haven (CC0). Terrain et ciel : modèles physiques fondés sur les données de la NASA (Mars24, MEDA/Perseverance).',
+  credits: 'Textures et roches : Poly Haven (CC0). Terrain et ciel : modèles physiques fondés sur les données de la NASA (Mars24, MEDA/Perseverance). Rover SEV, Perseverance, Ingenuity et Viking : modèles 3D de la NASA (domaine public).',
 };

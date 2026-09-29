@@ -158,4 +158,6 @@ export const game_es: Record<keyof typeof game_pt, string> = {
   int_woke: "Buenos días, comandante. Un nuevo sol en Marte.",
   hab_close: "Volver",
   ev_cold: "❄ {t} °C afuera: calefacción del traje al máximo, la batería baja más rápido",
+  site_perse: "Rover Perseverance (NASA)",
+  loot_perse: "Recuperar piezas del Perseverance",
 };

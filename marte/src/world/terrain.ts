@@ -13,6 +13,8 @@ const terrainGLSL_pars = /* glsl */ `
 uniform sampler2D tA0; uniform sampler2D tN0; uniform sampler2D tA1; uniform sampler2D tN1;
 uniform sampler2D tA2; uniform sampler2D tN2; uniform sampler2D tA3; uniform sampler2D tN3;
 uniform vec4 uTile; uniform vec4 uRough;
+// sombras de contato: até 24 oclusores (x, z, raio, força) perto da câmera
+uniform vec4 uOcc[24]; uniform int uOccN;
 varying vec3 vTW; varying vec3 vTN; varying vec2 vMask;
 float thash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); vec2 u=f*f*(3.0-2.0*f);
@@ -57,10 +59,24 @@ const terrainGLSL_main = /* glsl */ `
   vec4 A = (A0*b0 + A1*b1 + A2*b2)/bs;
   vec4 N = (N0*b0 + N1*b1 + N2*b2)/bs;
   vec3 tn = vec3(N.rg*2.0-1.0, 0.0);
+#ifdef ANTI_TILING
   float nStr = mix(1.25, 0.35, smoothstep(30.0, 500.0, tdist));
+#else
+  float nStr = mix(1.25, 0.0, smoothstep(25.0, 140.0, tdist)); // sem anti-repetição: some com o relevo fino longe (evita listras)
+#endif
   vec3 terrN = normalize(nW + vec3(tn.x, 0.0, tn.y)*nStr);
   vec3 terrAlb = A.rgb;
   float terrRough = (uRough.x*b0 + uRough.y*b1 + uRough.z*b2)/bs; float terrAO = 1.0;
+#ifndef TERRAIN_FAR
+  for (int i = 0; i < 24; i++) {
+    if (i >= uOccN) break;
+    vec4 o = uOcc[i];
+    vec2 dd = vTW.xz - o.xy;
+    float d2 = dot(dd, dd);
+    if (d2 < o.z*o.z) { float d = sqrt(d2); terrAO *= 1.0 - o.w * (1.0 - smoothstep(o.z*0.2, o.z, d)); }
+  }
+  diffuseColor.rgb *= mix(1.0, terrAO, 0.35); // parte da luz direta também é bloqueada rente ao objeto
+#endif
   // ondulações eólicas (ripples ~0,5-0,8 m) nas áreas de areia, somem com a distância
   {
     float sand = clamp((b0*1.0 + b1*0.45)/bs, 0.0, 1.0) * (1.0 - wCliff);
@@ -117,6 +133,8 @@ export class Terrain {
     this.uniforms = {
       uTile: { value: new THREE.Vector4(3.2, 2.6, 2.4, 9.0) },
       uRough: { value: new THREE.Vector4(0.96, 0.9, 0.86, 0.8) },
+      uOcc: { value: Array.from({ length: 24 }, () => new THREE.Vector4()) },
+      uOccN: { value: 0 },
     };
     for (let i = 0; i < 4; i++) {
       this.uniforms[`tA${i}`] = { value: tex.a[i] };
@@ -137,6 +155,20 @@ export class Terrain {
     const d = this.material.defines!;
     if (on) d.ANTI_TILING = ''; else delete d.ANTI_TILING;
     this.material.needsUpdate = true;
+  }
+
+  /** oclusores estáticos (caixas, módulo, destroços, construções) para as sombras de contato */
+  occluders: { x: number; z: number; r: number; s: number; alive?: () => boolean }[] = [];
+  addOccluder(x: number, z: number, r: number, s = 0.55, alive?: () => boolean) { this.occluders.push({ x, z, r, s, alive }); }
+  /** escolhe os oclusores mais próximos da câmera (+ dinâmicos) e envia ao shader */
+  updateOccluders(cam: THREE.Vector3, dynamic: { x: number; z: number; r: number; s: number }[]) {
+    const arr = this.uniforms.uOcc.value as THREE.Vector4[];
+    let n = 0;
+    for (const d of dynamic) if (n < 24) arr[n++].set(d.x, d.z, d.r, d.s);
+    const near = this.occluders.filter((o) => (o.alive?.() ?? true) && Math.abs(o.x - cam.x) < 60 && Math.abs(o.z - cam.z) < 60)
+      .sort((a, b) => Math.hypot(a.x - cam.x, a.z - cam.z) - Math.hypot(b.x - cam.x, b.z - cam.z));
+    for (const o of near) { if (n >= 24) break; arr[n++].set(o.x, o.z, o.r, o.s); }
+    this.uniforms.uOccN.value = n;
   }
 
   setTextures(tex: TerrainTextures) {

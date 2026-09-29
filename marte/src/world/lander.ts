@@ -1,11 +1,41 @@
 // Módulo de pouso ARES IV (pouso forçado) + destroços. Geometria procedural com materiais PBR.
 import * as THREE from 'three';
 import { beacon, WINDOW_MAT } from './nightfx';
+import { detail } from '../render/detail';
+import { crumpledSheet } from './debris';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mulberry32 } from './noise';
 import type { Terrain } from './terrain';
 
 export interface BoxCollider { pos: THREE.Vector3; half: THREE.Vector3; quat: THREE.Quaternion }
+
+/** manta térmica amassada de verdade: facetas planas com normais aleatórias (células de Voronoi, repetível) */
+function foilFacetTexture(size = 256, cells = 260, seed = 9) {
+  const r = mulberry32(seed);
+  const pts = Array.from({ length: cells }, () => ({ x: r() * size, y: r() * size, nx: (r() - 0.5) * 0.9, ny: (r() - 0.5) * 0.9 }));
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(size, size);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    let b = 0, bd = Infinity, sd = Infinity;
+    for (let k = 0; k < cells; k++) {
+      let dx = Math.abs(x - pts[k].x), dy = Math.abs(y - pts[k].y);
+      if (dx > size / 2) dx = size - dx; if (dy > size / 2) dy = size - dy;
+      const d = dx * dx + dy * dy;
+      if (d < bd) { sd = bd; bd = d; b = k; } else if (d < sd) sd = d;
+    }
+    // vinco escuro/afiado na fronteira entre facetas
+    const edge = Math.sqrt(sd) - Math.sqrt(bd) < 1.2 ? 1.6 : 1;
+    const nx = pts[b].nx * edge, ny = pts[b].ny * edge, l = Math.hypot(nx, ny, 1), i = (y * size + x) * 4;
+    img.data[i] = (nx / l * 0.5 + 0.5) * 255; img.data[i + 1] = (ny / l * 0.5 + 0.5) * 255; img.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.NoColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
 
 function crinkleTexture(size = 512, seed = 3) {
   // manta térmica (MLI) amassada: normal map procedural
@@ -60,18 +90,24 @@ function panelTexture() {
 export function makeLanderMaterials() {
   const crinkle = crinkleTexture();
   crinkle.repeat.set(2, 2);
+  const facets = foilFacetTexture();
+  facets.repeat.set(16, 1.2);
+  const facetsSmall = facets.clone(); facetsSmall.repeat.set(3, 3); facetsSmall.needsUpdate = true;
   return {
-    gold: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.9, 0.66, 0.3), metalness: 1, roughness: 0.35, normalMap: crinkle, normalScale: new THREE.Vector2(0.8, 0.8) }),
-    silver: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.85, 0.86, 0.88), metalness: 1, roughness: 0.2, normalMap: crinkle, normalScale: new THREE.Vector2(0.6, 0.6) }),
-    white: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.82, 0.81, 0.78), roughness: 0.45, clearcoat: 0.3, clearcoatRoughness: 0.5 }),
-    metal: new THREE.MeshStandardMaterial({ color: new THREE.Color(0.55, 0.56, 0.58), metalness: 0.9, roughness: 0.35 }),
-    dark: new THREE.MeshStandardMaterial({ color: new THREE.Color(0.05, 0.05, 0.055), metalness: 0.4, roughness: 0.55 }),
-    burnt: new THREE.MeshStandardMaterial({ color: new THREE.Color(0.1, 0.08, 0.07), metalness: 0.6, roughness: 0.7 }),
-    shield: new THREE.MeshStandardMaterial({ color: new THREE.Color(0.18, 0.12, 0.09), metalness: 0.1, roughness: 0.9 }),
-    solar: new THREE.MeshPhysicalMaterial({ map: panelTexture(), metalness: 0.3, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 }),
-    orange: new THREE.MeshStandardMaterial({ color: new THREE.Color(0.85, 0.3, 0.06), roughness: 0.6 }),
-    cloth: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.9, 0.9, 0.88), roughness: 0.9, sheen: 1, sheenRoughness: 0.6, side: THREE.DoubleSide }),
-    clothRed: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.75, 0.18, 0.08), roughness: 0.9, sheen: 1, sheenRoughness: 0.6, side: THREE.DoubleSide }),
+    foilFacets: facets,
+    gold: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.85, 0.6, 0.3), metalness: 1, roughness: 0.3, normalMap: facetsSmall, normalScale: new THREE.Vector2(1, 1) }),
+    silver: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.85, 0.86, 0.88), metalness: 1, roughness: 0.35, normalMap: crinkle, normalScale: new THREE.Vector2(0.6, 0.6) }),
+    white: detail(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.82, 0.81, 0.78), roughness: 0.5, clearcoat: 0.2, clearcoatRoughness: 0.6 }), { set: 'panel', tile: 1.4, albedo: 0.7 }),
+    hull: detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.66, 0.66, 0.64), roughness: 0.55, metalness: 0.05 }), { set: 'panel', tile: 1.2, albedo: 0.9 }),
+    metal: detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.55, 0.56, 0.58), metalness: 0.9, roughness: 0.45 }), { set: 'plate', tile: 0.8, albedo: 0.6 }),
+    dark: detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.05, 0.05, 0.055), metalness: 0.4, roughness: 0.55 }), { set: 'plate', tile: 0.6 }),
+    // fuligem: cinza-marrom fosco (não preto), como nos bocais reais após a queima
+    burnt: detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.16, 0.13, 0.11), metalness: 0.5, roughness: 0.85 }), { set: 'plate', tile: 0.5, albedo: 1 }),
+    shield: detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.18, 0.12, 0.09), metalness: 0.1, roughness: 0.9 }), { set: 'plate', tile: 0.7, albedo: 1, normal: 1 }),
+    solar: new THREE.MeshPhysicalMaterial({ map: panelTexture(), metalness: 0.3, roughness: 0.22, clearcoat: 0.3, clearcoatRoughness: 0.2 }),
+    orange: detail(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.85, 0.3, 0.06), roughness: 0.6 }), { set: 'panel', tile: 1.0, albedo: 0.6 }),
+    cloth: detail(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.9, 0.9, 0.88), roughness: 0.9, sheen: 1, sheenRoughness: 0.6, side: THREE.DoubleSide }), { set: 'fabric', tile: 0.3 }),
+    clothRed: detail(new THREE.MeshPhysicalMaterial({ color: new THREE.Color(0.75, 0.18, 0.08), roughness: 0.9, sheen: 1, sheenRoughness: 0.6, side: THREE.DoubleSide }), { set: 'fabric', tile: 0.3 }),
   };
 }
 export type LanderMats = ReturnType<typeof makeLanderMaterials>;
@@ -85,9 +121,19 @@ function shadowAll(o: THREE.Object3D) {
 export function buildLander(M: LanderMats) {
   const g = new THREE.Group();
   // estágio de descida
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.5, 1.5, 8, 1), M.gold);
+  // estrutura pintada/compósita; a manta térmica dourada (MLI) cobre só faixas e a parte de baixo
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.5, 1.5, 8, 1), M.hull);
   base.position.y = 1.6;
   g.add(base);
+  const foilMat = M.gold.clone();
+  foilMat.normalMap = M.foilFacets; foilMat.normalScale.set(1, 1); foilMat.roughness = 0.28;
+  const foil = new THREE.Mesh(new THREE.CylinderGeometry(2.49, 2.53, 0.55, 8, 1, true), foilMat);
+  foil.position.y = 1.12;
+  const foilTop = new THREE.Mesh(new THREE.CylinderGeometry(2.33, 2.36, 0.22, 8, 1, true), foilMat);
+  foilTop.position.y = 2.18;
+  const under = new THREE.Mesh(new THREE.CircleGeometry(2.45, 8), M.gold);
+  under.rotation.x = Math.PI / 2; under.position.y = 0.86;
+  g.add(foil, foilTop, under);
   const rim = new THREE.Mesh(new THREE.CylinderGeometry(2.52, 2.52, 0.12, 8), M.metal);
   rim.position.y = 0.85;
   g.add(rim);
@@ -243,10 +289,9 @@ export function buildCrashSite(terrain: Terrain, M: LanderMats) {
     const a = rnd() * Math.PI * 2, r = 6 + rnd() * 40;
     const x = -8 + Math.cos(a) * r, z = -4 + Math.sin(a) * r * 0.7;
     const w = 0.3 + rnd() * 1.4, d = 0.2 + rnd() * 0.9;
-    const frag = new THREE.Mesh(new THREE.BoxGeometry(w, 0.03 + rnd() * 0.05, d), rnd() < 0.5 ? M.gold : rnd() < 0.5 ? M.silver : M.metal);
-    frag.castShadow = true; frag.receiveShadow = true;
+    const pick = rnd();
+    const frag = crumpledSheet(w, d, 900 + i * 17, pick < 0.3 ? M.gold : pick < 0.4 ? M.silver : pick < 0.6 ? M.metal : pick < 0.8 ? M.hull : M.burnt);
     place(frag, x, z, rnd() * 6, -0.02);
-    frag.rotateX((rnd() - 0.5) * 0.6);
   }
   return { group, colliders, crates, landerPos: new THREE.Vector3(-8, 0, -4), mats: M };
 }

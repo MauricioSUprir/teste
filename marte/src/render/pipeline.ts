@@ -15,9 +15,9 @@ class ExposureEffect extends Effect {
       }`, {
       uniforms: new Map<string, THREE.Uniform>([
         ['exposure', new THREE.Uniform(1)],
-        ['saturation', new THREE.Uniform(0.96)],
+        ['saturation', new THREE.Uniform(1.03)],
         ['lift', new THREE.Uniform(new THREE.Vector3(0, 0, 0))],
-        ['blackPoint', new THREE.Uniform(0.0042)],
+        ['blackPoint', new THREE.Uniform(0.0055)],
       ]),
     });
   }
@@ -97,6 +97,11 @@ export class Pipeline {
       this.composer.addPass(ao);
       this.n8ao = ao;
     }
+    // efeitos novos a cada reconstrução (o EffectPass antigo descartou os anteriores)
+    const oldExp = this.exposure.exposure;
+    this.exposure = new ExposureEffect(); this.exposure.exposure = oldExp;
+    const oldVisor = this.visor; this.visor = new VisorEffect();
+    this.visor.strength = (oldVisor.uniforms.get('strength') as THREE.Uniform).value; this.visor.frost = (oldVisor.uniforms.get('frost') as THREE.Uniform).value;
     const effects: Effect[] = [this.exposure];
     this.bloom = null;
     if (q.bloom) {

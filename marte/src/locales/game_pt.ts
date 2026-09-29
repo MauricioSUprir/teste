@@ -161,4 +161,6 @@ export const game_pt = {
   int_woke: "Bom dia, comandante. Novo sol em Marte.",
   hab_close: "Voltar",
   ev_cold: "❄ {t} °C lá fora: aquecedor do traje no máximo, a bateria cai mais rápido",
+  site_perse: "Rover Perseverance (NASA)",
+  loot_perse: "Recuperar peças do Perseverance",
 };

@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { Physics } from '../core/physics';
 import { HAB_R } from './structures';
+import { detail } from '../render/detail';
 
 export const INTERIOR_ORIGIN = new THREE.Vector3(0, 1500, 0);
 const R = HAB_R - 0.05; // raio interno (mesmo tamanho do habitat visto de fora)
@@ -71,8 +72,11 @@ export class Interior {
     });
     floorMat.map!.wrapS = floorMat.map!.wrapT = THREE.RepeatWrapping;
     floorMat.map!.repeat.set(3, 3);
-    const white = new THREE.MeshStandardMaterial({ color: 0xe8e8e6, roughness: 0.45, metalness: 0.1 });
-    const alu = new THREE.MeshStandardMaterial({ color: 0xb8bcc2, roughness: 0.35, metalness: 0.9 });
+    detail(floorMat, { set: 'tread', tile: 0.45, albedo: 0.8, normal: 1 });
+    detail(fabric, { set: 'fabric', tile: 0.25, albedo: 0.5 });
+    detail(domeMat, { set: 'fabric', tile: 0.25, albedo: 0.5 });
+    const white = detail(new THREE.MeshStandardMaterial({ color: 0xe8e8e6, roughness: 0.45, metalness: 0.1 }), { set: 'panel', tile: 0.9, albedo: 0.45 });
+    const alu = detail(new THREE.MeshStandardMaterial({ color: 0xb8bcc2, roughness: 0.38, metalness: 0.9 }), { set: 'plate', tile: 0.4, albedo: 0.4 });
     const dark = new THREE.MeshStandardMaterial({ color: 0x24272c, roughness: 0.6, metalness: 0.3 });
     const blue = new THREE.MeshStandardMaterial({ color: 0x2e4a78, roughness: 0.85 });
     const orange = new THREE.MeshStandardMaterial({ color: 0xd8742c, roughness: 0.8 });

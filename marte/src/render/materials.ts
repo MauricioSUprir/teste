@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { CSM } from 'three/examples/jsm/csm/CSM.js';
 import { applyMarsFog } from './marsfog';
+import { applyDetail, detailKey } from './detail';
 
 type Patch = (shader: THREE.WebGLProgramParametersWithUniforms, renderer: THREE.WebGLRenderer) => void;
 
@@ -45,10 +46,11 @@ function wire(mat: THREE.Material) {
   mat.onBeforeCompile = (shader, renderer) => {
     if (csmHook) csmHook(shader);
     applyMarsFog(shader);
+    applyDetail(shader, mat);
     if (dusty) applyDust(shader);
     info.patch?.(shader, renderer);
   };
-  mat.customProgramCacheKey = () => info.key + (csmRef ? `|csm${csmRef.cascades}` : '');
+  mat.customProgramCacheKey = () => info.key + detailKey(mat) + (csmRef ? `|csm${csmRef.cascades}` : '');
   mat.needsUpdate = true;
 }
 
