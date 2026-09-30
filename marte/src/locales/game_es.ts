@@ -2,6 +2,7 @@ import type { game_pt } from './game_pt';
 export const game_es: Record<keyof typeof game_pt, string> = {
   obj_crate: 'Encuentra la caja de suministros con el kit del hábitat',
   obj_habitat: 'Monta el hábitat en terreno llano (B → Hábitat)',
+  obj_pc: 'Monta el ordenador de muñeca (💻) con la chatarra de la caja',
   obj_enter: 'Entra al hábitat por la esclusa para recargar el traje',
   obj_panel: 'Instala el panel solar cerca del hábitat',
   obj_scrap: 'Recupera chatarra y electrónica de los restos del aterrizaje',

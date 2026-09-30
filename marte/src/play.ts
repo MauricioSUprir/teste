@@ -176,7 +176,7 @@ export class Play {
       if (tw) { tw.classList.toggle('gone', !armed); const ic = WICON[st.weapons.eq]; if (tw.textContent !== ic) tw.textContent = ic; }
     }
     this.world.update(dt);
-    if (!st.flags.computer && !st.flags.pcHint && st.looted.includes('crate0') && !this.dead) { st.flags.pcHint = true; this.speak('vo_pc'); }
+    if (!st.flags.computer && !st.flags.pcHint && st.looted.includes('crate0') && !this.dead) { st.flags.pcHint = true; setTimeout(() => { if (!this.dead && !this.pcBuilt) this.speak('vo_pc'); }, 9000); }
     if (input.consume('map')) { if (this.pcBuilt) this.hud.toggleMap(); else this.hud.toast(t('pc_need', { n: Play.PC_COST }), 'info'); }
     if (input.consume('inventory')) this.togglePC();
     if (this.hud.mapOpen) this.drawMap();
@@ -211,7 +211,7 @@ export class Play {
       // botões de toque contextuais: 🚙 só perto do rover, 🔧 some ao dirigir
       const nearRover = g.driving || g.player.pos.distanceTo(g.rover.pos) < 14;
       document.getElementById('tb-car')?.classList.toggle('gone', !nearRover);
-      document.getElementById('tb-pc')?.classList.toggle('pulse', !this.pcBuilt && st.inv.scrap >= Play.PC_COST); this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
+      document.getElementById('tb-pc')?.classList.toggle('pulse', !this.pcBuilt && st.inv.scrap >= Play.PC_COST); this.hud.update(st, OBJECTIVES[oi].key === 'obj_habitat' && !this.pcBuilt ? 'obj_pc' : OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
   }
 
   speak(key: Key) {
@@ -519,7 +519,7 @@ export class Play {
         st.inv.scrap -= Play.PC_COST; st.flags.computer = true;
         sfx.craft(); this.hud.toast(t('pc_built'), 'ok'); this.persist(false);
         this.refreshPC(); return;
-      case 'light': if (g.driving) g.rover.setLights(!g.rover.lightsOn); else g.setLamp(!g.lampOn); sfx.click(); this.refreshPC(); return;
+      case 'light': if (g.driving) g.rover.setLights(!g.rover.lightsOn); else g.setLamp(!g.lampOn); sfx.click(); this.togglePC(false); return;
       case 'camera': g.toggleCamera(); sfx.click(); this.refreshPC(); return;
       case 'pause': this.togglePC(false); this.onPause?.(); return;
       // ações que atuam no mundo: fecha o computador e dispara a ação
@@ -533,6 +533,7 @@ export class Play {
     const st = this.st;
     if (this.dead || this.inHab) return;
     st.suit.health = Math.max(0, st.suit.health - dmg);
+    if (this.hud.pcOpen) this.togglePC(false);
     this.hud.hurtFlash(dmg);
     sfx.hurt();
     this.game.shake = Math.min(0.15, this.game.shake + 0.1);
@@ -592,7 +593,7 @@ export class Play {
     this.game.player.frozen = true;
     this.game.input.enabled = false;
     this.game.input.move.x = this.game.input.move.y = 0;
-    this.exitBuild(); this.hud.toggleMap(false);
+    this.exitBuild(); this.hud.toggleMap(false); this.hud.closePC();
     if (document.pointerLockElement) document.exitPointerLock();
     this.hud.closeHab();
     this.inHab = false;
@@ -601,6 +602,7 @@ export class Play {
   }
   private win() {
     this.won = true;
+    this.hud.closePC();
     this.speak('vo_win');
     this.persist(false);
     this.game.input.enabled = false;

@@ -2,6 +2,7 @@ import type { game_pt } from './game_pt';
 export const game_en: Record<keyof typeof game_pt, string> = {
   obj_crate: 'Find the supply crate with the habitat kit',
   obj_habitat: 'Deploy the habitat on flat ground (B → Habitat)',
+  obj_pc: "Assemble the wrist computer (💻) with the crate's scrap",
   obj_enter: 'Enter the habitat through the airlock to refill your suit',
   obj_panel: 'Install the solar panel near the habitat',
   obj_scrap: 'Salvage scrap and electronics from the landing debris',

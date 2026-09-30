@@ -378,7 +378,8 @@ body.forceland .bacts { right: calc(160px + var(--safe-r)); }
 /* =================== tela limpa + computador de pulso =================== */
 #tb-pc { right: 168px; bottom: 16px; width: 60px; height: 60px; border-color: rgba(127,232,255,0.7); background: rgba(8,30,40,0.55); box-shadow: 0 0 12px rgba(127,232,255,0.25); }
 #tb-pc.pulse { animation: pcPulse 1.1s ease-in-out infinite; }
-@keyframes pcPulse { 50% { box-shadow: 0 0 22px rgba(127,232,255,0.9); transform: scale(1.08); } }
+@keyframes pcPulse { 50% { opacity: 0.75; transform: scale(1.08); } }
+#tb-pc.pulse { border-color: #7fe8ff; }
 #tb-car { right: 176px; bottom: 90px; }
 /* celular: só o essencial (hora, objetivo, O₂/bateria/saúde); o resto está no computador */
 body.touch #hud-tl .env, body.touch #hud-fps, body.touch .inv { display: none !important; }
@@ -386,7 +387,7 @@ body.touch .vrow[data-lvl="0"]:nth-child(4) { display: none; }
 body.touch .vitals { top: calc(84px + var(--safe-t)) !important; }
 body.touch .objective { top: calc(52px + var(--safe-t)) !important; }
 .overlay.pcpanel { background: rgba(4,10,14,0.3); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-.overlay.pcpanel { z-index: 60; } .chip.pcchip { color: #dff6ff; font-size: 14px; padding: 4px 9px; margin: 0 4px 4px 0; }
+.overlay.pcpanel { z-index: 60; } body.touch .overlay.pcpanel { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(4,10,14,0.55); } .holo.pc { border-color: rgba(127,232,255,0.55); } .chip.pcchip { color: #dff6ff; font-size: 14px; padding: 4px 9px; margin: 0 4px 4px 0; }
 body.hud-pc .toasts, body.hud-pc .subtitle { opacity: 0; }
 .holo.pc { width: min(560px, calc(100% - 24px - var(--safe-l) - var(--safe-r))); }
 .pc-banner { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 10px; margin-bottom: 8px; border: 1px dashed rgba(255,200,120,0.6); border-radius: 10px; color: #ffe2b8; font-family: 'Inter', sans-serif; font-size: 13px; }

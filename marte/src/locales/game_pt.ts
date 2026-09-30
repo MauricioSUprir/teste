@@ -2,6 +2,7 @@ export const game_pt = {
   // objetivos
   obj_crate: 'Encontre a caixa de suprimentos com o kit do habitat',
   obj_habitat: 'Monte o habitat em terreno plano (B → Habitat)',
+  obj_pc: 'Monte o computador de pulso (💻) com a sucata da caixa',
   obj_enter: 'Entre no habitat pela eclusa para reabastecer o traje',
   obj_panel: 'Instale o painel solar perto do habitat',
   obj_scrap: 'Colete sucata e eletrônicos nos destroços do pouso',

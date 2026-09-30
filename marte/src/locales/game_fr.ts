@@ -2,6 +2,7 @@ import type { game_pt } from './game_pt';
 export const game_fr: Record<keyof typeof game_pt, string> = {
   obj_crate: 'Trouvez la caisse de ravitaillement avec le kit d’habitat',
   obj_habitat: 'Déployez l’habitat sur un terrain plat (B → Habitat)',
+  obj_pc: "Assemblez l'ordinateur de poignet (💻) avec la ferraille de la caisse",
   obj_enter: 'Entrez dans l’habitat par le sas pour recharger la combinaison',
   obj_panel: 'Installez le panneau solaire près de l’habitat',
   obj_scrap: 'Récupérez ferraille et électronique dans les débris de l’atterrissage',
