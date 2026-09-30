@@ -31,6 +31,14 @@ check(s.inv.kit_habitat === 1 && s.inv.kit_panel === 1, `caixa aberta: kit habit
 await step(0.3);
 check(s.obj >= 1, `objetivo avançou para montar habitat (${s.obj})`);
 // menu de construção
+// computador de pulso: montado com a sucata da primeira caixa (libera construção)
+s = await state();
+check(s.inv.scrap >= 2, `caixa trouxe sucata para o computador (${s.inv.scrap})`);
+await ev(() => { __debug.play_().togglePC(true); });
+await step(0.1);
+await shot('02_computador');
+await ev(() => { __debug.play_().pcAction('assemble'); __debug.play_().togglePC(false); });
+check(await ev(() => !!__debug.play_().st.flags.computer), 'computador de pulso montado');
 await ev(() => __game.input.fire('build'));
 await step(0.1);
 await shot('03_menu_construcao');

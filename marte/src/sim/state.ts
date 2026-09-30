@@ -100,6 +100,8 @@ function migrate(st: GameState): GameState | null {
     for (const id of WEAPON_ORDER) for (const u of ['dmg', 'rate', 'eff'] as const) w.lvl[id][u] = Math.max(0, Math.min(UPG_MAX, Math.floor(sw.lvl?.[id]?.[u] ?? 0)));
   }
   merged.weapons = w;
+  // saves antigos já tinham construção: computador de pulso considerado montado
+  if (merged.buildings.length > 0 || merged.objective > 1) merged.flags.computer = true;
   merged.stats2 = { kills: 0, ...(st as Partial<GameState>).stats2 };
   merged.version = SAVE_VERSION;
   const nums = [merged.sol, merged.player.x, merged.player.z, merged.suit.o2, merged.suit.batt, merged.suit.health];

@@ -62,6 +62,7 @@ game.load((key, frac) => {
 }).then(() => {
   play_ = new Play(game);
   play_.onQuitToMenu = () => toMenu();
+  play_.onPause = () => pause();
   $('loading').classList.add('hidden');
   showMenu();
   game.start();
@@ -115,7 +116,7 @@ function play() {
   game.menuMode = false;
   game.paused = false;
   game.input.clearPressed();
-  const overlay = !!(play_ && (play_.hud.habOpen || play_.hud.armoryOpen || play_.dead || play_.won));
+  const overlay = !!(play_ && (play_.hud.habOpen || play_.hud.armoryOpen || play_.hud.pcOpen || play_.dead || play_.won));
   game.input.enabled = !overlay;
   const touch = isMobile || game.input.touchMode;
   $('touch').classList.toggle('hidden', !touch);
@@ -243,19 +244,20 @@ onLang(() => {
 // pointer lock / pausa
 document.addEventListener('pointerlockchange', () => {
   const locked = !!document.pointerLockElement;
-  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.hud.habOpen || !!play_?.hud.armoryOpen || !!play_?.dead || !!play_?.won);
-  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.habOpen && !play_?.hud.armoryOpen && !play_?.dead && !play_?.won) pause();
+  $('clicktoplay').classList.toggle('hidden', locked || !inGame || game.input.touchMode || game.paused || !!play_?.hud.habOpen || !!play_?.hud.armoryOpen || !!play_?.hud.pcOpen || !!play_?.dead || !!play_?.won);
+  if (!locked && inGame && !game.paused && !game.input.touchMode && !play_?.hud.habOpen && !play_?.hud.armoryOpen && !play_?.hud.pcOpen && !play_?.dead && !play_?.won) pause();
 });
-canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.habOpen && !play_?.hud.armoryOpen) game.input.requestLock(); });
+canvas.addEventListener('click', () => { if (inGame && !game.paused && !document.pointerLockElement && !play_?.hud.habOpen && !play_?.hud.armoryOpen && !play_?.hud.pcOpen) game.input.requestLock(); });
 addEventListener('keydown', (e) => {
   if (e.code === 'Escape' && inGame && game.paused && !$('pause').classList.contains('hidden')) { e.preventDefault(); setTimeout(() => { game.input.clearPressed(); play(); }, 0); }
 });
 setInterval(() => {
   if (!game.input.consume('pause')) return;
+  if (play_?.hud.pcOpen) { play_.togglePC(false); return; }
   if (play_?.hud.buildOpen) { play_.exitBuild(); return; }
   if (play_?.hud.mapOpen) { play_.hud.toggleMap(false); return; }
   if (play_?.world.ghost) { play_.world.cancelGhost(); return; }
-  if (!game.paused && !play_?.hud.habOpen && !play_?.hud.armoryOpen) pause();
+  if (!game.paused && !play_?.hud.habOpen && !play_?.hud.armoryOpen && !play_?.hud.pcOpen) pause();
 }, 50);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); if (play_?.active) play_.persist(false); } });
 // iOS pode descartar o contexto WebGL em segundo plano: pausa, salva e recarrega quando ele voltar
@@ -273,10 +275,6 @@ function bindTouchBtn(id: string, action: Parameters<typeof game.input.fire>[0])
 }
 bindTouchBtn('tb-jump', 'jump');
 bindTouchBtn('tb-use', 'interact');
-bindTouchBtn('tb-cam', 'camera');
-bindTouchBtn('tb-light', 'light');
-bindTouchBtn('tb-build', 'build');
-bindTouchBtn('tb-map', 'map');
 bindTouchBtn('tb-car', 'vehicle');
 bindTouchBtn('tb-wpn', 'weapon');
 // botão de tiro: segurar = atirar; arrastar o mesmo dedo = mirar (0,8× a sensibilidade do olhar)
@@ -301,7 +299,7 @@ bindTouchBtn('tb-wpn', 'weapon');
   b.addEventListener('pointerup', up);
   b.addEventListener('pointercancel', up);
 }
-$('tb-pause').addEventListener('pointerdown', (e) => { e.stopPropagation(); pause(); });
+$('tb-pc').addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); play_?.togglePC(); });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 // na vertical o jogo funciona normalmente; se a rotação do iPhone estiver travada, o jogo gira sozinho

@@ -42,6 +42,8 @@ export class Hud {
   tbar = el('div', 'tbar hidden', '<i></i>');
   wpn = el('div', 'wpnpill');
   armory = el('div', 'overlay armory hidden');
+  pc = el('div', 'overlay pcpanel hidden');
+  onPcAction?: (a: string) => void;
   onArmoryClose?: () => void;
   onCraft?: (w: WeaponId) => void;
   onUpgrade?: (w: WeaponId, u: UpgradeId) => void;
@@ -73,7 +75,7 @@ export class Hud {
     this.mapPanel.appendChild(this.mapCanvas);
     this.mapPanel.addEventListener('pointerdown', () => this.toggleMap(false));
     parent.append(this.vitals, this.objective, this.prompt, this.toasts, this.subtitle, this.waypoint, this.inv, this.storm, this.roverHud, this.xhair, this.hitmark, this.threatBox, this.tbar, this.wpn);
-    document.body.append(this.dmg, this.build, this.habPanel, this.endScreen, this.mapPanel, this.armory);
+    document.body.append(this.dmg, this.build, this.habPanel, this.endScreen, this.mapPanel, this.armory, this.pc);
     this.relabel();
   }
 
@@ -183,6 +185,24 @@ export class Hud {
     this.armory.querySelectorAll<HTMLElement>('[data-eq]').forEach((b) => b.addEventListener('click', () => this.onEquip?.(b.dataset.eq as WeaponId)));
     this.armory.classList.remove('hidden');
   }
+  /** computador de pulso: tudo o que não é essencial fica aqui (construir, mapa, lanterna, câmera, inventário, pausa) */
+  openPC(st: GameState, o: { built: boolean; canBuild: boolean; lamp: boolean; fp: boolean; nearRover: boolean; cost: number }) {
+    const inv = st.inv as Record<string, number>;
+    const items = ITEMS.filter((i) => inv[i] > 0).map((i) => `<span class="chip pcchip">${i === 'gypsum' ? inv[i].toFixed(0) + ' kg' : inv[i]} ${t(`it_${i}` as Key)}</span>`).join('') || `<span class="pc-empty">${t('pc_inv_empty')}</span>`;
+    const tile = (a: string, icon: string, label: string, lock = false, on = false) => `<button class="pctile ${lock ? 'lock' : ''} ${on ? 'on' : ''}" data-a="${lock ? '' : a}"><span class="pi">${icon}</span><span class="pl">${label}</span>${lock ? '<span class="pk">🔒</span>' : ''}</button>`;
+    const rad = st.suit.rad;
+    const status = `<div class="pc-stat"><span>☢ ${rad.toFixed(1)} mSv</span><span>🌡 ${t('pc_suit')} ${Math.round(st.suit.batt / BAL.suitBattCap * 100)}%</span><span>⚔ ${st.stats2?.kills ?? 0}</span></div>`;
+    const banner = o.built ? '' : `<div class="pc-banner"><div>${t('pc_broken', { n: o.cost })}</div><button class="hbtn ${o.canBuild ? 'go' : 'dis'}" data-a="${o.canBuild ? 'assemble' : ''}">${t('pc_assemble')} · ${o.cost} ${t('it_scrap')}</button></div>`;
+    this.pc.innerHTML = `<div class="holo pc"><div class="holo-h"><span>${t('pc_title')}</span><button class="hbtn small" data-a="close">✖</button></div>${banner}
+      <div class="pcgrid">${tile('build', '🔧', t('pc_build'), !o.built)}${tile('map', '🗺', t('pc_map'), !o.built)}${tile('light', '💡', t('pc_light'), false, o.lamp)}${tile('camera', '👁', o.fp ? t('pc_cam3') : t('pc_cam1'))}${o.nearRover ? tile('vehicle', '🚙', t('pc_rover')) : ''}${tile('pause', '⚙', t('pc_pause'))}</div>
+      <div class="pc-sec">${t('pc_inv')}</div><div class="pc-inv">${items}</div>${status}</div>`;
+    this.pc.querySelectorAll<HTMLElement>('[data-a]').forEach((b) => b.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); const a = b.dataset.a; if (a) this.onPcAction?.(a); }));
+    this.pc.classList.remove('hidden');
+    document.body.classList.add('hud-pc');
+  }
+  closePC() { this.pc.classList.add('hidden'); document.body.classList.remove('hud-pc'); }
+  get pcOpen() { return !this.pc.classList.contains('hidden'); }
+
   closeArmory() { this.armory.classList.add('hidden'); }
   get armoryOpen() { return !this.armory.classList.contains('hidden'); }
 

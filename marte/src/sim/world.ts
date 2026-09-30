@@ -42,7 +42,7 @@ export class WorldSim {
     this.body = phys.world.createRigidBody(phys.R.RigidBodyDesc.fixed());
     // caixas do local da queda
     const crateLoot: Partial<Record<ItemId, number>>[] = [
-      { kit_habitat: 1, kit_panel: 1 },
+      { kit_habitat: 1, kit_panel: 1, scrap: 2 }, // + sucata para montar o computador de pulso
       { culture: 1, electronics: 2 },
       { scrap: 3, electronics: 2 },
       { scrap: 2, electronics: 2 },

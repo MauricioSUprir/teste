@@ -12,7 +12,7 @@ for (const dev of ['desktop', 'phone']) {
   await p.goto('http://localhost:4173/?debug=1&quality=' + (dev === 'phone' ? 'mobile' : 'medium'));
   await p.waitForFunction(() => window.__ready === true, null, { timeout: 400000 });
   await p.addStyleTag({ content: '.subtitle { display: none !important; }' });
-  await p.evaluate((touch) => { __debug.newGame('normal'); __debug.freeze(true); __game.input.touchMode = touch; const P = __debug.play_(); P.st.buildings.push({ id: 900, type: 'habitat', x: 14, z: 12, rot: 0, dust: 0 }); P.world.sync(P.st); P.st.inv.scrap = 30; P.st.inv.electronics = 10; __debug.setTime(9.5); __debug.teleport(20, 22); __game.player.yaw = 0.3; __debug.renderOnce(0.5); }, dev === 'phone');
+  await p.evaluate((touch) => { __debug.newGame('normal'); __debug.freeze(true); __game.input.touchMode = touch; const P = __debug.play_(); P.st.buildings.push({ id: 900, type: 'habitat', x: 14, z: 12, rot: 0, dust: 0 }); P.world.sync(P.st); P.st.inv.scrap = 30; P.st.inv.electronics = 10; P.st.flags.computer = true; __debug.setTime(9.5); __debug.teleport(20, 22); __game.player.yaw = 0.3; __debug.renderOnce(0.5); }, dev === 'phone');
   await p.evaluate(() => { __game.input.fire('build'); __debug.renderOnce(0.2); });
   let s = await p.evaluate(() => ({ mode: __debug.play_().buildMode, ghost: !!__debug.play_().world.ghost, tiles: document.querySelectorAll('.btile').length, thumbs: [...document.querySelectorAll('.btile img')].filter((i) => i.src.startsWith('data:image')).length }));
   check(s.mode && s.ghost && s.tiles >= 4 && s.thumbs === s.tiles, `${dev}: modo construção abriu com ${s.tiles} estruturas e miniaturas holográficas`);

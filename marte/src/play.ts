@@ -38,6 +38,7 @@ export class Play {
   private objAnnounced = -1;
   active = false;
   onQuitToMenu?: () => void;
+  onPause?: () => void;
 
   constructor(public game: Game) {
     this.world = new WorldSim(game.crash.mats, game.terrain, game.physics, game.crash.crates, game.crash.landerPos, game.nasa);
@@ -65,6 +66,7 @@ export class Play {
     this.hud.onMenu = () => { this.hud.hideEnd(); this.onQuitToMenu?.(); };
     this.hud.onArmoryClose = () => { this.hud.closeArmory(); this.game.input.enabled = true; this.game.input.clearPressed(); this.game.input.requestLock(); };
     this.hud.onCraft = (w) => this.craftWeapon(w);
+    this.hud.onPcAction = (a) => this.pcAction(a);
     this.hud.onUpgrade = (w, u) => this.upgradeWeapon(w, u);
     this.hud.onEquip = (w) => { this.st.weapons.eq = w; sfx.click(); this.hud.openArmory(this.st); };
     // depois do resgate confirmado: continuar explorando Marte livremente
@@ -174,7 +176,9 @@ export class Play {
       if (tw) { tw.classList.toggle('gone', !armed); const ic = WICON[st.weapons.eq]; if (tw.textContent !== ic) tw.textContent = ic; }
     }
     this.world.update(dt);
-    if (input.consume('map')) this.hud.toggleMap();
+    if (!st.flags.computer && !st.flags.pcHint && st.looted.includes('crate0') && !this.dead) { st.flags.pcHint = true; this.speak('vo_pc'); }
+    if (input.consume('map')) { if (this.pcBuilt) this.hud.toggleMap(); else this.hud.toast(t('pc_need', { n: Play.PC_COST }), 'info'); }
+    if (input.consume('inventory')) this.togglePC();
     if (this.hud.mapOpen) this.drawMap();
 
     // objetivos
@@ -207,7 +211,7 @@ export class Play {
       // botões de toque contextuais: 🚙 só perto do rover, 🔧 some ao dirigir
       const nearRover = g.driving || g.player.pos.distanceTo(g.rover.pos) < 14;
       document.getElementById('tb-car')?.classList.toggle('gone', !nearRover);
-      document.getElementById('tb-build')?.classList.toggle('gone', g.driving); this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
+      document.getElementById('tb-pc')?.classList.toggle('pulse', !this.pcBuilt && st.inv.scrap >= Play.PC_COST); this.hud.update(st, OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
   }
 
   speak(key: Key) {
@@ -334,7 +338,10 @@ export class Play {
   // ------------------------------------------------ construção
   private handleBuild() {
     const g = this.game, input = g.input, st = this.st;
-    if (input.consume('build')) { if (this.buildMode) this.exitBuild(); else this.enterBuild(); return; }
+    if (input.consume('build')) {
+      if (!this.pcBuilt) { this.hud.toast(t('pc_need', { n: Play.PC_COST }), 'info'); return; }
+      if (this.buildMode) this.exitBuild(); else this.enterBuild(); return;
+    }
     if (!this.buildMode) return;
     if (input.consume('weapon')) this.cycleBuild(1);
     if (input.consume('rotate')) this.rotateGhost();
@@ -477,6 +484,50 @@ export class Play {
       case 'bench': g.input.enabled = false; if (document.pointerLockElement) document.exitPointerLock(); this.hud.showPrompt(null); this.hud.openArmory(st); break;
     }
   }
+  // ------------------------------------------------ computador de pulso
+  static PC_COST = 2;
+  get pcBuilt() { return !!this.st.flags.computer; }
+  togglePC(open?: boolean) {
+    const g = this.game;
+    const want = open ?? !this.hud.pcOpen;
+    if (want) {
+      if (this.dead || this.won || this.hud.habOpen || this.hud.armoryOpen) return;
+      if (this.buildMode) this.exitBuild();
+      this.hud.toggleMap(false);
+      g.input.enabled = false;
+      g.input.move.x = g.input.move.y = 0;
+      if (document.pointerLockElement) document.exitPointerLock();
+      this.refreshPC();
+      sfx.click();
+    } else {
+      this.hud.closePC();
+      g.input.enabled = true;
+      g.input.clearPressed();
+      g.input.requestLock();
+    }
+  }
+  private refreshPC() {
+    const g = this.game;
+    this.hud.openPC(this.st, { built: this.pcBuilt, canBuild: this.st.inv.scrap >= Play.PC_COST, lamp: g.lampOn, fp: g.player.firstPerson, nearRover: g.driving || g.player.pos.distanceTo(g.rover.pos) < 14, cost: Play.PC_COST });
+  }
+  private pcAction(a: string) {
+    const g = this.game, st = this.st;
+    switch (a) {
+      case 'close': this.togglePC(false); return;
+      case 'assemble':
+        if (st.inv.scrap < Play.PC_COST) return;
+        st.inv.scrap -= Play.PC_COST; st.flags.computer = true;
+        sfx.craft(); this.hud.toast(t('pc_built'), 'ok'); this.persist(false);
+        this.refreshPC(); return;
+      case 'light': if (g.driving) g.rover.setLights(!g.rover.lightsOn); else g.setLamp(!g.lampOn); sfx.click(); this.refreshPC(); return;
+      case 'camera': g.toggleCamera(); sfx.click(); this.refreshPC(); return;
+      case 'pause': this.togglePC(false); this.onPause?.(); return;
+      // ações que atuam no mundo: fecha o computador e dispara a ação
+      case 'build': case 'map': case 'vehicle':
+        this.togglePC(false); g.input.fire(a as 'build' | 'map' | 'vehicle'); return;
+    }
+  }
+
   // ------------------------------------------------ combate
   private playerHurt(dmg: number) {
     const st = this.st;
