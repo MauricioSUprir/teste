@@ -129,6 +129,9 @@ export class Dust {
           vec3 col = uAmb + uSunCol * (0.25 + 3.5*fwd);
           float lit = smoothstep(0.0, 0.08, dot(uAmb + uSunCol, vec3(0.33)));
           gl_FragColor = vec4(col * vec3(0.95,0.7,0.5), soft * vA * 0.5 * uDensity * lit);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+
         }`,
     });
     this.points = new THREE.Points(g, mat);
@@ -215,6 +218,9 @@ export class DustDevils {
           float a = smoothstep(0.35, 0.8, d) * (0.35 + 0.65*rim) * smoothstep(0.0, 0.08, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
           vec3 col = (uAmb*1.2 + uSunCol*0.55) * vec3(0.9,0.62,0.42);
           gl_FragColor = vec4(col, a * 0.5 * uAlpha);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+
         }`,
     });
   }

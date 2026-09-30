@@ -68,6 +68,9 @@ void main(){
     col += sunTransmit(uSun.y,uTau) * smoothstep(uSunCos-0.002, uSunCos, mu) * 40.0 * uSunPower * horizonFade;
   }
   gl_FragColor = vec4(col, 1.0);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+
 }`;
 
 export class Sky {
