@@ -1,0 +1,4 @@
+Texturas: Poly Haven (https://polyhaven.com), licença CC0 (domínio público).
+laminate_floor_02, white_plaster_02, brick_wall_001, white_oak_veneer, wood_table_001,
+rough_linen, fabric_leather_02, granite_tile, long_white_tiles, concrete_floor_01.
+Reduzidas para 1024/512 px.
