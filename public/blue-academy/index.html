@@ -524,6 +524,7 @@ CATS.push(['Novo layout', [
   C('POUF','','Pufe','pouf',0.45,0.45,0.42,{tex:'linen',color:'#26282c'}),
   C('DESKW','','Mesa de trabalho dupla c/ monitores','workDesk',1.60,0.80,0.75,{table:1,color:'#f4f3f0'}),
   C('SOFAB','','Sofá preto','sofa',1.90,0.88,0.80,{tex:'leather',color:'#232427'}),
+  C('SOFAS','','Sofá slim preto','sofaSlim',1.50,0.74,0.76,{tex:'leather',color:'#232427'}),
 ]]);
 // arquitetura
 C('WALL','','Parede existente','wallpoly',1,1,H,{arch:1,solid:1,color:'#f4f3f0'});
@@ -630,8 +631,8 @@ function layoutB() {
   L.push(make('CHO', 3.3, 0.45, 180));
   L.push(make('PLANT', 4.1, 0.3, 0));
   // lounge
-  L.push(make('SOFAB', 0.46, 1.50, 90, { w: 1.80 }));
-  L.push(make('SOFAB', 1.85, 0.45, 180, { w: 1.60 }));
+  L.push(make('SOFAS', 0.39, 1.50, 90, { w: 1.60 }));
+  L.push(make('SOFAS', 1.85, 0.39, 180, { w: 1.40 }));
   L.push(make('SIDE', 0.8, 0.32, 0));
   L.push(make('PLANTS', 0.8, 0.32, 0, { elev: 0.50 }));
   L.push(make('PLANT', 0.25, 2.62, 0, { w: 0.38, d: 0.38 }));
@@ -1177,6 +1178,15 @@ const BUILD = {
       leaf.position.set(Math.cos(a) * r * 0.2, 0.38, Math.sin(a) * r * 0.2); leaf.rotation.set(0, -a + Math.PI / 2, 0); leaf.rotateX(0.25 + rr() * 0.55); leaf.castShadow = true; g.add(leaf);
     }
   },
+  sofaSlim(g, it, m) {
+    const arm = 0.06, legH = 0.15, base = 0.07, seatH = 0.42;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const l = cyl(g, 0.014, 0.01, legH, M.metal, sx * (it.w / 2 - 0.08), 0, sz * (it.d / 2 - 0.08), 10); l.rotation.z = sx * 0.12; l.rotation.x = -sz * 0.12; }
+    rbox(g, it.w, base, it.d, m, 0, legH, 0, 0.015);
+    const n = Math.max(1, Math.round((it.w - arm * 2) / 0.62)), cw = (it.w - arm * 2) / n;
+    for (let i = 0; i < n; i++) rbox(g, cw - 0.008, seatH - legH - base, it.d - 0.16, m, -it.w / 2 + arm + cw * (i + 0.5), legH + base, 0.06, 0.03);
+    const back = rbox(g, it.w - arm * 2, it.h - legH - base, 0.09, m, 0, legH + base, -it.d / 2 + 0.055, 0.03); back.rotation.x = -0.06;
+    for (const sx of [-1, 1]) rbox(g, arm, 0.58 - legH, it.d, m, sx * (it.w / 2 - arm / 2), legH, 0, 0.02);
+  },
   tableOval(g, it, m) {
     const r = it.d / 2, L = Math.max(0, it.w - it.d), t = it.h - 0.035;
     box(g, L, 0.035, it.d, m, 0, t, 0); for (const s of [-1, 1]) cyl(g, r, r, 0.035, m, s * L / 2, t, 0, 48);
@@ -1567,7 +1577,7 @@ function updUndo() { document.getElementById('undoBtn').disabled = hi <= 0; docu
 let saveT = 0;
 function save() {
   clearTimeout(saveT); saveT = setTimeout(() => {
-    try { localStorage.setItem(`ba3d-layout-v3-${PROJ}`, JSON.stringify({ items, rulers: S.rulers })); document.getElementById('stSave').textContent = 'salvo ✓'; } catch (e) { document.getElementById('stSave').textContent = 'não salvo (armazenamento bloqueado)'; }
+    try { localStorage.setItem(`ba3d-layout-v4-${PROJ}`, JSON.stringify({ items, rulers: S.rulers })); document.getElementById('stSave').textContent = 'salvo ✓'; } catch (e) { document.getElementById('stSave').textContent = 'não salvo (armazenamento bloqueado)'; }
   }, 250);
 }
 
@@ -1962,7 +1972,7 @@ function applyProjectMeta() {
 function switchProject(p) {
   if (!PROJECTS[p] || p === PROJ) return;
   PROJ = p; try { localStorage.setItem('ba3d-project', p); } catch (e) {}
-  let saved = null; try { saved = JSON.parse(localStorage.getItem(`ba3d-layout-v3-${PROJ}`) || 'null'); } catch (e) {}
+  let saved = null; try { saved = JSON.parse(localStorage.getItem(`ba3d-layout-v4-${PROJ}`) || 'null'); } catch (e) {}
   items = PROJECTS[p].build(); ORIGINAL = JSON.stringify(items); S.rulers = [];
   if (saved && Array.isArray(saved.items) && saved.items.length) { items = saved.items; S.rulers = saved.rulers || []; nextId = Math.max(0, ...items.map(i => +i.id.slice(1) || 0)) + 1; }
   S.sel = null; rebuildAll(); applyProjectMeta(); refreshRulers();
@@ -1986,7 +1996,7 @@ $('shotBtn').onclick = () => { const a = document.createElement('a'); a.href = c
 
 /* ============================ INICIALIZAÇÃO ============================ */
 try {
-  const saved = JSON.parse(localStorage.getItem(`ba3d-layout-v3-${PROJ}`) || 'null');
+  const saved = JSON.parse(localStorage.getItem(`ba3d-layout-v4-${PROJ}`) || 'null');
   if (saved && Array.isArray(saved.items) && saved.items.length) { items = saved.items; S.rulers = saved.rulers || []; nextId = Math.max(0, ...items.map(i => +i.id.slice(1) || 0)) + 1; setTimeout(() => setMsg('Layout salvo neste navegador carregado. Use "Restaurar layout original" em Objetos para recomeçar.'), 300); }
 } catch (e) {}
 buildExterior(); buildSkirting(); rebuildAll(); applyProjectMeta(); refreshRulers();
