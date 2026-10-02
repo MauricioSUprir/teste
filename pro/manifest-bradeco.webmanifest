@@ -1,0 +1,13 @@
+{
+  "name": "Bradeco Distribuidora",
+  "short_name": "BRADECO",
+  "description": "Elo entre indústria e varejo — distribuição, consultoria e representação.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0B0B0D",
+  "theme_color": "#0B0B0D",
+  "icons": [
+    { "src": "icone-bradeco-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icone-bradeco-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
