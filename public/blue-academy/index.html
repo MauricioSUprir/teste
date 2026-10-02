@@ -194,7 +194,7 @@ details.grp2 .cards, details.grp2 .list { margin-top: 6px; }
 .ab:disabled { opacity: .45; cursor: default; }
 details.more summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 2px 0; }
 details.more .fields { margin-top: 6px; }
-#viewTag { pointer-events: auto; }
+#viewTag { pointer-events: auto; white-space: nowrap; }
 #viewTag .btn { pointer-events: auto; font-size: 12px; padding: 4px 8px; background: var(--label-bg); }
 #stage #minimap { top: auto; bottom: 12px; right: 12px; }
 #help { max-width: calc(100% - 250px); }
@@ -312,16 +312,14 @@ details.more .fields { margin-top: 6px; }
         <div class="card2">
           <h3>Cena</h3>
           <label class="row">Paredes <select class="sm" id="wallsSel" style="margin-left:auto"><option value="full">inteiras</option><option value="low">baixas (corte)</option><option value="glass">transparentes</option></select></label>
-          <label class="switch">Entorno (rua, vizinhos, corredor)<input type="checkbox" id="showExt" checked></label>
+          <label class="switch">Entorno (rua, vizinhos, corredor)<input type="checkbox" id="showExt"></label>
           <label class="switch">Nome dos ambientes<input type="checkbox" id="showRooms" checked></label>
           <label class="switch">Planta original (PDF) no piso<input type="checkbox" id="showPlan"></label>
         </div>
         <div class="card2">
           <h3>Navegação</h3>
           <label class="switch">Colisão ao caminhar<input type="checkbox" id="walkCol" checked></label>
-          <label class="switch">Balanço ao caminhar<input type="checkbox" id="bobChk" checked></label>
-          <label class="switch">Minimapa<input type="checkbox" id="mapChk" checked></label>
-          <label class="row">Velocidade <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1" style="flex:1"></label>
+          <label class="switch">Minimapa<input type="checkbox" id="mapChk"></label>
         </div>
       </section>
       <!-- ===== PROJETO ===== -->
@@ -382,6 +380,8 @@ details.more .fields { margin-top: 6px; }
           <button class="ab" id="pReset" title="Voltar à posição do projeto">Original</button>
           <button class="ab dng" id="pDel" title="Excluir (Delete)">Excluir</button>
         </div>
+        <div class="dims" id="pDims"></div>
+        <details class="more" id="pEdit"><summary>Editar posição e medidas</summary>
         <h3>Posição</h3>
         <div class="fields f3">
           <label class="fld"><span>X</span><div class="unit" data-u="m"><input type="number" id="fX" step="0.01"></div></label>
@@ -394,7 +394,7 @@ details.more .fields { margin-top: 6px; }
           <label class="fld"><span>Profund.</span><div class="unit" data-u="m"><input type="number" id="fD" step="0.01" min="0.01"></div></label>
           <label class="fld"><span>Altura</span><div class="unit" data-u="m"><input type="number" id="fH" step="0.01" min="0.01"></div></label>
         </div>
-        <details class="more"><summary>Mais opções</summary>
+        <h3>Mais</h3>
           <div class="fields">
             <label class="fld full"><span>Nome</span><input type="text" id="fName"></label>
             <label class="fld"><span>Elevação</span><div class="unit" data-u="m"><input type="number" id="fE" step="0.01" min="0"></div></label>
@@ -403,7 +403,6 @@ details.more .fields { margin-top: 6px; }
           <p class="hint" id="pNote"></p>
           <p class="hint">Posição = centro do móvel. Origem (0,0) no canto interno inferior esquerdo (parede da Área Cursos com a fachada).</p>
         </details>
-        <div class="dims" id="pDims" hidden></div>
       </div>
     </aside>
   </main>
@@ -576,7 +575,7 @@ let items = projectLayout();
 const ORIGINAL = JSON.stringify(items);
 const S = {
   tool: 'select', view: 'orbit', sel: null, grid: 0.1, walls: 'full', night: false, hq: false, exposure: 1, walkCollide: true,
-  archLocked: true, showPlan: false, showRooms: true, cotas3d: false, speed: 1, showExt: true, bob: true, showMap: true, focus: false,
+  archLocked: true, showPlan: false, showRooms: true, cotas3d: false, speed: 1, showExt: false, bob: true, showMap: false, focus: false,
   showCotas: true, showDist: true, showSelDims: true, showGrid: false,
   snapMag: true, colWalls: true, colFurn: true,
   rulers: [], rulerA: null, rulerHover: null, snapPt: null,
@@ -858,11 +857,12 @@ function applyLighting() {
   pointLights.forEach(l => { l.intensity = night ? 5.5 : 1.6; });
   M.downlight.emissiveIntensity = night ? 4 : 2; M.led.emissiveIntensity = night ? 3 : 1.6;
   renderer.toneMappingExposure = S.exposure * (night ? 1.15 : 1);
-  sky.visible = !night && S.view !== '2d';
-  scene.background = sky.visible ? null : new THREE.Color(night ? '#0b1220' : bg);
+  // sem entorno: fundo branco limpo (dia e noite); com entorno: céu físico
+  sky.visible = S.showExt && !night && S.view !== '2d';
+  scene.background = sky.visible ? null : new THREE.Color(!S.showExt ? '#ffffff' : (night ? '#0b1220' : bg));
   applyExteriorLighting(night); exterior.visible = S.showExt && S.view !== '2d';
   if (bloomPass) { bloomPass.strength = night ? 0.55 : 0.18; bloomPass.threshold = night ? 0.85 : 1.4; }
-  ground.material.color.set(night ? '#23262c' : '#d3d5d6');
+  ground.material.color.set(!S.showExt ? '#ffffff' : (night ? '#23262c' : '#d3d5d6')); ground.material.normalScale.setScalar(S.showExt ? 0.4 : 0);
 }
 
 // ---------- pós-processamento (oclusão de ambiente GTAO)
@@ -1303,8 +1303,9 @@ function setView(v, opt = {}) {
   applyLighting(); items.forEach(placeObj); controls.update(); updateHelp();
   try { localStorage.setItem('ba3d-view2', v); } catch (e) {}
 }
+let helpT = 0;
 function updateHelp() {
-  const h = document.getElementById('help');
+  const h = document.getElementById('help'); h.hidden = false; clearTimeout(helpT); helpT = setTimeout(() => { h.hidden = true; }, 7000);
   h.innerHTML = S.view === 'explore'
     ? (isTouch ? '<b>Explorar</b> joystick: andar · arraste: olhar · ▲▼ subir/descer' : '<b>Explorar</b> <kbd>W A S D</kbd> andar · <kbd>Espaço</kbd>/<kbd>E</kbd> subir · <kbd>C</kbd>/<kbd>Q</kbd> descer · <kbd>Shift</kbd> correr · arraste ou <kbd>L</kbd> para olhar · roda: avançar · duplo clique: ir até o ponto')
     : S.view === 'orbit'
@@ -1343,41 +1344,19 @@ function applyExploreCam(bob = 0) {
   perspCam.lookAt(v3b.copy(walk.pos).add(lookDir()));
 }
 function exploreStep(dt) {
-  const k = walk.keys, gp = readGamepad();
-  let f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + walk.joy.y + gp.f;
-  let st = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + walk.joy.x + gp.s;
-  const u = (k.Space || k.KeyE || k.PageUp ? 1 : 0) - (k.KeyC || k.KeyQ || k.PageDown ? 1 : 0) + walk.vert + gp.u;
+  const k = walk.keys;
+  let f = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + walk.joy.y;
+  let s = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + walk.joy.x;
+  const u = (k.Space || k.KeyE || k.PageUp ? 1 : 0) - (k.KeyC || k.KeyQ || k.PageDown ? 1 : 0) + walk.vert;
   if (walk.wheel) { f += walk.wheel; walk.wheel *= Math.pow(0.02, dt); if (Math.abs(walk.wheel) < 0.02) walk.wheel = 0; }
-  walk.tyaw -= gp.lx * dt * 2.2; walk.tpitch = Math.max(-1.45, Math.min(1.45, walk.tpitch - gp.ly * dt * 1.8));
-  // olhar com suavização
-  const kl = 1 - Math.exp(-dt * 18); walk.yaw += (walk.tyaw - walk.yaw) * kl; walk.pitch += (walk.tpitch - walk.pitch) * kl;
-  // velocidade com aceleração e frenagem suaves
-  const run = k.ShiftLeft || k.ShiftRight || gp.run, vmax = (run ? 3.4 : 1.6) * S.speed;
-  const fx = Math.sin(walk.yaw), fz = Math.cos(walk.yaw), n = Math.min(1, Math.hypot(f, st)) / (Math.hypot(f, st) || 1);
-  const tv = v3a.set((fx * f - fz * st) * n * vmax, Math.max(-1, Math.min(1, u)) * vmax * 0.8, (fz * f + fx * st) * n * vmax);
-  walk.vel.lerp(tv, 1 - Math.exp(-dt * ((f || st || u) ? 7 : 10)));
-  const dx = walk.vel.x * dt, dz = walk.vel.z * dt, dy = walk.vel.y * dt;
-  const stuck = !freeAt(walk.pos.x, -walk.pos.z, walk.pos.y);
-  if (Math.abs(dx) + Math.abs(dz) > 1e-6) {
-    let moved = false;
-    for (const [mx, mz] of [[dx, dz], [dx, 0], [0, dz]]) { if (stuck || freeAt(walk.pos.x + mx, -(walk.pos.z + mz), walk.pos.y)) { walk.pos.x += mx; walk.pos.z += mz; moved = true; break; } }
-    if (!moved) { walk.vel.x *= 0.3; walk.vel.z *= 0.3; }
+  const sp = (k.ShiftLeft || k.ShiftRight ? 3.2 : 1.5) * dt;
+  if (f || s) {
+    const fx = Math.sin(walk.yaw), fz = Math.cos(walk.yaw);
+    const dx = (fx * f - fz * s) * sp, dz = (fz * f + fx * s) * sp;
+    for (const [mx, mz] of [[dx, dz], [dx, 0], [0, dz]]) { if (freeAt(walk.pos.x + mx, -(walk.pos.z + mz), walk.pos.y)) { walk.pos.x += mx; walk.pos.z += mz; break; } }
   }
-  if (Math.abs(dy) > 1e-6) { const ny = Math.max(0.25, Math.min(25, walk.pos.y + dy)); if (stuck || freeAt(walk.pos.x, -walk.pos.z, ny)) walk.pos.y = ny; else walk.vel.y = 0; }
-  // balanço leve da cabeça ao caminhar
-  const sp = Math.hypot(walk.vel.x, walk.vel.z); walk.bob = (walk.bob || 0) + dt * sp * 6.5;
-  applyExploreCam(S.bob && walk.pos.y < H ? Math.sin(walk.bob) * 0.012 * Math.min(1, sp) : 0);
-}
-let gpWarned = false;
-function readGamepad() {
-  const out = { f: 0, s: 0, u: 0, lx: 0, ly: 0, run: false };
-  const pads = navigator.getGamepads ? navigator.getGamepads() : []; const g = pads && [...pads].find(p => p);
-  if (!g) return out;
-  const dz = v => Math.abs(v) < 0.15 ? 0 : v;
-  out.s = dz(g.axes[0] || 0); out.f = -dz(g.axes[1] || 0); out.lx = dz(g.axes[2] || 0); out.ly = dz(g.axes[3] || 0);
-  out.u = (g.buttons[7]?.value || 0) - (g.buttons[6]?.value || 0); out.run = !!g.buttons[10]?.pressed;
-  if (!gpWarned) { gpWarned = true; setMsg('Controle conectado: analógicos andam e olham, gatilhos sobem e descem.'); }
-  return out;
+  if (u) { const ny = Math.max(0.25, Math.min(16, walk.pos.y + u * sp * 0.9)); if (freeAt(walk.pos.x, -walk.pos.z, ny)) walk.pos.y = ny; }
+  applyExploreCam();
 }
 function distToPoly(p, poly) {
   let best = Infinity; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -1387,15 +1366,13 @@ function distToPoly(p, poly) {
   } return best;
 }
 function freeAt(x, y, h) {
-  if (!S.walkCollide) return true;
-  const r = 0.17, p = [x, y];
-  if (h < H + 0.08) for (const o of items) {
-    const c = cat(o);
-    if (c.arch) { if (!c.solid) continue; }
-    else if (c.noCollide || c.platform || o.elev + o.h < 0.45 || o.elev > h + 0.1) continue;
-    const fp = footprint(o); if (pip(p, fp) || distToPoly(p, fp) < r) return false;
+  if (!S.walkCollide || h > H + 0.08) return true;
+  const r = 0.16;
+  for (const o of items) {
+    const c = cat(o); if (!c.arch || !c.solid) continue;
+    const fp = footprint(o); if (pip([x, y], fp) || distToPoly([x, y], fp) < r) return false;
   }
-  if (h < 3.2) for (const fp of EXT_SOLIDS) if (pip(p, fp) || distToPoly(p, fp) < r) return false;
+  if (S.showExt && h < 3.2) for (const fp of EXT_SOLIDS) if (pip([x, y], fp) || distToPoly([x, y], fp) < 0.16) return false;
   return true;
 }
 function orbitKeys(dt) {
@@ -1403,7 +1380,7 @@ function orbitKeys(dt) {
   const s = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0) + (S.sel ? 0 : (k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0));
   const u = (k.KeyE || k.PageUp ? 1 : 0) - (k.KeyQ || k.PageDown ? 1 : 0);
   if (!f && !s && !u) return;
-  const sp = (k.ShiftLeft || k.ShiftRight ? 4 : 2) * S.speed * dt * Math.max(0.6, Math.min(3, perspCam.position.distanceTo(controls.target) / 4));
+  const sp = (k.ShiftLeft || k.ShiftRight ? 4 : 2) * dt * Math.max(0.6, Math.min(3, perspCam.position.distanceTo(controls.target) / 4));
   const fw = v3a.copy(controls.target).sub(perspCam.position); fw.y = 0; fw.normalize();
   const rt = v3b.set(-fw.z, 0, fw.x);
   const mv = new THREE.Vector3().addScaledVector(fw, f * sp).addScaledVector(rt, s * sp); mv.y = u * sp * 0.8;
@@ -1503,7 +1480,7 @@ function startDrag(it, p, e, kind) {
 canvas.addEventListener('pointermove', e => {
   const p = floorPt(e);
   if (p) document.getElementById('stPos').textContent = `x ${fmtM(p[0])}  y ${fmtM(p[1])} m`;
-  if (look) { walk.tyaw -= (e.clientX - look.x) * 0.0045; walk.tpitch = Math.max(-1.4, Math.min(1.4, walk.tpitch - (e.clientY - look.y) * 0.0045)); look = { x: e.clientX, y: e.clientY }; return; }
+  if (look) { walk.yaw -= (e.clientX - look.x) * 0.005; walk.pitch = Math.max(-1.2, Math.min(1.2, walk.pitch - (e.clientY - look.y) * 0.005)); look = { x: e.clientX, y: e.clientY }; return; }
   if (S.tool === 'measure') { S.snapPt = p ? measureSnap(p, e) : null; if (S.rulerA) S.rulerHover = S.snapPt; return; }
   if (!drag) { canvas.style.cursor = pickRing(e) ? 'grab' : (pickItem(e) ? (S.tool === 'rotate' ? 'alias' : 'move') : ''); return; }
   if (!p) return;
@@ -1630,14 +1607,13 @@ $('gotoSel').onchange = e => { const v = e.target.value; e.target.value = ''; if
 function setNight(v) { S.night = v; $('nightBtn').textContent = v ? 'Dia' : 'Noite'; $('segDay').classList.toggle('on', !v); $('segNight').classList.toggle('on', v); applyLighting(); setMsg(v ? 'Modo noite: luzes internas acesas.' : 'Modo dia.'); }
 $('nightBtn').onclick = () => setNight(!S.night);
 $('segDay').onclick = () => setNight(false); $('segNight').onclick = () => setNight(true);
-$('speed').oninput = e => { S.speed = +e.target.value; };
+
 $('wallsSel').onchange = e => { S.walls = e.target.value; applyWalls(); };
 $('hq').onchange = e => { S.hq = e.target.checked; if (S.hq && !composer) { setupComposer(); resize(); } };
 $('walkCol').onchange = e => { S.walkCollide = e.target.checked; };
 $('expo').oninput = e => { S.exposure = +e.target.value; applyLighting(); };
 $('lockBtn').onclick = toggleLock;
 $('showExt').onchange = e => { S.showExt = e.target.checked; applyLighting(); };
-$('bobChk').onchange = e => { S.bob = e.target.checked; };
 $('mapChk').onchange = e => { S.showMap = e.target.checked; };
 $('focusBtn').onclick = toggleFocus;
 function toggleFocus() {
@@ -1655,8 +1631,7 @@ function poly2d(p, fill, stroke) { mctx.beginPath(); p.forEach(([x, y], i) => { 
 function drawMinimap() {
   const show = S.showMap && S.view !== '2d'; mm.hidden = !show; if (!show) return;
   mctx.clearRect(0, 0, mm.width, mm.height);
-  poly2d([[-30, -3.4], [40, -3.4], [40, -10.4], [-30, -10.4]], '#5b5e63');
-  for (const fp of EXT_SOLIDS) poly2d(fp, '#c9c6bf');
+  if (S.showExt) { poly2d([[-30, -3.4], [40, -3.4], [40, -10.4], [-30, -10.4]], '#5b5e63'); for (const fp of EXT_SOLIDS) poly2d(fp, '#c9c6bf'); }
   poly2d(INTERIOR, '#e7d6bf', '#8a7a66');
   for (const o of items) { const c = cat(o); if (c.arch && o.model !== 'wallpoly' && o.model !== 'glass' && o.model !== 'facade') continue; poly2d(footprint(o), c.arch ? (o.model === 'wallpoly' ? '#2a2c30' : '#1b1c1f') : (S.sel === o.id ? '#1f5fbf' : '#ffffff'), c.arch ? null : '#9aa0a6'); }
   const px = cam.position.x, py = -cam.position.z; let fx, fy;
@@ -1673,7 +1648,7 @@ mm.addEventListener('click', e => {
 });
 function toggleLock() { try { if (document.pointerLockElement) document.exitPointerLock(); else { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => setMsg('Este navegador não liberou o travamento do mouse; arraste para olhar.')); } } catch (e) { setMsg('Arraste para olhar.'); } }
 document.addEventListener('pointerlockchange', () => { $('lockBtn').innerHTML = document.pointerLockElement ? 'Soltar mouse <kbd>Esc</kbd>' : 'Olhar com o mouse <kbd>L</kbd>'; });
-document.addEventListener('mousemove', e => { if (document.pointerLockElement === canvas && S.view === 'explore') { walk.tyaw -= e.movementX * 0.0022; walk.tpitch = Math.max(-1.45, Math.min(1.45, walk.tpitch - e.movementY * 0.0022)); } });
+document.addEventListener('mousemove', e => { if (document.pointerLockElement === canvas && S.view === 'explore') { walk.yaw -= e.movementX * 0.0022; walk.pitch = Math.max(-1.45, Math.min(1.45, walk.pitch - e.movementY * 0.0022)); } });
 canvas.addEventListener('wheel', e => { if (S.view !== 'explore') return; e.preventDefault(); anim = null; walk.wheel = Math.max(-5, Math.min(5, walk.wheel - Math.sign(e.deltaY) * 1.3)); }, { passive: false });
 // joystick (toque)
 (function () {
@@ -1701,7 +1676,7 @@ function openPanel(name) {
 function closeDrawer() { $('left').classList.add('closed'); document.querySelectorAll('.rb').forEach(x => x.classList.remove('on')); try { localStorage.setItem('ba3d-panel', ''); } catch (e) {} requestAnimationFrame(resize); }
 document.querySelectorAll('.rb').forEach(b => b.onclick = () => { if (b.classList.contains('on') && !$('left').classList.contains('closed')) closeDrawer(); else openPanel(b.dataset.panel); });
 $('drawer').addEventListener('transitionend', resize);
-{ let pn = innerWidth <= 900 ? '' : 'lib'; try { const v = localStorage.getItem('ba3d-panel'); if (v !== null) pn = v; } catch (e) {} if (innerWidth <= 900) pn = ''; PANES.includes(pn) ? openPanel(pn) : closeDrawer(); }
+{ let pn = ''; if (innerWidth <= 900) pn = ''; PANES.includes(pn) ? openPanel(pn) : closeDrawer(); }
 function bindSwitch(id, key, fn) { const el = $(id); el.checked = S[key]; el.onchange = () => { S[key] = el.checked; fn && fn(); }; }
 bindSwitch('lockArch', 'archLocked', () => { if (S.archLocked && S.sel && isArch(byId(S.sel))) select(null); refreshLists(); refreshProps(); setMsg(S.archLocked ? 'Arquitetura bloqueada.' : 'Arquitetura desbloqueada: paredes, vidros e portas podem ser movidos.'); });
 bindSwitch('showPlan', 'showPlan', () => { if (planMesh) planMesh.visible = S.showPlan; });
@@ -1826,6 +1801,8 @@ function onField(k, el) {
 for (const [k, el] of Object.entries(F)) onField(k, el);
 $('pClose').onclick = () => select(null);
 $('pMin').onclick = () => $('right').classList.toggle('min');
+$('pEdit').addEventListener('toggle', () => { try { localStorage.setItem('ba3d-pedit', $('pEdit').open ? '1' : ''); } catch (e) {} });
+try { $('pEdit').open = localStorage.getItem('ba3d-pedit') === '1'; } catch (e) {}
 $('pRot').onclick = () => { const it = byId(S.sel); if (it) rotateBy(it, 90); };
 $('pDup').onclick = () => { const it = byId(S.sel); if (it) duplicate(it); };
 $('pDel').onclick = () => { const it = byId(S.sel); if (it) removeItem(it); };
