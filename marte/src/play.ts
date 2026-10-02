@@ -15,6 +15,8 @@ import { Voice } from './audio/voice';
 import { sfx } from './audio/sfx';
 import { viewSize } from './core/viewport';
 import { Combat } from './combat/combat';
+import { ColonyFx } from './world/colonyfx';
+import { colonyTick, shipLanded, requirements, level, nextTarget, SHIPS, CIV_POP } from './sim/colony';
 import { WEAPONS, UPG_MAX, upgradeCost, type WeaponId, type UpgradeId } from './combat/defs';
 
 const HOLD: Record<string, number> = { crate: 1.2, wreck: 2.0, gypsum: 2.6, antenna: 4.0, door: 0, panel_clean: 2.0 };
@@ -26,6 +28,7 @@ export class Play {
   voice = new Voice();
   inHab = false;
   combat!: Combat;
+  colony!: ColonyFx;
   private coldWarnSol = -1;
   dead = false;
   won = false;
@@ -50,6 +53,11 @@ export class Play {
       threats: (l) => this.hud.setThreats(l),
       targetBar: (p, f) => { const { w, h } = viewSize(); this.hud.setTargetBar(p, f, w, h); },
     });
+    this.colony = new ColonyFx(game.terrain);
+    game.scene.add(this.colony.group);
+    { const undo = this.colony.warmup(game.scene); game.renderer.compileAsync(game.scene, game.camera).catch(() => {}).finally(undo); }
+    this.colony.dust = (at, n) => this.combat.vfx.burst(at, n, 'dust');
+    this.colony.onTouchdown = () => this.onShipLanded();
     // pedrinhas nunca escondem itens coletáveis
     game.pebbleBlock = (x, z) => this.world.loot.some((l) => Math.abs(l.pos.x - x) < 1.6 && Math.abs(l.pos.z - z) < 1.6);
     game.pebbles.update(game.camera.position, true);
@@ -106,6 +114,8 @@ export class Play {
     this.lastPos.copy(g.player.pos);
     this.objAnnounced = -1;
     this.active = true;
+    if (st.colony && st.colony.landing > 0) shipLanded(st);
+    this.colony.showLanded(st.colony && st.colony.ships > 0 ? this.world.landingPad(st) : null);
     if (st.suit.health <= 0) { this.dead = false; this.respawnFrom(st); return; }
     if (this.won) this.hud.showEnd(true, Math.floor(st.sol), st.stats);
     g.updateEnv(true);
@@ -168,7 +178,8 @@ export class Play {
     {
       const hab = this.world.habitat(st);
       this.combat.aimAssist = g.input.touchMode;
-      this.combat.update(dt, { active: !this.dead && !this.won && !g.paused, inside: this.inHab, driving: g.driving, habitat: hab ? new THREE.Vector3(hab.x, 0, hab.z) : null, storm: !!st.storm });
+      this.combat.update(dt, { active: !this.dead && !this.won && !g.paused, inside: this.inHab, driving: g.driving, habitat: hab ? new THREE.Vector3(hab.x, 0, hab.z) : null, storm: !!st.storm, turrets: [...this.world.turrets.values()], powered: st.hab.batt > 0.05 });
+      this.updateColony(dt);
       const armed = !this.inHab && !g.driving && !this.dead && !this.world.ghost && !this.hud.buildOpen;
       this.hud.setWeapon(st, armed);
       const tf = document.getElementById('tb-fire'), tw = document.getElementById('tb-wpn');
@@ -212,7 +223,7 @@ export class Play {
       // botões de toque contextuais: 🚙 só perto do rover, 🔧 some ao dirigir
       const nearRover = g.driving || g.player.pos.distanceTo(g.rover.pos) < 14;
       document.getElementById('tb-car')?.classList.toggle('gone', !nearRover);
-      document.getElementById('tb-pc')?.classList.toggle('pulse', !this.pcBuilt && st.inv.scrap >= Play.PC_COST); this.hud.update(st, OBJECTIVES[oi].key === 'obj_habitat' && !this.pcBuilt ? 'obj_pc' : OBJECTIVES[oi].key, this.hudT); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
+      document.getElementById('tb-pc')?.classList.toggle('pulse', !this.pcBuilt && st.inv.scrap >= Play.PC_COST); this.hud.update(st, OBJECTIVES[oi].key === 'obj_habitat' && !this.pcBuilt ? 'obj_pc' : OBJECTIVES[oi].key, this.hudT, this.colonyOn ? ` · 👥 ${st.colony!.pop}/${nextTarget(st.colony!.pop)}` : ''); this.hud.setRover(g.driving, g.rover.speed, g.rover.battery, g.rover.batteryCap); this.hudT = 0; }
   }
 
   speak(key: Key) {
@@ -329,7 +340,6 @@ export class Play {
         for (const [k, v] of Object.entries(ANTENNA_COST)) st.inv[k as ItemId] -= v as number;
         st.hab.batt -= ANTENNA_KWH;
         st.antennaFixedSol = st.sol;
-        this.speak('vo_rescue');
         this.persist();
         break;
       }
@@ -509,7 +519,14 @@ export class Play {
   }
   private refreshPC() {
     const g = this.game;
-    this.hud.openPC(this.st, { built: this.pcBuilt, canBuild: this.st.inv.scrap >= Play.PC_COST, lamp: g.lampOn, fp: g.player.firstPerson, nearRover: g.driving || g.player.pos.distanceTo(g.rover.pos) < 14, cost: Play.PC_COST });
+    this.hud.openPC(this.st, { colony: this.colonyInfo(), built: this.pcBuilt, canBuild: this.st.inv.scrap >= Play.PC_COST, lamp: g.lampOn, fp: g.player.firstPerson, nearRover: g.driving || g.player.pos.distanceTo(g.rover.pos) < 14, cost: Play.PC_COST });
+  }
+  private colonyInfo() {
+    if (!this.colonyOn) return null;
+    const c = this.st.colony!;
+    const reqs = c.ships < SHIPS.length ? requirements(this.st, c.ships) : [];
+    const eta = c.nextSol !== null ? Math.max(0, (c.nextSol - this.st.sol) * BAL.realMinPerSol) : 0;
+    return { pop: c.pop, lvl: level(c.pop).key, target: nextTarget(c.pop), next: SHIPS[c.ships] ?? 0, eta, landing: c.landing > 0, reqs };
   }
   private pcAction(a: string) {
     const g = this.game, st = this.st;
@@ -527,6 +544,60 @@ export class Play {
       case 'build': case 'map': case 'vehicle':
         this.togglePC(false); g.input.fire(a as 'build' | 'map' | 'vehicle'); return;
     }
+  }
+
+  // ------------------------------------------------ civilização
+  get colonyOn() { return !!this.st.colony && (this.st.antennaFixedSol !== null || !!this.st.flags.freeplay); }
+  private sabotageToastT = 0;
+  private updateColony(dt: number) {
+    const st = this.st, g = this.game;
+    if (!st.colony) return;
+    const c = st.colony;
+    const hab = this.world.habitat(st);
+    // colonos andando e nave
+    this.colony.update(dt, hab ? this.world.colonyPlaces(st) : [], Math.max(0, c.pop - 1));
+    if (this.dead || this.won) return;
+    for (const e of colonyTick(st)) {
+      if (e === 'ship_called') this.hud.toast(t('ship_called'), 'info');
+      if (e === 'ship_waiting') {
+        const miss = requirements(st, c.ships).filter((q) => !q.ok).map((q) => t(q.key as Key)).join(', ');
+        this.speak('vo_ship_wait');
+        this.hud.toast(t('ship_wait', { m: miss }), 'warn');
+      }
+      if (e === 'ship_ready' && hab) {
+        const pad = this.world.landingPad(st);
+        if (pad) { c.landing = 12; this.colony.startLanding(pad); this.speak('vo_ship_incoming'); this.hud.toast(t('ship_incoming', { n: SHIPS[c.ships] }), 'info'); sfx.radio(); }
+      }
+    }
+    if (c.landing > 0) c.landing = Math.max(0.01, c.landing - dt);
+    // ataque à colônia: uma vez por sol, à noite, depois que chegam os primeiros colonos
+    if (hab && c.ships > 0 && g.night > 0.6 && Math.floor(st.sol) > c.raidSol && !this.combat.raidActive) {
+      c.raidSol = Math.floor(st.sol);
+      const n = Math.min(5, 2 + Math.floor(c.pop / 5));
+      this.combat.queueRaid(new THREE.Vector3(hab.x, 0, hab.z), n);
+      this.speak('vo_raid');
+      this.hud.toast(t('raid_alert'), 'warn');
+      sfx.alarm(2);
+    }
+    document.body.classList.toggle('raid', this.combat.raidActive);
+    // sabotagem: cada segundo de bicho dentro da base drena energia
+    if (this.combat.sabotageT > 0) {
+      st.hab.batt = Math.max(0, st.hab.batt - this.combat.sabotageT * 0.04);
+      this.combat.sabotageT = 0;
+      this.sabotageToastT -= dt;
+      if (this.sabotageToastT <= 0) { this.sabotageToastT = 6; this.hud.toast(t('raid_sabotage'), 'warn'); }
+    }
+  }
+  private onShipLanded() {
+    const st = this.st;
+    const n = SHIPS[st.colony!.ships] ?? 0;
+    shipLanded(st);
+    sfx.objective();
+    this.hud.toast(t('ship_landed', { n, p: st.colony!.pop }), 'ok');
+    this.speak(st.colony!.ships === 1 ? 'vo_ship_first' : 'vo_ship_landed');
+    this.hud.toast(`🏛 ${t(level(st.colony!.pop).key as Key)}`, 'ok');
+    this.persist(false);
+    if (st.colony!.pop >= CIV_POP && !st.flags.won) { st.flags.won = true; setTimeout(() => this.win(), 2500); }
   }
 
   // ------------------------------------------------ combate
@@ -673,6 +744,7 @@ export class Play {
     const w = this.world, st = this.st, g = this.game;
     const markers: { x: number; z: number; color: string; label: string; big?: boolean }[] = [];
     for (const s of w.sites) markers.push({ x: s.pos.x, z: s.pos.z, color: s.id === 'gypsum' ? '#f3ead8' : '#ffcf8a', label: t(s.name as Key) });
+    for (const n of this.combat.nests.list) if (n.alive) markers.push({ x: n.pos.x, z: n.pos.z, color: '#ff3b2a', label: '☣ ' + t('map_nest') });
     const hab = w.habitat(st);
     if (hab) markers.push({ x: hab.x, z: hab.z, color: '#7ee0a0', label: t('b_habitat'), big: true });
     const tgt = OBJECTIVES[st.objective].target?.(st, this.objWorld());

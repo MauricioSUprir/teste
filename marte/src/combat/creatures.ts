@@ -8,10 +8,11 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { Terrain } from '../world/terrain';
 import { enhance, unregister } from '../render/materials';
 import { CRAWLER } from './defs';
+import type { ItemId } from '../sim/balance';
 
-const MAX = 8;
+const MAX = 12;
 const LEGS = 6;
-const SPOTS = 8;
+const SPOTS = 12; // 8 manchas + 4 olhos
 const L1 = 0.42, L2 = 0.5;
 
 export type CState = 'emerge' | 'hunt' | 'chase' | 'circle' | 'windup' | 'lunge' | 'recover' | 'flee' | 'burrow' | 'dead';
@@ -36,9 +37,14 @@ export interface Crawler {
   hitDone: boolean;
   rear: number;       // quanto está empinado (0..1)
   alive: boolean;
+  air: number;        // altura do pulo (bote em arco)
+  vy: number;
+  guard: THREE.Vector3 | null; // guarda de colmeia: não se enterra de dia, volta para casa
+  raid: THREE.Vector3 | null;  // ataque à colônia: marcha até a base e sabota a energia
 }
 
-export interface CreatureEvents { playerHit: number; screech: boolean; died: Crawler[]; windup: boolean }
+export type Loot = Partial<Record<ItemId, number>>;
+export interface CreatureEvents { playerHit: number; screech: boolean; died: Crawler[]; windup: boolean; sabotage: number }
 
 function bodyGeometry() {
   // corpo inteiro por torno (lathe) ao longo do eixo: cabeça, tórax e abdômen com estrangulamentos
@@ -60,18 +66,28 @@ function bodyGeometry() {
     p.setXYZ(i, x, y + 0.02, z);
   }
   g.computeVertexNormals();
-  const parts: THREE.BufferGeometry[] = [g];
-  // quilha de espinhos dorsais (pequenos) e mandíbulas curtas curvas
-  for (let i = 0; i < 6; i++) { const c = new THREE.ConeGeometry(0.028, 0.09 - i * 0.008, 6); c.rotateX(-0.35); c.translate(0, 0.24 - Math.abs(i - 2) * 0.012, 0.28 - i * 0.18); parts.push(c); }
+  const parts: { g: THREE.BufferGeometry; c: [number, number, number] }[] = [{ g, c: [1, 1, 1] }];
+  // quilha de espinhos dorsais altos (silhueta agressiva contra o céu)
+  for (let i = 0; i < 6; i++) { const c = new THREE.ConeGeometry(0.035, 0.22 - i * 0.02, 6); c.rotateX(-0.45); c.translate(0, 0.26 - Math.abs(i - 2) * 0.012, 0.3 - i * 0.18); parts.push({ g: c, c: [1.4, 1.1, 1] }); }
+  // carne da boca: vermelho-escuro, visível de frente entre as mandíbulas
+  const mouth = new THREE.SphereGeometry(0.06, 10, 8); mouth.scale(1.2, 0.7, 0.6); mouth.translate(0, -0.01, 0.76);
+  parts.push({ g: mouth, c: [5.0, 0.45, 0.4] });
   for (const s of [-1, 1]) {
-    // quelíceras: ganchos curtos apontando para frente e para dentro
-    const m = new THREE.ConeGeometry(0.03, 0.16, 6); m.rotateX(Math.PI / 2); m.rotateY(-s * 0.45); m.translate(s * 0.07, -0.03, 0.83);
-    parts.push(m);
+    // mandíbulas: foices longas abertas para os lados
+    const m = new THREE.ConeGeometry(0.05, 0.34, 7); m.rotateX(Math.PI / 2); m.rotateY(-s * 0.7); m.translate(s * 0.13, -0.03, 0.9);
+    parts.push({ g: m, c: [1.6, 1.25, 1.1] });
+    // dentes internos
+    for (let k = 0; k < 3; k++) { const d = new THREE.ConeGeometry(0.012, 0.06, 4); d.rotateZ(s * Math.PI / 2); d.translate(s * (0.07 + k * 0.025), -0.02, 0.8 + k * 0.05); parts.push({ g: d, c: [6, 5.5, 5] }); }
     // palpos sensoriais
-    const pa = new THREE.CylinderGeometry(0.012, 0.006, 0.28, 5); pa.rotateX(1.2); pa.rotateZ(s * 0.5); pa.translate(s * 0.1, 0.1, 0.8); parts.push(pa);
+    const pa = new THREE.CylinderGeometry(0.012, 0.006, 0.28, 5); pa.rotateX(1.2); pa.rotateZ(s * 0.5); pa.translate(s * 0.1, 0.1, 0.8); parts.push({ g: pa, c: [1, 1, 1] });
   }
-  for (const q of parts) { q.deleteAttribute('uv'); if (q.index) q.toNonIndexed; }
-  const merged = mergeGeometries(parts.map((q) => (q.index ? q.toNonIndexed() : q)).map((q) => { q.deleteAttribute('uv'); return q; }))!;
+  const merged = mergeGeometries(parts.map(({ g: q, c }) => {
+    const n = q.index ? q.toNonIndexed() : q; n.deleteAttribute('uv');
+    const col = new Float32Array(n.attributes.position.count * 3);
+    for (let i = 0; i < col.length; i += 3) { col[i] = c[0]; col[i + 1] = c[1]; col[i + 2] = c[2]; }
+    n.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    return n;
+  }))!;
   return merged;
 }
 
@@ -79,7 +95,11 @@ function bodyGeometry() {
 const SPOT_LOCAL = [
   [0.12, 0.13, 0.5], [-0.12, 0.13, 0.5], [0.24, 0.12, 0.12], [-0.24, 0.12, 0.12],
   [0.26, 0.15, -0.35], [-0.26, 0.15, -0.35], [0.14, 0.2, -0.62], [-0.14, 0.2, -0.62],
+  // 4 olhos vermelhos na cabeça (os últimos 4)
+  [0.06, 0.12, 0.74], [-0.06, 0.12, 0.74], [0.11, 0.09, 0.68], [-0.11, 0.09, 0.68],
 ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+const EYE0 = 8;
+const HUNT_STATES = new Set<CState>(['chase', 'circle', 'windup', 'lunge', 'recover']);
 // quadris (3 por lado) e fase da passada em tripé (0 = grupo A, π = grupo B)
 const HIPS = [[0.26, 0.28], [0.3, 0.05], [0.28, -0.25]].flatMap(([x, z], i) => [
   { p: new THREE.Vector3(x, 0.02, z), side: 1, ph: i % 2 ? Math.PI : 0 },
@@ -98,15 +118,21 @@ export class Creatures {
   private nextId = 1;
   private m = new THREE.Matrix4();
   private tmpQ = new THREE.Quaternion();
+  private tmpV = new THREE.Vector3();
+  // rascunhos reaproveitados (sem lixo de memória por quadro no iPhone)
+  private sToP = new THREE.Vector3(); private sDir = new THREE.Vector3(); private sWant = new THREE.Vector3();
+  private sQ = new THREE.Quaternion(); private sTilt = new THREE.Quaternion(); private sE = new THREE.Euler();
+  private sOut = new THREE.Vector3(); private sFwd = new THREE.Vector3(); private sBend = new THREE.Vector3(); private sCross = new THREE.Vector3(); private sScale = new THREE.Vector3(1, 1, 1);
+  private static UP = new THREE.Vector3(0, 1, 0);
   night = 0;
-  drops: { mesh: THREE.Mesh; give: { chitin: number; electronics: number }; t: number }[] = [];
+  drops: { mesh: THREE.Mesh; give: Loot; t: number }[] = [];
   private dropGeo = new THREE.DodecahedronGeometry(0.12, 0);
   private dropMat: THREE.MeshStandardMaterial;
 
   constructor(private terrain: Terrain) {
     // quitina basalto-marrom, rugosidade 0,55; a poeira nas faces de cima vem do patch "std" (enhance)
     // quitina escura e brilhante (verniz natural), leve tom avermelhado de óxido nas placas
-    this.baseMat = enhance(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.045, 0.028, 0.022), roughness: 0.6, metalness: 0.0, envMapIntensity: 0.35, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 0 }), 'clean');
+    this.baseMat = enhance(new THREE.MeshStandardMaterial({ vertexColors: true, color: new THREE.Color(0.07, 0.035, 0.025), roughness: 0.45, metalness: 0.0, envMapIntensity: 0.35, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 0 }), 'clean');
     // segmento de perna afunilado com junta esférica na base (1 malha, 12 instâncias por criatura)
     const seg = new THREE.CylinderGeometry(0.018, 0.034, 1, 7, 1); seg.translate(0, 0.5, 0);
     const joint = new THREE.SphereGeometry(0.038, 8, 6);
@@ -122,16 +148,25 @@ export class Creatures {
     const sg = new THREE.BufferGeometry();
     sg.setAttribute('position', new THREE.BufferAttribute(this.spotPos, 3));
     sg.setAttribute('aI', new THREE.BufferAttribute(this.spotI, 1));
+    // cor por ponto: manchas turquesa, olhos vermelhos
+    const sc = new Float32Array(MAX * SPOTS * 3);
+    for (let i = 0; i < MAX * SPOTS; i++) { const eye = i % SPOTS >= EYE0; sc.set(eye ? [1.0, 0.12, 0.04] : [0.25, 0.88, 0.78], i * 3); }
+    sg.setAttribute('aC', new THREE.BufferAttribute(sc, 3));
     sg.setDrawRange(0, 0);
     const sm = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
       uniforms: { uScale: { value: 600 } },
-      vertexShader: `attribute float aI; varying float vI; uniform float uScale;
-        void main(){ vI = aI; vec4 mv = modelViewMatrix * vec4(position,1.0); gl_Position = projectionMatrix * mv;
-          gl_PointSize = clamp(uScale * 0.035 / -mv.z, 2.0, 14.0) * (0.7 + 0.3*min(aI, 2.0)); }`,
-      fragmentShader: `varying float vI;
+      vertexShader: `attribute float aI; attribute vec3 aC; varying float vI; varying vec3 vC; uniform float uScale;
+        void main(){ vI = aI; vC = aC; vec4 mv = modelViewMatrix * vec4(position,1.0); gl_Position = projectionMatrix * mv;
+          // olhos: mínimo de 3 px para serem vistos a 20 m no iPhone
+          float mn = aC.r > 0.9 ? 4.0 : 2.0;
+          gl_PointSize = clamp(uScale * 0.035 / -mv.z, mn, 14.0) * (0.7 + 0.3*min(aI, 2.0)); }`,
+      fragmentShader: `varying float vI; varying vec3 vC;
         void main(){ vec2 d = gl_PointCoord - 0.5; float a = exp(-dot(d,d)*18.0);
-          gl_FragColor = vec4(vec3(0.25, 0.88, 0.78) * a * min(vI, 3.0) * 0.55, 1.0); }`,
+          gl_FragColor = vec4(vC * a * min(vI, 6.0) * 0.55, 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
     });
     this.spots = new THREE.Points(sg, sm);
     this.spots.frustumCulled = false;
@@ -150,7 +185,7 @@ export class Creatures {
 
   alive() { return this.list.filter((c) => c.alive && c.state !== 'dead'); }
 
-  spawn(x: number, z: number, scripted = false) {
+  spawn(x: number, z: number, scripted = false, guard: THREE.Vector3 | null = null) {
     if (this.list.length >= MAX) return null;
     // clone precisa passar pelo enhance (névoa/sombras); mesma chave de cache → mesmo programa compilado
     const mat = enhance(this.baseMat.clone(), 'clean');
@@ -160,7 +195,7 @@ export class Creatures {
     const pos = new THREE.Vector3(x, this.terrain.heightAt(x, z) - 0.6, z);
     const c: Crawler = {
       id: this.nextId++, pos, yaw: Math.random() * Math.PI * 2, hp: CRAWLER.hp, state: 'emerge', t: 0, atkCd: 1, phase: Math.random() * 6,
-      speed: 0, flash: 0, body, mat, feet: HIPS.map(() => pos.clone()), scripted, circleA: Math.random() * 6.28, lungeDir: new THREE.Vector3(), hitDone: false, rear: 0, alive: true,
+      speed: 0, flash: 0, body, mat, feet: HIPS.map(() => pos.clone()), scripted, circleA: Math.random() * 6.28, lungeDir: new THREE.Vector3(), hitDone: false, rear: 0, alive: true, air: 0, vy: 0, guard, raid: null,
     };
     this.list.push(c);
     return c;
@@ -199,10 +234,10 @@ export class Creatures {
   }
 
   update(dt: number, ctx: { player: THREE.Vector3; canAttack: boolean; habitat: THREE.Vector3 | null; retreat: boolean; dmgMul: number; day: boolean }): CreatureEvents {
-    const ev: CreatureEvents = { playerHit: 0, screech: false, died: [], windup: false };
+    const ev: CreatureEvents = { playerHit: 0, screech: false, died: [], windup: false, sabotage: 0 };
     const P = ctx.player;
     // quem pode atacar: os 2 mais próximos que estão perseguindo
-    const hunters = this.list.filter((c) => c.alive && ['chase', 'circle', 'windup', 'lunge', 'recover'].includes(c.state))
+    const hunters = this.list.filter((c) => c.alive && HUNT_STATES.has(c.state))
       .sort((a, b) => a.pos.distanceTo(P) - b.pos.distanceTo(P));
     const attackers = new Set(hunters.slice(0, CRAWLER.maxAttackers).map((c) => c.id));
 
@@ -211,19 +246,35 @@ export class Creatures {
       c.t += dt;
       c.flash = Math.max(0, c.flash - dt);
       c.atkCd = Math.max(0, c.atkCd - dt);
-      const toP = new THREE.Vector3().subVectors(P, c.pos).setY(0);
+      const toP = this.sToP.subVectors(P, c.pos).setY(0);
       const dist = toP.length();
-      const dirP = dist > 1e-3 ? toP.clone().divideScalar(dist) : new THREE.Vector3(0, 0, 1);
+      const dirP = dist > 1e-3 ? this.sDir.copy(toP).divideScalar(dist) : this.sDir.set(0, 0, 1);
       const nearHab = ctx.habitat ? Math.hypot(c.pos.x - ctx.habitat.x, c.pos.z - ctx.habitat.z) : Infinity;
-      let want = new THREE.Vector3(); let spd = 0;
+      const want = this.sWant.set(0, 0, 0); let spd = 0;
       c.rear = THREE.MathUtils.damp(c.rear, c.state === 'windup' ? 1 : 0, 10, dt);
-      const giveUp = !ctx.canAttack || ctx.retreat || nearHab < 12;
+      const home = c.guard ? Math.hypot(c.pos.x - c.guard.x, c.pos.z - c.guard.z) : 0;
+      const pHome = c.guard ? Math.hypot(P.x - c.guard.x, P.z - c.guard.z) : 0;
+      const giveUp = !ctx.canAttack || ctx.retreat || (!c.guard && !c.raid && nearHab < 12) || (!!c.guard && (home > 38 || pHome > 34)) || (!!c.raid && dist > 18);
       switch (c.state) {
         case 'emerge': // sai da toca
           if (c.t > 1.4) { c.state = 'hunt'; c.t = 0; ev.screech = true; }
           break;
         case 'hunt':
-          if (ctx.day && dist > 25) { c.state = 'burrow'; c.t = 0; break; }
+          if (ctx.day && dist > 25 && !c.guard && !c.scripted && !c.raid) { c.state = 'burrow'; c.t = 0; break; }
+          if (c.raid && giveUp) {
+            // marcha até a colônia; chegando, rodeia os prédios sabotando cabos (drena a bateria da base)
+            const rx = c.raid.x - c.pos.x, rz = c.raid.z - c.pos.z, rd = Math.hypot(rx, rz);
+            if (rd > 9) { want.set(rx, 0, rz).normalize(); spd = CRAWLER.speed * 0.8; }
+            else { c.circleA += dt * 0.4; want.set(c.raid.x + Math.cos(c.circleA) * 6 - c.pos.x, 0, c.raid.z + Math.sin(c.circleA) * 6 - c.pos.z).normalize(); spd = 1.4; ev.sabotage += dt; }
+            break;
+          }
+          if (c.guard && giveUp) {
+            // patrulha em volta da colmeia
+            c.circleA += dt * 0.25;
+            const tx = c.guard.x + Math.cos(c.circleA) * 7, tz = c.guard.z + Math.sin(c.circleA) * 7;
+            want.set(tx - c.pos.x, 0, tz - c.pos.z); const l = want.length(); want.normalize(); spd = Math.min(home > 14 ? 2.4 : 0.9, l);
+            break;
+          }
           if (giveUp) { want.copy(dirP).negate(); spd = 1.2; break; }
           want.copy(dirP); spd = 1.6;
           if (dist < CRAWLER.chaseRange) { c.state = 'chase'; c.t = 0; ev.screech = true; }
@@ -235,8 +286,7 @@ export class Creatures {
             // rodeia a 6 m esperando a vez
             c.state = 'circle';
             c.circleA += dt * 0.5;
-            const tgt = new THREE.Vector3(P.x + Math.cos(c.circleA) * CRAWLER.circleR, 0, P.z + Math.sin(c.circleA) * CRAWLER.circleR);
-            want.subVectors(tgt, c.pos).setY(0); const l = want.length(); want.normalize(); spd = Math.min(CRAWLER.speed, l * 1.5);
+            want.set(P.x + Math.cos(c.circleA) * CRAWLER.circleR - c.pos.x, 0, P.z + Math.sin(c.circleA) * CRAWLER.circleR - c.pos.z); const l = want.length(); want.normalize(); spd = Math.min(CRAWLER.speed, l * 1.5);
           } else {
             c.state = 'chase';
             want.copy(dirP); spd = CRAWLER.speed;
@@ -247,12 +297,13 @@ export class Creatures {
         }
         case 'windup': // aviso: para, empina, manchas acendem
           want.copy(dirP); spd = 0;
-          if (c.t > 0.6) { c.state = 'lunge'; c.t = 0; c.lungeDir.copy(dirP); c.hitDone = false; }
+          if (c.t > 0.6) { c.state = 'lunge'; c.t = 0; c.lungeDir.copy(dirP); c.hitDone = false; c.vy = 1.6; c.air = 0.01; ev.screech = true; }
           break;
-        case 'lunge':
-          want.copy(c.lungeDir); spd = 6.5;
-          if (!c.hitDone && dist < 1.25) { c.hitDone = true; ev.playerHit += 8 * ctx.dmgMul; }
-          if (c.t > 0.32) { c.state = 'recover'; c.t = 0; c.atkCd = 2.0; }
+        case 'lunge': // bote em arco na gravidade marciana: 1,6 m/s para cima → ~0,86 s no ar, ~3,9 m
+          want.copy(c.lungeDir); spd = 4.5;
+          c.vy -= 3.72 * dt; c.air = Math.max(0, c.air + c.vy * dt);
+          if (!c.hitDone && dist < 1.25 && Math.abs(c.air) < 1.2) { c.hitDone = true; ev.playerHit += 8 * ctx.dmgMul; }
+          if ((c.air <= 0 && c.t > 0.1) || c.t > 1.2) { c.air = 0; c.state = 'recover'; c.t = 0; c.atkCd = 2.0; }
           break;
         case 'recover':
           want.copy(dirP).negate(); spd = 1.8;
@@ -299,7 +350,7 @@ export class Creatures {
     return ev;
   }
 
-  dropLoot(at: THREE.Vector3, give: { chitin: number; electronics: number }) {
+  dropLoot(at: THREE.Vector3, give: Loot) {
     const mesh = new THREE.Mesh(this.dropGeo, this.dropMat);
     mesh.position.set(at.x, this.terrain.heightAt(at.x, at.z) + 0.12, at.z);
     mesh.castShadow = true;
@@ -308,7 +359,7 @@ export class Creatures {
   }
   /** coleta automática ao passar perto */
   collect(p: THREE.Vector3, dt: number) {
-    const got: { chitin: number; electronics: number }[] = [];
+    const got: Loot[] = [];
     this.drops = this.drops.filter((d) => {
       d.t += dt;
       d.mesh.rotation.y += dt * 1.5;
@@ -330,7 +381,7 @@ export class Creatures {
   // ---------- animação: corpo alinhado ao terreno, pernas em tripé com IK, manchas
   private animate(dt: number) {
     let li = 0, si = 0;
-    const up = new THREE.Vector3(0, 1, 0);
+    const up = Creatures.UP;
     const hipW = new THREE.Vector3(), footT = new THREE.Vector3(), knee = new THREE.Vector3(), mid = new THREE.Vector3(), dir = new THREE.Vector3();
     for (const c of this.list) {
       const gy = this.terrain.heightAt(c.pos.x, c.pos.z);
@@ -341,13 +392,13 @@ export class Creatures {
       else if (c.state === 'dead') sink = Math.max(0, c.t - 1.5) * 0.12;
       c.phase += dt * (2 + c.speed * 3.2);
       const bob = Math.abs(Math.sin(c.phase)) * 0.03 * Math.min(1, c.speed);
-      c.pos.y = gy + 0.34 + bob - sink + c.rear * 0.12;
+      c.pos.y = gy + 0.34 + bob - sink + c.rear * 0.12 + c.air;
       const n = this.terrain.normalAt(c.pos.x, c.pos.z);
       this.tmpQ.setFromUnitVectors(up, n);
-      const q = new THREE.Quaternion().setFromAxisAngle(up, c.yaw);
+      const q = this.sQ.setFromAxisAngle(up, c.yaw);
       q.premultiply(this.tmpQ);
       // empinar (aviso) e morte (de lado)
-      const tilt = new THREE.Quaternion().setFromEuler(new THREE.Euler(-c.rear * 0.45, 0, c.state === 'dead' ? Math.min(1.4, c.t * 2.5) : 0));
+      const tilt = this.sTilt.setFromEuler(this.sE.set(-c.rear * 0.45, 0, c.state === 'dead' ? Math.min(1.4, c.t * 2.5) : 0));
       q.multiply(tilt);
       c.body.position.copy(c.pos);
       c.body.quaternion.copy(q);
@@ -360,10 +411,10 @@ export class Creatures {
       for (let k = 0; k < LEGS; k++) {
         const h = HIPS[k];
         hipW.copy(h.p).applyQuaternion(q).add(c.pos);
-        const out = new THREE.Vector3(h.side * 0.62, 0, h.p.z * 1.4 + 0.05).applyQuaternion(q);
+        const out = this.sOut.set(h.side * 0.62, 0, h.p.z * 1.4 + 0.05).applyQuaternion(q);
         const stride = Math.min(0.35, 0.1 + c.speed * 0.08);
         const ph = c.phase + h.ph;
-        const fwd = new THREE.Vector3(Math.sin(c.yaw), 0, Math.cos(c.yaw));
+        const fwd = this.sFwd.set(Math.sin(c.yaw), 0, Math.cos(c.yaw));
         footT.copy(c.pos).add(out).addScaledVector(fwd, Math.sin(ph) * stride);
         const lift = dead ? 0.25 : Math.max(0, Math.cos(ph)) * 0.12 * Math.min(1, c.speed + 0.2);
         footT.y = this.terrain.heightAt(footT.x, footT.z) + lift - (dead ? -0.2 : 0);
@@ -373,7 +424,7 @@ export class Creatures {
         const a = (L1 * L1 - L2 * L2 + d * d) / (2 * d);
         const hk = Math.sqrt(Math.max(0, L1 * L1 - a * a));
         dir.subVectors(footT, hipW).normalize();
-        const bend = new THREE.Vector3().crossVectors(dir, new THREE.Vector3().crossVectors(up, dir)).normalize();
+        const bend = this.sBend.crossVectors(dir, this.sCross.crossVectors(up, dir)).normalize();
         if (bend.y < 0) bend.negate();
         knee.copy(hipW).addScaledVector(dir, a).addScaledVector(bend, hk);
         footT.copy(hipW).addScaledVector(dir, d);
@@ -381,20 +432,21 @@ export class Creatures {
           mid.subVectors(B, A);
           const len = mid.length();
           this.tmpQ.setFromUnitVectors(up, mid.normalize());
-          this.m.compose(A, this.tmpQ, new THREE.Vector3(1, len, 1));
+          this.m.compose(A, this.tmpQ, this.sScale.set(1, len, 1));
           this.legs.setMatrixAt(li++, this.m);
         }
       }
       // manchas: ~0,15 de dia, 2,5 à noite, pulsando 0,6 Hz; ACENDEM (5) no aviso de bote
       const pulse = 0.85 + 0.15 * Math.sin(c.t * 3.77 + c.id);
       let inten = (0.15 + 2.35 * this.night) * pulse;
-      if (c.state === 'windup') inten = 5;
-      if (c.state === 'dead') inten *= Math.max(0, 1 - c.t / 2);
-      if (c.state === 'emerge') inten *= Math.min(1, c.t);
-      for (const sp of SPOT_LOCAL) {
-        const w = sp.clone().applyQuaternion(q).add(c.pos);
+      // olhos: sempre acesos (1,6 de dia, 3 à noite), 6 no aviso de bote
+      let eye = (1.6 + 1.4 * this.night) * pulse;
+      if (c.state === 'windup' || c.state === 'lunge') { inten = 5; eye = 6; }
+      const fade = c.state === 'dead' ? Math.max(0, 1 - c.t / 2) : c.state === 'emerge' ? Math.min(1, c.t) : 1;
+      for (let k = 0; k < SPOT_LOCAL.length; k++) {
+        const w = this.tmpV.copy(SPOT_LOCAL[k]).applyQuaternion(q).add(c.pos);
         this.spotPos[si * 3] = w.x; this.spotPos[si * 3 + 1] = w.y; this.spotPos[si * 3 + 2] = w.z;
-        this.spotI[si] = inten;
+        this.spotI[si] = (k >= EYE0 ? eye : inten) * fade;
         si++;
       }
     }

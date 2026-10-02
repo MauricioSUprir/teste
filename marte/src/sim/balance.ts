@@ -45,11 +45,15 @@ export const BAL = {
   // coleta
   gypsumPerHarvest: 5, // kg por coleta
   buildRadius: 40, // m do habitat
-  rescueSols: 3, // igual à fala do rádio ("três sóis")
+  rescueSols: 1, // 1ª nave de colonos chega 1 sol depois da antena (40 min reais)
+  shipEverySols: 0.5, // naves seguintes: no mínimo a cada meio sol, se a colônia estiver pronta
+  residenceW: 60,
+  turretW: 80,
+  bedsPerResidence: 5,
 };
 
-export type ItemId = 'scrap' | 'electronics' | 'gypsum' | 'culture' | 'kit_habitat' | 'kit_panel' | 'ration' | 'chitin';
-export type BuildId = 'habitat' | 'panel' | 'battery' | 'moxie' | 'extractor' | 'bioreactor';
+export type ItemId = 'scrap' | 'electronics' | 'gypsum' | 'culture' | 'kit_habitat' | 'kit_panel' | 'ration' | 'chitin' | 'core';
+export type BuildId = 'habitat' | 'panel' | 'battery' | 'moxie' | 'extractor' | 'bioreactor' | 'residence' | 'turret';
 
 export const COSTS: Record<BuildId, Partial<Record<ItemId, number>>> = {
   habitat: { kit_habitat: 1 },
@@ -58,6 +62,8 @@ export const COSTS: Record<BuildId, Partial<Record<ItemId, number>>> = {
   moxie: { scrap: 6, electronics: 4 },
   extractor: { scrap: 5, electronics: 2 },
   bioreactor: { scrap: 8, electronics: 2, culture: 1 },
+  residence: { scrap: 8, electronics: 2 },
+  turret: { scrap: 6, electronics: 4, core: 2 },
 };
 // o kit de painel solar substitui o custo do primeiro painel
 export const ANTENNA_COST: Partial<Record<ItemId, number>> = { scrap: 10, electronics: 6 };

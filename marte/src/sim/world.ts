@@ -38,7 +38,7 @@ export class WorldSim {
   constructor(lm: LanderMats, private terrain: Terrain, private phys: Physics, crates: THREE.Vector3[], landerPos: THREE.Vector3, nasa: Partial<Record<'perse' | 'inge' | 'viking', THREE.Object3D | null>> = {}) {
     this.mats = makeStructMats(lm);
     this.radiusRing.visible = false; this.footRing.visible = false;
-    this.group.add(this.radiusRing, this.footRing);
+    this.group.add(this.radiusRing, this.footRing, this.porch);
     this.body = phys.world.createRigidBody(phys.R.RigidBodyDesc.fixed());
     // caixas do local da queda
     const crateLoot: Partial<Record<ItemId, number>>[] = [
@@ -167,9 +167,44 @@ export class WorldSim {
       if (l.obj) l.obj.visible = !gone || l.kind === 'crate';
     }
     const want = new Set(st.buildings.map((b) => b.id));
-    for (const [id, o] of this.buildingObjs) if (!want.has(id)) { this.group.remove(o.obj); o.colliders.forEach((c) => this.phys.world.removeCollider(c, false)); this.buildingObjs.delete(id); }
+    for (const [id, o] of this.buildingObjs) if (!want.has(id)) { this.turrets.delete(id); this.group.remove(o.obj); o.colliders.forEach((c) => this.phys.world.removeCollider(c, false)); this.buildingObjs.delete(id); }
     for (const b of st.buildings) if (!this.buildingObjs.has(b.id)) this.spawnBuilding(b);
+    const h = this.habitat(st);
+    if (h) {
+      const d = new THREE.Vector3(0, 0, HAB_R + 2.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), h.rot);
+      this.porch.position.set(h.x + d.x, this.terrain.heightAt(h.x, h.z) + 2.05, h.z + d.z);
+      this.porch.intensity = 8;
+    } else this.porch.intensity = 0;
   }
+  /** torres de defesa construídas (estado de mira persiste entre quadros) */
+  turrets = new Map<number, { pos: THREE.Vector3; head: THREE.Object3D }>();
+  /** pontos por onde os colonos circulam: portas e frentes dos prédios */
+  colonyPlaces(st: GameState) {
+    const out: THREE.Vector3[] = [];
+    const door = this.doorPos(st); if (door) out.push(door);
+    for (const b of st.buildings) if (b.type !== 'habitat' && b.type !== 'turret') {
+      const d = new THREE.Vector3(0, 0, FOOTPRINT[b.type] + 1.2).applyAxisAngle(new THREE.Vector3(0, 1, 0), b.rot);
+      out.push(new THREE.Vector3(b.x + d.x, 0, b.z + d.z));
+    }
+    return out;
+  }
+  /** pista de pouso das naves: 24 m do habitat, longe dos prédios */
+  landingPad(st: GameState) {
+    const h = this.habitat(st); if (!h) return null;
+    let best: THREE.Vector3 | null = null, bs = -1;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const x = h.x + Math.cos(a) * 24, z = h.z + Math.sin(a) * 24;
+      if (!this.terrain.inBounds(x, z, 40)) continue;
+      const clear = Math.min(30, ...st.buildings.map((b) => Math.hypot(b.x - x, b.z - z)));
+      const flat = 1 - (1 - this.terrain.normalAt(x, z).y) * 20;
+      const sc = clear + flat * 5;
+      if (sc > bs) { bs = sc; best = new THREE.Vector3(x, this.terrain.heightAt(x, z), z); }
+    }
+    return best;
+  }
+  /** luz da eclusa do habitat (sempre na cena desde o carregamento) */
+  porch = new THREE.PointLight(0xffe2c0, 0, 14, 1.8);
 
   private spawnBuilding(b: Building) {
     const obj = BUILDERS[b.type](this.mats);
@@ -186,12 +221,17 @@ export class WorldSim {
       colliders.push(this.phys.world.createCollider(R.ColliderDesc.ball(HAB_R * 0.92).setTranslation(b.x, obj.position.y + 2.2, b.z), this.body));
       const lock = new THREE.Vector3(0, 1.15, HAB_R + 0.8).applyQuaternion(q);
       colliders.push(this.phys.world.createCollider(R.ColliderDesc.cuboid(1.0, 1.1, 1.1).setTranslation(b.x + lock.x, obj.position.y + 1.15, b.z + lock.z).setRotation(q), this.body));
+    } else if (b.type === 'residence') {
+      colliders.push(this.phys.world.createCollider(R.ColliderDesc.cuboid(3.4, 1.0, 1.7).setTranslation(b.x, obj.position.y + 1.6, b.z).setRotation(q), this.body));
+    } else if (b.type === 'turret') {
+      colliders.push(this.phys.world.createCollider(R.ColliderDesc.cylinder(1.3, 0.5).setTranslation(b.x, obj.position.y + 1.3, b.z), this.body));
     } else {
       const f = FOOTPRINT[b.type] / 2;
       const h = b.type === 'panel' ? 0.7 : 0.6;
       colliders.push(this.phys.world.createCollider(R.ColliderDesc.cuboid(f, h, f * (b.type === 'panel' ? 0.75 : 0.8)).setTranslation(b.x, obj.position.y + h, b.z).setRotation(q), this.body));
     }
     this.buildingObjs.set(b.id, { obj, colliders });
+    if (b.type === 'turret') this.turrets.set(b.id, { pos: new THREE.Vector3(b.x, obj.position.y + 2.9, b.z), head: obj.userData.head as THREE.Object3D });
   }
 
   habitat(st: GameState) { return st.buildings.find((b) => b.type === 'habitat') ?? null; }

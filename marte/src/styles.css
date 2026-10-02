@@ -400,3 +400,13 @@ body.hud-pc .toasts, body.hud-pc .subtitle { opacity: 0; }
 .pc-stat { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; color: #a8c6d2; flex-wrap: wrap; }
 @media (max-height: 500px) { .pctile { min-height: 60px; padding: 6px; font-size: 13px; } .pctile .pi { font-size: 22px; } .pcgrid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); } }
 body.forceland .pctile { min-height: 60px; padding: 6px; font-size: 13px; }
+
+/* ---------- civilização */
+.objective .opop { color: #9fe8ff; margin-left: 4px; white-space: nowrap; }
+.pc-col { background: rgba(127,232,255,0.06); border: 1px solid rgba(127,232,255,0.18); border-radius: 10px; padding: 8px 10px; margin: 4px 0 10px; }
+.pc-colh { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; letter-spacing: .04em; }
+.pc-colh b { color: #7fe8ff; font-family: 'Rajdhani', sans-serif; font-size: 18px; letter-spacing: .12em; text-transform: uppercase; }
+.pc-ship { font-size: 13.5px; opacity: .92; margin: 6px 0 6px; }
+.pc-col .chip { margin: 0 4px 4px 0; font-size: 12.5px; }
+body.raid .toasts .toast.warn:last-child { animation: raidBlink .7s ease-in-out infinite alternate; }
+@keyframes raidBlink { to { opacity: .55; } }

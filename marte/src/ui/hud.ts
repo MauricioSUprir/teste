@@ -12,8 +12,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', html = '') 
 };
 
 export const WICON: Record<WeaponId, string> = { cutter: '⟋', pistol: '⌐', arc: 'ϟ' };
-export const BUILD_ORDER: BuildId[] = ['habitat', 'panel', 'battery', 'moxie', 'extractor', 'bioreactor'];
-const ITEMS: ItemId[] = ['scrap', 'electronics', 'chitin', 'gypsum', 'culture', 'kit_habitat', 'kit_panel'];
+export const BUILD_ORDER: BuildId[] = ['habitat', 'panel', 'battery', 'moxie', 'extractor', 'bioreactor', 'residence', 'turret'];
+const ITEMS: ItemId[] = ['scrap', 'electronics', 'chitin', 'core', 'gypsum', 'culture', 'kit_habitat', 'kit_panel'];
 
 export class Hud {
   root: HTMLElement;
@@ -85,7 +85,7 @@ export class Hud {
     this.storm.textContent = `⚠ ${t('storm')}`;
   }
 
-  update(st: GameState, obj: Key | null, dt: number) {
+  update(st: GameState, obj: Key | null, dt: number, suffix = '') {
     const set = (k: string, frac: number, text: string, warn = 0.3, crit = 0.15, invert = false) => {
       const b = this.bars[k];
       const f = Math.max(0, Math.min(1, frac));
@@ -100,7 +100,7 @@ export class Hud {
     set('batt', bt, `${Math.round(bt * 100)}%`, 0.2, 0.1);
     set('health', st.suit.health / 100, `${Math.round(st.suit.health)}`);
     set('rad', st.suit.rad / BAL.radLethal, `${st.suit.rad.toFixed(1)} mSv`, 0.5, 0.25, true);
-    this.objective.innerHTML = obj ? `<span class="olab">▸</span> ${t(obj)}` : '';
+    this.objective.innerHTML = obj ? `<span class="olab">▸</span> ${t(obj)}${suffix ? `<span class="opop">${suffix}</span>` : ''}` : '';
     const parts = ITEMS.filter((i) => st.inv[i] > 0).map((i) => `<span class="it"><b>${i === 'gypsum' ? st.inv[i].toFixed(0) + ' kg' : st.inv[i]}</b> ${t(`it_${i}` as Key)}</span>`);
     this.inv.innerHTML = parts.join('');
     this.storm.classList.toggle('hidden', !st.storm);
@@ -186,7 +186,7 @@ export class Hud {
     this.armory.classList.remove('hidden');
   }
   /** computador de pulso: tudo o que não é essencial fica aqui (construir, mapa, lanterna, câmera, inventário, pausa) */
-  openPC(st: GameState, o: { built: boolean; canBuild: boolean; lamp: boolean; fp: boolean; nearRover: boolean; cost: number }) {
+  openPC(st: GameState, o: { colony: { pop: number; lvl: string; target: number; next: number; eta: number; landing: boolean; reqs: { key: string; have: number; need: number; ok: boolean }[] } | null; built: boolean; canBuild: boolean; lamp: boolean; fp: boolean; nearRover: boolean; cost: number }) {
     const inv = st.inv as Record<string, number>;
     const items = ITEMS.filter((i) => inv[i] > 0).map((i) => `<span class="chip pcchip">${i === 'gypsum' ? inv[i].toFixed(0) + ' kg' : inv[i]} ${t(`it_${i}` as Key)}</span>`).join('') || `<span class="pc-empty">${t('pc_inv_empty')}</span>`;
     const tile = (a: string, icon: string, label: string, lock = false, on = false) => `<button class="pctile ${lock ? 'lock' : ''} ${on ? 'on' : ''}" data-a="${lock ? '' : a}"><span class="pi">${icon}</span><span class="pl">${label}</span>${lock ? '<span class="pk">🔒</span>' : ''}</button>`;
@@ -195,10 +195,19 @@ export class Hud {
     const banner = o.built ? '' : `<div class="pc-banner"><div>${t('pc_broken', { n: o.cost })}</div><button class="hbtn ${o.canBuild ? 'go' : 'dis'}" data-a="${o.canBuild ? 'assemble' : ''}">${t('pc_assemble')} · ${o.cost} ${t('it_scrap')}</button></div>`;
     this.pc.innerHTML = `<div class="holo pc"><div class="holo-h"><span>${t('pc_title')}</span><button class="hbtn small" data-a="close">✖</button></div>${banner}
       <div class="pcgrid">${tile('build', '🔧', t('pc_build'), !o.built)}${tile('map', '🗺', t('pc_map'), !o.built)}${tile('light', '💡', t('pc_light'), false, o.lamp)}${tile('camera', '👁', o.fp ? t('pc_cam3') : t('pc_cam1'))}${o.nearRover ? tile('vehicle', '🚙', t('pc_rover')) : ''}${tile('pause', '⚙', t('pc_pause'))}</div>
+      ${this.colonyHtml(o.colony)}
       <div class="pc-sec">${t('pc_inv')}</div><div class="pc-inv">${items}</div>${status}</div>`;
     this.pc.querySelectorAll<HTMLElement>('[data-a]').forEach((b) => b.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); const a = b.dataset.a; if (a) this.onPcAction?.(a); }));
     this.pc.classList.remove('hidden');
     document.body.classList.add('hud-pc');
+  }
+  private colonyHtml(c: Parameters<Hud['openPC']>[1]['colony']) {
+    if (!c) return '';
+    const reqs = c.reqs.map((q) => `<span class="chip ${q.ok ? 'have' : 'miss'}">${q.ok ? '✓' : '✗'} ${t(q.key as Key)} ${q.have}/${q.need}</span>`).join('');
+    const ship = c.next === 0 ? t('col_done') : c.landing ? t('col_landing') : c.eta > 0.5 ? t('col_eta', { n: c.next, m: Math.ceil(c.eta) }) : c.reqs.every((q) => q.ok) ? t('col_ready', { n: c.next }) : t('col_orbit', { n: c.next });
+    return `<div class="pc-sec">${t('col_title')}</div>
+      <div class="pc-col"><div class="pc-colh"><b>${t(c.lvl as Key)}</b><span>👥 ${c.pop} / ${c.target}</span></div>
+      <div class="pc-ship">🚀 ${ship}</div>${c.next ? `<div class="pc-inv">${reqs}</div>` : ''}</div>`;
   }
   closePC() { this.pc.classList.add('hidden'); document.body.classList.remove('hud-pc'); }
   get pcOpen() { return !this.pc.classList.contains('hidden'); }

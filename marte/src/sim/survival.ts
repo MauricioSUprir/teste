@@ -85,6 +85,8 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
       st.hab.water -= BAL.bioreactorWaterPerSol * nBio * dtSol;
       st.hab.food += BAL.bioreactorRationsPerSol * nBio * dtSol;
     }
+    // colônia: módulos residenciais (suporte de vida) e torres de defesa
+    load += BAL.residenceW * has('residence') + BAL.turretW * has('turret');
     st.hab.battCap = BAL.habBattCap + BAL.batteryKWh * has('battery');
     st.hab.batt = Math.min(st.hab.battCap, Math.max(0, st.hab.batt + ((gen - load) / 1000) * dtH));
     // consumo do astronauta (água e comida vêm sempre da base)
@@ -141,6 +143,6 @@ export function simulate(st: GameState, dtH: number, c: SimContext): SimOut {
     if (prev.hb > cap * 0.15 && st.hab.batt <= cap * 0.15) ev.push('hab_power_low');
   }
   if (prev.health > 0 && st.suit.health <= 0) ev.push('dead');
-  if (st.antennaFixedSol !== null && st.sol >= st.antennaFixedSol + BAL.rescueSols && !st.flags.won) { st.flags.won = true; ev.push('win'); }
+  // a vitória agora é a civilização (sim/colony.ts): a antena chama colonos em vez de um resgate
   return { events: ev, suitW, habGenW: gen, habLoadW: load, outsideT: T };
 }

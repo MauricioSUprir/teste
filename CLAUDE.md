@@ -16,11 +16,16 @@
 - `npm run build` (tsc + vite) · `npx tsc --noEmit` (o hook faz isso após cada edição de `.ts`).
 - Servidor de teste: `npx vite preview --port 4173 --strictPort` (em segundo plano).
 - Testes (Playwright + SwiftShader, `node tests/<nome>.mjs`): gameplay, rover, interior, combat, build,
-  rotate, forceland, autorot, portrait, phoneui. Rodar a bateria antes de publicar.
+  rotate, forceland, autorot, portrait, phoneui, pc, slope, nest, colony. Rodar a bateria antes de publicar.
+  SwiftShader na qualidade média leva ~15–30 s por quadro: muitos `renderOnce` seguidos + screenshot estouram o tempo
+  (use `quality=low` em testes longos). No celular, toque em botão com `p.touchscreen.tap(x, y)` (o `p.tap` erra o alvo).
   Prints: `tests/shots.mjs`, `tests/objs.mjs`. API de depuração: `window.__debug` (`?debug=1`).
 - Publicação: push na branch → Render faz o deploy automático. Conferir o hash do bundle no site.
 
 ## Regras de código importantes
+- Objetivo do jogo: sobreviver → consertar a antena → a Terra manda colonos → fundar a civilização (20 colonos,
+  `sim/colony.ts`). Colmeias de alienígenas (`combat/nests.ts`) dão núcleos para as torres de defesa.
+- Material transparente com `DoubleSide` precisa de `forceSinglePass: true` (senão compila outra variante na 1ª vez).
 - Nunca mudar o número de luzes em tempo de jogo (recompila shaders e trava o iPhone): usar intensidade 0.
 - Materiais novos passam por `enhance()` (render/materials.ts) — névoa + sombras em cascata; clones também.
 - Não inserir itens no meio de `OBJECTIVES` (os saves guardam o índice); usar `st.flags`.

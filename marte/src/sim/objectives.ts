@@ -31,5 +31,9 @@ export const OBJECTIVES: Objective[] = [
   { key: 'obj_bioreactor', voice: 'vo_bioreactor', done: (s) => count(s, 'bioreactor') > 0, target: (_s, w) => w.site('chute') },
   { key: 'obj_explore', voice: 'vo_explore', done: (s) => (s.inv.electronics >= 6 && s.inv.scrap >= 10) || s.antennaFixedSol !== null, target: (_s, w) => w.site('cruise') },
   { key: 'obj_antenna', voice: 'vo_antenna', done: (s) => s.antennaFixedSol !== null, target: (_s, w) => w.antenna },
-  { key: 'obj_rescue', voice: 'vo_rescue', done: (s) => !!s.flags.won },
+  { key: 'obj_rescue', voice: 'vo_colony_call', done: (s) => (s.colony?.pop ?? 1) > 1 || !!s.flags.won },
+  // civilização (só acrescentar no fim: os saves guardam o índice)
+  { key: 'obj_base', voice: 'vo_base', done: (s) => (s.colony?.pop ?? 1) >= 10 || !!s.flags.won },
+  { key: 'obj_village', voice: 'vo_village', done: (s) => (s.colony?.pop ?? 1) >= 20 || !!s.flags.won },
+  { key: 'obj_civ', voice: 'vo_civ', done: (s) => !!s.flags.won },
 ];

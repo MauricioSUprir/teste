@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { LanderMats } from './lander';
-import { beacon, WINDOW_MAT } from './nightfx';
+import { beacon, BEACON_MAT, WINDOW_MAT } from './nightfx';
 import { detail } from '../render/detail';
 import { crumpledSheet } from './debris';
 import { holoMaterial, HOLO_OK, HOLO_BAD } from '../render/holo';
@@ -24,7 +24,7 @@ export function makeStructMats(M: LanderMats) {
 }
 export type StructMats = ReturnType<typeof makeStructMats>;
 
-export const FOOTPRINT: Record<BuildId, number> = { habitat: 6.0, panel: 2.2, battery: 1.1, moxie: 1.2, extractor: 1.4, bioreactor: 1.8 };
+export const FOOTPRINT: Record<BuildId, number> = { habitat: 6.0, panel: 2.2, battery: 1.1, moxie: 1.2, extractor: 1.4, bioreactor: 1.8, residence: 3.4, turret: 1.3 };
 
 /** raio do habitat inflável (o interior percorrível usa o mesmo tamanho) */
 export const HAB_R = 4.4;
@@ -65,9 +65,6 @@ export function buildHabitat(M: StructMats) {
   win.rotation.y = Math.PI / 2;
   const bc = beacon(0.08); bc.position.set(0, 2.4 + R * 0.62 + 0.06, 0);
   g.add(wall, dome, ring, base, lock, door, light, led, win, bc);
-  const pointLight = new THREE.PointLight(0xffe2c0, 8, 14, 1.8);
-  pointLight.position.set(0, 2.2, R + 2.2);
-  g.add(pointLight);
   g.userData.door = new THREE.Vector3(0, 0, R + 2.3);
   return shadow(g);
 }
@@ -164,8 +161,91 @@ export function buildBioreactor(M: StructMats) {
   return shadow(g);
 }
 
+/** módulo residencial: cilindro deitado estilo módulos da ISS (r 1,6 m × 6 m), sobre berço, coberto de regolito no topo.
+ *  Sem luz própria (só janelas e lâmpada emissiva) — luzes novas recompilam tudo no iPhone. */
+export function buildResidence(M: StructMats) {
+  const g = new THREE.Group();
+  const R = 1.6, L = 6;
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(R, R, L, 40, 1, true), M.white);
+  hull.rotation.z = Math.PI / 2; hull.position.y = R + 0.35;
+  for (const sx of [-1, 1]) {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(R, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.white);
+    cap.scale.y = 0.35; cap.rotation.z = -sx * Math.PI / 2; cap.position.set(sx * L / 2, R + 0.35, 0);
+    g.add(cap);
+  }
+  // anéis estruturais e corrimãos
+  for (let i = 0; i < 5; i++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(R + 0.03, 0.05, 8, 40), M.metal);
+    ring.rotation.y = Math.PI / 2; ring.position.set(-L / 2 + 0.4 + i * (L - 0.8) / 4, R + 0.35, 0);
+    g.add(ring);
+  }
+  for (const sz of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, L - 0.6, 6), M.gold);
+    rail.rotation.z = Math.PI / 2; rail.position.set(0, R + 0.35 + 0.9, sz * (R * 0.6));
+    g.add(rail);
+  }
+  // berço e sapatas
+  for (const x of [-L / 2 + 0.8, 0, L / 2 - 0.8]) {
+    const cradle = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, R * 1.7), M.metal);
+    cradle.position.set(x, 0.3, 0); g.add(cradle);
+  }
+  // janelas (acendem à noite) dos dois lados
+  for (const sz of [-1, 1]) for (let i = 0; i < 3; i++) {
+    const w = new THREE.Mesh(new THREE.CircleGeometry(0.22, 20), WINDOW_MAT);
+    w.position.set(-1.6 + i * 1.6, R + 0.55, sz * (R + 0.01)); w.rotation.y = sz > 0 ? 0 : Math.PI;
+    g.add(w);
+  }
+  // escotilha + lâmpada da porta
+  const hatch = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.12, 24), M.metal);
+  hatch.rotation.z = Math.PI / 2; hatch.position.set(L / 2 + 0.55, R + 0.1, 0);
+  const lampM = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.3), M.lamp); lampM.position.set(L / 2 + 0.6, R + 0.85, 0);
+  // camada de regolito ensacado no topo (proteção contra radiação)
+  const bags = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.12, R + 0.12, L * 0.9, 24, 1, true, -Math.PI * 0.32, Math.PI * 0.64), new THREE.MeshStandardMaterial({ color: new THREE.Color(0.42, 0.24, 0.15), roughness: 0.95, side: THREE.DoubleSide }));
+  bags.rotation.z = Math.PI / 2; bags.rotation.x = Math.PI / 2; bags.position.y = R + 0.35;
+  const bc = beacon(0.06); bc.position.set(0, R * 2 + 0.5, 0);
+  g.add(hull, hatch, lampM, bags, bc);
+  return shadow(g);
+}
+
+/** torre de defesa: tripé de treliça (3 m), cabeça com cúpula de sensor e cano duplo. head = parte que gira */
+export function buildTurret(M: StructMats) {
+  const g = new THREE.Group();
+  const H = 2.6;
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    const foot = new THREE.Vector3(Math.cos(a) * 1.0, 0, Math.sin(a) * 1.0), top = new THREE.Vector3(0, H, 0);
+    const len = foot.distanceTo(top);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, len, 8), M.metal);
+    leg.position.copy(foot).lerp(top, 0.5); leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), top.clone().sub(foot).normalize());
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.08, 12), M.metal); pad.position.copy(foot).setY(0.04);
+    g.add(leg, pad);
+    // travessas da treliça
+    const n = foot.clone().lerp(top, 0.45), m = new THREE.Vector3(Math.cos(a + 2.094) * 1.0, 0, Math.sin(a + 2.094) * 1.0).lerp(top, 0.45);
+    const br = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, n.distanceTo(m), 6), M.metal);
+    br.position.copy(n).lerp(m, 0.5); br.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), m.clone().sub(n).normalize());
+    g.add(br);
+  }
+  const bat = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.35, 0.4, 2, 0.04), M.white); bat.position.y = 1.0; g.add(bat);
+  const head = new THREE.Group(); head.position.y = H;
+  const yoke = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.25, 20), M.dark); yoke.position.y = 0.12;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.white); dome.position.y = 0.25;
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), BEACON_MAT); eye.position.set(0, 0.36, -0.24);
+  head.add(yoke, dome, eye);
+  for (const sx of [-1, 1]) {
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.9, 10), M.dark);
+    barrel.rotation.x = Math.PI / 2; barrel.position.set(sx * 0.12, 0.3, -0.55);
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.08, 10), M.metal);
+    muzzle.rotation.x = Math.PI / 2; muzzle.position.set(sx * 0.12, 0.3, -1.0);
+    head.add(barrel, muzzle);
+  }
+  g.add(head);
+  g.userData.head = head;
+  return shadow(g);
+}
+
 export const BUILDERS: Record<BuildId, (M: StructMats) => THREE.Group> = {
   habitat: buildHabitat, panel: buildPanel, battery: buildBattery, moxie: buildMoxie, extractor: buildExtractor, bioreactor: buildBioreactor,
+  residence: buildResidence, turret: buildTurret,
 };
 
 /** afloramento de gesso (veios brancos de sulfato de cálcio) */

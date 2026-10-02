@@ -1,4 +1,5 @@
 import { BAL, type BuildId, type ItemId } from './balance';
+import { newColony, type ColonyState } from './colony';
 import { newWeapons, UPG_MAX, WEAPON_ORDER, type WeaponsState } from '../combat/defs';
 
 export const SAVE_VERSION = 2;
@@ -24,7 +25,9 @@ export interface GameState {
   nextStormSol: number;
   rover: { x: number; z: number; yaw: number; batt: number };
   weapons: WeaponsState;
-  stats2?: { kills: number };
+  stats2?: { kills: number; nests?: number };
+  nests?: Record<string, number>;
+  colony?: ColonyState; // colmeia destruída → sol da destruição (volta a crescer)
 }
 
 export function newState(difficulty: GameState['difficulty'] = 'normal'): GameState {
@@ -35,7 +38,7 @@ export function newState(difficulty: GameState['difficulty'] = 'normal'): GameSt
     tau: 0.5,
     player: { x: 1, y: 0, z: 3, yaw: 0 },
     suit: { o2: BAL.suitO2Cap * 0.45, batt: BAL.suitBattCap * 0.62, health: 100, rad: 0 },
-    inv: { scrap: 0, electronics: 0, gypsum: 0, culture: 0, kit_habitat: 0, kit_panel: 0, ration: 0, chitin: 0 },
+    inv: { scrap: 0, electronics: 0, gypsum: 0, culture: 0, kit_habitat: 0, kit_panel: 0, ration: 0, chitin: 0, core: 0 },
     hab: { o2: BAL.habO2Start, water: BAL.habWaterStart, food: BAL.habFoodStart, batt: BAL.habBattStart * 0.6, battCap: BAL.habBattCap, gypsum: 0 },
     buildings: [],
     nextId: 1,
@@ -47,6 +50,7 @@ export function newState(difficulty: GameState['difficulty'] = 'normal'): GameSt
     storm: null,
     nextStormSol: 4.4,
     rover: { x: 16, z: -16, yaw: 1.9, batt: 30 },
+    colony: newColony(),
     weapons: newWeapons(),
     stats2: { kills: 0 },
   };
@@ -103,6 +107,10 @@ function migrate(st: GameState): GameState | null {
   // saves antigos já tinham construção: computador de pulso considerado montado
   // saves de antes do computador de pulso: quem já abriu a 1ª caixa (que não trazia sucata) ganha o computador pronto
   if (merged.buildings.length > 0 || merged.objective > 1 || merged.looted.includes('crate0')) merged.flags.computer = true;
+  merged.colony = { ...newColony(), ...((st as Partial<GameState>).colony ?? {}) };
+  // saves que já tinham sido "resgatados": agora a antena chama colonos — continuam rumo à civilização
+  if (merged.flags.won && merged.colony.pop <= 1 && merged.colony.ships === 0) { merged.flags.won = false; merged.flags.freeplay = true; merged.colony.nextSol = merged.sol + 0.15; }
+  merged.nests = { ...((st as Partial<GameState>).nests ?? {}) };
   merged.stats2 = { kills: 0, ...(st as Partial<GameState>).stats2 };
   merged.version = SAVE_VERSION;
   const nums = [merged.sol, merged.player.x, merged.player.z, merged.suit.o2, merged.suit.batt, merged.suit.health];

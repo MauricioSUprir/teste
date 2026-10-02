@@ -27,7 +27,7 @@ export class CombatVFX {
     }
     // lâmina do cortador: leque de plasma azulado
     const bg = new THREE.RingGeometry(0.35, 1.6, 20, 1, -0.55, 1.1); bg.rotateX(-Math.PI / 2); bg.rotateY(Math.PI / 2);
-    this.blade = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.62, 0.85, 1.0), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
+    this.blade = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.62, 0.85, 1.0), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, forceSinglePass: true, fog: false })); // 1 programa só (DoubleSide transparente compilaria a variante de trás na 1ª vez)
     this.blade.frustumCulled = false;
     this.group.add(this.blade);
     this.spPos = new Float32Array(this.MAXS * 3); this.spCol = new Float32Array(this.MAXS * 3);
