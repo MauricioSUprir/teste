@@ -336,7 +336,7 @@ details.more .fields { margin-top: 6px; }
           </dl>
         </div>
         <div class="card2">
-          <label class="switch"><span><b>Arquitetura bloqueada</b><br><span class="hint">Paredes, vidros e portas não se movem por acidente.</span></span><input type="checkbox" id="lockArch" checked></label>
+          <label class="switch"><span><b>Arquitetura bloqueada</b><br><span class="hint">Paredes, portas e fachada não se movem por acidente. As divisórias de vidro ficam livres.</span></span><input type="checkbox" id="lockArch" checked></label>
           <details><summary>Elementos de arquitetura</summary><div class="list" id="archList"></div></details>
         </div>
         <div class="card2">
@@ -528,7 +528,9 @@ CATS.push(['Novo layout', [
 ]]);
 // arquitetura
 C('WALL','','Parede existente','wallpoly',1,1,H,{arch:1,solid:1,color:'#f4f3f0'});
-C('GLASS','','Divisória de vidro','glass',1,0.04,H,{arch:1,solid:1,color:'#16181c'});
+C('GLASS','','Divisória de vidro','glass',1.5,0.04,H,{arch:1,solid:1,partition:1,color:'#16181c'});
+C('GLASSD','','Porta de correr de vidro','glass',0.85,0.04,2.40,{arch:1,solid:1,partition:1,color:'#16181c'});
+CATS.push(['Divisórias de vidro', ['GLASS', 'GLASSD']]);
 C('FACADE','','Fachada envidraçada','facade',1,0.05,H,{arch:1,solid:1,color:'#16181c'});
 C('DOOR','','Porta','door',0.9,0.15,2.10,{arch:1,color:'#e9e4dc'});
 C('BRICK','','Papel de parede tijolinho','brick',2,0.012,H,{arch:1,color:'#b4583a'});
@@ -657,6 +659,8 @@ const S = {
 const byId = id => items.find(i => i.id === id);
 const cat = it => CAT[it.key] || {};
 const isArch = it => !!cat(it).arch;
+const isPart = it => !!cat(it).partition;
+const isLocked = it => isArch(it) && !isPart(it) && S.archLocked;
 
 /* ============================ 2D HELPERS ============================ */
 const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
@@ -682,6 +686,10 @@ function canStack(a, b) { const ca = cat(a), cb = cat(b); return (ca.tuck && cb.
 /* ============================ COLISÃO ============================ */
 function blockers(it) {
   const out = [];
+  if (isPart(it)) { // divisória: só paredes e fachada a bloqueiam
+    if (S.colWalls) for (const o of items) { const co = cat(o); if (o !== it && co.arch && co.solid && !co.partition) out.push(o); }
+    return out;
+  }
   if (isArch(it)) return out;
   for (const o of items) {
     if (o === it) continue;
@@ -694,7 +702,7 @@ function blockers(it) {
   return out;
 }
 function isValid(it) {
-  if (isArch(it)) return true;
+  if (isArch(it) && !isPart(it)) return true;
   if (S.colWalls && !pip([it.x, it.y], INTERIOR)) return false;
   const fp = footprint(it, 0.003);
   for (const o of blockers(it)) if (polyOverlap(fp, footprint(o))) return false;
@@ -1256,6 +1264,7 @@ const BUILD = {
     const f = 0.035; box(g, it.w, f, it.d, m, 0, 0, 0); box(g, it.w, f, it.d, m, 0, it.h - f, 0);
     for (const s of [-1, 1]) box(g, f, it.h, it.d, m, s * (it.w / 2 - f / 2), 0, 0);
     const p = new THREE.Mesh(new THREE.BoxGeometry(it.w - 2 * f, it.h - 2 * f, 0.01), M.glass); p.position.y = it.h / 2; p.renderOrder = 5; g.add(p);
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(it.w, it.h, 0.22), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = it.h / 2; g.add(hit);
   },
   facade(g, it, m) {
     const f = 0.05, n = Math.max(1, Math.round(it.w / 1.25));
@@ -1367,7 +1376,7 @@ function updateOverlays() {
       selBox.rotation.y = rad(it.rot); selBox.scale.set(it.w + 0.02, it.h * (objs.get(it.id)?.scale.y || 1) + 0.02, it.d + 0.02);
     }
     const r = Math.max(it.w, it.d) / 2 + 0.18;
-    const canRot = it.model !== 'wallpoly' && (!isArch(it) || !S.archLocked) && S.view !== 'explore';
+    const canRot = it.model !== 'wallpoly' && !isLocked(it) && S.view !== 'explore';
     ring.visible = knob.visible = canRot;
     if (canRot) {
       ring.scale.set(r, r, 1); ring.position.set(it.x, 0.02, -it.y);
@@ -1375,7 +1384,7 @@ function updateOverlays() {
     }
     const lr = Math.max(it.w, it.d) / 2 + 0.38;
     if (S.showSelDims && it.model !== 'wallpoly') label([it.x, it.y + lr], it.elev + it.h + 0.12, `${fmtM(it.w)} × ${fmtM(it.d)} × ${fmtM(it.h)} m`, 'sel');
-    if (S.showDist && !isArch(it)) for (const d of distances(it)) {
+    if (S.showDist && (!isArch(it) || isPart(it))) for (const d of distances(it)) {
       if (d.d < 0.005) continue; seg(d.a, d.b, '#ea580c'); const L = d.d, ux = (d.b[0] - d.a[0]) / L, uy = (d.b[1] - d.a[1]) / L, k = L < 0.5 ? L + 0.22 : L / 2; seg([d.b[0] - uy * 0.04, d.b[1] + ux * 0.04], [d.b[0] + uy * 0.04, d.b[1] - ux * 0.04], '#ea580c'); label([d.a[0] + ux * k, d.a[1] + uy * k], 0.03, fmtCm(d.d), 'dist');
     }
     if (drag && drag.blocked) label([it.x, it.y - lr], it.elev + it.h + 0.12, 'bloqueado', 'warnl');
@@ -1554,7 +1563,7 @@ function pickItem(e) {
   for (const h of hits) {
     let o = h.object; while (o && !o.userData.itemId) o = o.parent;
     if (!o) continue; const it = byId(o.userData.itemId); if (!it) continue;
-    if (isArch(it) && S.archLocked) { if (it.model === 'glass' || it.model === 'facade') continue; return null; }
+    if (isLocked(it)) { if (it.model === 'facade') continue; return null; }
     return it;
   }
   return null;
@@ -1590,16 +1599,16 @@ function addItem(key, x, y) {
 }
 function duplicate(it) {
   const c = JSON.parse(JSON.stringify(it)); c.id = 'i' + (nextId++); c.x += 0.3; c.y -= 0.3; if (c.poly) c.poly = it.poly.map(p => [...p]);
-  items.push(c); buildObj(c); if (!isArch(c)) findFreeSpot(c); updateSupport(c); placeObj(c); c.orig = { x: c.x, y: c.y, rot: c.rot, elev: c.elev };
+  items.push(c); buildObj(c); if (!isArch(c) || isPart(c)) findFreeSpot(c); updateSupport(c); placeObj(c); c.orig = { x: c.x, y: c.y, rot: c.rot, elev: c.elev };
   select(c.id); commit('Duplicado.');
 }
 function removeItem(it) { items = items.filter(i => i !== it); const g = objs.get(it.id); if (g) { itemsRoot.remove(g); disposeGroup(g); objs.delete(it.id); } if (S.sel === it.id) S.sel = null; commit(`${it.name} excluído.`); }
 function rotateBy(it, d) {
   const old = it.rot; it.rot = normDeg(it.rot + d);
-  if (!isArch(it) && isValid({ ...it, rot: old }) && !isValid(it)) { it.rot = old; setMsg('Sem espaço para girar aqui.'); return; }
+  if ((!isArch(it) || isPart(it)) && isValid({ ...it, rot: old }) && !isValid(it)) { it.rot = old; setMsg('Sem espaço para girar aqui.'); return; }
   placeObj(it); commit();
 }
-function nudge(it, dx, dy) { const free = !isValid(it); tryMove(it, it.x + dx, it.y + dy, free || isArch(it)); updateSupport(it); placeObj(it); commit(); }
+function nudge(it, dx, dy) { const free = !isValid(it); tryMove(it, it.x + dx, it.y + dy, free || (isArch(it) && !isPart(it))); updateSupport(it); placeObj(it); commit(); }
 
 /* ============================ INTERAÇÃO ============================ */
 const canvas = renderer.domElement;
@@ -1622,7 +1631,7 @@ canvas.addEventListener('pointerdown', e => {
   const it = pickItem(e);
   if (it) {
     select(it.id);
-    if (isArch(it) && S.archLocked) return;
+    if (isLocked(it)) return;
     if (p) { startDrag(it, p, e, S.tool === 'rotate' ? 'rotate' : S.tool === 'move' ? 'axis' : 'move'); e.stopImmediatePropagation(); }
     return;
   }
@@ -1630,7 +1639,7 @@ canvas.addEventListener('pointerdown', e => {
 }, { capture: true });
 function startDrag(it, p, e, kind) {
   controls.enabled = false; canvas.setPointerCapture(e.pointerId);
-  drag = { id: it.id, kind, off: [it.x - p[0], it.y - p[1]], start: { x: it.x, y: it.y, rot: it.rot }, p0: p, a0: Math.atan2(p[1] - it.y, p[0] - it.x), free: isArch(it) || !isValid(it), moved: false, axis: null, blocked: false };
+  drag = { id: it.id, kind, off: [it.x - p[0], it.y - p[1]], start: { x: it.x, y: it.y, rot: it.rot }, p0: p, a0: Math.atan2(p[1] - it.y, p[0] - it.x), free: (isArch(it) && !isPart(it)) || !isValid(it), moved: false, axis: null, blocked: false };
 }
 canvas.addEventListener('pointermove', e => {
   const p = floorPt(e);
@@ -1740,7 +1749,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { delete walk.keys[e.code]; });
 addEventListener('blur', () => { walk.keys = {}; });
-const editable = it => !isArch(it) || !S.archLocked;
+const editable = it => !isLocked(it);
 
 /* ============================ UI ============================ */
 const $ = id => document.getElementById(id);
@@ -1833,7 +1842,7 @@ document.querySelectorAll('.rb').forEach(b => b.onclick = () => { if (b.classLis
 $('drawer').addEventListener('transitionend', resize);
 { let pn = ''; if (innerWidth <= 900) pn = ''; PANES.includes(pn) ? openPanel(pn) : closeDrawer(); }
 function bindSwitch(id, key, fn) { const el = $(id); el.checked = S[key]; el.onchange = () => { S[key] = el.checked; fn && fn(); }; }
-bindSwitch('lockArch', 'archLocked', () => { if (S.archLocked && S.sel && isArch(byId(S.sel))) select(null); refreshLists(); refreshProps(); setMsg(S.archLocked ? 'Arquitetura bloqueada.' : 'Arquitetura desbloqueada: paredes, vidros e portas podem ser movidos.'); });
+bindSwitch('lockArch', 'archLocked', () => { if (S.sel && byId(S.sel) && isLocked(byId(S.sel))) select(null); refreshLists(); refreshProps(); setMsg(S.archLocked ? 'Arquitetura bloqueada.' : 'Arquitetura desbloqueada: paredes, portas e fachada podem ser movidas.'); });
 bindSwitch('showPlan', 'showPlan', () => { if (planMesh) planMesh.visible = S.showPlan; });
 bindSwitch('showRooms', 'showRooms'); bindSwitch('cotas3d', 'cotas3d'); bindSwitch('showCotas', 'showCotas'); bindSwitch('showDist', 'showDist'); bindSwitch('showSelDims', 'showSelDims');
 bindSwitch('showGrid', 'showGrid', () => gridHelper.visible = S.showGrid);
@@ -1883,16 +1892,16 @@ function liFor(it, arch) {
 function refreshLists() {
   const ol = $('objList'), al = $('archList'); ol.innerHTML = ''; al.innerHTML = '';
   const q = norm($('objSearch').value.trim());
-  const furn = items.filter(i => !isArch(i)); $('objCount').textContent = furn.length + ' itens';
+  const furn = items.filter(i => !isArch(i) || isPart(i)); $('objCount').textContent = furn.length + ' itens';
   const groups = new Map();
   for (const it of furn) { if (q && !norm(`${it.code} ${it.name}`).includes(q)) continue; const g = KEY_CAT[it.key] || 'Outros'; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(it); }
   for (const [g, list] of groups) {
     const d = document.createElement('details'); d.className = 'grp2'; d.open = q ? true : openGroups.has(g);
     d.innerHTML = `<summary>${g} · ${list.length}</summary>`; d.addEventListener('toggle', () => { if (!q) d.open ? openGroups.add(g) : openGroups.delete(g); });
-    const l = document.createElement('div'); l.className = 'list'; list.forEach(it => l.appendChild(liFor(it, false))); d.appendChild(l); ol.appendChild(d);
+    const l = document.createElement('div'); l.className = 'list'; list.forEach(it => l.appendChild(liFor(it, isLocked(it)))); d.appendChild(l); ol.appendChild(d);
   }
   if (!groups.size) ol.innerHTML = '<p class="hint">Nenhum objeto com esse nome.</p>';
-  for (const it of items) if (isArch(it)) al.appendChild(liFor(it, true));
+  for (const it of items) if (isArch(it) && !isPart(it)) al.appendChild(liFor(it, true));
 }
 // ao escolher na lista, a câmera mira o objeto (3D livre)
 function focusItem(it) {
@@ -1917,7 +1926,7 @@ const F = { name: $('fName'), w: $('fW'), d: $('fD'), h: $('fH'), elev: $('fE'),
 function refreshProps() {
   const it = S.sel && byId(S.sel); $('right').hidden = !it;
   if (!it) return;
-  const locked = isArch(it) && S.archLocked, wp = it.model === 'wallpoly';
+  const locked = isLocked(it), wp = it.model === 'wallpoly';
   $('pName').textContent = it.name; $('pCode').textContent = it.code || '';
   $('pLock').hidden = !locked;
   for (const k of ['w', 'd', 'h', 'elev', 'x', 'y', 'rot', 'color', 'name']) F[k].disabled = locked || (wp && ['w', 'd'].includes(k));
@@ -1944,7 +1953,7 @@ function onField(k, el) {
     else if (k === 'rot') it.rot = normDeg(v);
     else if (k === 'elev') it.elev = Math.max(0, v);
     else it[k] = Math.max(0.01, v);
-    if (!isArch(it) && S.colWalls && !isValid(it) && isValid(prev)) {
+    if ((!isArch(it) || isPart(it)) && S.colWalls && !isValid(it) && isValid(prev)) {
       Object.assign(it, { x: prev.x, y: prev.y, rot: prev.rot, w: prev.w, d: prev.d, h: prev.h, elev: prev.elev });
       setMsg('Não cabe nessa posição: colide com parede ou outro móvel. Desligue a colisão em Medidas para forçar.'); refreshPropsLive(it); return;
     }
@@ -2024,7 +2033,7 @@ renderer.setAnimationLoop(() => {
   else renderer.render(scene, cam);
   flushLabels(stage.clientWidth, stage.clientHeight);
 });
-window.__ba = { S, get items() { return items; }, isValid, footprint, blockers, polyOverlap, setView, select, byId };
+window.__ba = { tryMove, magnet, S, get items() { return items; }, isValid, footprint, blockers, polyOverlap, setView, select, byId };
 </script>
 </body>
 </html>
