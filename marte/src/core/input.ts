@@ -7,6 +7,8 @@ export class Input {
   move = { x: 0, y: 0 }; // x = direita, y = frente
   look = { x: 0, y: 0 }; // delta acumulado em pixels (consumido a cada quadro)
   sprint = false;
+  /** joystick de toque ativo: velocidade proporcional ao curso */
+  analog = false;
   private keys = new Set<string>();
   private pressed = new Set<Action>();
   private held = new Set<Action>();
@@ -138,7 +140,7 @@ export class Input {
       const m = Math.hypot(nx, ny);
       if (m < 0.12) { nx = 0; ny = 0; }
       this.move.x = nx; this.move.y = ny;
-      this.sprint = m > 0.92;
+      this.sprint = m > 0.92; this.analog = true;
       if (this.joyKnob) this.joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
       this.joyEl?.classList.toggle('run', this.sprint);
     } else if (e.pointerId === this.lookId) {
@@ -152,7 +154,7 @@ export class Input {
   }
   private onPointerUp(e: PointerEvent) {
     if (e.pointerId === this.joyId) {
-      this.joyId = null; this.move.x = this.move.y = 0; this.sprint = false;
+      this.joyId = null; this.move.x = this.move.y = 0; this.sprint = false; this.analog = false;
       if (this.joyEl) { this.joyEl.classList.remove('on', 'run'); this.joyEl.style.left = ''; this.joyEl.style.top = ''; }
       if (this.joyKnob) this.joyKnob.style.transform = '';
     }

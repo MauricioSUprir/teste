@@ -10,8 +10,8 @@ import { WORLD } from '../world/config';
 // - salto: v0 ≈ 2,1 m/s → altura ≈ 0,6 m, tempo no ar ≈ 1,1 s
 // - transição caminhada→galope ≈ 1,3 m/s; galope máx. ~3,4 m/s
 export const MOVE = {
-  walk: 1.3, // ≈ transição caminhada→galope em Marte (Froude 0,5)
-  run: 3.4,
+  walk: 1.7, // caminhada firme (um pouco acima da transição de Froude 0,5 — jogo mais ágil)
+  run: 3.6,
   accelGround: 3.2,
   accelAir: 0.35,
   jumpV: 2.15,
@@ -37,6 +37,7 @@ export class Player {
   camDist = 4.6;
   private camDistSmooth = 4.6;
   headBob = 0;
+  private tmpN = new THREE.Vector3();
 
   constructor(private phys: Physics, private terrain: Terrain, spawn: THREE.Vector3) {
     const R = phys.R;
@@ -72,10 +73,21 @@ export class Player {
     const target = new THREE.Vector3().addScaledVector(fwd, input.move.y).addScaledVector(right, input.move.x);
     const mag = Math.min(1, target.length());
     if (mag > 0) target.normalize();
-    const speed = (input.sprint ? MOVE.run : MOVE.walk) * mag * speedMul;
+    // joystick analógico: metade do curso = caminhada, curso cheio = galope (sem degrau brusco)
+    const base = input.analog
+      ? (mag <= 0.55 ? MOVE.walk * (mag / 0.55) : MOVE.walk + (MOVE.run - MOVE.walk) * Math.min(1, (mag - 0.55) / 0.37))
+      : (input.sprint ? MOVE.run : MOVE.walk) * mag;
+    let speed = base * speedMul;
+    // morros: subida suave quase não freia (o controlador já projeta o passo na rampa); só rampas fortes pesam
+    if (this.grounded && mag > 0) {
+      const n = this.terrain.normalAt(this.pos.x, this.pos.z, this.tmpN);
+      const up = -(n.x * target.x + n.z * target.z); // >0 = subindo
+      if (up > 0.18) speed *= Math.max(0.6, 1 - (up - 0.18) * 1.2);
+    }
     target.multiplyScalar(speed);
 
-    const accel = this.grounded ? MOVE.accelGround : MOVE.accelAir;
+    // pulinhos sobre pedrinhas/lombadas (fração de segundo no ar) não tiram a aderência do jogador
+    const accel = this.grounded || (this.airTime < 0.25 && this.vel.y < 1) ? MOVE.accelGround : MOVE.accelAir;
     const hv = new THREE.Vector3(this.vel.x, 0, this.vel.z);
     const dv = target.sub(hv);
     const maxDv = accel * dt;
@@ -93,7 +105,13 @@ export class Player {
     }
     this.vel.y -= WORLD.gravity * dt;
 
-    const desired = { x: this.vel.x * dt, y: this.vel.y * dt, z: this.vel.z * dt };
+    // no chão, o passo segue a inclinação do terreno: na subida o controlador não "come" a velocidade
+    let climbY = 0;
+    if (this.grounded) {
+      const n = this.terrain.normalAt(this.pos.x, this.pos.z, this.tmpN);
+      if (n.y > 0.72) climbY = -(n.x * this.vel.x + n.z * this.vel.z) / n.y; // dy/dt ao longo da rampa
+    }
+    const desired = { x: this.vel.x * dt, y: (this.vel.y + Math.max(0, climbY)) * dt, z: this.vel.z * dt };
     this.controller.computeColliderMovement(this.collider, desired);
     const mv = this.controller.computedMovement();
     const wasGrounded = this.grounded;
@@ -118,7 +136,12 @@ export class Player {
       this.landImpulse = this.lastImpact;
       this.airTime = 0;
     }
-    if (this.grounded) { this.vel.x = realV.x; this.vel.z = realV.z; if (this.vel.y < 0) this.vel.y = 0; }
+    if (this.grounded) {
+      // só perde velocidade se bateu de verdade (pedra/parede); rampa e pedrinha não acumulam freada quadro a quadro
+      const want = Math.hypot(this.vel.x, this.vel.z), got = Math.hypot(realV.x, realV.z);
+      if (want > 0.05 && got < want * 0.55) { const k = got / want; this.vel.x *= Math.max(k, 0.5); this.vel.z *= Math.max(k, 0.5); }
+      if (this.vel.y < 0) this.vel.y = 0;
+    }
     else {
       this.airTime += dt;
       if (realV.y > this.vel.y + 0.5 && this.vel.y > 0) this.vel.y = realV.y;

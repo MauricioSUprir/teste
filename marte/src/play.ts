@@ -176,6 +176,7 @@ export class Play {
       if (tw) { tw.classList.toggle('gone', !armed); const ic = WICON[st.weapons.eq]; if (tw.textContent !== ic) tw.textContent = ic; }
     }
     this.world.update(dt);
+    if (!st.flags.computer && st.looted.includes('crate0') && st.inv.scrap < Play.PC_COST && st.buildings.length === 0) { st.flags.computer = true; this.hud.toast(t('pc_built'), 'ok'); }
     if (!st.flags.computer && !st.flags.pcHint && st.looted.includes('crate0') && !this.dead) { st.flags.pcHint = true; setTimeout(() => { if (!this.dead && !this.pcBuilt) this.speak('vo_pc'); }, 9000); }
     if (input.consume('map')) { if (this.pcBuilt) this.hud.toggleMap(); else this.hud.toast(t('pc_need', { n: Play.PC_COST }), 'info'); }
     if (input.consume('inventory')) this.togglePC();
@@ -339,7 +340,7 @@ export class Play {
   private handleBuild() {
     const g = this.game, input = g.input, st = this.st;
     if (input.consume('build')) {
-      if (!this.pcBuilt) { this.hud.toast(t('pc_need', { n: Play.PC_COST }), 'info'); return; }
+      if (!this.pcBuilt) { this.hud.toast(t('pc_need', { n: Play.PC_COST }), 'info'); this.togglePC(true); return; }
       if (this.buildMode) this.exitBuild(); else this.enterBuild(); return;
     }
     if (!this.buildMode) return;
