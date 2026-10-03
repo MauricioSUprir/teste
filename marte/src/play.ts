@@ -45,6 +45,7 @@ export class Play {
 
   constructor(public game: Game) {
     this.world = new WorldSim(game.crash.mats, game.terrain, game.physics, game.crash.crates, game.crash.landerPos, game.nasa);
+    this.world.porch = game.porch;
     this.combat = new Combat(game, () => this.st, {
       toast: (k, kind = 'info', vars) => this.hud.toast(t(k as Key, vars), kind),
       say: (k) => this.speak(k as Key),
@@ -55,7 +56,7 @@ export class Play {
     });
     this.colony = new ColonyFx(game.terrain);
     game.scene.add(this.colony.group);
-    { const undo = this.colony.warmup(game.scene); game.renderer.compileAsync(game.scene, game.camera).catch(() => {}).finally(undo); }
+    { const undo = this.colony.warmup(game.scene); game.compileChunked(this.colony.group).catch(() => {}).finally(undo); }
     this.colony.dust = (at, n) => this.combat.vfx.burst(at, n, 'dust');
     this.colony.onTouchdown = () => this.onShipLanded();
     // pedrinhas nunca escondem itens coletáveis

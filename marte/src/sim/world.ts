@@ -38,7 +38,7 @@ export class WorldSim {
   constructor(lm: LanderMats, private terrain: Terrain, private phys: Physics, crates: THREE.Vector3[], landerPos: THREE.Vector3, nasa: Partial<Record<'perse' | 'inge' | 'viking', THREE.Object3D | null>> = {}) {
     this.mats = makeStructMats(lm);
     this.radiusRing.visible = false; this.footRing.visible = false;
-    this.group.add(this.radiusRing, this.footRing, this.porch);
+    this.group.add(this.radiusRing, this.footRing);
     this.body = phys.world.createRigidBody(phys.R.RigidBodyDesc.fixed());
     // caixas do local da queda
     const crateLoot: Partial<Record<ItemId, number>>[] = [
@@ -204,7 +204,7 @@ export class WorldSim {
     return best;
   }
   /** luz da eclusa do habitat (sempre na cena desde o carregamento) */
-  porch = new THREE.PointLight(0xffe2c0, 0, 14, 1.8);
+  porch!: THREE.PointLight; // vem do Game (já na cena desde o carregamento)
 
   private spawnBuilding(b: Building) {
     const obj = BUILDERS[b.type](this.mats);

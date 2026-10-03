@@ -40,7 +40,7 @@ export class Combat {
     const undo0 = this.creatures.warmup(game.scene), undo1 = this.nests.warmup(game.scene);
     const undo = () => { undo0(); undo1(); };
     this.vfx.warm(true);
-    game.renderer.compileAsync(game.scene, game.camera).catch(() => {}).finally(() => { undo(); this.vfx.warm(false); });
+    game.compileChunked(game.scene).catch(() => {}).finally(() => { undo(); this.vfx.warm(false); });
   }
 
   reset() { this.creatures.clear(); this.spawnT = 8; this.killCd = 0; this.cd = 0; }

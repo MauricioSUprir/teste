@@ -27,6 +27,11 @@
   `sim/colony.ts`). Colmeias de alienígenas (`combat/nests.ts`) dão núcleos para as torres de defesa.
 - Material transparente com `DoubleSide` precisa de `forceSinglePass: true` (senão compila outra variante na 1ª vez).
 - Nunca mudar o número de luzes em tempo de jogo (recompila shaders e trava o iPhone): usar intensidade 0.
+  Isso vale também para luzes criadas no construtor do `Play` (depois da compilação do `Game.init`): toda luz nova
+  nasce em `game.ts` antes de `compileChunked` (ex.: `game.porch`). Senão o 1º quadro recompila TUDO e o navegador
+  "para de responder" no carregamento. Medir travadas do carregamento: `node tests/load.mjs 4173 high`.
+- Pré-compilação: `game.compileChunked(raiz)` (pedaços curtos, mesmo destino de render do pós-processamento).
+  Nunca `renderer.compileAsync(scene)` da cena inteira em tempo de jogo.
 - Materiais novos passam por `enhance()` (render/materials.ts) — névoa + sombras em cascata; clones também.
 - Não inserir itens no meio de `OBJECTIVES` (os saves guardam o índice); usar `st.flags`.
 - Save: `sim/state.ts` com `SAVE_VERSION` + `migrate()` — todo campo novo precisa de padrão na migração.

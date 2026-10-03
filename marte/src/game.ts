@@ -63,6 +63,7 @@ export class Game {
   envScene = new THREE.Scene();
   envRT: THREE.WebGLRenderTarget | null = null;
   private envTimer = 0;
+  readonly porch = new THREE.PointLight(0xffe2c0, 0, 14, 1.8);
   private probeRT = new THREE.WebGLCubeRenderTarget(8, { type: THREE.HalfFloatType });
   private probeCam = new THREE.CubeCamera(1, 20000, this.probeRT);
   private probeBuf = new Uint16Array(8 * 8 * 4);
@@ -105,6 +106,8 @@ export class Game {
     this.opts = opts;
     this.q = QUALITY[opts.quality];
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: false, preserveDrawingBuffer: false });
+    // checar erros de shader exige leitura síncrona do driver (trava); só no modo de depuração
+    this.renderer.debug.checkShaderErrors = location.search.includes('debug');
     this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
@@ -247,6 +250,8 @@ export class Game {
     this.pebbles = new Pebbles(this.terrain, this.q.pebbles[0], this.q.pebbles[1], (x, z) => this.pebbleBlock(x, z));
     this.scene.add(this.pebbles.mesh);
     this.scene.add(this.interior.group, ...this.interior.lights);
+    // luz da eclusa do habitat: criada AQUI, antes de compilar (o nº de luzes nunca muda depois; intensidade 0 sem habitat)
+    this.scene.add(this.porch);
     enhanceObject(this.interior.group);
     const spawn = new THREE.Vector3(1, 0, 3);
     spawn.y = this.terrain.heightAt(spawn.x, spawn.z);
@@ -273,18 +278,67 @@ export class Game {
     this.player.updateCamera(this.camera, this.player.pos, 0.016, this.camCollide);
     this.terrain.update(this.camera.position, this.q.lodScale, 0, true);
     this.rocks.update(this.camera.position, true);
-    progress('load_shaders', 0.97);
+    progress('load_shaders', 0.9);
     // compila também o interior do habitat (invisível agora) para não travar na primeira entrada
     this.interior.group.visible = true;
-    await this.renderer.compileAsync(this.scene, this.camera);
-    this.interior.group.visible = this.interior.active;
+    // o mapa de ambiente entra ANTES de compilar: ele muda o programa de todo material PBR
+    // (antes compilava sem ele e recompilava tudo no 1º quadro → página "não responde" em PCs lentos)
     this.updateEnv(true);
     this.measureSky();
     this.updateSky(0);
+    await this.compileChunked(this.scene, (f) => progress('load_shaders', 0.9 + 0.09 * f));
+    { const prevRT = this.renderer.getRenderTarget(); this.renderer.setRenderTarget(this.compileTarget()); const p = this.renderer.compileAsync(this.scene, this.camera); this.renderer.setRenderTarget(prevRT); await p; }
+    this.interior.group.visible = this.interior.active;
     this.pipeline.render(0.016);
     progress('load_done', 1);
     // alta resolução em segundo plano
     this.upgradeTextures();
+  }
+
+  /** compila os shaders em pedacinhos (cada um numa tarefa curta): a página nunca "para de responder"
+   *  — num PC com driver lento, compilar tudo de uma vez travava o navegador por vários segundos */
+  private compileRT: THREE.WebGLRenderTarget | null = null;
+  private compileTarget() {
+    if (!this.pipeline || this.pipeline.direct) return null;
+    return (this.compileRT ??= new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType }));
+  }
+  async compileChunked(root: THREE.Object3D, onProgress?: (f: number) => void, chunk = 4) {
+    const r = this.renderer, gl = r.getContext();
+    const seen = new Set<string>(); const objs: THREE.Object3D[] = [];
+    root.traverseVisible((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!m) return;
+      const mats = Array.isArray(m) ? m : [m];
+      // já compilado? pula
+      if (mats.every((x) => (r.properties.get(x) as { currentProgram?: unknown }).currentProgram)) return;
+      const f = o as unknown as Record<string, boolean>;
+      const k = mats.map((x) => x.uuid).join() + (f.isInstancedMesh ? 'i' : '') + (f.isSkinnedMesh ? 's' : '') + (f.isPoints ? 'p' : '') + (f.isLine ? 'l' : '') + (o.receiveShadow ? 'r' : '');
+      if (seen.has(k)) return;
+      seen.add(k); objs.push(o);
+    });
+    type Prog = { program: WebGLProgram; isReady: () => boolean };
+    const parallel = r.extensions.get('KHR_parallel_shader_compile') !== null;
+    const done = new Set<unknown>(r.info.programs ?? []);
+    const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    for (let i = 0; i < objs.length; i += chunk) {
+      // compila para o MESMO destino do quadro real: com pós-processamento o jogo desenha num render target
+      // (espaço de cor linear); compilando para a tela, tudo era recompilado no 1º quadro (~12 s travado)
+      const prevRT = r.getRenderTarget();
+      r.setRenderTarget(this.compileTarget());
+      for (const o of objs.slice(i, i + chunk)) { try { r.compile(o, this.camera, this.scene); } catch { /* ignora */ } }
+      r.setRenderTarget(prevRT);
+      const fresh = ((r.info.programs ?? []) as unknown as Prog[]).filter((p) => !done.has(p));
+      fresh.forEach((p) => done.add(p));
+      if (parallel) {
+        // driver compila em paralelo: espera sem bloquear (consulta de status não trava)
+        for (let w = 0; w < 400 && fresh.some((p) => !p.isReady()); w++) await sleep(8);
+      } else {
+        // sem compilação paralela: termina a ligação agora, dentro desta tarefa curta
+        for (const p of fresh) gl.getProgramParameter(p.program, gl.LINK_STATUS);
+      }
+      onProgress?.(Math.min(1, (i + chunk) / objs.length));
+      await sleep(0);
+    }
   }
 
   private async upgradeTextures() {
