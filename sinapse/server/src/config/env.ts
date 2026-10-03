@@ -66,7 +66,7 @@ const schema = z.object({
 
   // E-mail (recuperação de conta)
   SMTP_URL: z.string().optional(),
-  MAIL_FROM: z.string().default('Nexo <no-reply@localhost>'),
+  MAIL_FROM: z.string().default('Sinapse <no-reply@localhost>'),
 
   // Observabilidade
   METRICS_TOKEN: z.string().optional(),

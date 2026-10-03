@@ -1,11 +1,11 @@
-# Nexo — Estrutura do Projeto
+# Sinapse — Estrutura do Projeto
 
 > Agente de IA pessoal em formato de site. Um dono, várias APIs de IA,
 > banco de dados próprio e um sistema de conexões feito para crescer até
 > milhares de serviços.
 >
 > Status deste documento: **PLANEJADO** (nada abaixo está implementado ainda,
-> exceto o esqueleto de pastas e dependências em `nexo/`).
+> exceto o esqueleto de pastas e dependências em `sinapse/`).
 
 ---
 
@@ -225,10 +225,10 @@ relevantes. Estados visíveis: enviado, processando, pronto, falhou.
 ## 5. Estrutura de pastas
 
 ```
-nexo/
+sinapse/
 ├── docs/
 │   ├── ARQUITETURA.md            ← este documento
-│   ├── CONEXOES.md               como criar apps OAuth / adicionar MCP / OpenAPI
+│   ├── COSINAPSEES.md               como criar apps OAuth / adicionar MCP / OpenAPI
 │   └── DEPLOY.md
 ├── docker-compose.yml            app + postgres(pgvector)
 ├── .env.example                  variáveis documentadas, sem segredos
@@ -288,7 +288,7 @@ nexo/
 │       ├── layout/               Sidebar (desktop fixa / mobile gaveta), AppShell
 │       ├── features/
 │       │   ├── auth/             setup inicial, login, 2FA
-│       │   ├── chat/             lista de mensagens, composer, streaming, anexos, painel do agente, aprovações
+│       │   ├── chat/             lista de mensagens, composer, streaming, asinapses, painel do agente, aprovações
 │       │   ├── conversations/    histórico, busca (Ctrl+K)
 │       │   ├── agents/           lista, editor de agente
 │       │   ├── files/
@@ -313,7 +313,7 @@ Todas com `id uuid`, `created_at`, `updated_at` e `user_id` (FK) onde aplicável
 | `sessions` | token_hash, expires_at, ip, user_agent, last_seen_at, revoked_at |
 | `provider_keys` | provider, key (cifrada), base_url, last4, status |
 | `conversations` | title, agent_id, mode (`chat`/`agent`), model, summary, pinned, archived |
-| `messages` | conversation_id, role, content (jsonb: texto, anexos, chamadas de ferramenta), status, model, tokens |
+| `messages` | conversation_id, role, content (jsonb: texto, asinapses, chamadas de ferramenta), status, model, tokens |
 | `runs` | conversation_id, status, steps, error, started_at, finished_at |
 | `run_events` | run_id, seq, type, payload (para reconexão do streaming) |
 | `agents` | name, icon, description, instructions, model, settings (jsonb) |
@@ -362,7 +362,7 @@ GET  /api/usage · /api/health · /metrics
 - **Sidebar**: Nova conversa · Pesquisar (Ctrl+K) · Histórico (agrupado por data, fixadas no topo) ·
   Agentes · Arquivos · Conexões · Ferramentas · Memória · Configurações · Perfil.
 - **Chat**: streaming, parar geração (Esc), regenerar, copiar, editar última mensagem,
-  anexos por arrastar/colar, seletor de modelo e de modo (chat/agente), painel de etapas do
+  asinapses por arrastar/colar, seletor de modelo e de modo (chat/agente), painel de etapas do
   agente, cartões de aprovação, erros com "tentar de novo".
 - **Mobile**: sidebar em gaveta, alvos de toque ≥ 44px, áreas seguras, composer acima do
   teclado virtual, upload pela câmera/galeria.
