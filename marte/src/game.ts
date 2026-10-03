@@ -289,6 +289,7 @@ export class Game {
     await this.compileChunked(this.scene, (f) => progress('load_shaders', 0.9 + 0.09 * f));
     { const prevRT = this.renderer.getRenderTarget(); this.renderer.setRenderTarget(this.compileTarget()); const p = this.renderer.compileAsync(this.scene, this.camera); this.renderer.setRenderTarget(prevRT); await p; }
     this.interior.group.visible = this.interior.active;
+    await this.compilePost();
     this.pipeline.render(0.016);
     progress('load_done', 1);
     // alta resolução em segundo plano
@@ -297,6 +298,28 @@ export class Game {
 
   /** compila os shaders em pedacinhos (cada um numa tarefa curta): a página nunca "para de responder"
    *  — num PC com driver lento, compilar tudo de uma vez travava o navegador por vários segundos */
+  /** pré-compila os shaders do pós-processamento (AO, bloom, SMAA...) sem travar: com compilação paralela
+   *  espera em segundo plano; sem ela, um por tarefa. Compila para render target e para a tela (último passe). */
+  private async compilePost() {
+    const mats = this.pipeline.materials();
+    if (!mats.length) return;
+    const r = this.renderer;
+    const geo = new THREE.PlaneGeometry(2, 2);
+    const cam = new THREE.OrthographicCamera();
+    for (const target of [this.compileTarget(), null]) {
+      for (let i = 0; i < mats.length; i += 2) {
+        const sc = new THREE.Scene();
+        for (const m of mats.slice(i, i + 2)) { const q = new THREE.Mesh(geo, m); q.frustumCulled = false; sc.add(q); }
+        const prev = r.getRenderTarget(); r.setRenderTarget(target);
+        let p: Promise<unknown> = Promise.resolve();
+        try { p = r.compileAsync(sc, cam); } catch { /* material incompleto: compila no 1º uso */ }
+        r.setRenderTarget(prev);
+        await Promise.race([p.catch(() => {}), new Promise((res) => setTimeout(res, 4000))]);
+        await new Promise((res) => setTimeout(res, 0));
+      }
+    }
+    geo.dispose();
+  }
   private compileRT: THREE.WebGLRenderTarget | null = null;
   private compileTarget() {
     if (!this.pipeline || this.pipeline.direct) return null;

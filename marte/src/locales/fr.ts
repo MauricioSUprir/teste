@@ -10,6 +10,7 @@ export const fr: Record<keyof typeof pt, string> = {
   load_textures: 'Chargement des textures haute résolution…',
   load_models: 'Chargement des modèles 3D…',
   load_shaders: 'Préparation des shaders…',
+  safe_mode: 'Le dernier chargement a gelé : ouvert en qualité plus légère (modifiable dans Réglages).',
   load_done: 'Prêt',
   play: 'Jouer',
   continue: 'Continuer',

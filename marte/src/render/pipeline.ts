@@ -142,6 +142,23 @@ export class Pipeline {
     this.composer.setSize(w, h, false);
   }
 
+  /** materiais internos dos passes de pós-processamento (para pré-compilar antes do 1º quadro) */
+  materials(): THREE.Material[] {
+    const out = new Set<THREE.Material>();
+    const visit = (v: unknown, depth: number) => {
+      if (!v || typeof v !== 'object' || depth > 3) return;
+      const o = v as Record<string, unknown> & { isMaterial?: boolean; isTexture?: boolean; isWebGLRenderTarget?: boolean; isObject3D?: boolean; material?: unknown };
+      if (o.isMaterial) { out.add(o as unknown as THREE.Material); return; }
+      if (o.isTexture || o.isWebGLRenderTarget) return;
+      if (o.isObject3D) { (o as unknown as THREE.Object3D).traverse((c) => { const m = (c as THREE.Mesh).material; if (m && !Array.isArray(m)) out.add(m); }); return; }
+      if (Array.isArray(v)) { for (const x of v) visit(x, depth + 1); return; }
+      for (const k of Object.keys(o)) { if (k === 'renderer' || k === 'camera' || k === 'mainScene' || k === 'mainCamera' || k === 'scene' && depth > 0) continue; try { visit(o[k], depth + 1); } catch { /* getters */ } }
+    };
+    if (this.direct) return [];
+    for (const p of this.composer.passes) { if (p === this.renderPass) continue; visit(p, 0); try { visit((p as unknown as { fullscreenMaterial: unknown }).fullscreenMaterial, 1); } catch { /* ignora */ } }
+    return [...out];
+  }
+
   render(dt: number) {
     if (this.direct) this.renderer.render(this.scene, this.camera);
     else this.composer.render(dt);

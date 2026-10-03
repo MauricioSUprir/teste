@@ -9,6 +9,7 @@ export const pt = {
   load_textures: 'Carregando texturas de alta resolução…',
   load_models: 'Carregando modelos 3D…',
   load_shaders: 'Preparando os shaders…',
+  safe_mode: 'O último carregamento travou: abri numa qualidade mais leve (dá para mudar em Ajustes).',
   load_done: 'Pronto',
   play: 'Jogar',
   continue: 'Continuar',

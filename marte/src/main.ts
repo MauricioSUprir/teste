@@ -22,12 +22,22 @@ function savePrefs(p: Prefs) { try { localStorage.setItem('ares.prefs', JSON.str
 const prefs = loadPrefs();
 const params = new URLSearchParams(location.search);
 
+// trava de segurança: se o último carregamento não terminou (página travou/fechada no meio), abre numa qualidade mais leve
+const DOWNGRADE: Partial<Record<QualityId, QualityId>> = { max: 'ultra', ultra: 'high', high: 'medium', medium: 'mobile', mobile: 'low' };
+let safeModeFrom: QualityId | null = null;
 function resolveQuality(): QualityId {
   const qp = params.get('quality') as QualityId | null;
   if (qp) return qp;
-  if (prefs.quality !== 'auto') return prefs.quality;
-  const c = document.createElement('canvas');
-  return autoQuality(c.getContext('webgl2'));
+  let q: QualityId = prefs.quality !== 'auto' ? prefs.quality : autoQuality(document.createElement('canvas').getContext('webgl2'));
+  let stuck: string | null = null;
+  try { stuck = localStorage.getItem('ares.boot'); } catch { /* ignore */ }
+  if (stuck && DOWNGRADE[stuck as QualityId]) {
+    safeModeFrom = stuck as QualityId;
+    q = DOWNGRADE[stuck as QualityId]!;
+    prefs.quality = q; savePrefs(prefs);
+  }
+  try { localStorage.setItem('ares.boot', q); } catch { /* ignore */ }
+  return q;
 }
 
 // ---------------------------------------------------------------- boot
@@ -68,6 +78,8 @@ game.load((key, frac) => {
   game.start();
   game.paused = true;
   game.menuMode = true;
+  try { localStorage.removeItem('ares.boot'); } catch { /* ignore */ }
+  if (safeModeFrom) setTimeout(() => play_?.hud.toast(t('safe_mode'), 'info'), 1500);
   (window as unknown as { __ready: boolean }).__ready = true;
 }).catch((e) => {
   console.error(e);
