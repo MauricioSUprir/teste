@@ -1054,7 +1054,13 @@ const BANNERS_SLOTS = ["banner-1", "banner-2", "banner-3", "banner-4", "banner-5
 // existe, o site usa ele nas telas pequenas.
 const BANNERS_SLOTS_MOBILE = BANNERS_SLOTS.map((s) => `${s}-mobile`);
 const TODOS_SLOTS_BANNER = [...BANNERS_SLOTS, ...BANNERS_SLOTS_MOBILE];
-const bannersEnviados = new Map(); // slot → { mime, base64 }
+// chave "loja:slot" → { mime, base64, versao }. Cada loja tem os próprios
+// banners: antes era um conjunto só, e o banner subido no painel de uma loja
+// aparecia nas quatro.
+const bannersEnviados = new Map();
+const chaveBanner = (loja, slot) => `${lojaValida(loja)}:${slot}`;
+/** backup antigo guardava só "banner-1"; sem loja na chave, era da BeautyNow */
+const normalizarChaveBanner = (k) => (k.includes(":") ? k : `beautynow:${k}`);
 const ARQ_BANNERS = "/tmp/banners-enviados.json";
 const BANNERS_BACKUP_URL =
   "https://raw.githubusercontent.com/MauricioSUprir/teste/claude/beauty-now-ecommerce-fbfxh2/banners-enviados.json";
@@ -1062,14 +1068,14 @@ try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_BANNERS)) {
     for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(ARQ_BANNERS, "utf8")))) {
-      bannersEnviados.set(k, v);
+      bannersEnviados.set(normalizarChaveBanner(k), v);
     }
   } else {
     // deploy novo apaga o /tmp — recarrega do backup versionado no GitHub
     const r = await fetch(BANNERS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
       const backup = (await r.json())?.banners ?? {};
-      for (const [k, v] of Object.entries(backup)) bannersEnviados.set(k, v);
+      for (const [k, v] of Object.entries(backup)) bannersEnviados.set(normalizarChaveBanner(k), v);
     } else if (r?.status !== 404) {
       marcarFalhaRestauracao("banners");
     }
@@ -1089,19 +1095,29 @@ async function salvarBanners() {
 
 // ---- endpoints públicos do carrossel (o site busca daqui em tempo real) ----
 aplicacao.get("/banners", (req, res) => {
-  const lista = BANNERS_SLOTS.filter((s) => bannersEnviados.has(s)).map((slot) => ({
+  const loja = lojaValida(req.query.loja);
+  // a versão vai na URL: trocou a arte, muda o endereço, e nenhum celular fica
+  // mostrando a imagem antiga guardada no cache
+  const url = (slot) => {
+    const b = bannersEnviados.get(chaveBanner(loja, slot));
+    return b ? `/banners/imagem/${slot}?loja=${loja}&v=${b.versao ?? 0}` : null;
+  };
+  const lista = BANNERS_SLOTS.filter((s) => bannersEnviados.has(chaveBanner(loja, s))).map((slot) => ({
     slot,
-    url: `/banners/imagem/${slot}`,
-    urlMobile: bannersEnviados.has(`${slot}-mobile`) ? `/banners/imagem/${slot}-mobile` : null,
+    url: url(slot),
+    urlMobile: url(`${slot}-mobile`),
   }));
+  // a lista muda quando o ADM sobe um banner: nunca pode vir de cache
+  res.setHeader("Cache-Control", "no-store");
   res.json({ ok: true, banners: lista });
 });
 
 aplicacao.get("/banners/imagem/:slot", (req, res) => {
-  const b = bannersEnviados.get(String(req.params.slot));
+  const b = bannersEnviados.get(chaveBanner(req.query.loja, String(req.params.slot)));
   if (!b) return res.status(404).end();
   res.setHeader("Content-Type", b.mime);
-  res.setHeader("Cache-Control", "public, max-age=300");
+  // a URL já carrega a versão (?v=), então a imagem pode ficar em cache à vontade
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   res.end(Buffer.from(b.base64, "base64"));
 });
 
@@ -1109,9 +1125,9 @@ aplicacao.post("/enviar-banners/excluir", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  const { slot } = req.body ?? {};
+  const { slot, loja } = req.body ?? {};
   if (!TODOS_SLOTS_BANNER.includes(slot)) return res.status(400).json({ erro: "Banner inválido." });
-  bannersEnviados.delete(slot);
+  bannersEnviados.delete(chaveBanner(loja, slot));
   await salvarBanners();
   res.json({ ok: true, total: bannersEnviados.size });
 });
@@ -1120,8 +1136,10 @@ aplicacao.get("/enviar-banners", (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
   }
+  // página antiga de envio: vale para a loja do link (?loja=), BeautyNow se faltar
+  const lojaPagina = lojaValida(req.query.loja);
   const blocos = BANNERS_SLOTS.map((slot, i) => {
-    const ok = bannersEnviados.has(slot);
+    const ok = bannersEnviados.has(chaveBanner(lojaPagina, slot));
     return `<div style="border:2px dashed ${ok ? "#1E8E5A" : "#c9c2dd"};border-radius:12px;padding:16px;margin:10px 0;background:#fff">
       <b>Banner ${i + 1}</b>${i > 0 ? " (opcional)" : ""} — <span id="st-${slot}" style="color:${ok ? "#1E8E5A" : "#777"}">${ok ? "✅ recebido" : "aguardando imagem"}</span><br>
       <input type="file" accept="image/*" style="margin-top:8px" onchange="enviar('${slot}', this)">
@@ -1140,6 +1158,7 @@ aplicacao.get("/enviar-banners", (req, res) => {
   <p id="geral" style="font-weight:bold"></p>
   <script>
   const CHAVE = ${JSON.stringify(EXPORT_CHAVE)};
+  const LOJA = ${JSON.stringify(lojaPagina)};
   async function enviar(slot, input) {
     const arquivo = input.files[0];
     if (!arquivo) return;
@@ -1152,7 +1171,7 @@ aplicacao.get("/enviar-banners", (req, res) => {
         const r = await fetch("/enviar-banners/salvar?chave=" + encodeURIComponent(CHAVE), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slot, mime: arquivo.type || "image/png", base64 }),
+          body: JSON.stringify({ slot, loja: LOJA, mime: arquivo.type || "image/png", base64 }),
         });
         const dados = await r.json();
         if (dados.ok) {
@@ -1177,7 +1196,7 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  const { slot, mime, base64 } = req.body ?? {};
+  const { slot, mime, base64, loja } = req.body ?? {};
   if (!TODOS_SLOTS_BANNER.includes(slot) || !base64 || !String(mime ?? "").startsWith("image/")) {
     return res.status(400).json({ erro: "Envio inválido." });
   }
@@ -1185,9 +1204,9 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
   if (bytes.length < 1000 || bytes.length > 7_000_000) {
     return res.status(400).json({ erro: "Imagem vazia ou grande demais (máx. 7MB)." });
   }
-  bannersEnviados.set(slot, { mime: String(mime), base64: String(base64) });
+  bannersEnviados.set(chaveBanner(loja, slot), { mime: String(mime), base64: String(base64), versao: Date.now() });
   await salvarBanners();
-  console.log(`[enviar-banners] recebido: ${slot} (${bytes.length} bytes)`);
+  console.log(`[enviar-banners] recebido: ${chaveBanner(loja, slot)} (${bytes.length} bytes)`);
   res.json({ ok: true, total: bannersEnviados.size });
 });
 

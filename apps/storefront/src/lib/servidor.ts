@@ -357,7 +357,8 @@ export type BannerDaLoja = { slot: string; url: string; urlMobile: string | null
 export async function listarBanners(): Promise<BannerDaLoja[]> {
   if (!servidorConfigurado()) return [];
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/banners`, 65_000, {});
+    // cada loja tem os próprios banners no servidor
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/banners?loja=${LOJA_ID}`, 65_000, {});
     if (!resposta.ok) return [];
     const dados = (await resposta.json()) as { banners?: BannerDaLoja[] };
     return (dados.banners ?? []).map((b) => ({
@@ -379,7 +380,7 @@ export async function enviarBanner(slot: string, mime: string, base64: string) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slot, mime, base64 }),
+        body: JSON.stringify({ slot, loja: LOJA_ID, mime, base64 }),
       }
     );
     const dados = (await resposta.json().catch(() => ({}))) as { erro?: string };
@@ -398,7 +399,7 @@ export async function excluirBanner(slot: string) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slot }),
+        body: JSON.stringify({ slot, loja: LOJA_ID }),
       }
     );
     return { ok: resposta.ok };

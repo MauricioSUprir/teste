@@ -24,10 +24,11 @@ export function AbaBanners() {
   async function carregar() {
     const lista = await listarBanners();
     const mapa: Record<string, string> = {};
-    const versao = Date.now();
+    // a URL que o servidor devolve já traz a versão da arte (?v=), então a
+    // prévia troca sozinha quando a imagem muda
     for (const b of lista) {
-      mapa[b.slot] = `${b.url}?v=${versao}`;
-      if (b.urlMobile) mapa[slotMobile(b.slot)] = `${b.urlMobile}?v=${versao}`;
+      mapa[b.slot] = b.url;
+      if (b.urlMobile) mapa[slotMobile(b.slot)] = b.urlMobile;
     }
     setAtivos(mapa);
     setCarregando(false);
