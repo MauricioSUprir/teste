@@ -37,6 +37,68 @@ function marcarFalhaRestauracao(conjunto) {
   console.error(`[backup] não consegui restaurar ${conjunto} — o robô vai preservar o backup anterior.`);
 }
 
+// ===== Banco permanente (Supabase) =====
+// O plano gratuito do Render desliga o servidor depois de uns minutos sem
+// visita e, ao religar, o /tmp volta vazio — nos registros eram ~18 reinícios
+// por dia. Banner subido pelo ADM, cadastro B2B, pedido: tudo sumia no próximo
+// reinício. Agora cada gravação vai também para um banco de verdade, e no boot
+// o servidor recupera de lá antes de tudo.
+//
+// O acesso é só por duas funções (salvar_dado e ler_dados_prefixo) que exigem
+// BANCO_SEGREDO; a tabela em si fica fechada para a chave pública.
+const BANCO_URL = (process.env.BANCO_URL ?? "").trim().replace(/\/$/, "");
+const BANCO_CHAVE = (process.env.BANCO_CHAVE ?? "").trim();
+const BANCO_SEGREDO = (process.env.BANCO_SEGREDO ?? "").trim();
+const bancoLigado = Boolean(BANCO_URL && BANCO_CHAVE && BANCO_SEGREDO);
+/** marca de exclusão: o banco não apaga linhas, grava isto no lugar */
+const APAGADO = { __apagado: true };
+
+async function chamarBanco(funcao, corpo) {
+  const r = await fetch(`${BANCO_URL}/rest/v1/rpc/${funcao}`, {
+    method: "POST",
+    headers: {
+      apikey: BANCO_CHAVE,
+      Authorization: `Bearer ${BANCO_CHAVE}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_segredo: BANCO_SEGREDO, ...corpo }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text().catch(() => "")).slice(0, 120)}`);
+  return r.status === 204 ? null : r.json();
+}
+
+/** grava uma chave no banco; valor APAGADO marca como removida */
+async function gravarNoBanco(chave, valor) {
+  if (!bancoLigado) return;
+  try {
+    await chamarBanco("salvar_dado", { p_chave: chave, p_valor: valor });
+  } catch (erro) {
+    console.error(`[banco] falha ao gravar ${chave}: ${erro.message}`);
+  }
+}
+
+/**
+ * Tudo o que está no banco, lido UMA vez no boot: chave → valor.
+ * null = banco desligado ou fora do ar (aí vale o backup do GitHub, como antes).
+ */
+let bancoInicial = null;
+if (bancoLigado) {
+  try {
+    const linhas = await chamarBanco("ler_dados_prefixo", { p_prefixo: "" });
+    bancoInicial = new Map(linhas.map((l) => [l.chave, l.valor]));
+    console.log(`[banco] ${bancoInicial.size} chave(s) recuperada(s) no boot`);
+  } catch (erro) {
+    console.error(`[banco] não consegui ler no boot: ${erro.message}`);
+  }
+}
+
+/** valor de uma chave lida no boot, ou undefined se não houver */
+function doBanco(chave) {
+  const v = bancoInicial?.get(chave);
+  return v === undefined || v?.__apagado ? undefined : v;
+}
+
 /** e-mails de administrador que recebem a notificação de cada venda */
 const EMAILS_NOTIFICACAO = (process.env.ADMIN_NOTIFICACAO_EMAILS ?? "lojabeautynow@gmail.com")
   .split(",")
@@ -737,6 +799,8 @@ try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_PEDIDOS_LOJA)) {
     pedidosLoja = JSON.parse(fs.readFileSync(ARQ_PEDIDOS_LOJA, "utf8"));
+  } else if (doBanco("pedidos")) {
+    pedidosLoja = doBanco("pedidos");
   } else {
     const r = await fetch(PEDIDOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
@@ -758,6 +822,7 @@ async function salvarPedidosLoja() {
   } catch {
     /* segue em memória */
   }
+  await gravarNoBanco("pedidos", pedidosLoja);
 }
 
 function registrarPedidoLoja(pedido) {
@@ -1070,6 +1135,10 @@ try {
     for (const [k, v] of Object.entries(JSON.parse(fs.readFileSync(ARQ_BANNERS, "utf8")))) {
       bannersEnviados.set(normalizarChaveBanner(k), v);
     }
+  } else if (bancoInicial && [...bancoInicial.keys()].some((k) => k.startsWith("banner:"))) {
+    for (const [k, v] of bancoInicial) {
+      if (k.startsWith("banner:") && !v?.__apagado) bannersEnviados.set(k.slice("banner:".length), v);
+    }
   } else {
     // deploy novo apaga o /tmp — recarrega do backup versionado no GitHub
     const r = await fetch(BANNERS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
@@ -1129,6 +1198,7 @@ aplicacao.post("/enviar-banners/excluir", async (req, res) => {
   if (!TODOS_SLOTS_BANNER.includes(slot)) return res.status(400).json({ erro: "Banner inválido." });
   bannersEnviados.delete(chaveBanner(loja, slot));
   await salvarBanners();
+  await gravarNoBanco(`banner:${chaveBanner(loja, slot)}`, APAGADO);
   res.json({ ok: true, total: bannersEnviados.size });
 });
 
@@ -1204,8 +1274,10 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
   if (bytes.length < 1000 || bytes.length > 7_000_000) {
     return res.status(400).json({ erro: "Imagem vazia ou grande demais (máx. 7MB)." });
   }
-  bannersEnviados.set(chaveBanner(loja, slot), { mime: String(mime), base64: String(base64), versao: Date.now() });
+  const chave = chaveBanner(loja, slot);
+  bannersEnviados.set(chave, { mime: String(mime), base64: String(base64), versao: Date.now() });
   await salvarBanners();
+  await gravarNoBanco(`banner:${chave}`, bannersEnviados.get(chave));
   console.log(`[enviar-banners] recebido: ${chaveBanner(loja, slot)} (${bytes.length} bytes)`);
   res.json({ ok: true, total: bannersEnviados.size });
 });
@@ -1392,6 +1464,8 @@ try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_AVALIACOES)) {
     avaliacoes = JSON.parse(fs.readFileSync(ARQ_AVALIACOES, "utf8"));
+  } else if (doBanco("avaliacoes")) {
+    avaliacoes = doBanco("avaliacoes");
   } else {
     const r = await fetch(AVALIACOES_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) avaliacoes = (await r.json())?.avaliacoes ?? [];
@@ -1408,6 +1482,7 @@ async function salvarAvaliacoes() {
   } catch {
     /* segue em memória */
   }
+  await gravarNoBanco("avaliacoes", avaliacoes);
 }
 
 const ultimoEnvioAvaliacao = new Map(); // IP → timestamp (freio anti-spam)
@@ -1471,6 +1546,8 @@ try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_B2B)) {
     cadastrosB2B = JSON.parse(fs.readFileSync(ARQ_B2B, "utf8"));
+  } else if (doBanco("b2b")) {
+    cadastrosB2B = doBanco("b2b");
   } else {
     const r = await fetch(B2B_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) cadastrosB2B = (await r.json())?.cadastros ?? [];
@@ -1487,6 +1564,7 @@ async function salvarB2B() {
   } catch {
     /* segue em memória */
   }
+  await gravarNoBanco("b2b", cadastrosB2B);
 }
 
 /** validação oficial de CNPJ (dígitos verificadores) */
@@ -1682,6 +1760,8 @@ try {
   const fs = await import("node:fs");
   if (fs.existsSync(ARQ_PRECOS_MANUAIS)) {
     precosManuais = JSON.parse(fs.readFileSync(ARQ_PRECOS_MANUAIS, "utf8"));
+  } else if (doBanco("precos")) {
+    precosManuais = doBanco("precos");
   } else {
     const r = await fetch(PRECOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
@@ -1706,6 +1786,7 @@ async function salvarPrecosManuais() {
   } catch {
     /* segue em memória */
   }
+  await gravarNoBanco("precos", precosManuais);
 }
 
 // site consulta ao carregar (público — preço é informação pública da loja)
@@ -1790,6 +1871,12 @@ try {
     afiliadosCadastro = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_CADASTRO, "utf8"));
   } else if (fs.existsSync(ARQ_AFILIADOS_VENDAS)) {
     vendasAfiliados = JSON.parse(fs.readFileSync(ARQ_AFILIADOS_VENDAS, "utf8"));
+  } else if (doBanco("afiliados")) {
+    const dados = doBanco("afiliados");
+    afiliadosCadastro = dados.cadastro ?? [];
+    vendasAfiliados = dados.vendas ?? [];
+    pendentesAfiliados = dados.pendentes ?? {};
+    saquesAfiliados = dados.saques ?? [];
   } else {
     const r = await fetch(AFILIADOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
@@ -1828,6 +1915,12 @@ async function salvarAfiliados() {
   } catch {
     /* segue em memória */
   }
+  await gravarNoBanco("afiliados", {
+    cadastro: afiliadosCadastro,
+    vendas: vendasAfiliados,
+    pendentes: pendentesAfiliados,
+    saques: saquesAfiliados,
+  });
 }
 
 /** saldo disponível para saque: comissão ganha − saques pedidos/pagos */
