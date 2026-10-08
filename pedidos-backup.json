@@ -1,4 +1,41 @@
 {
-  "geradoEm": "2026-09-20T12:40:58.114Z",
-  "pedidos": []
+  "geradoEm": "2026-10-08T01:15:16.139Z",
+  "restauracaoOk": true,
+  "pedidos": [
+    {
+      "cpf": "72964928649",
+      "data": "2026-10-07T22:45:27.007Z",
+      "loja": "beautynow",
+      "meio": "pix",
+      "cupom": null,
+      "itens": [
+        {
+          "sku": "CAMUMEDI1L",
+          "titulo": "NOUÊ Camuflage Medium - 1L",
+          "quantidade": 1,
+          "precoCentavos": 26780
+        }
+      ],
+      "numero": "BN-363366",
+      "status": "aguardando_pagamento",
+      "afiliado": null,
+      "endereco": {
+        "uf": "MG",
+        "cep": "32310011",
+        "bairro": "Cidade Industrial",
+        "cidade": "Contagem",
+        "numero": "200",
+        "logradouro": "Rua Deputado Sérgio Miranda",
+        "referencia": "Museu dos trabalhadores",
+        "complemento": "Apto 1505 Bl3"
+      },
+      "telefone": "31973667009",
+      "freteNome": "Entrega padrão",
+      "clienteNome": "Marina Ferreira da Silva",
+      "clienteEmail": "mfsmarinafesilva@gmail.com",
+      "totalCentavos": 27331,
+      "vendedorUsuario": null,
+      "descontoCentavos": 0
+    }
+  ]
 }
