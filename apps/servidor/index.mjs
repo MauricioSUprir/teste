@@ -1943,6 +1943,16 @@ const slugAfiliado = (texto) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 16) || "afiliado";
 
+/** código do link do afiliado (?af=), único, derivado do nome */
+function gerarCodigoAfiliado(nome) {
+  const base = slugAfiliado(nome);
+  let codigo = base;
+  while (afiliadosCadastro.some((a) => a.codigoAfiliado === codigo)) {
+    codigo = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  return codigo;
+}
+
 /** cadastro do afiliado pelo e-mail (identidade única em todo o sistema) */
 function afiliadoPorEmail(emailBruto) {
   const email = String(emailBruto ?? "").trim().toLowerCase();
@@ -2065,12 +2075,7 @@ aplicacao.post("/afiliados/decidir", async (req, res) => {
   cadastro.decididoEm = new Date().toISOString();
   // aprovado já sai com o código de link pronto (o checkout traduz usuário → código)
   if (status === "aprovado" && !cadastro.codigoAfiliado) {
-    const base = slugAfiliado(cadastro.nome);
-    let codigo = base;
-    while (afiliadosCadastro.some((a) => a.codigoAfiliado === codigo)) {
-      codigo = `${base}-${Math.random().toString(36).slice(2, 6)}`;
-    }
-    cadastro.codigoAfiliado = codigo;
+    cadastro.codigoAfiliado = gerarCodigoAfiliado(cadastro.nome);
   }
   await salvarAfiliados();
   console.log(`[afiliados] ${cadastro.email} → ${status}`);
@@ -2090,6 +2095,105 @@ aplicacao.post("/afiliados/decidir", async (req, res) => {
   res.json({ ok: true, status });
 });
 
+/**
+ * O ADM cadastra o afiliado direto pelo painel — sem a pessoa precisar pedir
+ * entrada e esperar aprovação. Já nasce aprovado, com o link pronto.
+ * Usuário de vendedor e chave Pix são opcionais aqui: sem usuário, o sistema
+ * cria um a partir do nome; a chave Pix o afiliado pode passar depois (só é
+ * exigida na hora de resgatar a comissão).
+ */
+aplicacao.post("/afiliados/admin-cadastrar", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  const email = String(req.body?.email ?? "").trim().toLowerCase();
+  if (!emailValido(email)) return res.status(400).json({ erro: "E-mail inválido." });
+  const nome = String(req.body?.nome ?? "").trim().slice(0, 80);
+  if (!nome) return res.status(400).json({ erro: "Informe o nome do afiliado." });
+  const whatsapp = String(req.body?.whatsapp ?? "").trim().slice(0, 20);
+  const chavePix = String(req.body?.chavePix ?? "").trim().slice(0, 120);
+  const cnpjBruto = String(req.body?.cnpj ?? "").replace(/\D/g, "");
+  if (cnpjBruto && !cnpjValido(cnpjBruto)) {
+    return res.status(400).json({ erro: "CNPJ inválido — confira os 14 dígitos (ou deixe em branco)." });
+  }
+  const pctBruto = req.body?.comissaoPct;
+  const comissaoPct =
+    pctBruto === undefined || pctBruto === null || pctBruto === "" ? COMISSAO_PADRAO_PCT : Number(pctBruto);
+  if (!Number.isFinite(comissaoPct) || comissaoPct < 0 || comissaoPct > 90) {
+    return res.status(400).json({ erro: "Comissão deve ficar entre 0% e 90%." });
+  }
+
+  let usuario = String(req.body?.usuario ?? "").trim().toUpperCase();
+  if (usuario) {
+    if (!USUARIO_VENDEDOR_RE.test(usuario)) {
+      return res.status(400).json({
+        erro: "Usuário de vendedor inválido — letras maiúsculas, com pelo menos um número e um caractere especial (ex.: MARIA#22). Ou deixe em branco que o sistema cria.",
+      });
+    }
+  } else {
+    // ex.: "Maria Souza" → MARIA#27 (sem acento, até 12 letras)
+    const base =
+      nome
+        .split(/\s+/)[0]
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "")
+        .slice(0, 12) || "VENDEDOR";
+    do {
+      usuario = `${base}#${String(Math.floor(Math.random() * 90) + 10)}`;
+    } while (afiliadosCadastro.some((a) => a.usuario === usuario));
+  }
+  if (afiliadosCadastro.some((a) => a.usuario === usuario && a.email !== email)) {
+    return res.status(409).json({ erro: "Este usuário de vendedor já existe — escolha outro." });
+  }
+
+  const existente = afiliadoPorEmail(email);
+  if (existente?.status === "aprovado") {
+    return res.status(409).json({ erro: "Este e-mail já é de um afiliado aprovado." });
+  }
+
+  // e-mail que já tinha pedido entrada (pendente/recusado): aprova com os dados novos
+  const cadastro = existente ?? { id: email, email, criadoEm: new Date().toISOString() };
+  Object.assign(cadastro, {
+    nome,
+    whatsapp,
+    cnpj: cnpjBruto || null,
+    usuario,
+    chavePix: chavePix || cadastro.chavePix || "",
+    status: "aprovado",
+    decididoEm: new Date().toISOString(),
+    comissaoPct,
+    cadastradoPeloAdmin: true,
+    // o link sai para a loja em cujo painel o ADM cadastrou
+    loja: lojaValida(req.body?.loja),
+  });
+  if (!cadastro.codigoAfiliado) cadastro.codigoAfiliado = gerarCodigoAfiliado(nome);
+  if (!existente) {
+    afiliadosCadastro.push(cadastro);
+    if (afiliadosCadastro.length > 5000) afiliadosCadastro = afiliadosCadastro.slice(-5000);
+  }
+  await salvarAfiliados();
+  console.log(`[afiliados] cadastrado pelo admin: ${nome} (${email}) usuario=${usuario}`);
+
+  const link = `${dadosDaLoja(cadastro.loja).siteUrl}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`;
+  enviarEmail({
+    para: email,
+    assunto: "🤝 Você agora é afiliado — seu link já está pronto",
+    texto:
+      `Olá, ${nome}!\n\n` +
+      `Você foi cadastrado no programa de afiliados com ${comissaoPct}% de comissão em cada venda.\n\n` +
+      `Seu link: ${link}\n` +
+      `Seu usuário de vendedor: ${usuario} (o cliente pode digitar no pagamento)\n\n` +
+      `Para acompanhar suas vendas, entre na página de afiliados com o e-mail ${email} — ` +
+      `um código chega na sua caixa de entrada.` +
+      (cadastro.chavePix ? "" : `\n\nFalta a sua chave Pix para receber a comissão: informe na hora de resgatar.`) +
+      `\n\nBoas vendas!`,
+  }).catch((erro) => console.error(`[afiliados] falha ao avisar afiliado: ${erro.message}`));
+
+  res.json({ ok: true, usuario, codigo: cadastro.codigoAfiliado, link, comissaoPct });
+});
+
 // gera (ou devolve) o link de afiliado — só para cadastro aprovado
 aplicacao.post("/afiliados/link", async (req, res) => {
   const cadastro = afiliadoPorEmail(req.body?.email);
@@ -2098,19 +2202,14 @@ aplicacao.post("/afiliados/link", async (req, res) => {
     return res.status(403).json({ erro: "O cadastro precisa estar aprovado para gerar o link." });
   }
   if (!cadastro.codigoAfiliado) {
-    const base = slugAfiliado(cadastro.nome);
-    let codigo = base;
-    while (afiliadosCadastro.some((a) => a.codigoAfiliado === codigo)) {
-      codigo = `${base}-${Math.random().toString(36).slice(2, 6)}`;
-    }
-    cadastro.codigoAfiliado = codigo;
+    cadastro.codigoAfiliado = gerarCodigoAfiliado(cadastro.nome);
     await salvarAfiliados();
-    console.log(`[afiliados] código criado: ${codigo} (${cadastro.email})`);
+    console.log(`[afiliados] código criado: ${cadastro.codigoAfiliado} (${cadastro.email})`);
   }
   res.json({
     ok: true,
     codigo: cadastro.codigoAfiliado,
-    url: `${SITE_URL}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`,
+    url: `${cadastro.loja ? dadosDaLoja(cadastro.loja).siteUrl : SITE_URL}/?af=${encodeURIComponent(cadastro.codigoAfiliado)}`,
     pct: Number(cadastro.comissaoPct ?? COMISSAO_PADRAO_PCT),
   });
 });

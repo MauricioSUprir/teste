@@ -20,6 +20,7 @@ import {
   type SaqueAfiliado,
   type VendaAfiliado,
 } from "@/lib/servidor";
+import { NovoAfiliado } from "./NovoAfiliado";
 
 function formatarCnpj(d: string): string {
   return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
@@ -114,6 +115,14 @@ export function AbaAfiliados() {
 
   return (
     <div>
+      {/* o ADM também cadastra afiliado direto, já aprovado */}
+      <NovoAfiliado
+        aoCadastrar={() => {
+          void carregarCadastros();
+          void carregar();
+        }}
+      />
+
       {/* pedidos de entrada no programa — precisam de decisão */}
       <div>
         <h3 className="text-[0.9375rem] font-semibold text-tinta">{copy.afiliado.admin.titulo}</h3>

@@ -669,6 +669,39 @@ export async function decidirCadastroAfiliado(email: string, status: "aprovado" 
   }
 }
 
+export type NovoAfiliado = {
+  nome: string;
+  email: string;
+  whatsapp?: string;
+  usuario?: string;
+  chavePix?: string;
+  cnpj?: string;
+  comissaoPct?: number;
+};
+
+/** Admin cadastra um afiliado direto, já aprovado e com o link pronto. */
+export async function cadastrarAfiliadoAdmin(
+  dados: NovoAfiliado
+): Promise<{ ok: boolean; erro?: string; usuario?: string; link?: string; comissaoPct?: number }> {
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/admin-cadastrar`, 65_000, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // a loja do painel define para qual site o link do afiliado aponta
+      body: JSON.stringify({ ...dados, loja: LOJA_ID, chave: CHAVE_ADMIN_SERVIDOR }),
+    });
+    const corpo = (await resposta.json().catch(() => ({}))) as {
+      erro?: string;
+      usuario?: string;
+      link?: string;
+      comissaoPct?: number;
+    };
+    return { ok: resposta.ok, ...corpo };
+  } catch {
+    return { ok: false, erro: "Sem conexão com o servidor. Tente de novo em instantes." };
+  }
+}
+
 /** Admin exclui um cadastro de afiliado e tudo dele (vendas, saques). */
 export async function excluirAfiliado(email: string) {
   try {
