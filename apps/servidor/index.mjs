@@ -466,6 +466,45 @@ function tokenNaLista(token, lista) {
   });
 }
 
+/**
+ * Backup criptografado. O robô de backup grava os dados num repositório
+ * PÚBLICO do GitHub — pedidos com CPF e endereço, cadastros B2B, chaves Pix
+ * de afiliados. Com BACKUP_CHAVE (32 bytes em base64) no Render, esses
+ * conjuntos saem cifrados (AES-256-GCM) e só este servidor consegue ler de
+ * volta. O vetor de inicialização é derivado do conteúdo (HMAC), então o
+ * mesmo dado gera o mesmo arquivo e o robô não commita mudança fantasma.
+ * Sem a variável, o comportamento é o antigo (texto aberto).
+ */
+const BACKUP_CHAVE = (() => {
+  const k = Buffer.from((process.env.BACKUP_CHAVE ?? "").trim(), "base64");
+  return k.length === 32 ? k : null;
+})();
+
+function cifrarBackup(dados, contagem) {
+  if (!BACKUP_CHAVE) return dados;
+  const { geradoEm, restauracaoOk, ...conteudo } = dados;
+  const texto = Buffer.from(JSON.stringify(conteudo));
+  const iv = crypto.createHmac("sha256", BACKUP_CHAVE).update(texto).digest().subarray(0, 12);
+  const cifra = crypto.createCipheriv("aes-256-gcm", BACKUP_CHAVE, iv);
+  const corpo = Buffer.concat([cifra.update(texto), cifra.final()]);
+  return {
+    geradoEm,
+    restauracaoOk,
+    contagem, // o robô usa para a trava de "vazio = dado perdido"
+    cifrado: { iv: iv.toString("base64"), tag: cifra.getAuthTag().toString("base64"), dados: corpo.toString("base64") },
+  };
+}
+
+/** devolve o conteúdo em claro de um backup (cifrado ou antigo, em texto aberto) */
+function decifrarBackup(json) {
+  if (!json?.cifrado) return json;
+  if (!BACKUP_CHAVE) throw new Error("backup cifrado, mas BACKUP_CHAVE não está configurada");
+  const decifra = crypto.createDecipheriv("aes-256-gcm", BACKUP_CHAVE, Buffer.from(json.cifrado.iv, "base64"));
+  decifra.setAuthTag(Buffer.from(json.cifrado.tag, "base64"));
+  const texto = Buffer.concat([decifra.update(Buffer.from(json.cifrado.dados, "base64")), decifra.final()]);
+  return JSON.parse(texto.toString("utf8"));
+}
+
 /** rota de admin: chave do painel do site (?chave= / corpo) ou token de administração */
 function ehAdmin(req) {
   if (tokenNaLista(tokenDoCabecalho(req), PAINEL_ADMIN_TOKENS)) return true;
@@ -847,7 +886,7 @@ try {
   } else {
     const r = await fetch(PEDIDOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
-      const dados = await r.json();
+      const dados = decifrarBackup(await r.json());
       pedidosLoja = Array.isArray(dados) ? dados : (dados.pedidos ?? []);
       console.log(`[pedidos] histórico restaurado do backup: ${pedidosLoja.length} pedido(s)`);
     } else if (r?.status !== 404) {
@@ -925,7 +964,12 @@ aplicacao.get("/pedidos/exportar", (req, res) => {
   if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, pedidos: pedidosLoja });
+  res.json(
+    cifrarBackup(
+      { geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, pedidos: pedidosLoja },
+      pedidosLoja.length
+    )
+  );
 });
 
 // admin marca pago (venda fora do MP) ou cancela
@@ -2054,7 +2098,7 @@ try {
     cadastrosB2B = doBanco("b2b");
   } else {
     const r = await fetch(B2B_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
-    if (r?.ok) cadastrosB2B = (await r.json())?.cadastros ?? [];
+    if (r?.ok) cadastrosB2B = decifrarBackup(await r.json())?.cadastros ?? [];
     else if (r?.status !== 404) marcarFalhaRestauracao("cadastros B2B");
   }
 } catch {
@@ -2246,7 +2290,12 @@ aplicacao.get("/b2b/exportar", (req, res) => {
   if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, cadastros: cadastrosB2B });
+  res.json(
+    cifrarBackup(
+      { geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, cadastros: cadastrosB2B },
+      cadastrosB2B.length
+    )
+  );
 });
 
 // ===== Preços manuais (admin) =====
@@ -2384,7 +2433,7 @@ try {
   } else {
     const r = await fetch(AFILIADOS_BACKUP_URL, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
     if (r?.ok) {
-      const dados = await r.json();
+      const dados = decifrarBackup(await r.json());
       afiliadosCadastro = dados?.cadastro ?? [];
       vendasAfiliados = dados?.vendas ?? [];
       pendentesAfiliados = dados?.pendentes ?? {};
@@ -2995,14 +3044,19 @@ aplicacao.get("/afiliados/exportar", (req, res) => {
   if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
-  res.json({
-    geradoEm: new Date().toISOString(),
-    restauracaoOk: !restauracaoFalhou,
-    cadastro: afiliadosCadastro,
-    vendas: vendasAfiliados,
-    pendentes: pendentesAfiliados,
-    saques: saquesAfiliados,
-  });
+  res.json(
+    cifrarBackup(
+      {
+        geradoEm: new Date().toISOString(),
+        restauracaoOk: !restauracaoFalhou,
+        cadastro: afiliadosCadastro,
+        vendas: vendasAfiliados,
+        pendentes: pendentesAfiliados,
+        saques: saquesAfiliados,
+      },
+      afiliadosCadastro.length + vendasAfiliados.length + saquesAfiliados.length + Object.keys(pendentesAfiliados).length
+    )
+  );
 });
 
 // ===== Envio de logos pelo navegador (sem depender de anexo no chat) =====

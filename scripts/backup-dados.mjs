@@ -7,6 +7,10 @@
  * repositório. É desses arquivos que o servidor se recupera quando sobe de
  * novo (ver os *_BACKUP_URL em apps/servidor/index.mjs).
  *
+ * Pedidos, cadastros B2B e afiliados têm dados pessoais (CPF, endereço,
+ * chave Pix) e o repositório é público: com BACKUP_CHAVE no servidor, esses
+ * conjuntos chegam aqui já cifrados — só o servidor lê de volta.
+ *
  * Regra de segurança: o servidor diz em restauracaoOk se conseguiu recuperar
  * a memória ao subir. Se não conseguiu, um conjunto vazio significa dado
  * perdido e o backup anterior é preservado. Se conseguiu, um conjunto vazio
@@ -88,7 +92,9 @@ for (const conjunto of CONJUNTOS) {
     continue;
   }
 
-  const quantosNovo = conjunto.contar(novo);
+  // conjunto cifrado (dados pessoais): o servidor informa a contagem em claro
+  const contar = (d) => (d?.cifrado ? (d.contagem ?? 0) : conjunto.contar(d));
+  const quantosNovo = contar(novo);
   let antigo = null;
   if (existsSync(conjunto.arquivo)) {
     try {
@@ -97,7 +103,7 @@ for (const conjunto of CONJUNTOS) {
       antigo = null;
     }
   }
-  const quantosAntigo = antigo ? conjunto.contar(antigo) : 0;
+  const quantosAntigo = antigo ? contar(antigo) : 0;
 
   // vazio + servidor que não conseguiu recuperar a memória = dado perdido,
   // não exclusão: o backup bom fica de pé
