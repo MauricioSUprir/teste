@@ -58,7 +58,7 @@ export function BuscaHeader() {
     <div ref={raiz} className="relative w-full max-w-2xl">
       {/* design system: campo cinza claro, raio 8, lupa à direita (é o botão
           de buscar) — sem borda, a borda só aparece no foco */}
-      <div className="flex items-center rounded-[8px] border border-transparent bg-[#f2f2f2] pl-4 focus-within:border-violeta focus-within:bg-white">
+      <div className="flex items-center rounded-[8px] border border-transparent bg-campo pl-4 focus-within:border-violeta">
         <input
           type="search"
           role="combobox"

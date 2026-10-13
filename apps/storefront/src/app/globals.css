@@ -29,6 +29,8 @@
   --color-oferta: #3E1A8C;
   /* selo de desconto (texto escuro por cima) e estrelas */
   --color-selo: #F2D27A;
+  /* fundo do campo de busca (design system: #F2F2F2) */
+  --color-campo: #F2F2F2;
   --color-estrela: #FF9700;
   --font-titulo: var(--font-jost), system-ui, sans-serif;
   --font-texto: var(--font-jost), system-ui, sans-serif;
@@ -153,6 +155,7 @@ html[data-loja="pulse"] footer {
   --bn-roxo-escuro: #c98a3e;
   --color-violeta: #d99a4e;
   --bn-violeta: #d99a4e;
+  --color-campo: #2a211a;
 }
 
 /* painéis brancos dentro do header (megamenu, sugestões de busca) escurecem junto */
@@ -163,12 +166,6 @@ html[data-loja="pulse"] header .bg-white {
 /* contador da sacola: bolinha dourada pede texto escuro */
 html[data-loja="pulse"] header .bg-roxo.text-white {
   color: #1c1714;
-}
-
-/* barra de anúncio: faixa em degradê terracota → dourado, como os posts da marca */
-html[data-loja="pulse"] header .bg-tinta {
-  background: linear-gradient(90deg, #8a4020, #a34e24 45%, #d99a4e);
-  color: #ffffff;
 }
 
 /* assinatura da marca nas seções: risquinho terracota → dourado sob os títulos */
@@ -258,17 +255,11 @@ html[data-loja="bradeco"] footer {
   --bn-superficie: #1b1b1f;
   --color-linha: #26262b;
   --bn-linha: #26262b;
+  --color-campo: #1b1b1f;
 }
 
 html[data-loja="bradeco"] header .bg-white {
   background: #15151a;
-}
-
-/* faixa de anúncio: preta com fio laranja embaixo */
-html[data-loja="bradeco"] header .bg-tinta {
-  background: #000000;
-  color: #ffffff;
-  border-bottom: 2px solid #ed7b2f;
 }
 
 /* assinatura "Λ": barra laranja inclinada sob os títulos de seção */
