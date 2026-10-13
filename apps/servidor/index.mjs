@@ -113,6 +113,10 @@ const HUB_API_URL = (process.env.HUB_API_URL ?? "https://comercial.thebeautyhub.
 const HUB_API_KEY = process.env.HUB_API_KEY ?? "";
 /** Access Token do Mercado Pago (teste ou produção) — liga o pagamento real */
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN ?? "";
+// cada cobrança já leva o endereço do webhook — sem depender de alguém
+// cadastrá-lo no painel do Mercado Pago. O Render informa a URL pública.
+const URL_PUBLICA = (process.env.URL_PUBLICA || process.env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
+const URL_WEBHOOK_MP = URL_PUBLICA.startsWith("https://") ? `${URL_PUBLICA}/pagamentos/webhook` : "";
 const MP_API = "https://api.mercadopago.com";
 /** URL pública do site, usada nos retornos do Checkout Pro */
 const SITE_URL = (process.env.SITE_URL ?? "https://mauriciosuprir.github.io/teste").replace(/\/$/, "");
@@ -851,18 +855,26 @@ function registrarPedidoLoja(pedido) {
   salvarPedidosLoja();
 }
 
-function atualizarStatusPedidoLoja(numero, status) {
+function atualizarStatusPedidoLoja(numero, status, extras = {}) {
   const p = pedidosLoja.find((x) => x.numero === String(numero));
   if (!p || p.status === status) return;
   p.status = status;
+  Object.assign(p, extras);
   salvarPedidosLoja();
   console.log(`[pedidos] ${numero} → ${status}`);
 }
 
 // lista completa para o painel do admin (dados de entrega inclusos)
-aplicacao.get("/pedidos/lista", (req, res) => {
+aplicacao.get("/pedidos/lista", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
     return res.status(403).json({ erro: "Chave inválida." });
+  }
+  if (Date.now() - ultimaConferencia > 60_000) {
+    // espera até 8s: cobre o caso comum (poucos pendentes) sem travar o painel
+    await Promise.race([
+      conferirPagamentosPendentes().catch(() => undefined),
+      new Promise((r) => setTimeout(r, 8_000)),
+    ]);
   }
   res.json({ ok: true, total: pedidosLoja.length, pedidos: pedidosLoja.slice(0, 300) });
 });
@@ -964,6 +976,7 @@ aplicacao.post("/pagamentos/pix", async (req, res) => {
         description: `BeautyNow — pedido ${pedido.numero}`,
         payment_method_id: "pix",
         external_reference: pedido.numero,
+        ...(URL_WEBHOOK_MP ? { notification_url: URL_WEBHOOK_MP } : {}),
         payer: {
           email: pedido.clienteEmail,
           first_name: nomes[0] ?? "Cliente",
@@ -1043,6 +1056,7 @@ aplicacao.post("/pagamentos/checkout-pro", async (req, res) => {
         },
         auto_return: "approved",
         statement_descriptor: statementDescriptor,
+        ...(URL_WEBHOOK_MP ? { notification_url: URL_WEBHOOK_MP } : {}),
       }),
     });
     // sempre o init_point oficial. Em modo teste (token TEST-), o pagamento
@@ -1060,6 +1074,11 @@ aplicacao.get("/pagamentos/status/:id", async (req, res) => {
   if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
   try {
     const pagamento = await mp(`/v1/payments/${encodeURIComponent(req.params.id)}`);
+    // a consulta foi feita direto no MP: se já aprovou, o pedido vira pago
+    // mesmo que o webhook ainda não tenha chegado
+    if (pagamento.status === "approved") {
+      aplicarPagamentoAprovado(pagamento, "consulta").catch(() => undefined);
+    }
     res.json({ ok: true, status: pagamento.status, pedido: pagamento.external_reference ?? null });
   } catch (erro) {
     console.error("falha ao consultar pagamento:", erro.message);
@@ -1071,44 +1090,113 @@ aplicacao.get("/pagamentos/status/:id", async (req, res) => {
 aplicacao.post("/pagamentos/webhook", async (req, res) => {
   res.sendStatus(200); // responde rápido; processamento segue abaixo
   try {
-    const id = req.body?.data?.id ?? req.query?.id;
+    const id = req.body?.data?.id ?? req.query?.id ?? req.query?.["data.id"];
     if (!id || !MP_ACCESS_TOKEN) return;
     const pagamento = await mp(`/v1/payments/${id}`);
     console.log(`[mp-webhook] pedido=${pagamento.external_reference} status=${pagamento.status}`);
-    // pagamento aprovado → o admin fica sabendo na hora
-    if (pagamento.status === "approved") {
-      // fatura no Bling com os dados completos do pedido (guardados no /pedidos)
-      const completo = pedidosRecentes.get(pagamento.external_reference);
-      if (completo) {
-        criarPedidoNoBling(completo).catch(() => undefined);
-      } else if (pagamento.external_reference) {
-        console.warn(`[bling] pedido ${pagamento.external_reference} aprovado mas sem dados completos na memória`);
-      }
-      // histórico do painel: o pedido vira "pago"
-      if (pagamento.external_reference) {
-        atualizarStatusPedidoLoja(pagamento.external_reference, "pago");
-      }
-      // venda veio de link de afiliado? credita a comissão (uma vez só)
-      if (pagamento.external_reference) {
-        creditarVendaAfiliado(
-          pagamento.external_reference,
-          Math.round((pagamento.transaction_amount ?? 0) * 100)
-        ).catch((erro) => console.error(`[afiliados] falha ao creditar: ${erro.message}`));
-      }
-      await notificarVenda({
-        numero: pagamento.external_reference ?? String(id),
-        data: pagamento.date_approved ?? new Date().toISOString(),
-        clienteNome: [pagamento.payer?.first_name, pagamento.payer?.last_name].filter(Boolean).join(" "),
-        clienteEmail: pagamento.payer?.email ?? "",
-        meio: pagamento.payment_method_id === "pix" ? "pix" : "cartao",
-        totalCentavos: Math.round((pagamento.transaction_amount ?? 0) * 100),
-        itens: [],
-      });
-    }
+    if (pagamento.status === "approved") await aplicarPagamentoAprovado(pagamento, "webhook");
   } catch (erro) {
     console.error("falha no webhook MP:", erro.message);
   }
 });
+
+/**
+ * Pagamento aprovado no Mercado Pago → pedido "pago" no painel, pedido no
+ * Bling, comissão de afiliado e aviso de venda. Só roda UMA vez por pedido:
+ * o MP repete o webhook, e a conferência automática (abaixo) e a tela de
+ * confirmação do cliente também chegam aqui. Quem chama sempre consultou o
+ * pagamento direto na API do MP — nunca confia em dado vindo do navegador.
+ */
+const pagamentosProcessados = new Set();
+async function aplicarPagamentoAprovado(pagamento, origem) {
+  const numero = pagamento.external_reference ? String(pagamento.external_reference) : null;
+  const chave = numero ?? `mp-${pagamento.id}`;
+  if (pagamentosProcessados.has(chave)) return;
+  const registro = numero ? pedidosLoja.find((p) => p.numero === numero) : null;
+  if (registro?.status === "pago") {
+    pagamentosProcessados.add(chave);
+    return;
+  }
+  pagamentosProcessados.add(chave);
+  console.log(`[pagamentos] ${chave} aprovado (${origem}) → pago`);
+
+  // histórico do painel: o pedido vira "pago"
+  if (numero) atualizarStatusPedidoLoja(numero, "pago", { pagamentoId: pagamento.id, pagoEm: pagamento.date_approved ?? null });
+
+  // fatura no Bling com os dados completos do pedido: a memória do /pedidos
+  // ou, se o servidor reiniciou desde a compra, o histórico guardado
+  const completo = (numero && pedidosRecentes.get(numero)) ?? registro;
+  if (completo) {
+    criarPedidoNoBling(completo).catch(() => undefined);
+  } else if (numero) {
+    console.warn(`[bling] pedido ${numero} aprovado mas sem dados completos`);
+  }
+
+  // venda veio de link de afiliado? credita a comissão (uma vez só)
+  if (numero) {
+    creditarVendaAfiliado(numero, Math.round((pagamento.transaction_amount ?? 0) * 100)).catch((erro) =>
+      console.error(`[afiliados] falha ao creditar: ${erro.message}`)
+    );
+  }
+
+  await notificarVenda({
+    ...(completo ?? {}),
+    numero: numero ?? String(pagamento.id),
+    data: pagamento.date_approved ?? new Date().toISOString(),
+    clienteNome:
+      completo?.clienteNome ||
+      [pagamento.payer?.first_name, pagamento.payer?.last_name].filter(Boolean).join(" "),
+    clienteEmail: completo?.clienteEmail || pagamento.payer?.email || "",
+    meio: pagamento.payment_method_id === "pix" ? "pix" : pagamento.payment_type_id === "ticket" ? "boleto" : "cartao",
+    totalCentavos: Math.round((pagamento.transaction_amount ?? 0) * 100),
+    itens: completo?.itens ?? [],
+  }).catch((erro) => console.error("falha ao notificar venda:", erro.message));
+}
+
+/**
+ * Conferência automática: o webhook pode não chegar (servidor dormindo,
+ * notificação perdida, URL não cadastrada no painel do MP). Então os
+ * pedidos "aguardando pagamento" dos últimos 30 dias são conferidos direto
+ * no Mercado Pago: ao abrir o painel de pedidos, a cada 10 minutos e logo
+ * depois que o servidor acorda.
+ */
+let ultimaConferencia = 0;
+let conferenciaEmAndamento = null;
+async function conferirPagamentosPendentes() {
+  if (!MP_ACCESS_TOKEN) return 0;
+  if (conferenciaEmAndamento) return conferenciaEmAndamento;
+  conferenciaEmAndamento = (async () => {
+    let aprovados = 0;
+    const limite = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const pendentes = pedidosLoja
+      .filter((p) => p.status === "aguardando_pagamento" && new Date(p.data).getTime() >= limite)
+      .slice(0, 60);
+    for (const p of pendentes) {
+      try {
+        const busca = await mp(
+          `/v1/payments/search?external_reference=${encodeURIComponent(p.numero)}&sort=date_created&criteria=desc&limit=10`
+        );
+        const aprovado = (busca.results ?? []).find(
+          (r) => r.status === "approved" && String(r.external_reference) === p.numero
+        );
+        if (aprovado) {
+          await aplicarPagamentoAprovado(aprovado, "conferencia");
+          aprovados++;
+        }
+      } catch (erro) {
+        console.error(`[pagamentos] falha ao conferir ${p.numero}: ${erro.message}`);
+      }
+    }
+    ultimaConferencia = Date.now();
+    if (aprovados) console.log(`[pagamentos] conferência: ${aprovados} pedido(s) confirmados`);
+    return aprovados;
+  })().finally(() => {
+    conferenciaEmAndamento = null;
+  });
+  return conferenciaEmAndamento;
+}
+setTimeout(() => conferirPagamentosPendentes().catch(() => undefined), 30_000);
+setInterval(() => conferirPagamentosPendentes().catch(() => undefined), 10 * 60 * 1000);
 
 // ===== Envio de banners da home pelo navegador =====
 // O Mauricio sobe as artes aqui; o robô do GitHub coleta em
