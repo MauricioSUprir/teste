@@ -298,6 +298,10 @@ def metro():
     return testes
 
 
+# um carrinho parado em cada estação (posição do trilho de lançamento)
+ESTACOES = [(-3, Y, LINHA_Z), (3, Y, LINHA_Z), (-86, SUB_PISO + 1, LINHA_Z), (34, Y, 45)]
+
+
 def construir():
     masmorra()
     testes = qg()

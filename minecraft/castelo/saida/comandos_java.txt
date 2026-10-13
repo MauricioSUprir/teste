@@ -18444,3 +18444,7 @@ place feature minecraft:oak ~12 ~ ~-152
 place feature minecraft:oak ~-26 ~ ~-46
 place feature minecraft:oak ~26 ~ ~-44
 place feature minecraft:oak ~-30 ~ ~-64
+summon minecraft:minecart ~-2.5 ~-26 ~-127.5
+summon minecraft:minecart ~3.5 ~-26 ~-127.5
+summon minecraft:minecart ~-85.5 ~-11 ~-127.5
+summon minecraft:minecart ~34.5 ~-26 ~-50.5

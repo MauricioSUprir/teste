@@ -50,7 +50,10 @@ def _item(nome, qtd=1, encantos=None, pocao=None, titulo=None):
         funcs.append({"function": "minecraft:set_name", "name": titulo})
     entrada = {"type": "minecraft:item", "name": f"minecraft:{nome}"}
     if funcs:
+        # até a 1.21.x o campo é "functions"; a partir da 26.x é "modifier" (com "type").
+        # Cada versão ignora o campo que não conhece, então mandamos os dois.
         entrada["functions"] = funcs
+        entrada["modifier"] = [{"type" if k == "function" else k: v for k, v in f.items()} for f in funcs]
     return {"rolls": 1, "entries": [entrada]}
 
 

@@ -6,7 +6,11 @@ código e **testado automaticamente num servidor Minecraft de verdade**.
 
 ![Castelo](saida/previa.png)
 
-Feito para **Minecraft Java Edition 1.21 ou mais novo** (testado em 1.21.1, 1.21.11 e 26.3).
+Funciona no **Minecraft Java Edition 1.21 ou mais novo** (testado em 1.21.1, 1.21.11 e 26.3) e
+no **Bedrock** (PlayStation, Xbox, Switch, celular), por meio de um servidor com o mundo pronto
+(testado no servidor oficial 1.26.52).
+
+> **Joga no PlayStation?** Veja o passo a passo em [COMO_JOGAR_NO_PLAYSTATION.md](COMO_JOGAR_NO_PLAYSTATION.md).
 
 ## Como colocar no seu mundo
 
@@ -33,7 +37,13 @@ A construção leva alguns segundos e mostra o progresso no chat.
 Copie `saida/castelo.schem` para `config/worldedit/schematics/`, fique no lugar desejado e use
 `//schem load castelo` e depois `//paste`. O ponto de cola é o mesmo do datapack.
 
-### Opção 3: comandos
+### Opção 3: Bedrock / PlayStation
+
+`saida/Castelo_PlayStation.zip` traz o **mundo Bedrock já construído** (com os baús cheios) e um
+`server.properties`. Ele roda no servidor oficial gratuito da Mojang, e consoles entram por
+"Jogos em LAN" com a ajuda do app BedrockTogether. Guia: [COMO_JOGAR_NO_PLAYSTATION.md](COMO_JOGAR_NO_PLAYSTATION.md).
+
+### Opção 4: comandos
 
 `saida/comandos_java.txt` tem todos os ~18 mil comandos (`/fill` e `/setblock`) em ordem,
 relativos à posição do jogador. É útil para estudar ou usar em blocos de comando.
@@ -110,6 +120,9 @@ Por dentro da sala secreta, uma **alavanca** ao lado da estante abre a porta par
 | `exportar.py` | Converte o modelo em comandos otimizados, datapack e schematic. |
 | `previa.py` | As imagens de prévia. |
 | `testar_no_servidor.py` | Sobe um servidor Minecraft oficial e testa tudo. |
+| `bedrock.py` | Traduz os blocos e o loot para o formato Bedrock. |
+| `construir_mundo_bedrock.py` | Constrói o mundo Bedrock num servidor oficial e empacota (`--testar` roda os testes). |
+| `testar_bedrock.py` | Testes do mundo Bedrock (blocos, redstone, metrô, baús). |
 
 Para gerar de novo: `pip install numpy pillow` e `python3 gerar_castelo.py`.
 

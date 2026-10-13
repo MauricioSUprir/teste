@@ -55,6 +55,8 @@ def exportar_tudo(previas=True):
     lista = ex.limpeza() + ex.caixas()
     cmds = [ex.comando_java(c) for c in lista]
     cmds += [f"place feature minecraft:oak {ex.rel(x, 0, z)}" for x, z in castelo.ARVORES]
+    for x, y, z in bases.ESTACOES:
+        cmds.append(f"summon minecraft:minecart ~{x + 0.5} ~{y} ~{z + m.ZOFF + 0.5}")
     zona = ((-m.XR, -m.XR + m.ZOFF), (m.XR, m.XR + m.ZOFF))
     etapas = ex.datapack(os.path.join(SAIDA, "castelo_datapack.zip"), "castelo", cmds, zona=zona,
                          titulo="Castelo", extras=eq.arquivos_datapack(),
