@@ -22,7 +22,7 @@ type Ordenacao =
   | "melhor-avaliados";
 
 /** cards montados por vez — o resto entra no botão "ver mais" */
-const POR_PAGINA = 24;
+export const POR_PAGINA = 24;
 
 const faixasPreco = [
   { id: "ate-50", rotulo: "Até R$ 50", min: 0, max: 5000 },

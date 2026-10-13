@@ -7,6 +7,7 @@ import {
   produtosPorNecessidade,
 } from "@/lib/catalogo/consultas";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
+import { GradeCarregando } from "@/components/catalogo/GradeCarregando";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 export function generateStaticParams() {
@@ -48,7 +49,7 @@ export default async function PaginaNecessidade({
         Seleção da nossa curadoria para {necessidade.nome.toLowerCase()}.
       </p>
       <div className="mt-6">
-        <Suspense>
+        <Suspense fallback={<GradeCarregando produtos={produtos} />}>
           <GradeFiltrada produtos={produtos} />
         </Suspense>
       </div>

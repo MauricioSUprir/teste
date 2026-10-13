@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { categorias, obterCategoria, produtosPorCategoria } from "@/lib/catalogo/consultas";
 import type { CategoriaSlug } from "@/lib/catalogo/tipos";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
+import { GradeCarregando } from "@/components/catalogo/GradeCarregando";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 export function generateStaticParams() {
@@ -42,7 +43,7 @@ export default async function PaginaCategoria({
       </h1>
       <p className="mt-1 max-w-[70ch] text-[0.9375rem] text-grafite">{categoria.descricao}</p>
       <div className="mt-6">
-        <Suspense>
+        <Suspense fallback={<GradeCarregando produtos={produtos} />}>
           <GradeFiltrada produtos={produtos} categoria={categoria.slug} />
         </Suspense>
       </div>

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { comBase } from "@/lib/caminho";
 import { marcas, obterMarca, produtosPorMarca } from "@/lib/catalogo/consultas";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
+import { GradeCarregando } from "@/components/catalogo/GradeCarregando";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 export function generateStaticParams() {
@@ -69,7 +70,7 @@ export default async function PaginaMarca({
       <div className="container-bn py-6">
         <Breadcrumb itens={[{ rotulo: marca.nome }]} />
         <div className="mt-4">
-          <Suspense>
+          <Suspense fallback={<GradeCarregando produtos={produtos} />}>
             <GradeFiltrada produtos={produtos} marca={marca.slug} />
           </Suspense>
         </div>
