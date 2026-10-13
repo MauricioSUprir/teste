@@ -1,8 +1,16 @@
-# API do painel — vendas das lojas ao vivo
+# API do painel — vendas ao vivo e administração das lojas
 
-API **somente leitura** para um painel de gestão acompanhar os pedidos das
-quatro lojas (BeautyNow, Be2Beauty, Pulse e Bradeco) em tempo real. Ela não
-altera nada no site.
+API para um painel de gestão acompanhar e administrar as quatro lojas
+(BeautyNow, Be2Beauty, Pulse e Bradeco). Há dois tipos de token:
+
+| Token | Variável no Render | O que pode |
+|---|---|---|
+| **Leitura** (`pnl_…`) | `PAINEL_API_TOKENS` | só a API `/api/v1` (resumo, pedidos, eventos ao vivo) |
+| **Administração** (`adm_…`) | `PAINEL_ADMIN_TOKENS` | tudo o que o painel ADM do site faz (seção "Administração" abaixo) + a API `/api/v1` |
+
+O token de administração altera dados reais: pedidos, preços, cupons,
+banners, cadastros B2B e afiliados. Guarde-o só no **servidor** do painel,
+nunca em página que roda no navegador.
 
 - **Endereço base:** `https://beautynow-servidor.onrender.com/api/v1`
 - **Autenticação:** token no cabeçalho, em toda chamada:
@@ -126,10 +134,93 @@ faz um `POST` com o mesmo JSON. O cabeçalho `X-Assinatura` traz o
 HMAC-SHA256 (hex) do corpo, assinado com o **primeiro** token de
 `PAINEL_API_TOKENS`. Confira a assinatura antes de aceitar o aviso.
 
+## Administração (token `adm_…`)
+
+Mesmas rotas que o painel ADM do site usa. O token de administração vai no
+cabeçalho `Authorization: Bearer adm_…` e substitui a "chave" do painel —
+não precisa mandar `chave` no corpo. Corpo sempre em JSON
+(`Content-Type: application/json`). Endereço base: `https://beautynow-servidor.onrender.com`
+(sem o `/api/v1`). Lojas: `beautynow`, `be2beauty`, `pulse`, `bradeco`.
+
+As rotas de administração aceitam chamada vinda de servidor. Para chamar
+direto do navegador de outro domínio, o domínio precisa entrar em
+`ORIGENS_PERMITIDAS` no Render.
+
+### Pedidos
+
+| Método e rota | Corpo / parâmetros | O que faz |
+|---|---|---|
+| `GET /pedidos/lista` | — | todos os pedidos com dados completos de entrega (confere pagamentos pendentes no Mercado Pago antes de responder) |
+| `POST /pedidos/status` | `{ "numero": "BN-123", "status": "pago" \| "cancelado" \| "aguardando_pagamento" }` | muda o status (venda paga fora do Mercado Pago, cancelamento) |
+| `GET /pagamentos/pedido/{numero}` | — | o que o Mercado Pago diz do pedido: valor, aprovação, produção ou teste |
+
+### Preços
+
+| Método e rota | Corpo | O que faz |
+|---|---|---|
+| `GET /catalogo/precos` | — | preços definidos à mão, por loja |
+| `POST /catalogo/precos` | `{ "loja", "slug", "precoPorCentavos", "precoDeCentavos"?, "titulo"? }` | define o preço de um produto numa loja. `precoPorCentavos: null` volta ao preço padrão |
+
+### Catálogo
+
+| Método e rota | Corpo | O que faz |
+|---|---|---|
+| `POST /catalogo/atualizacao` | `{ "acao": "pedir" }` | puxa o catálogo do Hub Suprir agora (em até ~10 min começa; ~15 min para publicar) |
+| `GET /catalogo/atualizacao` | — | situação da última atualização |
+
+### Cupons
+
+| Método e rota | Corpo | O que faz |
+|---|---|---|
+| `GET /cupons/lista` | — | todos os cupons |
+| `POST /cupons` | `{ "cupons": [ { "codigo": "PRIMAVERA15", "tipo": "percentual" \| "valor", "valor": 15, "minimoCentavos": 9900, "ativo": true } ] }` | grava a lista **inteira** (o que não vier é apagado). Percentual até 90; `valor` em centavos quando o tipo é `valor` |
+
+### Banners da home
+
+| Método e rota | Corpo | O que faz |
+|---|---|---|
+| `GET /banners?loja=beautynow` | — | banners no ar da loja |
+| `POST /enviar-banners/salvar` | `{ "loja", "slot": "banner-1"…"banner-5" ou "banner-1-mobile"…, "mime": "image/jpeg", "base64": "…" }` | sobe ou troca um banner (até 7 MB) |
+| `POST /enviar-banners/excluir` | `{ "loja", "slot" }` | tira um banner do ar |
+
+### Profissionais (B2B)
+
+| Método e rota | Corpo | O que faz |
+|---|---|---|
+| `GET /b2b/lista` | — | cadastros de CNPJ |
+| `POST /b2b/decidir` | `{ "cnpj", "status": "aprovado" \| "recusado" \| "pendente" }` | libera ou bloqueia os preços para o CNPJ |
+| `POST /b2b/excluir` | `{ "cnpj" }` | apaga o cadastro |
+
+### Afiliados
+
+| Método e rota | Corpo | O que faz |
+|---|---|---|
+| `GET /afiliados/admin` | — | afiliados, vendas, comissões e saques |
+| `POST /afiliados/admin-cadastrar` | `{ "nome", "email", "whatsapp"?, "usuario"?, "chavePix"?, "cnpj"?, "comissaoPct", "loja"? }` | cadastra afiliado já aprovado (recebe e-mail com o link) |
+| `POST /afiliados/decidir` | `{ "email", "status": "aprovado" \| "recusado" }` | aprova ou recusa pedido de entrada |
+| `POST /afiliados/comissao` | `{ "email", "pct" }` | muda a comissão |
+| `POST /afiliados/saque-decidir` | `{ "id", "status": "pago" \| "recusado" }` | registra o pagamento de um saque |
+| `POST /afiliados/excluir` | `{ "email" }` | remove o afiliado |
+
+### Bling
+
+| Método e rota | O que faz |
+|---|---|
+| `GET /bling/status` | conexão com o Bling, pedidos enviados e último erro |
+
+Exemplo — marcar um pedido como pago:
+
+```bash
+curl -X POST https://beautynow-servidor.onrender.com/pedidos/status \
+  -H "Authorization: Bearer $TOKEN_ADMIN" -H "Content-Type: application/json" \
+  -d '{"numero":"BN-363366","status":"pago"}'
+```
+
 ## Erros
 
 | Código | Significado |
 |---|---|
-| 401 | token ausente ou errado |
+| 401 | token ausente ou errado (API `/api/v1`) |
+| 403 | token sem permissão de administração (rotas de administração) |
 | 404 | pedido não encontrado |
 | 503 | API não configurada (sem `PAINEL_API_TOKENS` no servidor) |

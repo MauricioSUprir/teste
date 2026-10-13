@@ -436,6 +436,42 @@ aplicacao.get("/saude/email", async (_req, res) => {
  * Uso no navegador: /exportar-catalogo?chave=SUA_EXPORT_CHAVE
  */
 const EXPORT_CHAVE = (process.env.EXPORT_CHAVE ?? "").trim();
+
+/**
+ * Tokens de ADMINISTRAÇÃO para o painel de gestão (PAINEL_ADMIN_TOKENS,
+ * separados por vírgula, 24+ caracteres). Valem em toda rota de admin, no
+ * lugar da chave do painel do site, e também na API de leitura /api/v1.
+ * Vão no cabeçalho "Authorization: Bearer …" (ou "X-API-Key"), nunca na URL.
+ * Documentação: docs/api-painel.md
+ */
+const PAINEL_ADMIN_TOKENS = (process.env.PAINEL_ADMIN_TOKENS ?? "")
+  .split(",")
+  .map((t) => t.trim())
+  .filter((t) => t.length >= 24);
+
+function tokenDoCabecalho(req) {
+  const cabecalho = String(req.get("authorization") ?? "");
+  return cabecalho.toLowerCase().startsWith("bearer ")
+    ? cabecalho.slice(7).trim()
+    : String(req.get("x-api-key") ?? "").trim();
+}
+
+/** compara sem vazar pelo tempo de resposta quantos caracteres batem */
+function tokenNaLista(token, lista) {
+  if (!token) return false;
+  const recebido = Buffer.from(token);
+  return lista.some((t) => {
+    const esperado = Buffer.from(t);
+    return esperado.length === recebido.length && crypto.timingSafeEqual(esperado, recebido);
+  });
+}
+
+/** rota de admin: chave do painel do site (?chave= / corpo) ou token de administração */
+function ehAdmin(req) {
+  if (tokenNaLista(tokenDoCabecalho(req), PAINEL_ADMIN_TOKENS)) return true;
+  const chave = String(req.body?.chave ?? req.query?.chave ?? "");
+  return Boolean(EXPORT_CHAVE) && chave === EXPORT_CHAVE;
+}
 const exportacao = { estado: "parado", progresso: "", json: null, erro: null };
 
 async function coletarCatalogoHub(modo = "rapido") {
@@ -562,7 +598,7 @@ const LOGOS_DOMINIOS = {
 };
 
 aplicacao.get("/exportar-logos", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave de exportação inválida." });
   }
   const CABECALHOS_NAVEGADOR = {
@@ -663,7 +699,7 @@ aplicacao.get("/exportar-logos", async (req, res) => {
 });
 
 aplicacao.get("/exportar-catalogo", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Confira a EXPORT_CHAVE nas variáveis do Render e o parâmetro ?chave= do link."));
   }
   if (!HUB_API_KEY) {
@@ -730,7 +766,7 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
 });
 
 aplicacao.get("/exportar-catalogo/baixar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Confira o link."));
   }
   if (exportacao.estado !== "pronto" || !exportacao.json) {
@@ -871,7 +907,7 @@ function atualizarStatusPedidoLoja(numero, status, extras = {}) {
 
 // lista completa para o painel do admin (dados de entrega inclusos)
 aplicacao.get("/pedidos/lista", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   if (Date.now() - ultimaConferencia > 60_000) {
@@ -886,7 +922,7 @@ aplicacao.get("/pedidos/lista", async (req, res) => {
 
 // backup para o robô do GitHub versionar (o histórico sobrevive à publicação)
 aplicacao.get("/pedidos/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, pedidos: pedidosLoja });
@@ -894,7 +930,7 @@ aplicacao.get("/pedidos/exportar", (req, res) => {
 
 // admin marca pago (venda fora do MP) ou cancela
 aplicacao.post("/pedidos/status", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const status = String(req.body?.status ?? "");
@@ -1211,7 +1247,7 @@ setInterval(() => conferirPagamentosPendentes().catch(() => undefined), 10 * 60 
 // conferência manual do admin: o que o Mercado Pago diz sobre um pedido
 // (para confirmar um pagamento com o número da transação na mão)
 aplicacao.get("/pagamentos/pedido/:numero", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
@@ -1256,20 +1292,14 @@ const PAINEL_TOKENS = (process.env.PAINEL_API_TOKENS ?? "")
 const PAINEL_WEBHOOK_URL = (process.env.PAINEL_WEBHOOK_URL ?? "").trim();
 
 function tokenPainelValido(req) {
-  const cabecalho = String(req.get("authorization") ?? "");
-  const token = cabecalho.toLowerCase().startsWith("bearer ")
-    ? cabecalho.slice(7).trim()
-    : String(req.get("x-api-key") ?? "").trim();
-  if (!token) return false;
-  const recebido = Buffer.from(token);
-  return PAINEL_TOKENS.some((t) => {
-    const esperado = Buffer.from(t);
-    return esperado.length === recebido.length && crypto.timingSafeEqual(esperado, recebido);
-  });
+  const token = tokenDoCabecalho(req);
+  return tokenNaLista(token, PAINEL_TOKENS) || tokenNaLista(token, PAINEL_ADMIN_TOKENS);
 }
 
 function exigirTokenPainel(req, res, next) {
-  if (PAINEL_TOKENS.length === 0) return res.status(503).json({ erro: "API do painel não configurada." });
+  if (PAINEL_TOKENS.length === 0 && PAINEL_ADMIN_TOKENS.length === 0) {
+    return res.status(503).json({ erro: "API do painel não configurada." });
+  }
   if (!tokenPainelValido(req)) return res.status(401).json({ erro: "Token inválido ou ausente." });
   res.set("Cache-Control", "no-store");
   next();
@@ -1405,16 +1435,15 @@ let estadoCatalogo = { ...ESTADO_CATALOGO_PADRAO, ...(doBanco("catalogo-atualiza
 function salvarEstadoCatalogo() {
   gravarNoBanco("catalogo-atualizacao", estadoCatalogo).catch(() => undefined);
 }
-const chaveAdmin = (req) => String(req.body?.chave ?? req.query?.chave ?? "");
 
 aplicacao.get("/catalogo/atualizacao", (req, res) => {
-  if (!EXPORT_CHAVE || chaveAdmin(req) !== EXPORT_CHAVE) return res.status(403).json({ erro: "Chave inválida." });
+  if (!ehAdmin(req)) return res.status(403).json({ erro: "Chave inválida." });
   res.set("Cache-Control", "no-store");
   res.json({ ok: true, ...estadoCatalogo, pendente: Boolean(estadoCatalogo.pedidoEm) });
 });
 
 aplicacao.post("/catalogo/atualizacao", (req, res) => {
-  if (!EXPORT_CHAVE || chaveAdmin(req) !== EXPORT_CHAVE) return res.status(403).json({ erro: "Chave inválida." });
+  if (!ehAdmin(req)) return res.status(403).json({ erro: "Chave inválida." });
   const acao = String(req.body?.acao ?? "");
   const agora = new Date().toISOString();
   if (acao === "pedir") {
@@ -1438,7 +1467,7 @@ aplicacao.post("/catalogo/atualizacao", (req, res) => {
 // marcas cadastradas no Hub Suprir (com logo, quando houver) — o robô de
 // catálogo usa para trazer a logo oficial de cada marca do próprio painel
 aplicacao.get("/hub/marcas", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   if (!HUB_API_KEY) return res.status(503).json({ erro: "Hub não configurado." });
@@ -1489,7 +1518,7 @@ aplicacao.get("/cupons/validar", (req, res) => {
 });
 
 aplicacao.get("/cupons/lista", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.set("Cache-Control", "no-store");
@@ -1497,7 +1526,7 @@ aplicacao.get("/cupons/lista", (req, res) => {
 });
 
 aplicacao.post("/cupons", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   if (!Array.isArray(req.body?.cupons)) return res.status(400).json({ erro: "Lista de cupons inválida." });
@@ -1599,7 +1628,7 @@ aplicacao.get("/banners/imagem/:slot", (req, res) => {
 });
 
 aplicacao.post("/enviar-banners/excluir", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const { slot, loja } = req.body ?? {};
@@ -1611,7 +1640,7 @@ aplicacao.post("/enviar-banners/excluir", async (req, res) => {
 });
 
 aplicacao.get("/enviar-banners", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
   }
   // página antiga de envio: vale para a loja do link (?loja=), BeautyNow se faltar
@@ -1671,7 +1700,7 @@ aplicacao.get("/enviar-banners", (req, res) => {
 });
 
 aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const { slot, mime, base64, loja } = req.body ?? {};
@@ -1691,7 +1720,7 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
 });
 
 aplicacao.get("/enviar-banners/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({
@@ -1978,7 +2007,7 @@ aplicacao.post("/avaliacoes", async (req, res) => {
 
 // backup para o robô do GitHub versionar (não perde avaliação em deploy)
 aplicacao.get("/avaliacoes/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, avaliacoes });
@@ -2150,7 +2179,7 @@ aplicacao.get("/b2b/status", (req, res) => {
 
 // lista completa para o painel do admin
 aplicacao.get("/b2b/lista", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ ok: true, total: cadastrosB2B.length, cadastros: [...cadastrosB2B].reverse() });
@@ -2158,7 +2187,7 @@ aplicacao.get("/b2b/lista", (req, res) => {
 
 // aprovação/recusa pelo painel do admin
 aplicacao.post("/b2b/decidir", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
@@ -2190,7 +2219,7 @@ aplicacao.post("/b2b/decidir", async (req, res) => {
 
 // backup para o robô do GitHub versionar (não perde cadastro em deploy)
 aplicacao.get("/b2b/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, cadastros: cadastrosB2B });
@@ -2248,7 +2277,7 @@ aplicacao.get("/catalogo/precos", (req, res) => {
 
 // admin fixa ou remove o preço manual de um produto
 aplicacao.post("/catalogo/precos", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const loja = lojaValida(req.body?.loja);
@@ -2289,7 +2318,7 @@ aplicacao.post("/catalogo/precos", async (req, res) => {
 
 // export p/ backup versionado (mesmo padrão dos outros dados)
 aplicacao.get("/catalogo/precos/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, precos: precosManuais });
@@ -2505,7 +2534,7 @@ aplicacao.get("/afiliados/conferir-usuario", (req, res) => {
 
 // lista completa para o painel do admin aprovar/recusar
 aplicacao.get("/afiliados/lista", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ ok: true, total: afiliadosCadastro.length, cadastros: [...afiliadosCadastro].reverse() });
@@ -2513,7 +2542,7 @@ aplicacao.get("/afiliados/lista", (req, res) => {
 
 // admin aprova/recusa o pedido de entrada no programa
 aplicacao.post("/afiliados/decidir", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const status = String(req.body?.status ?? "");
@@ -2554,7 +2583,7 @@ aplicacao.post("/afiliados/decidir", async (req, res) => {
  * exigida na hora de resgatar a comissão).
  */
 aplicacao.post("/afiliados/admin-cadastrar", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const email = String(req.body?.email ?? "").trim().toLowerCase();
@@ -2751,7 +2780,7 @@ aplicacao.post("/afiliados/saque", async (req, res) => {
 
 // admin marca o saque como pago (depois de fazer o Pix) ou recusa (devolve o saldo)
 aplicacao.post("/afiliados/saque-decidir", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const id = String(req.body?.id ?? "");
@@ -2786,7 +2815,7 @@ aplicacao.post("/afiliados/saque-decidir", async (req, res) => {
 
 // visão do admin: todos os afiliados aprovados, vendas de cada um e totais gerais
 aplicacao.get("/afiliados/admin", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const afiliados = afiliadosCadastro
@@ -2828,7 +2857,7 @@ aplicacao.get("/afiliados/admin", (req, res) => {
 
 // admin define a comissão (%) de um afiliado — vale para as PRÓXIMAS vendas
 aplicacao.post("/afiliados/comissao", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const pct = Number(req.body?.pct);
@@ -2891,7 +2920,7 @@ async function creditarVendaAfiliado(numero, totalCentavosPagos) {
 // credita manualmente um pedido anotado (venda paga fora do MP, ou teste do
 // admin) — mesmo caminho que o webhook usa, então prova o fluxo inteiro
 aplicacao.post("/afiliados/creditar-manual", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const numero = String(req.body?.numero ?? "");
@@ -2907,7 +2936,7 @@ aplicacao.post("/afiliados/creditar-manual", async (req, res) => {
 // exclui um cadastro de afiliado e tudo dele (vendas, saques, pendências) —
 // usado para limpar cadastros de teste ou remover um afiliado de vez
 aplicacao.post("/afiliados/excluir", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const cadastro = afiliadoPorEmail(req.body?.email);
@@ -2925,7 +2954,7 @@ aplicacao.post("/afiliados/excluir", async (req, res) => {
 
 // exclui um cadastro B2B (profissional/CNPJ) — programa independente do de afiliados
 aplicacao.post("/b2b/excluir", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const cnpj = String(req.body?.cnpj ?? "").replace(/\D/g, "");
@@ -2939,7 +2968,7 @@ aplicacao.post("/b2b/excluir", async (req, res) => {
 
 // backup para o robô do GitHub versionar (afiliados não se perdem em deploy)
 aplicacao.get("/afiliados/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({
@@ -2977,7 +3006,7 @@ try {
 }
 
 aplicacao.get("/enviar-logos", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
   }
   const blocos = LOGOS_FALTANTES.map((slug) => {
@@ -3034,7 +3063,7 @@ aplicacao.get("/enviar-logos", (req, res) => {
 });
 
 aplicacao.post("/enviar-logos/salvar", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   const { slug, mime, base64 } = req.body ?? {};
@@ -3057,14 +3086,14 @@ aplicacao.post("/enviar-logos/salvar", async (req, res) => {
 });
 
 aplicacao.get("/enviar-logos/exportar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json({ total: logosEnviadas.size, logos: Object.fromEntries(logosEnviadas) });
 });
 
 aplicacao.get("/bling/conectar", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Use o link com ?chave= correto."));
   }
   if (!BLING_CLIENT_ID) {
@@ -3118,7 +3147,7 @@ async function reenviarPagosAoBling() {
 }
 
 aplicacao.get("/bling/status", async (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   let conexao = "desconectado";
@@ -3143,7 +3172,7 @@ aplicacao.get("/bling/status", async (req, res) => {
 // cada deploy e é preciso clicar em /bling/conectar de novo). NUNCA commitar
 // esse valor em lugar nenhum do repositório — só copiar pro painel do Render.
 aplicacao.get("/bling/refresh-token", (req, res) => {
-  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+  if (!ehAdmin(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   if (!blingTokens?.refresh) {
