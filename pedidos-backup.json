@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-10-13T04:11:12.390Z",
+  "geradoEm": "2026-10-13T04:15:09.699Z",
   "restauracaoOk": true,
   "pedidos": [
     {
@@ -17,6 +17,7 @@
         }
       ],
       "numero": "BN-137355",
+      "pagoEm": "2026-10-12T23:57:04.000-04:00",
       "status": "pago",
       "afiliado": null,
       "endereco": {
@@ -32,12 +33,11 @@
       "telefone": "21993308393",
       "freteNome": "Entrega expressa (motoboy)",
       "clienteNome": "Mauricio Rodrigues",
+      "pagamentoId": 182853755753,
       "clienteEmail": "mauricio@gruposuprir.com",
       "totalCentavos": 4249,
       "vendedorUsuario": null,
-      "descontoCentavos": 0,
-      "pagamentoId": 182853755753,
-      "pagoEm": "2026-10-12T23:57:04.000-04:00"
+      "descontoCentavos": 0
     },
     {
       "cpf": "72964928649",
@@ -54,6 +54,7 @@
         }
       ],
       "numero": "BN-363366",
+      "pagoEm": "2026-10-07T18:46:24.000-04:00",
       "status": "pago",
       "afiliado": null,
       "endereco": {
@@ -69,12 +70,11 @@
       "telefone": "31973667009",
       "freteNome": "Entrega padrão",
       "clienteNome": "Marina Ferreira da Silva",
+      "pagamentoId": 181962338497,
       "clienteEmail": "mfsmarinafesilva@gmail.com",
       "totalCentavos": 27331,
       "vendedorUsuario": null,
-      "descontoCentavos": 0,
-      "pagamentoId": 181962338497,
-      "pagoEm": "2026-10-07T18:46:24.000-04:00"
+      "descontoCentavos": 0
     }
   ]
 }
