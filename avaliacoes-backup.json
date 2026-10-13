@@ -1,1 +1,15 @@
-{"geradoEm":"2026-08-23T14:21:35.319Z","avaliacoes":[]}
+{
+  "geradoEm": "2026-10-13T04:04:20.433Z",
+  "restauracaoOk": true,
+  "avaliacoes": [
+    {
+      "id": "mv65grlz3cr1",
+      "data": "2026-10-13T03:57:19.943Z",
+      "nome": "Cliente BeautyNow",
+      "nota": 5,
+      "notaExperiencia": 5,
+      "texto": "",
+      "pedido": "BN-137355"
+    }
+  ]
+}

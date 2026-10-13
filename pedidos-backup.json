@@ -1,7 +1,42 @@
 {
-  "geradoEm": "2026-10-08T01:15:16.139Z",
+  "geradoEm": "2026-10-13T04:04:20.501Z",
   "restauracaoOk": true,
   "pedidos": [
+    {
+      "numero": "BN-137355",
+      "data": "2026-10-13T03:56:27.362Z",
+      "loja": "beautynow",
+      "clienteNome": "Mauricio Rodrigues",
+      "clienteEmail": "mauricio@gruposuprir.com",
+      "cpf": "05661758782",
+      "telefone": "21993308393",
+      "endereco": {
+        "cep": "22790669",
+        "logradouro": "Avenida Tim Maia",
+        "numero": "7375",
+        "complemento": "bl6 apt 504",
+        "bairro": "Recreio dos Bandeirantes",
+        "cidade": "Rio de Janeiro",
+        "uf": "RJ",
+        "referencia": ""
+      },
+      "itens": [
+        {
+          "sku": "AP2001238CR165",
+          "titulo": "Flat Blend Oceane - Esponja De Maquiagem./Azul ",
+          "quantidade": 1,
+          "precoCentavos": 2904
+        }
+      ],
+      "totalCentavos": 4249,
+      "meio": "pix",
+      "freteNome": "Entrega expressa (motoboy)",
+      "cupom": null,
+      "descontoCentavos": 0,
+      "afiliado": null,
+      "vendedorUsuario": null,
+      "status": "aguardando_pagamento"
+    },
     {
       "cpf": "72964928649",
       "data": "2026-10-07T22:45:27.007Z",
