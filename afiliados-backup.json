@@ -1,7 +1,10 @@
 {
-  "geradoEm": "2026-09-20T12:40:57.994Z",
-  "cadastro": [],
-  "vendas": [],
-  "pendentes": {},
-  "saques": []
+  "geradoEm": "2026-10-13T21:14:12.087Z",
+  "restauracaoOk": true,
+  "contagem": 0,
+  "cifrado": {
+    "iv": "b81Zoq2OLOFkKnqq",
+    "tag": "KWK0jCvIWS8B/Hcexh63IA==",
+    "dados": "CNQ3yUtF+U/Kcxtff+xocLeUdiLAS5k1CdJCyUe2Fh3uYDm7/trMA52hh10s5T5fsPRClSj6"
+  }
 }

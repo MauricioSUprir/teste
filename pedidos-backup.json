@@ -1,82 +1,10 @@
 {
-  "geradoEm": "2026-10-13T08:17:30.672Z",
+  "geradoEm": "2026-10-13T21:14:12.260Z",
   "restauracaoOk": true,
-  "pedidos": [
-    {
-      "cpf": "05661758782",
-      "data": "2026-10-13T03:56:27.362Z",
-      "loja": "beautynow",
-      "meio": "pix",
-      "cupom": null,
-      "itens": [
-        {
-          "sku": "AP2001238CR165",
-          "titulo": "Flat Blend Oceane - Esponja De Maquiagem./Azul ",
-          "quantidade": 1,
-          "precoCentavos": 2904
-        }
-      ],
-      "numero": "BN-137355",
-      "pagoEm": "2026-10-12T23:57:04.000-04:00",
-      "status": "pago",
-      "blingId": 27112140940,
-      "afiliado": null,
-      "endereco": {
-        "uf": "RJ",
-        "cep": "22790669",
-        "bairro": "Recreio dos Bandeirantes",
-        "cidade": "Rio de Janeiro",
-        "numero": "7375",
-        "logradouro": "Avenida Tim Maia",
-        "referencia": "",
-        "complemento": "bl6 apt 504"
-      },
-      "telefone": "21993308393",
-      "freteNome": "Entrega expressa (motoboy)",
-      "clienteNome": "Mauricio Rodrigues",
-      "pagamentoId": 182853755753,
-      "clienteEmail": "mauricio@gruposuprir.com",
-      "totalCentavos": 4249,
-      "vendedorUsuario": null,
-      "descontoCentavos": 0
-    },
-    {
-      "cpf": "72964928649",
-      "data": "2026-10-07T22:45:27.007Z",
-      "loja": "beautynow",
-      "meio": "pix",
-      "cupom": null,
-      "itens": [
-        {
-          "sku": "CAMUMEDI1L",
-          "titulo": "NOUÊ Camuflage Medium - 1L",
-          "quantidade": 1,
-          "precoCentavos": 26780
-        }
-      ],
-      "numero": "BN-363366",
-      "pagoEm": "2026-10-07T18:46:24.000-04:00",
-      "status": "pago",
-      "blingId": 27112141045,
-      "afiliado": null,
-      "endereco": {
-        "uf": "MG",
-        "cep": "32310011",
-        "bairro": "Cidade Industrial",
-        "cidade": "Contagem",
-        "numero": "200",
-        "logradouro": "Rua Deputado Sérgio Miranda",
-        "referencia": "Museu dos trabalhadores",
-        "complemento": "Apto 1505 Bl3"
-      },
-      "telefone": "31973667009",
-      "freteNome": "Entrega padrão",
-      "clienteNome": "Marina Ferreira da Silva",
-      "pagamentoId": 181962338497,
-      "clienteEmail": "mfsmarinafesilva@gmail.com",
-      "totalCentavos": 27331,
-      "vendedorUsuario": null,
-      "descontoCentavos": 0
-    }
-  ]
+  "contagem": 2,
+  "cifrado": {
+    "iv": "S+zQA3PTkEiTGPlG",
+    "tag": "HYxeOmvBz9kfAfJvrCZAjw==",
+    "dados": "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"
+  }
 }

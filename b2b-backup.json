@@ -1,1 +1,10 @@
-{"geradoEm":"2026-08-23T14:21:35.462Z","cadastros":[]}
+{
+  "geradoEm": "2026-10-13T21:14:11.927Z",
+  "restauracaoOk": true,
+  "contagem": 0,
+  "cifrado": {
+    "iv": "ojbXAW/pVfiPi6MD",
+    "tag": "hNmKoco5XCOsVGP6EhVMKw==",
+    "dados": "OtVgropJVB1bkDtmKaKikw=="
+  }
+}
