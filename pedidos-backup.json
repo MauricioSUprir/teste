@@ -1,25 +1,13 @@
 {
-  "geradoEm": "2026-10-13T04:04:20.501Z",
+  "geradoEm": "2026-10-13T04:11:12.390Z",
   "restauracaoOk": true,
   "pedidos": [
     {
-      "numero": "BN-137355",
+      "cpf": "05661758782",
       "data": "2026-10-13T03:56:27.362Z",
       "loja": "beautynow",
-      "clienteNome": "Mauricio Rodrigues",
-      "clienteEmail": "mauricio@gruposuprir.com",
-      "cpf": "05661758782",
-      "telefone": "21993308393",
-      "endereco": {
-        "cep": "22790669",
-        "logradouro": "Avenida Tim Maia",
-        "numero": "7375",
-        "complemento": "bl6 apt 504",
-        "bairro": "Recreio dos Bandeirantes",
-        "cidade": "Rio de Janeiro",
-        "uf": "RJ",
-        "referencia": ""
-      },
+      "meio": "pix",
+      "cupom": null,
       "itens": [
         {
           "sku": "AP2001238CR165",
@@ -28,14 +16,28 @@
           "precoCentavos": 2904
         }
       ],
-      "totalCentavos": 4249,
-      "meio": "pix",
-      "freteNome": "Entrega expressa (motoboy)",
-      "cupom": null,
-      "descontoCentavos": 0,
+      "numero": "BN-137355",
+      "status": "pago",
       "afiliado": null,
+      "endereco": {
+        "uf": "RJ",
+        "cep": "22790669",
+        "bairro": "Recreio dos Bandeirantes",
+        "cidade": "Rio de Janeiro",
+        "numero": "7375",
+        "logradouro": "Avenida Tim Maia",
+        "referencia": "",
+        "complemento": "bl6 apt 504"
+      },
+      "telefone": "21993308393",
+      "freteNome": "Entrega expressa (motoboy)",
+      "clienteNome": "Mauricio Rodrigues",
+      "clienteEmail": "mauricio@gruposuprir.com",
+      "totalCentavos": 4249,
       "vendedorUsuario": null,
-      "status": "aguardando_pagamento"
+      "descontoCentavos": 0,
+      "pagamentoId": 182853755753,
+      "pagoEm": "2026-10-12T23:57:04.000-04:00"
     },
     {
       "cpf": "72964928649",
@@ -52,7 +54,7 @@
         }
       ],
       "numero": "BN-363366",
-      "status": "aguardando_pagamento",
+      "status": "pago",
       "afiliado": null,
       "endereco": {
         "uf": "MG",
@@ -70,7 +72,9 @@
       "clienteEmail": "mfsmarinafesilva@gmail.com",
       "totalCentavos": 27331,
       "vendedorUsuario": null,
-      "descontoCentavos": 0
+      "descontoCentavos": 0,
+      "pagamentoId": 181962338497,
+      "pagoEm": "2026-10-07T18:46:24.000-04:00"
     }
   ]
 }
