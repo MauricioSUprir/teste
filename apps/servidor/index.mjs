@@ -1854,6 +1854,16 @@ async function bling(caminho, opcoes = {}, tentativa = 1) {
   return corpo;
 }
 
+/** id do produto no Bling pelo código (SKU); null se não houver */
+const blingProdutos = new Map();
+async function blingProdutoId(sku) {
+  if (blingProdutos.has(sku)) return blingProdutos.get(sku);
+  const busca = await bling(`/produtos?codigo=${encodeURIComponent(sku)}`).catch(() => null);
+  const id = busca?.data?.find((p) => String(p.codigo) === String(sku))?.id ?? busca?.data?.[0]?.id ?? null;
+  if (id) blingProdutos.set(sku, id);
+  return id;
+}
+
 /** Acha (por CPF) ou cria o contato do cliente no Bling; devolve o id. */
 async function blingContato(pedido) {
   const cpf = String(pedido.cpf ?? "").replace(/\D/g, "");
@@ -1906,12 +1916,20 @@ async function criarPedidoNoBling(pedido) {
         numeroLoja: pedido.numero,
         data: String(pedido.data ?? new Date().toISOString()).slice(0, 10),
         contato: { id: contatoId },
-        itens: (pedido.itens ?? []).map((i) => ({
-          codigo: i.sku || undefined,
-          descricao: i.titulo || "Item do site",
-          quantidade: i.quantidade || 1,
-          valor: Math.round(i.precoCentavos ?? 0) / 100,
-        })),
+        itens: await Promise.all(
+          (pedido.itens ?? []).map(async (i) => {
+            // produto já cadastrado no Bling: o item aponta para ele (com só o
+            // código, o Bling tenta cadastrar de novo e recusa: "código já existe")
+            const produtoId = i.sku ? await blingProdutoId(i.sku) : null;
+            return {
+              ...(produtoId ? { produto: { id: produtoId } } : { codigo: i.sku || undefined }),
+              descricao: i.titulo || "Item do site",
+              unidade: "UN",
+              quantidade: i.quantidade || 1,
+              valor: Math.round(i.precoCentavos ?? 0) / 100,
+            };
+          })
+        ),
         observacoes: `Pedido do site BeautyNow (${pedido.meio ?? "pagamento"} aprovado). Total R$ ${(Math.round(pedido.totalCentavos ?? 0) / 100).toFixed(2)}${pedido.cupom ? ` · cupom ${pedido.cupom}` : ""} · frete ${pedido.freteNome ?? "-"}`,
       }),
     });
