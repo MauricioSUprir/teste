@@ -1435,6 +1435,25 @@ aplicacao.post("/catalogo/atualizacao", (req, res) => {
   res.json({ ok: true, ...estadoCatalogo, pendente: Boolean(estadoCatalogo.pedidoEm) });
 });
 
+// marcas cadastradas no Hub Suprir (com logo, quando houver) — o robô de
+// catálogo usa para trazer a logo oficial de cada marca do próprio painel
+aplicacao.get("/hub/marcas", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  if (!HUB_API_KEY) return res.status(503).json({ erro: "Hub não configurado." });
+  try {
+    const r = await fetch(`${HUB_API_URL}/marcas`, {
+      headers: { "X-API-Key": HUB_API_KEY, Accept: "application/json" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    const corpo = await r.text();
+    res.status(r.status).type(r.headers.get("content-type") ?? "application/json").send(corpo);
+  } catch (erro) {
+    res.status(502).json({ erro: erro.message });
+  }
+});
+
 // ===== Cupons de desconto =====
 // O admin cria no painel e o cupom passa a valer em qualquer aparelho. Antes
 // ficavam só no navegador de quem criou — o cliente digitava e recebia
