@@ -125,7 +125,8 @@ export function PaginaConta() {
         )}
       </section>
 
-      <section className="mt-4 rounded-[16px] border border-linha bg-white p-6">
+      {/* âncoras dos atalhos do topo; scroll-mt desconta o cabeçalho fixo */}
+      <section id="pedidos" className="mt-4 scroll-mt-36 rounded-[16px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">Meus pedidos</h2>
         {meusPedidos.length === 0 ? (
           <p className="mt-3 text-[0.9375rem] text-grafite">
@@ -163,7 +164,7 @@ export function PaginaConta() {
       {/* qualquer cliente pode pedir para virar afiliado — a aprovação é do admin */}
       <SecaoAfiliadoConta />
 
-      <section className="mt-4 rounded-[16px] border border-linha bg-white p-6">
+      <section id="favoritos" className="mt-4 scroll-mt-36 rounded-[16px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.favoritos}</h2>
         {produtosFavoritos.length === 0 ? (
           <p className="mt-3 text-[0.9375rem] text-grafite">{copy.conta.favoritosVazio}</p>

@@ -24,6 +24,7 @@ import {
   ADMIN_SALT,
   ADMIN_SENHA_PBKDF2,
   CODIGO_VALIDADE_MIN,
+  GOOGLE_CLIENT_ID,
 } from "./config";
 import {
   acordarServidor,
@@ -88,7 +89,10 @@ interface ContaContexto {
   /** login demonstrativo (sem Client ID do Google configurado) */
   entrarComGoogle: () => void;
   /** login real com a credencial JWT do Google — dispara a etapa do código */
-  entrarComGoogleCredencial: (credencial: string) => Promise<{ ok: boolean; erro?: string }>;
+  /** direto = já entrou (sem código); falso = segue para a etapa do código (ADM) */
+  entrarComGoogleCredencial: (
+    credencial: string
+  ) => Promise<{ ok: boolean; erro?: string; direto?: boolean }>;
   sair: () => void;
 }
 
@@ -379,19 +383,76 @@ export function ContaProvider({ children }: { children: ReactNode }) {
 
   const entrarComGoogleCredencial: ContaContexto["entrarComGoogleCredencial"] = useCallback(
     async (credencial) => {
+      let payload: {
+        name?: string;
+        email?: string;
+        email_verified?: boolean | string;
+        aud?: string;
+        iss?: string;
+        exp?: number;
+      };
       try {
         // credencial = JWT do Google Identity Services; o payload traz nome e
         // e-mail verificados pelo Google (validação criptográfica completa
         // acontece no servidor quando ele estiver no ar)
-        const payload = JSON.parse(
-          atob(credencial.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
-        ) as { name?: string; email?: string };
-        if (!payload.email) return { ok: false, erro: "O Google não devolveu um e-mail válido." };
-        const email = payload.email.toLowerCase();
-        return await iniciarVerificacaoGoogle(payload.name ?? email, email);
+        payload = JSON.parse(
+          new TextDecoder().decode(
+            Uint8Array.from(
+              atob(credencial.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+              (c) => c.charCodeAt(0)
+            )
+          )
+        );
       } catch {
         return { ok: false, erro: "Não foi possível ler a resposta do Google. Tente novamente." };
       }
+      // a resposta tem que ser do Google, para ESTE site, dentro da validade e
+      // com o e-mail confirmado pelo próprio Google
+      const doGoogle = payload.iss === "accounts.google.com" || payload.iss === "https://accounts.google.com";
+      const paraEsteSite = payload.aud === GOOGLE_CLIENT_ID;
+      const valida = typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
+      const emailConfirmado = payload.email_verified === true || payload.email_verified === "true";
+      if (!doGoogle || !paraEsteSite || !valida) {
+        return { ok: false, erro: "Não foi possível confirmar o login com o Google. Tente novamente." };
+      }
+      if (!payload.email || !emailConfirmado) {
+        return { ok: false, erro: "O Google não confirmou este e-mail. Entre com e-mail e senha." };
+      }
+      const email = payload.email.toLowerCase();
+      const nome = payload.name ?? email;
+
+      // a conta de administrador NUNCA entra só pelo Google: segue pedindo o
+      // código, para um clique não bastar para ganhar acesso ao painel
+      if (email === ADMIN_EMAIL) {
+        const r = await iniciarVerificacaoGoogle(nome, email);
+        return { ...r, direto: false };
+      }
+
+      // o Google já confirmou que a pessoa é dona do e-mail: o código por
+      // e-mail seria uma segunda prova da mesma coisa. Entra direto.
+      const usuarios = lerUsuarios();
+      let u = usuarios.find((x) => x.email === email);
+      if (!u) {
+        u = {
+          nome,
+          email,
+          senhaHash: "",
+          cep: "",
+          numero: "",
+          complemento: "",
+          viaGoogle: true,
+          admin: false,
+        };
+        gravarUsuarios([...usuarios, u]);
+      }
+      setUsuario(publico(u));
+      setPendente(null);
+      try {
+        localStorage.setItem(CHAVE_SESSAO, JSON.stringify(email));
+      } catch {
+        // segue sem persistir
+      }
+      return { ok: true, direto: true };
     },
     [iniciarVerificacaoGoogle]
   );

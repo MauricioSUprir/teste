@@ -38,7 +38,7 @@ declare global {
   }
 }
 
-export function BotaoGoogle() {
+export function BotaoGoogle({ aoEntrar }: { aoEntrar?: () => void }) {
   const conta = useConta();
   const alvo = useRef<HTMLDivElement>(null);
   const [erro, setErro] = useState("");
@@ -51,9 +51,11 @@ export function BotaoGoogle() {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (resposta) => {
-          // após o Google confirmar a conta, a etapa do código assume a tela
+          // Google confirmou a conta: entra direto e volta para o site.
+          // (Só a conta do ADM ainda passa pela etapa do código.)
           void conta.entrarComGoogleCredencial(resposta.credential).then((r) => {
             if (!r.ok) setErro(r.erro ?? "");
+            else if (r.direto) aoEntrar?.();
           });
         },
       });
@@ -75,6 +77,9 @@ export function BotaoGoogle() {
     script.async = true;
     script.onload = renderizar;
     document.head.appendChild(script);
+    // aoEntrar fica de fora de propósito: muda a cada render e faria o botão
+    // do Google ser recriado sem necessidade
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conta]);
 
   if (GOOGLE_CLIENT_ID) {

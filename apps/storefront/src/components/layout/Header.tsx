@@ -3,42 +3,111 @@
 import { useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
-import { LOJA } from "@/lib/loja";
+import { LOJA, LOJA_ID } from "@/lib/loja";
 import { comBase } from "@/lib/caminho";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import { useConta } from "@/lib/conta/contexto";
+import { useFavoritos } from "@/lib/favoritos/contexto";
+import { NEGOCIO, linkWhatsapp } from "@/lib/negocio";
 import { Logo } from "./Logo";
 import { BuscaHeader } from "./BuscaHeader";
+import { FaixaVantagens } from "./FaixaVantagens";
 
-/** Header + megamenu (categoria/marca/necessidade) — ticket 2.1. */
+const atalhos = copy.header.atalhos;
+/** motoboy em 1 dia útil é só no Rio — a Bradeco atende SP */
+const entregaNoRio = LOJA_ID !== "bradeco";
+
+/**
+ * Topo em quatro camadas — ticket 2.1, estrutura estudada no benchmark
+ * (docs/01 §3, "Header e navegação"), com texto e visual próprios:
+ * 1. faixa de vantagens (cupom, Pix, brinde, parcelas — ou CNPJ no B2B);
+ * 2. barra de atalhos (atendimento, WhatsApp, afiliado, pedidos, favoritos);
+ * 3. logo, busca, favoritos, conta e sacola;
+ * 4. menu de categorias/marcas com destaques à direita.
+ * Só as camadas 3 e 4 ficam presas ao rolar, para não comer a tela.
+ */
 export function Header() {
   const { totalItens, abrir } = useCarrinho();
   const { usuario } = useConta();
+  const { slugs: favoritos } = useFavoritos();
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
   const rotuloConta = usuario ? usuario.nome.split(" ")[0] : copy.conta.entrar;
+  const totalFavoritos = favoritos.length;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-linha bg-white">
-      {/* barra de anúncio — na Be2Beauty leva ao cadastro profissional */}
-      {LOJA.b2b ? (
-        <Link
-          href="/profissional"
-          className="block bg-tinta px-4 py-1.5 text-center text-[0.75rem] font-medium text-white hover:underline"
-        >
-          {copy.header.anuncio}
-        </Link>
-      ) : (
-        <p className="bg-tinta px-4 py-1.5 text-center text-[0.75rem] font-medium text-white">
-          {copy.header.anuncio}
-        </p>
-      )}
+    <>
+    <FaixaVantagens />
 
+    {/* barra de atalhos — só no computador; no celular os mesmos links vão no menu */}
+    <div className="hidden border-b border-linha bg-superficie lg:block">
+      <nav
+        aria-label={atalhos.rotulo}
+        className="container-bn flex h-9 items-center justify-between text-[0.8125rem] text-grafite"
+      >
+        <ul className="flex items-center gap-6">
+          {LOJA.b2b && (
+            <li>
+              <Link href="/profissional" className="font-semibold text-roxo hover:underline">
+                {atalhos.profissional}
+              </Link>
+            </li>
+          )}
+          <li>
+            <Link href="/atendimento" className="hover:text-roxo">
+              {atalhos.atendimento}
+            </Link>
+          </li>
+          {NEGOCIO.whatsapp && (
+            <li>
+              <a
+                href={linkWhatsapp(NEGOCIO.whatsapp)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 hover:text-roxo"
+              >
+                <IconeWhatsapp />
+                {atalhos.whatsapp} {NEGOCIO.whatsappVisivel}
+              </a>
+            </li>
+          )}
+          {entregaNoRio && (
+            <li className="inline-flex items-center gap-1.5">
+              <IconeEntrega />
+              {atalhos.entregaRio}
+            </li>
+          )}
+        </ul>
+        <ul className="flex items-center gap-6">
+          <li>
+            <Link href="/afiliado" className="hover:text-roxo">
+              {atalhos.afiliado}
+            </Link>
+          </li>
+          <li>
+            <Link href="/conta#pedidos" className="hover:text-roxo">
+              {atalhos.pedidos}
+            </Link>
+          </li>
+          <li>
+            <Link href="/conta#favoritos" className="inline-flex items-center gap-1.5 hover:text-roxo">
+              <IconeCoracao />
+              {atalhos.favoritos}
+              {totalFavoritos > 0 && <span className="num">({totalFavoritos})</span>}
+            </Link>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <header className="sticky top-0 z-40 border-b border-linha bg-white">
       <div className="container-bn flex h-16 items-center gap-4">
         {/* menu mobile */}
         <button
           type="button"
-          className="flex h-11 w-11 items-center justify-center rounded-[6px] hover:bg-superficie lg:hidden"
+          /* text-tinta: sem cor própria o ícone herdava o preto da página e
+             sumia no topo escuro da Pulse e da Bradeco */
+          className="flex h-11 w-11 items-center justify-center rounded-[6px] text-tinta hover:bg-superficie lg:hidden"
           aria-label={menuMobileAberto ? copy.header.fecharMenu : copy.header.menu}
           aria-expanded={menuMobileAberto}
           onClick={() => setMenuMobileAberto((v) => !v)}
@@ -61,6 +130,18 @@ export function Header() {
         </div>
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <Link
+            href="/conta#favoritos"
+            className="relative hidden h-11 w-11 items-center justify-center rounded-[6px] text-grafite hover:bg-superficie sm:flex"
+            aria-label={`${atalhos.favoritos}${totalFavoritos > 0 ? `, ${totalFavoritos}` : ""}`}
+          >
+            <IconeCoracao tamanho={18} />
+            {totalFavoritos > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[999px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white num">
+                {totalFavoritos}
+              </span>
+            )}
+          </Link>
           <Link
             href="/conta"
             className="flex h-11 items-center gap-2 rounded-[6px] px-3 text-[0.875rem] text-grafite hover:bg-superficie"
@@ -214,6 +295,24 @@ export function Header() {
               {c.nome}
             </Link>
           ))}
+
+          {/* destaques à direita */}
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href="/busca/?q=mais+vendidos"
+              className="rounded-[999px] border border-roxo px-4 py-1.5 text-[0.8125rem] font-semibold text-roxo hover:bg-roxo-claro"
+            >
+              {copy.header.destaques.maisVendidos}
+            </Link>
+            {LOJA.b2b && (
+              <Link
+                href="/profissional"
+                className="rounded-[999px] bg-roxo px-4 py-1.5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+              >
+                {copy.header.destaques.liberarPrecos}
+              </Link>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -235,6 +334,41 @@ export function Header() {
               </svg>
               {usuario ? `${copy.conta.ola(usuario.nome)} Ver minha conta` : `${copy.conta.entrar} ou criar conta`}
             </Link>
+            <ul className="grid grid-cols-2 gap-2 text-[0.875rem]">
+              {[
+                ...(LOJA.b2b ? [{ href: "/profissional", rotulo: atalhos.profissional }] : []),
+                { href: "/conta#pedidos", rotulo: atalhos.pedidos },
+                {
+                  href: "/conta#favoritos",
+                  rotulo: `${atalhos.favoritos}${totalFavoritos > 0 ? ` (${totalFavoritos})` : ""}`,
+                },
+                { href: "/atendimento", rotulo: atalhos.atendimento },
+                { href: "/afiliado", rotulo: atalhos.afiliado },
+              ].map((a) => (
+                <li key={a.href}>
+                  <Link
+                    href={a.href}
+                    onClick={() => setMenuMobileAberto(false)}
+                    className="block rounded-[6px] border border-linha px-3 py-2.5 text-tinta hover:bg-superficie"
+                  >
+                    {a.rotulo}
+                  </Link>
+                </li>
+              ))}
+              {NEGOCIO.whatsapp && (
+                <li>
+                  <a
+                    href={linkWhatsapp(NEGOCIO.whatsapp)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-[6px] border border-linha px-3 py-2.5 text-tinta hover:bg-superficie"
+                  >
+                    <IconeWhatsapp />
+                    {atalhos.whatsapp}
+                  </a>
+                </li>
+              )}
+            </ul>
             <Link
               href="/"
               onClick={() => setMenuMobileAberto(false)}
@@ -300,6 +434,51 @@ export function Header() {
         </nav>
       )}
     </header>
+    </>
+  );
+}
+
+function IconeCoracao({ tamanho = 14 }: { tamanho?: number }) {
+  return (
+    <svg width={tamanho} height={tamanho} viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        d="M9 15.5 C3.5 12 2 9.3 2 6.8 A3.6 3.6 0 0 1 9 5.2 A3.6 3.6 0 0 1 16 6.8 C16 9.3 14.5 12 9 15.5 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconeWhatsapp() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 18 18" aria-hidden="true">
+      <path
+        d="M9 2 A7 7 0 0 0 3 12.6 L2 16 L5.5 15 A7 7 0 1 0 9 2 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconeEntrega() {
+  return (
+    <svg width="16" height="14" viewBox="0 0 20 16" aria-hidden="true">
+      <path
+        d="M1.5 3 H12 V11 H1.5 Z M12 6 H15.5 L18.5 9 V11 H12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <circle cx="5" cy="12.5" r="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="15" cy="12.5" r="1.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }
 

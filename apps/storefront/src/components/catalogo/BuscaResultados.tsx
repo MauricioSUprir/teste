@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { buscar, maisVendidos } from "@/lib/catalogo/consultas";
+import { buscar, maisVendidos, produtos } from "@/lib/catalogo/consultas";
 import { copy } from "@/lib/copy";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -11,10 +11,16 @@ export function BuscaResultados() {
   const params = useSearchParams();
   const termo = (params.get("q") ?? "").trim();
   const ehAtalhoMaisVendidos = termo.toLowerCase() === "mais vendidos";
-  const resultados = useMemo(
-    () => (ehAtalhoMaisVendidos ? maisVendidos() : termo ? buscar(termo) : []),
-    [ehAtalhoMaisVendidos, termo]
-  );
+  const resultados = useMemo(() => {
+    if (ehAtalhoMaisVendidos) {
+      // o catálogo do Hub ainda não marca "mais vendido": a home já cai para a
+      // vitrine geral nesse caso, e esta página precisa mostrar a mesma lista,
+      // senão o "Ver tudo" da home abria uma página vazia
+      const lista = maisVendidos();
+      return lista.length > 0 ? lista : produtos;
+    }
+    return termo ? buscar(termo) : [];
+  }, [ehAtalhoMaisVendidos, termo]);
 
   return (
     <div className="container-bn py-6">

@@ -16,9 +16,16 @@ export interface Cupom {
 
 const CHAVE = "beautynow:cupons:v1";
 
-const seedInicial: Cupom[] = [
-  { codigo: "BEMVINDA10", tipo: "percentual", valor: 10, minimoCentavos: 9900, ativo: true },
-];
+/** cupom que todo visitante já tem — também anunciado na faixa do topo */
+export const CUPOM_BOAS_VINDAS: Cupom = {
+  codigo: "BEMVINDA10",
+  tipo: "percentual",
+  valor: 10,
+  minimoCentavos: 9900,
+  ativo: true,
+};
+
+const seedInicial: Cupom[] = [CUPOM_BOAS_VINDAS];
 
 export function lerCupons(): Cupom[] {
   try {

@@ -1,4 +1,31 @@
 import { LOJA } from "@/lib/loja";
+import { CUPOM_BOAS_VINDAS } from "@/lib/cupons";
+import { DESCONTO_PIX_PCT, FAIXA_BRINDE_CENTAVOS, MAX_PARCELAS } from "@/lib/preco";
+
+/** reais inteiros para as chamadas do topo (R$ 99, R$ 250) */
+const reais = (centavos: number) => `R$ ${Math.round(centavos / 100)}`;
+
+/**
+ * Vantagens da faixa do topo — todas são regras que o checkout cumpre de
+ * verdade (Pix, parcelas, brinde, cupom). Frete grátis por valor NÃO entra:
+ * foi desligado a pedido do Mauricio.
+ */
+type Vantagem = { destaque: string; texto: string; link?: string };
+const vantagensVarejo: Vantagem[] = [
+  {
+    destaque: CUPOM_BOAS_VINDAS.codigo,
+    texto: `${CUPOM_BOAS_VINDAS.valor}% off em compras acima de ${reais(CUPOM_BOAS_VINDAS.minimoCentavos)}`,
+  },
+  { destaque: `${DESCONTO_PIX_PCT}% off`, texto: "pagando no Pix" },
+  { destaque: "Brinde", texto: `nas compras acima de ${reais(FAIXA_BRINDE_CENTAVOS)}` },
+  { destaque: `${MAX_PARCELAS}x`, texto: "sem juros no cartão" },
+];
+const vantagensB2B: Vantagem[] = [
+  { destaque: "CNPJ ou MEI", texto: "cadastre e veja os preços de distribuidora", link: "/profissional" },
+  { destaque: "Na hora", texto: "liberação automática com CNPJ ativo" },
+  { destaque: `${DESCONTO_PIX_PCT}% off`, texto: `no Pix · até ${MAX_PARCELAS}x sem juros` },
+  { destaque: "Brinde", texto: `nas compras acima de ${reais(FAIXA_BRINDE_CENTAVOS)}` },
+];
 
 /**
  * Todos os textos de interface em pt-BR — CLAUDE.md §4.
@@ -29,6 +56,22 @@ export const copy = {
         : LOJA.b2b
           ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
           : "Pix com 5% de desconto · Produtos 100% originais",
+    vantagens: LOJA.b2b ? vantagensB2B : vantagensVarejo,
+    vantagensRotulo: "Vantagens da loja",
+    atalhos: {
+      rotulo: "Atalhos",
+      atendimento: "Atendimento",
+      whatsapp: "WhatsApp",
+      entregaRio: "Entrega em 1 dia útil no Rio",
+      profissional: "Cadastro profissional",
+      afiliado: "Seja afiliado",
+      pedidos: "Meus pedidos",
+      favoritos: "Favoritos",
+    },
+    destaques: {
+      maisVendidos: "Mais vendidos",
+      liberarPrecos: "Liberar preços",
+    },
   },
   nav: {
     inicio: "Início",

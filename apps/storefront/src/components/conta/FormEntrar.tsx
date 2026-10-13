@@ -3,6 +3,7 @@
 /**
  * Login em duas etapas: e-mail + senha → código de verificação de 6 dígitos
  * enviado ao e-mail que está tentando entrar (EtapaCodigo).
+ * Pelo Google não há segunda etapa: o Google já confirmou o e-mail.
  */
 import { useState } from "react";
 import Link from "next/link";
@@ -92,7 +93,9 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
         <span className="h-px grow bg-linha" aria-hidden="true" />
       </div>
 
-      <BotaoGoogle />
+      {/* entrou pelo Google: volta para o site (ou para onde estava indo,
+          como o pagamento) em vez de parar na página da conta */}
+      <BotaoGoogle aoEntrar={() => router.push(destino === "/conta" ? "/" : destino)} />
 
       <p className="text-center text-[0.875rem] text-grafite">
         {copy.conta.aindaSemConta}{" "}
