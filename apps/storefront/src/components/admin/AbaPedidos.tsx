@@ -144,7 +144,7 @@ export function AbaPedidos({
               type="button"
               aria-pressed={filtro === id}
               onClick={() => setFiltro(id)}
-              className={`min-h-[38px] rounded-[999px] px-4 text-[0.8125rem] font-medium transition-colors ${
+              className={`min-h-[38px] rounded-[40px] px-4 text-[0.8125rem] font-medium transition-colors ${
                 filtro === id
                   ? "bg-roxo text-white"
                   : "border border-linha text-grafite hover:border-roxo hover:text-roxo"
@@ -159,7 +159,7 @@ export function AbaPedidos({
             type="button"
             onClick={() => void carregar()}
             disabled={carregando}
-            className="min-h-[38px] rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:bg-superficie disabled:opacity-40"
+            className="min-h-[38px] rounded-[40px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:bg-superficie disabled:opacity-40"
           >
             {carregando ? "Atualizando…" : "↻ Atualizar"}
           </button>
@@ -167,7 +167,7 @@ export function AbaPedidos({
             type="button"
             onClick={exportarCsv}
             disabled={filtrados.length === 0}
-            className="min-h-[38px] rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:bg-superficie disabled:opacity-40"
+            className="min-h-[38px] rounded-[40px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:bg-superficie disabled:opacity-40"
           >
             ⬇ Exportar CSV
           </button>
@@ -179,7 +179,7 @@ export function AbaPedidos({
       </p>
 
       {filtrados.length === 0 ? (
-        <p className="mt-4 rounded-[10px] bg-superficie px-5 py-8 text-center text-[0.875rem] leading-relaxed text-grafite">
+        <p className="mt-4 rounded-[8px] bg-superficie px-5 py-8 text-center text-[0.875rem] leading-relaxed text-grafite">
           {carregando
             ? "Carregando pedidos do servidor…"
             : linhas.length === 0
@@ -187,7 +187,7 @@ export function AbaPedidos({
               : "Nenhum pedido com esse status."}
         </p>
       ) : (
-        <div className="mt-3 overflow-x-auto rounded-[10px] border border-linha">
+        <div className="mt-3 overflow-x-auto rounded-[8px] border border-linha">
           <table className="w-full min-w-[760px] text-[0.875rem]">
             <thead>
               <tr className="bg-superficie text-left text-[0.75rem] uppercase tracking-wide text-cinza">
@@ -240,17 +240,17 @@ function PedidoLinha({
             {p.numero}
           </button>
           {p.loja === "be2beauty" && (
-            <span className="mt-1 block w-fit rounded-[6px] bg-[#E9EFF6] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#13315C]">
+            <span className="mt-1 block w-fit rounded-[4px] bg-[#E9EFF6] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#13315C]">
               Be2Beauty
             </span>
           )}
           {p.loja === "pulse" && (
-            <span className="mt-1 block w-fit rounded-[6px] bg-[#F8EFE8] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#A34E24]">
+            <span className="mt-1 block w-fit rounded-[4px] bg-[#F8EFE8] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#A34E24]">
               Pulse
             </span>
           )}
           {p.loja === "bradeco" && (
-            <span className="mt-1 block w-fit rounded-[6px] bg-[#FFF1E6] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#CF6317]">
+            <span className="mt-1 block w-fit rounded-[4px] bg-[#FFF1E6] px-1.5 py-0.5 text-[0.6875rem] font-semibold text-[#CF6317]">
               Bradeco
             </span>
           )}
@@ -268,7 +268,7 @@ function PedidoLinha({
         <td className="px-4 py-3 text-grafite">
           {p.meio === "pix" ? "Pix" : p.meio === "cartao" ? "Cartão" : "Boleto"}
           {p.cupom && (
-            <span className="num mt-1 block w-fit rounded-[6px] bg-violeta-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-violeta">
+            <span className="num mt-1 block w-fit rounded-[4px] bg-violeta-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-violeta">
               {p.cupom}
             </span>
           )}
@@ -276,7 +276,7 @@ function PedidoLinha({
         <td className="num px-4 py-3 text-right font-semibold">{formatarPreco(p.totalCentavos)}</td>
         <td className="px-4 py-3">
           <span
-            className={`inline-block rounded-[999px] px-2.5 py-1 text-[0.6875rem] font-semibold ${corStatus[p.status]}`}
+            className={`inline-block rounded-[40px] px-2.5 py-1 text-[0.6875rem] font-semibold ${corStatus[p.status]}`}
           >
             {rotuloStatus[p.status]}
           </span>

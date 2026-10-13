@@ -135,13 +135,13 @@ export function AbaAfiliados() {
           {(pendentes.length > 0 ? pendentes : cadastros.slice(0, 10)).map((c) => (
             <li
               key={c.email}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-linha p-3"
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[8px] border border-linha p-3"
             >
               <div className="min-w-0 grow text-[0.875rem]">
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-tinta">{c.nome}</span>
                   <span
-                    className={`rounded-[999px] px-2 py-0.5 text-[0.75rem] font-semibold ${
+                    className={`rounded-[40px] px-2 py-0.5 text-[0.75rem] font-semibold ${
                       c.status === "aprovado"
                         ? "bg-sucesso/10 text-sucesso"
                         : c.status === "recusado"
@@ -175,7 +175,7 @@ export function AbaAfiliados() {
                     type="button"
                     disabled={decidindo === c.email}
                     onClick={() => void decidirPedido(c.email, "aprovado")}
-                    className="h-10 rounded-[999px] bg-sucesso px-4 text-[0.8125rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    className="h-10 rounded-[40px] bg-sucesso px-4 text-[0.8125rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
                   >
                     {copy.afiliado.admin.aprovar}
                   </button>
@@ -185,7 +185,7 @@ export function AbaAfiliados() {
                     type="button"
                     disabled={decidindo === c.email}
                     onClick={() => void decidirPedido(c.email, "recusado")}
-                    className="h-10 rounded-[999px] border border-erro px-4 text-[0.8125rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
+                    className="h-10 rounded-[40px] border border-erro px-4 text-[0.8125rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
                   >
                     {copy.afiliado.admin.recusar}
                   </button>
@@ -194,7 +194,7 @@ export function AbaAfiliados() {
                   type="button"
                   disabled={decidindo === c.email}
                   onClick={() => void excluirPedido(c.email)}
-                  className="h-10 rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-erro hover:text-erro disabled:opacity-50"
+                  className="h-10 rounded-[40px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-erro hover:text-erro disabled:opacity-50"
                 >
                   {copy.afiliado.admin.excluir}
                 </button>
@@ -216,7 +216,7 @@ export function AbaAfiliados() {
           [copy.b2b.afiliado.admin.geralComissao, formatarPreco(geral.comissaoCentavos)],
           [copy.b2b.afiliado.admin.aPagar, formatarPreco(geral.aPagarCentavos)],
         ].map(([rotulo, valor]) => (
-          <div key={rotulo} className="rounded-[10px] bg-superficie p-4 text-center">
+          <div key={rotulo} className="rounded-[8px] bg-superficie p-4 text-center">
             <dt className="text-[0.75rem] font-medium uppercase tracking-wide text-cinza">{rotulo}</dt>
             <dd className="num mt-1 text-[1.25rem] font-bold text-tinta">{valor}</dd>
           </div>
@@ -225,7 +225,7 @@ export function AbaAfiliados() {
 
       {/* pedidos de saque pendentes primeiro — é o que precisa de ação */}
       {saques.some((s) => s.status === "pendente") && (
-        <div className="mt-6 rounded-[10px] border border-alerta/40 bg-alerta/5 p-4">
+        <div className="mt-6 rounded-[8px] border border-alerta/40 bg-alerta/5 p-4">
           <h3 className="text-[0.9375rem] font-semibold text-tinta">
             💸 {copy.b2b.afiliado.admin.saquesTitulo}
           </h3>
@@ -236,7 +236,7 @@ export function AbaAfiliados() {
               .map((s) => (
                 <li
                   key={s.id}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[6px] bg-white p-3"
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[4px] bg-white p-3"
                 >
                   <div className="min-w-0 grow text-[0.875rem]">
                     <p className="font-semibold text-tinta">
@@ -253,7 +253,7 @@ export function AbaAfiliados() {
                       type="button"
                       disabled={decidindoSaque === s.id}
                       onClick={() => void decidirSaque(s.id, "pago")}
-                      className="h-10 rounded-[999px] bg-sucesso px-4 text-[0.8125rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      className="h-10 rounded-[40px] bg-sucesso px-4 text-[0.8125rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
                     >
                       {copy.b2b.afiliado.admin.marcarPago}
                     </button>
@@ -261,7 +261,7 @@ export function AbaAfiliados() {
                       type="button"
                       disabled={decidindoSaque === s.id}
                       onClick={() => void decidirSaque(s.id, "recusado")}
-                      className="h-10 rounded-[999px] border border-erro px-4 text-[0.8125rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
+                      className="h-10 rounded-[40px] border border-erro px-4 text-[0.8125rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
                     >
                       {copy.b2b.afiliado.admin.recusarSaque}
                     </button>
@@ -289,7 +289,7 @@ export function AbaAfiliados() {
         {afiliados.map((a) => (
           <li
             key={a.id}
-            className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[10px] border border-linha p-4"
+            className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[8px] border border-linha p-4"
           >
             <div className="min-w-0 grow">
               <p className="font-semibold text-tinta">
@@ -321,13 +321,13 @@ export function AbaAfiliados() {
                 inputMode="decimal"
                 value={pctEdicao[a.id] ?? String(a.pct)}
                 onChange={(e) => setPctEdicao((s) => ({ ...s, [a.id]: e.target.value }))}
-                className="num h-10 w-16 rounded-[6px] border border-linha px-2 text-center outline-none focus:border-violeta"
+                className="num h-10 w-16 rounded-[4px] border border-linha px-2 text-center outline-none focus:border-violeta"
               />
               <button
                 type="button"
                 disabled={salvando === a.id}
                 onClick={() => void salvarPct(a.id)}
-                className="h-10 rounded-[999px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-50"
+                className="h-10 rounded-[40px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-50"
               >
                 {salvoOk === a.id ? copy.b2b.afiliado.admin.salvo : copy.b2b.afiliado.admin.salvarPct}
               </button>
@@ -350,7 +350,7 @@ export function AbaAfiliados() {
                 <span className="num shrink-0">
                   {formatarPreco(s.valorCentavos)}{" "}
                   <span
-                    className={`ml-1 rounded-[999px] px-2 py-0.5 text-[0.6875rem] font-semibold ${
+                    className={`ml-1 rounded-[40px] px-2 py-0.5 text-[0.6875rem] font-semibold ${
                       s.status === "pago"
                         ? "bg-sucesso/10 text-sucesso"
                         : s.status === "recusado"

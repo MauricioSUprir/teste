@@ -67,14 +67,14 @@ export function AbaConfiguracoes() {
 
   return (
     <div className="max-w-3xl">
-      <section className="rounded-[16px] border border-linha bg-white p-5">
+      <section className="rounded-[8px] border border-linha bg-white p-5">
         <h3 className="text-[0.9375rem] font-semibold text-tinta">Conta do administrador</h3>
         <p className="mt-2 text-[0.875rem] text-grafite">
           {ADMIN_EMAIL} · senha protegida por PBKDF2 · verificação em 2 etapas obrigatória
         </p>
       </section>
 
-      <section className="mt-4 rounded-[16px] border border-linha bg-white p-5">
+      <section className="mt-4 rounded-[8px] border border-linha bg-white p-5">
         <h3 className="text-[0.9375rem] font-semibold text-tinta">Integrações</h3>
         <ul className="mt-3 divide-y divide-linha">
           {integracoes.map((i) => (
@@ -87,7 +87,7 @@ export function AbaConfiguracoes() {
                 )}
               </div>
               <span
-                className={`shrink-0 rounded-[999px] px-2.5 py-1 text-[0.6875rem] font-semibold ${
+                className={`shrink-0 rounded-[40px] px-2.5 py-1 text-[0.6875rem] font-semibold ${
                   i.verificando
                     ? "bg-superficie text-cinza"
                     : i.ativa
@@ -102,7 +102,7 @@ export function AbaConfiguracoes() {
         </ul>
       </section>
 
-      <section className="mt-4 rounded-[16px] border border-linha bg-white p-5">
+      <section className="mt-4 rounded-[8px] border border-linha bg-white p-5">
         <h3 className="text-[0.9375rem] font-semibold text-tinta">Referências rápidas</h3>
         <ul className="mt-2 space-y-1.5 text-[0.8125rem] text-grafite">
           <li>• Regras comerciais: Pix -5% · até 6x sem juros · brinde ≥ R$ 250</li>

@@ -25,7 +25,7 @@ export function NossoTime() {
               width={72}
               height={72}
               loading="lazy"
-              className="h-18 w-18 shrink-0 rounded-[999px] object-cover"
+              className="h-18 w-18 shrink-0 rounded-[40px] object-cover"
             />
             <div className="min-w-0">
               <p className="text-[0.9375rem] font-semibold text-tinta">{pessoa.nome}</p>

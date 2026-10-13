@@ -34,9 +34,9 @@ export function Avaliacoes({ produto }: { produto: Produto }) {
               <li key={d.nota} className="flex items-center gap-2 text-[0.8125rem] text-grafite">
                 <span className="num w-3">{d.nota}</span>
                 <span aria-hidden="true" style={{ color: "#E8A317" }}>★</span>
-                <span className="h-1.5 grow overflow-hidden rounded-[999px] bg-linha">
+                <span className="h-1.5 grow overflow-hidden rounded-[40px] bg-linha">
                   <span
-                    className="block h-full rounded-[999px] bg-roxo"
+                    className="block h-full rounded-[40px] bg-roxo"
                     style={{ width: `${total ? (d.qtd / total) * 100 : 0}%` }}
                   />
                 </span>
@@ -48,7 +48,7 @@ export function Avaliacoes({ produto }: { produto: Produto }) {
 
         <ul className="space-y-4">
           {produto.avaliacoes.map((a, i) => (
-            <li key={i} className="rounded-[10px] border border-linha p-4">
+            <li key={i} className="rounded-[8px] border border-linha p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <NotaEstrelas nota={a.nota} />
                 <strong className="text-[0.9375rem]">{a.titulo}</strong>
@@ -61,7 +61,7 @@ export function Avaliacoes({ produto }: { produto: Produto }) {
                   {new Date(`${a.data}T12:00:00`).toLocaleDateString("pt-BR")}
                 </time>
                 {a.compraVerificada && (
-                  <span className="rounded-[999px] bg-violeta-claro px-2 py-0.5 font-medium text-violeta">
+                  <span className="rounded-[40px] bg-violeta-claro px-2 py-0.5 font-medium text-violeta">
                     ✓ {copy.pdp.compraVerificada}
                   </span>
                 )}

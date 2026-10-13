@@ -46,6 +46,7 @@ export const copy = {
   },
   header: {
     busca: "Buscar produto, marca ou necessidade",
+    buscar: "Buscar",
     minhaConta: "Minha conta",
     sacola: "Sacola",
     menu: "Menu",
@@ -70,6 +71,7 @@ export const copy = {
     },
     destaques: {
       maisVendidos: "Mais vendidos",
+      marcasProfissionais: "Marcas Profissionais",
       liberarPrecos: "Liberar preços",
     },
   },
@@ -107,6 +109,60 @@ export const copy = {
     newsletterPlaceholder: "seu@email.com",
     newsletterCta: "Quero receber",
     newsletterOk: "Pronto! Confira seu e-mail para confirmar a inscrição.",
+    irParaBanner: "Ir para o banner",
+    bannerAnterior: "Banner anterior",
+    proximoBanner: "Próximo banner",
+    prateleiraAnterior: "Ver produtos anteriores",
+    prateleiraProxima: "Ver mais produtos",
+    verProdutos: "Ver produtos",
+    vitrines: "Vitrines da loja",
+    vitrinePromocoes: "Em promoção",
+    vitrineLancamentos: "Lançamentos",
+    vitrineCategoria: (nome: string) => `Destaques em ${nome}`,
+    atalhosRotulo: "Atalhos da loja",
+    atalhos: {
+      maisVendidos: "Mais vendidos",
+      cupom: `Cupom ${CUPOM_BOAS_VINDAS.codigo}`,
+      cadastroCnpj: "Cadastre seu CNPJ",
+      brinde: `Brinde acima de ${reais(FAIXA_BRINDE_CENTAVOS)}`,
+      pix: `${DESCONTO_PIX_PCT}% off no Pix`,
+      marcas: "Marcas profissionais",
+      whatsapp: "Fale no WhatsApp",
+      afiliado: "Seja afiliado",
+    },
+    campanha: LOJA.b2b
+      ? {
+          sobretitulo: "Para o seu salão",
+          titulo: "Preço de distribuidora para CNPJ e MEI",
+          texto: "Cadastre o CNPJ e veja na hora os preços de compra profissional.",
+          cta: "Liberar preços",
+          link: "/profissional",
+        }
+      : {
+          sobretitulo: "Presente da casa",
+          titulo: `Brinde nas compras acima de ${reais(FAIXA_BRINDE_CENTAVOS)}`,
+          texto: "O brinde entra sozinho no pedido quando o carrinho passa do valor.",
+          cta: "Aproveite",
+          link: "/categoria/cabelos",
+        },
+    editorial: LOJA.b2b
+      ? {
+          titulo: "Compra de salão",
+          texto: "NF-e em todo pedido, estoque real e entrega rápida para quem trabalha com beleza.",
+          cta: "Saiba mais",
+          link: "/profissional",
+        }
+      : {
+          titulo: "Linha de salão",
+          texto: "Há 15 anos levando marcas profissionais aos salões. Agora, direto para a sua casa.",
+          cta: "Conheça",
+          link: "/institucional/quem-somos",
+        },
+    mosaicoTitulo: "Marcas em destaque",
+    conhecerMarca: "Conhecer a marca",
+    produtosDaMarca: (n: number) => `${n} produtos`,
+    vantagensTitulo: "Por que comprar aqui",
+    legalBanner: "Imagens ilustrativas. Ofertas por tempo limitado ou enquanto durar o estoque.",
   },
   card: {
     adicionar: "Adicionar",
@@ -115,6 +171,11 @@ export const copy = {
     ate: "até",
     semJuros: "sem juros",
     tamanhos: "tamanhos",
+    opcoes: "opções",
+    verOpcoes: "Ver opções",
+    de: "De",
+    ouNoCartao: (preco: string) => `ou ${preco} no cartão`,
+    nota: (nota: string) => `Nota ${nota} de 5`,
     lancamento: "Lançamento",
   },
   plp: {

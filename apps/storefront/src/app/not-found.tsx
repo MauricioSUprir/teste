@@ -12,7 +12,7 @@ export default function NaoEncontrada() {
       </p>
       <Link
         href="/"
-        className="mt-6 rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+        className="mt-6 rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
       >
         Ir para a página inicial
       </Link>

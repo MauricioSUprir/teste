@@ -63,7 +63,7 @@ export function AvaliacoesLoja() {
   return (
     <div className="mx-auto max-w-2xl">
       {/* resumo */}
-      <div className="rounded-[16px] border border-linha bg-white p-6 text-center">
+      <div className="rounded-[8px] border border-linha bg-white p-6 text-center">
         {media !== null ? (
           <>
             <p className="num text-[2.5rem] font-bold leading-none text-tinta">{media.toFixed(1)}</p>
@@ -82,7 +82,7 @@ export function AvaliacoesLoja() {
       </div>
 
       {/* formulário */}
-      <form onSubmit={enviar} className="mt-6 rounded-[16px] border border-linha bg-white p-6">
+      <form onSubmit={enviar} className="mt-6 rounded-[8px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.avaliacoes.deixeAvaliacao}</h2>
         <div className="mt-4 space-y-4">
           <EstrelasEscolha rotulo={copy.avaliacoes.suaNota} valor={nota} aoMudar={setNota} />
@@ -92,7 +92,7 @@ export function AvaliacoesLoja() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               maxLength={80}
-              className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+              className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
             />
           </label>
           <label className="block">
@@ -102,14 +102,14 @@ export function AvaliacoesLoja() {
               onChange={(e) => setTexto(e.target.value)}
               rows={4}
               maxLength={1000}
-              className="mt-1 w-full rounded-[6px] border border-linha bg-white px-3 py-2 text-[0.9375rem] outline-none focus:border-violeta"
+              className="mt-1 w-full rounded-[4px] border border-linha bg-white px-3 py-2 text-[0.9375rem] outline-none focus:border-violeta"
             />
           </label>
         </div>
         {mensagem && (
           <p
             role="alert"
-            className={`mt-3 rounded-[6px] px-3 py-2 text-[0.875rem] font-medium ${
+            className={`mt-3 rounded-[4px] px-3 py-2 text-[0.875rem] font-medium ${
               mensagem.tipo === "ok" ? "bg-[#E7F5EE] text-sucesso" : "bg-roxo-claro text-erro"
             }`}
           >
@@ -119,7 +119,7 @@ export function AvaliacoesLoja() {
         <button
           type="submit"
           disabled={enviando || !servidorConfigurado()}
-          className="mt-4 rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:cursor-not-allowed disabled:bg-cinza"
+          className="mt-4 rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:cursor-not-allowed disabled:bg-cinza"
         >
           {enviando ? copy.avaliacoes.enviando : copy.avaliacoes.enviar}
         </button>
@@ -128,7 +128,7 @@ export function AvaliacoesLoja() {
       {/* lista */}
       <div className="mt-6 space-y-3">
         {avaliacoes.map((a) => (
-          <article key={a.id} className="rounded-[16px] border border-linha bg-white p-5">
+          <article key={a.id} className="rounded-[8px] border border-linha bg-white p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-[0.9375rem] font-semibold text-tinta">{a.nome}</span>
               <EstrelasExibicao nota={a.nota} />

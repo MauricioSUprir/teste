@@ -39,7 +39,7 @@ export function CapturaAfiliado() {
   return (
     <div
       role="status"
-      className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-[12px] bg-tinta px-4 py-3 text-[0.875rem] text-white shadow-lg"
+      className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-[8px] bg-tinta px-4 py-3 text-[0.875rem] text-white shadow-lg"
     >
       <p className="font-medium">
         🛍️ {copy.afiliado.aviso.entrouPeloLink}{" "}

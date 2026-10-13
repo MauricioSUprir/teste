@@ -55,12 +55,10 @@ export function BuscaHeader() {
   }
 
   return (
-    <div ref={raiz} className="relative w-full max-w-xl">
-      <div className="flex items-center rounded-[999px] border border-linha bg-superficie px-4 focus-within:border-violeta">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className="shrink-0 text-cinza">
-          <circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M11 11 L15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
+    <div ref={raiz} className="relative w-full max-w-2xl">
+      {/* design system: campo cinza claro, raio 8, lupa à direita (é o botão
+          de buscar) — sem borda, a borda só aparece no foco */}
+      <div className="flex items-center rounded-[8px] border border-transparent bg-[#f2f2f2] pl-4 focus-within:border-violeta focus-within:bg-white">
         <input
           type="search"
           role="combobox"
@@ -75,15 +73,26 @@ export function BuscaHeader() {
           }}
           onFocus={() => setFocado(true)}
           onKeyDown={aoTeclar}
-          className="h-11 w-full bg-transparent px-3 text-[0.9375rem] text-tinta outline-none placeholder:text-cinza"
+          className="h-11 w-full bg-transparent text-[1rem] text-tinta outline-none placeholder:text-grafite"
         />
+        <button
+          type="button"
+          onClick={irParaBusca}
+          aria-label={copy.header.buscar}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] text-tinta hover:text-roxo"
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+            <path d="M11 11 L15 15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
 
       {aberto && (
         <div
           id="busca-sugestoes"
           role="listbox"
-          className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[10px] border border-linha bg-white shadow-drawer"
+          className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[8px] border border-linha bg-white shadow-drawer"
         >
           <p className="px-4 pb-1 pt-3 text-[0.75rem] font-medium uppercase tracking-wide text-cinza">
             {copy.busca.sugestoes}
@@ -100,7 +109,7 @@ export function BuscaHeader() {
                       i === indiceAtivo ? "bg-superficie" : "hover:bg-superficie"
                     }`}
                   >
-                    <span className="w-12 shrink-0 overflow-hidden rounded-[6px] border border-linha">
+                    <span className="w-12 shrink-0 overflow-hidden rounded-[4px] border border-linha">
                       <ImagemProduto produto={p} alt="" />
                     </span>
                     <span className="min-w-0">

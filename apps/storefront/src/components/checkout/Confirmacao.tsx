@@ -133,7 +133,7 @@ export function Confirmacao() {
       )}
 
       {(!pedido || pedido.meio === "pix") && !aprovado && (
-        <div className="mt-8 w-full max-w-md rounded-[16px] border border-linha p-6">
+        <div className="mt-8 w-full max-w-md rounded-[8px] border border-linha p-6">
           <h2 className="font-titulo text-[1.125rem] font-semibold">
             {copy.confirmacao.pixTitulo}
           </h2>
@@ -145,7 +145,7 @@ export function Confirmacao() {
               <img
                 src={`data:image/png;base64,${pixReal.qrBase64}`}
                 alt="QR Code Pix do seu pedido"
-                className="mx-auto mt-4 w-52 rounded-[10px] border border-linha p-2"
+                className="mx-auto mt-4 w-52 rounded-[8px] border border-linha p-2"
               />
               <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.8125rem] text-grafite">
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sucesso" aria-hidden="true" />
@@ -157,7 +157,7 @@ export function Confirmacao() {
             <svg
               viewBox="0 0 84 84"
               aria-label="QR Code Pix de demonstração"
-              className="mx-auto mt-4 w-40 rounded-[10px] border border-linha p-2"
+              className="mx-auto mt-4 w-40 rounded-[8px] border border-linha p-2"
             >
               {Array.from({ length: 21 }, (_, y) =>
                 Array.from({ length: 21 }, (_, x) => {
@@ -177,7 +177,7 @@ export function Confirmacao() {
           <button
             type="button"
             onClick={copiar}
-            className="mt-4 w-full rounded-[999px] bg-sucesso py-3 text-[0.9375rem] font-semibold text-white hover:opacity-90"
+            className="mt-4 w-full rounded-[40px] bg-sucesso py-3 text-[0.9375rem] font-semibold text-white hover:opacity-90"
           >
             {copiado ? `✓ ${copy.confirmacao.pixCopiado}` : copy.confirmacao.pixCopiar}
           </button>
@@ -185,13 +185,13 @@ export function Confirmacao() {
       )}
 
       {aprovado && (
-        <p className="mt-8 rounded-[16px] bg-[#E7F5EE] px-6 py-4 text-[0.9375rem] font-medium text-sucesso">
+        <p className="mt-8 rounded-[8px] bg-[#E7F5EE] px-6 py-4 text-[0.9375rem] font-medium text-sucesso">
           ✓ Pix recebido! Seu pedido já entrou na fila de separação.
         </p>
       )}
 
       {/* o que acontece agora — a pessoa sai da página sabendo o próximo passo */}
-      <section aria-labelledby="proximos-passos" className="mt-8 rounded-[16px] bg-superficie px-6 py-5 text-left">
+      <section aria-labelledby="proximos-passos" className="mt-8 rounded-[8px] bg-superficie px-6 py-5 text-left">
         <h2 id="proximos-passos" className="font-titulo text-[1.0625rem] font-semibold">
           {copy.confirmacao.proximosTitulo}
         </h2>
@@ -200,7 +200,7 @@ export function Confirmacao() {
             <li key={passo} className="flex gap-2.5">
               <span
                 aria-hidden="true"
-                className="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[999px] bg-roxo text-[0.75rem] font-bold text-white"
+                className="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[40px] bg-roxo text-[0.75rem] font-bold text-white"
               >
                 {i + 1}
               </span>
@@ -233,13 +233,13 @@ export function Confirmacao() {
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link
           href="/conta"
-          className="rounded-[999px] border-2 border-tinta px-6 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
+          className="rounded-[40px] border-2 border-tinta px-6 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
         >
           {copy.confirmacao.acompanhar}
         </Link>
         <Link
           href="/"
-          className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           {copy.checkout.voltarLoja}
         </Link>

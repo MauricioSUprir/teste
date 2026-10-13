@@ -57,7 +57,7 @@ export function CasesDaLoja() {
         {cases.map((c, i) => (
           <li
             key={`${c.nome}-${i}`}
-            className="rounded-[12px] border border-linha bg-white p-5 shadow-card"
+            className="rounded-[8px] border border-linha bg-white p-5 shadow-card"
           >
             <EstrelasExibicao nota={c.nota} />
             <blockquote className="mt-3 text-[0.9375rem] leading-relaxed text-grafite">

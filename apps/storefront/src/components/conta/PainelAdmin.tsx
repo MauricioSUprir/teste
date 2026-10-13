@@ -83,7 +83,7 @@ export function PainelAdmin() {
         <Suspense fallback={null}>
           <HandoffAdmin />
         </Suspense>
-        <div className="mt-6 rounded-[16px] border border-linha bg-white p-6">
+        <div className="mt-6 rounded-[8px] border border-linha bg-white p-6">
           <FormEntrar destino="/admin" />
         </div>
       </div>
@@ -125,7 +125,7 @@ export function PainelAdmin() {
           >
             {a.rotulo}
             {a.id === "pedidos" && pedidos.length > 0 && (
-              <span className="num ml-1.5 rounded-[999px] bg-roxo-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-roxo">
+              <span className="num ml-1.5 rounded-[40px] bg-roxo-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-roxo">
                 {pedidos.length}
               </span>
             )}

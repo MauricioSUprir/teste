@@ -121,7 +121,7 @@ export function AbaCatalogo() {
   return (
     <div>
       {!catalogoReal && (
-        <p className="mb-4 rounded-[10px] border border-violeta/30 bg-violeta-claro px-4 py-3 text-[0.8125rem] text-grafite">
+        <p className="mb-4 rounded-[8px] border border-violeta/30 bg-violeta-claro px-4 py-3 text-[0.8125rem] text-grafite">
           Catálogo de demonstração. Assim que a importação do Hub Suprir rodar, os 1.222 produtos
           reais aparecem aqui e em toda a loja. Produtos adicionados manualmente ficam salvos
           neste navegador.
@@ -153,19 +153,19 @@ export function AbaCatalogo() {
             }}
             placeholder="Buscar por nome, SKU ou marca"
             aria-label="Buscar no catálogo"
-            className="h-10 w-60 rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+            className="h-10 w-60 rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
           />
           <button
             type="button"
             onClick={exportarCsv}
-            className="h-10 rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:bg-superficie"
+            className="h-10 rounded-[40px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:bg-superficie"
           >
             ⬇ CSV
           </button>
           <button
             type="button"
             onClick={() => setFormAberto((a) => !a)}
-            className="h-10 rounded-[999px] bg-roxo px-5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+            className="h-10 rounded-[40px] bg-roxo px-5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
           >
             {formAberto ? "Fechar formulário" : "+ Adicionar produto"}
           </button>
@@ -181,7 +181,7 @@ export function AbaCatalogo() {
         />
       )}
 
-      <div className="mt-4 overflow-x-auto rounded-[10px] border border-linha">
+      <div className="mt-4 overflow-x-auto rounded-[8px] border border-linha">
         <table className="w-full min-w-[760px] text-[0.875rem]">
           <thead>
             <tr className="bg-superficie text-left text-[0.75rem] uppercase tracking-wide text-cinza">
@@ -248,7 +248,7 @@ export function AbaCatalogo() {
         <button
           type="button"
           onClick={() => setVisiveis((n) => n + 50)}
-          className="num mt-3 rounded-[999px] border border-linha px-5 py-2 text-[0.875rem] font-medium text-grafite hover:bg-superficie"
+          className="num mt-3 rounded-[40px] border border-linha px-5 py-2 text-[0.875rem] font-medium text-grafite hover:bg-superficie"
         >
           Mostrar mais ({linhas.length - visiveis} restantes)
         </button>
@@ -290,22 +290,22 @@ function FragmentoLinha({
             <span className="text-cinza"> · {variante.tituloVariacao}</span>
           )}
           {p.local && (
-            <span className="ml-2 rounded-[6px] bg-violeta-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-violeta">
+            <span className="ml-2 rounded-[4px] bg-violeta-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-violeta">
               criado no painel
             </span>
           )}
           {linha.editado && !linha.excluido && (
-            <span className="ml-2 rounded-[6px] bg-roxo-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-roxo">
+            <span className="ml-2 rounded-[4px] bg-roxo-claro px-1.5 py-0.5 text-[0.6875rem] font-semibold text-roxo">
               editado
             </span>
           )}
           {linha.excluido && (
-            <span className="ml-2 rounded-[6px] bg-superficie px-1.5 py-0.5 text-[0.6875rem] font-semibold text-cinza">
+            <span className="ml-2 rounded-[4px] bg-superficie px-1.5 py-0.5 text-[0.6875rem] font-semibold text-cinza">
               excluído da loja
             </span>
           )}
           {!disponivel && !linha.excluido && (
-            <span className="ml-2 rounded-[6px] bg-erro/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-erro">
+            <span className="ml-2 rounded-[4px] bg-erro/10 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-erro">
               esgotado
             </span>
           )}
@@ -446,7 +446,7 @@ function FormEditarProduto({
         <select
           value={marca}
           onChange={(e) => setMarca(e.target.value)}
-          className="mt-1 h-10 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+          className="mt-1 h-10 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
         >
           {marcas.map((m) => (
             <option key={m.slug} value={m.slug}>
@@ -469,7 +469,7 @@ function FormEditarProduto({
           type="submit"
           disabled={salvando}
           aria-busy={salvando}
-          className="h-10 rounded-[999px] bg-roxo px-5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
+          className="h-10 rounded-[40px] bg-roxo px-5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
         >
           {salvando ? "Salvando…" : "Salvar"}
         </button>
@@ -531,7 +531,7 @@ function FormNovoProduto({ aoCriar }: { aoCriar: () => void }) {
   }
 
   return (
-    <form onSubmit={criar} className="mt-4 rounded-[16px] border border-linha bg-white p-5">
+    <form onSubmit={criar} className="mt-4 rounded-[8px] border border-linha bg-white p-5">
       <h2 className="font-titulo text-[1.125rem] font-semibold">Novo produto</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <CampoAdmin rotulo="Nome do produto" valor={titulo} aoMudar={setTitulo} classeExtra="sm:col-span-2" />
@@ -540,7 +540,7 @@ function FormNovoProduto({ aoCriar }: { aoCriar: () => void }) {
           <select
             value={marca}
             onChange={(e) => setMarca(e.target.value)}
-            className="mt-1 h-10 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+            className="mt-1 h-10 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
           >
             {marcas.map((m) => (
               <option key={m.slug} value={m.slug}>
@@ -554,7 +554,7 @@ function FormNovoProduto({ aoCriar }: { aoCriar: () => void }) {
           <select
             value={categoria}
             onChange={(e) => setCategoria(e.target.value)}
-            className="mt-1 h-10 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+            className="mt-1 h-10 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
           >
             {categorias.map((c) => (
               <option key={c.slug} value={c.slug}>
@@ -578,7 +578,7 @@ function FormNovoProduto({ aoCriar }: { aoCriar: () => void }) {
             value={descricao}
             onChange={(e) => setDescricao(e.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-[6px] border border-linha bg-white px-3 py-2 text-[0.875rem] outline-none focus:border-violeta"
+            className="mt-1 w-full rounded-[4px] border border-linha bg-white px-3 py-2 text-[0.875rem] outline-none focus:border-violeta"
           />
         </label>
         <label className="flex items-center gap-2 text-[0.875rem] text-grafite sm:col-span-2">
@@ -598,7 +598,7 @@ function FormNovoProduto({ aoCriar }: { aoCriar: () => void }) {
       )}
       <button
         type="submit"
-        className="mt-4 rounded-[999px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+        className="mt-4 rounded-[40px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
       >
         Criar produto
       </button>
@@ -634,7 +634,7 @@ function CampoAdmin({
         value={valor}
         onChange={(e) => aoMudar(e.target.value)}
         placeholder={placeholder}
-        className={`mt-1 h-10 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta ${numerico ? "num" : ""}`}
+        className={`mt-1 h-10 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta ${numerico ? "num" : ""}`}
       />
     </label>
   );
@@ -642,7 +642,7 @@ function CampoAdmin({
 
 function Cartao({ valor, rotulo, alerta = false }: { valor: string; rotulo: string; alerta?: boolean }) {
   return (
-    <div className="rounded-[16px] border border-linha bg-white px-4 py-3">
+    <div className="rounded-[8px] border border-linha bg-white px-4 py-3">
       <p className={`num text-[1.25rem] font-bold leading-none ${alerta ? "text-alerta" : "text-tinta"}`}>{valor}</p>
       <p className="mt-1 text-[0.75rem] text-grafite">{rotulo}</p>
     </div>

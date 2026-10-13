@@ -57,14 +57,14 @@ export function BotaoConectarLojaIrma() {
             href={destino.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[999px] px-4 text-[0.875rem] font-semibold text-white shadow-card transition-colors"
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[40px] px-4 text-[0.875rem] font-semibold text-white shadow-card transition-colors"
             style={{ background: destino.cor }}
             onMouseEnter={(e) => (e.currentTarget.style.background = destino.corHover)}
             onMouseLeave={(e) => (e.currentTarget.style.background = destino.cor)}
           >
             <span
               aria-hidden="true"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] bg-white/15 text-[0.6875rem] font-extrabold tracking-tight"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[4px] bg-white/15 text-[0.6875rem] font-extrabold tracking-tight"
             >
               {destino.marca}
             </span>

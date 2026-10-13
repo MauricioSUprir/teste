@@ -18,7 +18,7 @@ export function MapaERotas() {
       <p className="mt-2 text-[0.9375rem] text-grafite">{enderecoEmLinha(e)}</p>
       <p className="mt-1 text-[0.875rem] text-cinza">{NEGOCIO.horario}</p>
 
-      <div className="mt-4 overflow-hidden rounded-[12px] border border-linha">
+      <div className="mt-4 overflow-hidden rounded-[8px] border border-linha">
         <iframe
           title={`Mapa de ${e.rua}, ${e.cidade}/${e.uf}`}
           src={`https://maps.google.com/maps?q=${consulta}&z=16&output=embed`}
@@ -33,7 +33,7 @@ export function MapaERotas() {
           href={`https://www.google.com/maps/dir/?api=1&destination=${consulta}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-11 items-center rounded-[999px] bg-roxo px-5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          className="inline-flex h-11 items-center rounded-[40px] bg-roxo px-5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           Traçar rota até aqui
         </a>
@@ -41,7 +41,7 @@ export function MapaERotas() {
           href={`https://www.google.com/maps/search/?api=1&query=${consulta}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-11 items-center rounded-[999px] border border-linha px-5 text-[0.9375rem] font-semibold text-grafite hover:border-roxo hover:text-roxo"
+          className="inline-flex h-11 items-center rounded-[40px] border border-linha px-5 text-[0.9375rem] font-semibold text-grafite hover:border-roxo hover:text-roxo"
         >
           Abrir no Google Maps
         </a>

@@ -4,30 +4,30 @@
  */
 :root {
   /* Marca */
-  --bn-roxo: #4A2882;
-  --bn-roxo-escuro: #381D65;
-  --bn-roxo-claro: #F2EDFA;
-  --bn-violeta: #6847C8;
-  --bn-violeta-claro: #EFEBFA;
+  --bn-roxo: #6B2BD9;
+  --bn-roxo-escuro: #3E1A8C;
+  --bn-roxo-claro: #F1EAFD;
+  --bn-violeta: #2F5BEA;
+  --bn-violeta-claro: #E9EEFD;
 
   /* Neutros — cinza escurecido para passar em contraste (4,5:1 em branco
      e na superfície), exigência de acessibilidade do projeto */
-  --bn-tinta: #14161A;
-  --bn-grafite: #4A4F57;
-  --bn-cinza: #697078;
-  --bn-linha: #E4E6EA;
-  --bn-superficie: #F7F8FA;
+  --bn-tinta: #212121;
+  --bn-grafite: #4A4A4A;
+  --bn-cinza: #707070;
+  --bn-linha: #EBEBEB;
+  --bn-superficie: #F5F4F8;
   --bn-branco: #FFFFFF;
 
   /* Semânticos */
   --bn-sucesso: #17794C;
   --bn-alerta: #8C5A0A;
   --bn-erro: #C6273E;
-  --bn-oferta: #381D65;
+  --bn-oferta: #3E1A8C;
 
   /* Tipografia */
-  --fonte-titulo: var(--font-fraunces), Georgia, serif;
-  --fonte-texto: var(--font-inter), -apple-system, sans-serif;
+  --fonte-titulo: var(--font-jost), system-ui, sans-serif;
+  --fonte-texto: var(--font-jost), system-ui, sans-serif;
   --fonte-numero: var(--font-inter), sans-serif;
 
   /* Escala tipográfica (mobile → desktop com clamp) */

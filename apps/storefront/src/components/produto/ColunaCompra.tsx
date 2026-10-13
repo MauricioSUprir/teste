@@ -87,7 +87,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
                 {formatarPreco(variante.precoPor)}
               </span>
               {desconto !== null && (
-                <span className="rounded-[6px] bg-oferta px-1.5 py-1 text-[0.8125rem] font-bold text-white num">
+                <span className="rounded-[4px] bg-oferta px-1.5 py-1 text-[0.8125rem] font-bold text-white num">
                   -{desconto}%
                 </span>
               )}
@@ -135,7 +135,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
                   setQuantidade(1);
                   setFretes(null);
                 }}
-                className={`min-h-[44px] rounded-[999px] border px-4 text-[0.875rem] font-medium transition-colors ${
+                className={`min-h-[44px] rounded-[40px] border px-4 text-[0.875rem] font-medium transition-colors ${
                   v.sku === skuAtivo
                     ? "border-roxo bg-roxo-claro text-roxo-escuro"
                     : v.estoque === 0
@@ -170,7 +170,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
             </span>
           </p>
           <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-white px-4 pb-4 pt-2 md:static md:mx-0 md:mt-5 md:border-0 md:p-0">
-            <div className="flex items-center rounded-[999px] border border-linha">
+            <div className="flex items-center rounded-[40px] border border-linha">
               <button
                 type="button"
                 aria-label="Diminuir quantidade"
@@ -196,7 +196,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
             <button
               type="button"
               onClick={adicionar}
-              className={`h-12 grow rounded-[999px] text-[1rem] font-semibold text-white transition-colors ${
+              className={`h-12 grow rounded-[40px] text-[1rem] font-semibold text-white transition-colors ${
                 feedback ? "bg-sucesso" : "bg-roxo hover:bg-roxo-escuro"
               }`}
             >
@@ -208,7 +208,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
           <div aria-hidden="true" className="h-2 md:hidden" />
 
           {/* frete por CEP dentro da PDP — decisão de PRD */}
-          <form onSubmit={calcular} className="mt-5 rounded-[10px] bg-superficie p-4">
+          <form onSubmit={calcular} className="mt-5 rounded-[8px] bg-superficie p-4">
             <label htmlFor="cep-pdp" className="flex items-center gap-1.5 text-[0.875rem] font-medium text-tinta">
               📍 {copy.pdp.calcularFrete}
             </label>
@@ -223,11 +223,11 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
                 onChange={(e) => setCep(e.target.value)}
                 aria-invalid={erroCep}
                 aria-describedby={erroCep ? "cep-erro" : undefined}
-                className="h-11 w-36 rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] num outline-none focus:border-violeta"
+                className="h-11 w-36 rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] num outline-none focus:border-violeta"
               />
               <button
                 type="submit"
-                className="h-11 rounded-[6px] bg-violeta px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
+                className="h-11 rounded-[4px] bg-violeta px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
               >
                 {copy.pdp.calcular}
               </button>
@@ -242,7 +242,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
                 {fretes.map((f) => (
                   <li
                     key={f.id}
-                    className="flex items-baseline justify-between rounded-[6px] bg-white px-3 py-2 text-[0.875rem]"
+                    className="flex items-baseline justify-between rounded-[4px] bg-white px-3 py-2 text-[0.875rem]"
                   >
                     <span className="text-grafite">
                       {f.nome} · Chega até <strong className="num">{f.dataPrevista}</strong>
@@ -258,7 +258,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
         </>
       ) : (
         /* estado esgotado com avise-me — ticket 3.8 */
-        <div className="mt-5 rounded-[10px] bg-superficie p-4">
+        <div className="mt-5 rounded-[8px] bg-superficie p-4">
           {aviseMeOk ? (
             <p role="status" className="text-[0.9375rem] font-medium text-sucesso">
               {copy.pdp.aviseMeOk}
@@ -283,11 +283,11 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
                   placeholder="seu@email.com"
                   value={aviseMeEmail}
                   onChange={(e) => setAviseMeEmail(e.target.value)}
-                  className="h-11 grow rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+                  className="h-11 grow rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
                 />
                 <button
                   type="submit"
-                  className="h-11 shrink-0 rounded-[6px] bg-violeta px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
+                  className="h-11 shrink-0 rounded-[4px] bg-violeta px-5 text-[0.875rem] font-semibold text-white hover:opacity-90"
                 >
                   Avisar
                 </button>

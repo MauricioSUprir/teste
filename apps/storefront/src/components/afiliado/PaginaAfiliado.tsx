@@ -37,7 +37,7 @@ function Conteudo() {
     return (
       <div>
         {cabecalho}
-        <div className="rounded-[16px] border border-linha p-6">
+        <div className="rounded-[8px] border border-linha p-6">
           <h2 className="font-titulo text-[1.25rem] font-semibold text-tinta">
             {copy.afiliado.statusPendenteTitulo}
           </h2>
@@ -45,7 +45,7 @@ function Conteudo() {
           <button
             type="button"
             onClick={() => void afiliado.verificar()}
-            className="mt-4 h-11 rounded-[999px] border border-roxo px-5 text-[0.875rem] font-semibold text-roxo hover:bg-roxo-claro"
+            className="mt-4 h-11 rounded-[40px] border border-roxo px-5 text-[0.875rem] font-semibold text-roxo hover:bg-roxo-claro"
           >
             {copy.afiliado.verificarNovamente}
           </button>
@@ -58,7 +58,7 @@ function Conteudo() {
     return (
       <div>
         {cabecalho}
-        <div className="rounded-[16px] border border-linha p-6">
+        <div className="rounded-[8px] border border-linha p-6">
           <h2 className="font-titulo text-[1.25rem] font-semibold text-tinta">
             {copy.afiliado.statusRecusadoTitulo}
           </h2>

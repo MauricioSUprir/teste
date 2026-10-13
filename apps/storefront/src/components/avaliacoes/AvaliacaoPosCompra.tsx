@@ -28,7 +28,7 @@ export function AvaliacaoPosCompra({
 
   if (enviada) {
     return (
-      <div className="mt-8 w-full max-w-md rounded-[16px] bg-[#E7F5EE] p-6 text-center">
+      <div className="mt-8 w-full max-w-md rounded-[8px] bg-[#E7F5EE] p-6 text-center">
         <p className="text-[0.9375rem] font-medium text-sucesso">{copy.avaliacoes.obrigado}</p>
         <Link href="/avaliacoes" className="mt-2 inline-block text-[0.875rem] font-medium text-violeta underline">
           {copy.avaliacoes.titulo} →
@@ -62,7 +62,7 @@ export function AvaliacaoPosCompra({
   }
 
   return (
-    <form onSubmit={enviar} className="mt-8 w-full max-w-md rounded-[16px] border border-linha bg-white p-6 text-left">
+    <form onSubmit={enviar} className="mt-8 w-full max-w-md rounded-[8px] border border-linha bg-white p-6 text-left">
       <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.avaliacoes.posCompraTitulo}</h2>
       <p className="mt-1 text-[0.8125rem] text-grafite">{copy.avaliacoes.posCompraTexto}</p>
       <div className="mt-4 space-y-3">
@@ -74,18 +74,18 @@ export function AvaliacaoPosCompra({
           rows={3}
           maxLength={1000}
           placeholder={copy.avaliacoes.seuComentario}
-          className="w-full rounded-[6px] border border-linha bg-white px-3 py-2 text-[0.9375rem] outline-none focus:border-violeta"
+          className="w-full rounded-[4px] border border-linha bg-white px-3 py-2 text-[0.9375rem] outline-none focus:border-violeta"
         />
       </div>
       {erro && (
-        <p role="alert" className="mt-2 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
+        <p role="alert" className="mt-2 rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
           {erro}
         </p>
       )}
       <button
         type="submit"
         disabled={enviando}
-        className="mt-3 w-full rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
+        className="mt-3 w-full rounded-[40px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
       >
         {enviando ? copy.avaliacoes.enviando : copy.avaliacoes.enviar}
       </button>

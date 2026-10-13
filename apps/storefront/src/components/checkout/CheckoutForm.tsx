@@ -265,7 +265,7 @@ export function CheckoutForm() {
         <p className="text-[1rem] text-grafite">{copy.carrinho.vazio}</p>
         <Link
           href="/"
-          className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           {copy.checkout.voltarLoja}
         </Link>
@@ -298,13 +298,13 @@ export function CheckoutForm() {
           <div className="mt-6 flex flex-col gap-3">
             <Link
               href="/conta"
-              className="rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+              className="rounded-[40px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
             >
               {copy.checkout.precisaContaEntrar}
             </Link>
             <Link
               href="/conta/criar"
-              className="rounded-[999px] border-2 border-roxo py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
+              className="rounded-[40px] border-2 border-roxo py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
             >
               {copy.checkout.precisaContaCriar}
             </Link>
@@ -458,7 +458,7 @@ export function CheckoutForm() {
                   {fretes.map((f) => (
                     <label
                       key={f.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-[10px] border px-4 py-3 text-[0.875rem] ${
+                      className={`flex cursor-pointer items-center justify-between rounded-[8px] border px-4 py-3 text-[0.875rem] ${
                         freteEscolhido === f.id ? "border-roxo bg-roxo-claro" : "border-linha bg-white"
                       }`}
                     >
@@ -497,7 +497,7 @@ export function CheckoutForm() {
               ).map(([id, rotulo, detalhe]) => (
                 <label
                   key={id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-[10px] border px-4 py-3.5 ${
+                  className={`flex cursor-pointer items-center gap-3 rounded-[8px] border px-4 py-3.5 ${
                     meio === id ? "border-roxo bg-roxo-claro" : "border-linha bg-white"
                   }`}
                 >
@@ -513,7 +513,7 @@ export function CheckoutForm() {
                     <span className="block text-[0.9375rem] font-semibold">
                       {rotulo}
                       {id === "pix" && (
-                        <span className="num ml-2 rounded-[6px] bg-sucesso px-1.5 py-0.5 text-[0.6875rem] font-bold text-white">
+                        <span className="num ml-2 rounded-[4px] bg-sucesso px-1.5 py-0.5 text-[0.6875rem] font-bold text-white">
                           -5%
                         </span>
                       )}
@@ -538,7 +538,7 @@ export function CheckoutForm() {
                 value={vendedorUsuario}
                 onChange={(e) => setVendedorUsuario(e.target.value.toUpperCase())}
                 placeholder="MARIA#22"
-                className="num mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta sm:max-w-xs"
+                className="num mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta sm:max-w-xs"
               />
               <span className="mt-1 block text-[0.75rem] text-cinza">
                 {copy.checkout.vendedorDica}
@@ -549,14 +549,14 @@ export function CheckoutForm() {
 
         {/* resumo fixo */}
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-[16px] border border-linha bg-white p-5">
+          <div className="rounded-[8px] border border-linha bg-white p-5">
             <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.checkout.resumo}</h2>
             <ul className="mt-3 space-y-3 border-b border-linha pb-3">
               {carrinho.itens.map((item) => (
                 <li key={item.sku} className="flex items-center gap-3 text-[0.875rem]">
-                  <span className="relative w-12 shrink-0 overflow-hidden rounded-[6px] border border-linha">
+                  <span className="relative w-12 shrink-0 overflow-hidden rounded-[4px] border border-linha">
                     <ImagemProduto produto={item.produto} alt="" />
-                    <span className="num absolute right-0 top-0 rounded-bl-[6px] bg-tinta/75 px-1 text-[0.6875rem] font-semibold text-white">
+                    <span className="num absolute right-0 top-0 rounded-bl-[4px] bg-tinta/75 px-1 text-[0.6875rem] font-semibold text-white">
                       {item.quantidade}
                     </span>
                   </span>
@@ -604,12 +604,12 @@ export function CheckoutForm() {
             </dl>
 
             {erro && (
-              <p role="alert" className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
+              <p role="alert" className="mt-3 rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
                 {erro}
               </p>
             )}
             {abaixoDoMinimo && (
-              <p className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
+              <p className="mt-3 rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
                 {copy.carrinho.pedidoMinimo(formatarPreco(PEDIDO_MINIMO_CENTAVOS))}
               </p>
             )}
@@ -617,12 +617,12 @@ export function CheckoutForm() {
             <button
               type="submit"
               disabled={abaixoDoMinimo || enviando}
-              className="mt-4 w-full rounded-[999px] bg-roxo py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:cursor-not-allowed disabled:bg-cinza"
+              className="mt-4 w-full rounded-[40px] bg-roxo py-3.5 text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:cursor-not-allowed disabled:bg-cinza"
             >
               {enviando ? "Processando…" : copy.checkout.concluir}
             </button>
             {enviando && (
-              <p role="status" className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-center text-[0.8125rem] font-medium text-roxo-escuro">
+              <p role="status" className="mt-3 rounded-[4px] bg-roxo-claro px-3 py-2 text-center text-[0.8125rem] font-medium text-roxo-escuro">
                 ⏳ {etapa || "Processando…"} Não feche esta página.
               </p>
             )}
@@ -646,7 +646,7 @@ function Bloco({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[16px] border border-linha bg-white p-5">
+    <section className="rounded-[8px] border border-linha bg-white p-5">
       <h2 className="flex items-center gap-2.5 font-titulo text-[1.125rem] font-semibold">
         <span className="num flex h-7 w-7 items-center justify-center rounded-full bg-tinta text-[0.875rem] font-bold text-white">
           {numero}
@@ -699,7 +699,7 @@ function Campo({
         autoComplete={autoComplete}
         inputMode={inputMode}
         readOnly={somenteLeitura}
-        className={`mt-1 h-11 w-full rounded-[6px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta ${
+        className={`mt-1 h-11 w-full rounded-[4px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta ${
           somenteLeitura ? "bg-superficie text-grafite" : "bg-white"
         }`}
       />

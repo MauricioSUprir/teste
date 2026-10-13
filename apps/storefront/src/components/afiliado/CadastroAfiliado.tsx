@@ -32,7 +32,7 @@ function formatarCnpj(valor: string): string {
 }
 
 const classeCampo =
-  "h-12 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta";
+  "h-12 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta";
 
 export function CadastroAfiliado() {
   const afiliado = useAfiliado();
@@ -80,7 +80,7 @@ export function CadastroAfiliado() {
   }
 
   return (
-    <form onSubmit={enviar} className="rounded-[16px] border border-linha p-6">
+    <form onSubmit={enviar} className="rounded-[8px] border border-linha p-6">
       <h2 className="font-titulo text-[1.25rem] font-semibold text-tinta">{copy.afiliado.cadastroTitulo}</h2>
       <p className="mt-1 text-[0.9375rem] text-grafite">{copy.afiliado.cadastroTexto}</p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -153,7 +153,7 @@ export function CadastroAfiliado() {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-5 h-12 w-full rounded-[999px] bg-roxo text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60 sm:w-auto sm:px-8"
+        className="mt-5 h-12 w-full rounded-[40px] bg-roxo text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60 sm:w-auto sm:px-8"
       >
         {enviando ? copy.afiliado.enviando : copy.afiliado.enviar}
       </button>

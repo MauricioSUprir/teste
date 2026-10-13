@@ -58,7 +58,7 @@ export function PaginaConta() {
         <h1 className="font-titulo text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
           {copy.conta.entrarTitulo}
         </h1>
-        <div className="mt-6 rounded-[16px] border border-linha bg-white p-6">
+        <div className="mt-6 rounded-[8px] border border-linha bg-white p-6">
           <FormEntrar />
         </div>
       </div>
@@ -76,13 +76,13 @@ export function PaginaConta() {
       {u.admin && (
         <Link
           href="/admin"
-          className="mt-4 inline-block rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          className="mt-4 inline-block rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           {copy.conta.painelAdmin} →
         </Link>
       )}
 
-      <section className="mt-6 rounded-[16px] border border-linha bg-white p-6">
+      <section className="mt-6 rounded-[8px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.meusDados}</h2>
         <dl className="mt-3 space-y-1.5 text-[0.9375rem]">
           <div className="flex gap-2">
@@ -95,13 +95,13 @@ export function PaginaConta() {
           </div>
         </dl>
         {u.viaGoogle && (
-          <p className="mt-3 inline-block rounded-[999px] bg-violeta-claro px-3 py-1 text-[0.75rem] font-medium text-violeta">
+          <p className="mt-3 inline-block rounded-[40px] bg-violeta-claro px-3 py-1 text-[0.75rem] font-medium text-violeta">
             {copy.conta.contaGoogle}
           </p>
         )}
       </section>
 
-      <section className="mt-4 rounded-[16px] border border-linha bg-white p-6">
+      <section className="mt-4 rounded-[8px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.endereco}</h2>
         {u.cep ? (
           <dl className="mt-3 space-y-1.5 text-[0.9375rem]">
@@ -126,7 +126,7 @@ export function PaginaConta() {
       </section>
 
       {/* âncoras dos atalhos do topo; scroll-mt desconta o cabeçalho fixo */}
-      <section id="pedidos" className="mt-4 scroll-mt-36 rounded-[16px] border border-linha bg-white p-6">
+      <section id="pedidos" className="mt-4 scroll-mt-36 rounded-[8px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">Meus pedidos</h2>
         {meusPedidos.length === 0 ? (
           <p className="mt-3 text-[0.9375rem] text-grafite">
@@ -151,7 +151,7 @@ export function PaginaConta() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="num text-[0.9375rem] font-semibold">{formatarPreco(p.totalCentavos)}</span>
-                  <span className={`rounded-[999px] px-2.5 py-1 text-[0.6875rem] font-semibold ${corStatus[p.status]}`}>
+                  <span className={`rounded-[40px] px-2.5 py-1 text-[0.6875rem] font-semibold ${corStatus[p.status]}`}>
                     {rotuloStatus[p.status]}
                   </span>
                 </div>
@@ -164,7 +164,7 @@ export function PaginaConta() {
       {/* qualquer cliente pode pedir para virar afiliado — a aprovação é do admin */}
       <SecaoAfiliadoConta />
 
-      <section id="favoritos" className="mt-4 scroll-mt-36 rounded-[16px] border border-linha bg-white p-6">
+      <section id="favoritos" className="mt-4 scroll-mt-36 rounded-[8px] border border-linha bg-white p-6">
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.favoritos}</h2>
         {produtosFavoritos.length === 0 ? (
           <p className="mt-3 text-[0.9375rem] text-grafite">{copy.conta.favoritosVazio}</p>
@@ -180,7 +180,7 @@ export function PaginaConta() {
       <button
         type="button"
         onClick={conta.sair}
-        className="mt-6 rounded-[999px] border-2 border-tinta px-6 py-2.5 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
+        className="mt-6 rounded-[40px] border-2 border-tinta px-6 py-2.5 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
       >
         {copy.conta.sair}
       </button>

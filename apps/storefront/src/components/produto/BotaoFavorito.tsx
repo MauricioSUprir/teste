@@ -19,13 +19,13 @@ export function BotaoFavorito({ slug, classeExtra = "" }: { slug: string; classe
         e.stopPropagation();
         favoritos.alternar(slug);
       }}
-      className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm transition-transform hover:scale-110 ${classeExtra}`}
+      className={`flex h-9 w-9 items-center justify-center rounded-[40px] bg-white/90 transition-transform hover:scale-110 ${classeExtra}`}
     >
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M12 21c-4.8-3.5-8.5-6.6-8.5-10.4C3.5 7.5 5.9 5.5 8.5 5.5c1.4 0 2.7.6 3.5 1.7.8-1.1 2.1-1.7 3.5-1.7 2.6 0 5 2 5 5.1C20.5 14.4 16.8 17.5 12 21z"
-          fill={ativo ? "#6847C8" : "none"}
-          stroke={ativo ? "#6847C8" : "#6B7280"}
+          fill={ativo ? "var(--color-roxo)" : "none"}
+          stroke={ativo ? "var(--color-roxo)" : "var(--color-grafite)"}
           strokeWidth="1.6"
           strokeLinejoin="round"
         />

@@ -120,7 +120,7 @@ export function PainelAfiliado() {
   const maiorMes = Math.max(1, ...meses.map((m) => m.qtd));
 
   return (
-    <section aria-labelledby="afiliado-titulo" className="rounded-[16px] border border-linha p-6">
+    <section aria-labelledby="afiliado-titulo" className="rounded-[8px] border border-linha p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="afiliado-titulo" className="font-titulo text-[1.25rem] font-semibold text-tinta">
@@ -152,13 +152,13 @@ export function PainelAfiliado() {
           type="button"
           disabled={gerando}
           onClick={() => void gerar()}
-          className="mt-4 h-12 rounded-[999px] bg-roxo px-6 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
+          className="mt-4 h-12 rounded-[40px] bg-roxo px-6 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
         >
           {gerando ? copy.b2b.afiliado.gerando : copy.b2b.afiliado.gerarLink}
         </button>
       )}
       {dados?.url && (
-        <div className="mt-4 rounded-[10px] bg-roxo-claro p-4">
+        <div className="mt-4 rounded-[8px] bg-roxo-claro p-4">
           <p className="text-[0.8125rem] font-semibold uppercase tracking-wide text-roxo-escuro">
             {copy.b2b.afiliado.seuLink}
           </p>
@@ -168,12 +168,12 @@ export function PainelAfiliado() {
               value={dados.url}
               onFocus={(e) => e.currentTarget.select()}
               aria-label={copy.b2b.afiliado.seuLink}
-              className="num h-11 min-w-0 grow rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] text-tinta outline-none"
+              className="num h-11 min-w-0 grow rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] text-tinta outline-none"
             />
             <button
               type="button"
               onClick={() => void copiar()}
-              className="h-11 shrink-0 rounded-[999px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
+              className="h-11 shrink-0 rounded-[40px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
             >
               {copiado ? copy.b2b.afiliado.copiado : copy.b2b.afiliado.copiar}
             </button>
@@ -197,7 +197,7 @@ export function PainelAfiliado() {
               [copy.b2b.afiliado.cardVendido, formatarPreco(dados.totais.vendidoCentavos)],
               [copy.b2b.afiliado.cardComissao, formatarPreco(dados.totais.comissaoCentavos)],
             ].map(([rotulo, valor]) => (
-              <div key={rotulo} className="rounded-[10px] bg-superficie p-3 text-center">
+              <div key={rotulo} className="rounded-[8px] bg-superficie p-3 text-center">
                 <dt className="text-[0.75rem] font-medium uppercase tracking-wide text-cinza">
                   {rotulo}
                 </dt>
@@ -207,7 +207,7 @@ export function PainelAfiliado() {
           </dl>
 
           {/* resgate da comissão (saque via Pix) */}
-          <div className="mt-6 rounded-[10px] border border-linha bg-superficie p-4">
+          <div className="mt-6 rounded-[8px] border border-linha bg-superficie p-4">
             <h3 className="text-[0.9375rem] font-semibold text-tinta">
               💸 {copy.b2b.afiliado.saqueTitulo}
             </h3>
@@ -218,7 +218,7 @@ export function PainelAfiliado() {
                 [copy.b2b.afiliado.saqueAguardando, formatarPreco(dados.totais.aguardandoSaqueCentavos), "text-alerta"],
                 [copy.b2b.afiliado.saqueRecebido, formatarPreco(dados.totais.sacadoCentavos), "text-tinta"],
               ].map(([rotulo, valor, cor]) => (
-                <div key={rotulo} className="rounded-[6px] bg-white p-2 text-center">
+                <div key={rotulo} className="rounded-[4px] bg-white p-2 text-center">
                   <dt className="text-[0.6875rem] font-medium uppercase tracking-wide text-cinza">
                     {rotulo}
                   </dt>
@@ -239,7 +239,7 @@ export function PainelAfiliado() {
                       value={chavePix}
                       onChange={(e) => setChavePix(e.target.value)}
                       placeholder="CPF, e-mail, celular ou aleatória"
-                      className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+                      className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
                     />
                   </label>
                   <label className="basis-36">
@@ -252,14 +252,14 @@ export function PainelAfiliado() {
                       value={valorSaque}
                       onChange={(e) => setValorSaque(e.target.value)}
                       placeholder={(dados.totais.disponivelCentavos / 100).toFixed(2).replace(".", ",")}
-                      className="num mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+                      className="num mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
                     />
                   </label>
                 </div>
                 <button
                   type="submit"
                   disabled={pedindoSaque}
-                  className="mt-3 h-11 rounded-[999px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
+                  className="mt-3 h-11 rounded-[40px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
                 >
                   {pedindoSaque ? copy.b2b.afiliado.saquePedindo : copy.b2b.afiliado.saquePedir}
                 </button>
@@ -347,7 +347,7 @@ export function PainelAfiliado() {
             type="button"
             disabled={carregando}
             onClick={() => void carregar()}
-            className="mt-4 h-10 rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-roxo disabled:opacity-50"
+            className="mt-4 h-10 rounded-[40px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-roxo disabled:opacity-50"
           >
             {carregando ? "…" : copy.b2b.afiliado.atualizar}
           </button>

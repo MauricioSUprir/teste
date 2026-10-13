@@ -22,7 +22,7 @@ export function EtapaLogin() {
   }
 
   return (
-    <form onSubmit={enviar} className="rounded-[16px] border border-linha p-6">
+    <form onSubmit={enviar} className="rounded-[8px] border border-linha p-6">
       <h2 className="font-titulo text-[1.25rem] font-semibold text-tinta">{copy.afiliado.loginTitulo}</h2>
       <p className="mt-1 text-[0.9375rem] text-grafite">{copy.afiliado.loginTexto}</p>
       <label className="mt-4 block">
@@ -35,7 +35,7 @@ export function EtapaLogin() {
           placeholder="voce@email.com.br"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 h-12 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+          className="mt-1 h-12 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
         />
       </label>
       <label className="mt-3 block">
@@ -45,7 +45,7 @@ export function EtapaLogin() {
           placeholder="MARIA#22"
           value={usuario}
           onChange={(e) => setUsuario(e.target.value.toUpperCase())}
-          className="num mt-1 h-12 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta"
+          className="num mt-1 h-12 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta"
         />
         <span className="mt-1 block text-[0.75rem] text-cinza">
           Quem ainda vai se cadastrar pode deixar em branco.
@@ -59,7 +59,7 @@ export function EtapaLogin() {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-5 h-12 w-full rounded-[999px] bg-roxo text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60 sm:w-auto sm:px-8"
+        className="mt-5 h-12 w-full rounded-[40px] bg-roxo text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60 sm:w-auto sm:px-8"
       >
         {enviando ? copy.afiliado.loginEnviando : copy.afiliado.loginBotao}
       </button>

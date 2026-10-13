@@ -40,7 +40,7 @@ export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
             type="button"
             aria-pressed={periodo === p.id}
             onClick={() => setPeriodo(p.id)}
-            className={`min-h-[38px] rounded-[999px] px-4 text-[0.8125rem] font-medium transition-colors ${
+            className={`min-h-[38px] rounded-[40px] px-4 text-[0.8125rem] font-medium transition-colors ${
               periodo === p.id
                 ? "bg-roxo text-white"
                 : "border border-linha text-grafite hover:border-roxo hover:text-roxo"
@@ -60,7 +60,7 @@ export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
       </div>
 
       {/* resumo escrito */}
-      <p className="mt-4 rounded-[10px] bg-superficie px-4 py-3 text-[0.875rem] leading-relaxed text-grafite">
+      <p className="mt-4 rounded-[8px] bg-superficie px-4 py-3 text-[0.875rem] leading-relaxed text-grafite">
         {resumo.qtdPedidos === 0 ? (
           <>Nenhuma venda {config.nomeFalado}. Assim que os pedidos entrarem, o resumo e os gráficos ganham vida aqui.</>
         ) : (
@@ -83,7 +83,7 @@ export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
       </p>
 
       {/* gráfico principal */}
-      <section className="mt-5 rounded-[16px] border border-linha bg-white p-5">
+      <section className="mt-5 rounded-[8px] border border-linha bg-white p-5">
         <h3 className="text-[0.9375rem] font-semibold text-tinta">{config.tituloGrafico}</h3>
         <div className="mt-3">
           <GraficoBarras faixas={faixas} titulo={config.tituloGrafico} />
@@ -92,13 +92,13 @@ export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
 
       {/* rankings */}
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <section className="rounded-[16px] border border-linha bg-white p-5">
+        <section className="rounded-[8px] border border-linha bg-white p-5">
           <h3 className="text-[0.9375rem] font-semibold text-tinta">Produtos mais vendidos</h3>
           <div className="mt-4">
             <BarrasRanqueadas itens={top} formatoQtd={(q) => (q === 1 ? "1 un." : `${q} un.`)} />
           </div>
         </section>
-        <section className="rounded-[16px] border border-linha bg-white p-5">
+        <section className="rounded-[8px] border border-linha bg-white p-5">
           <h3 className="text-[0.9375rem] font-semibold text-tinta">Receita por forma de pagamento</h3>
           <div className="mt-4">
             <BarrasRanqueadas itens={formas} formatoQtd={(q) => (q === 1 ? "1 pedido" : `${q} pedidos`)} />
@@ -111,13 +111,13 @@ export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
 
 function CartaoKpi({ valor, rotulo, variacao }: { valor: string; rotulo: string; variacao?: number | null }) {
   return (
-    <div className="rounded-[16px] border border-linha bg-white p-4">
+    <div className="rounded-[8px] border border-linha bg-white p-4">
       <p className="num text-[1.375rem] font-bold leading-none text-tinta">{valor}</p>
       <p className="mt-1 flex items-center gap-2 text-[0.8125rem] text-grafite">
         {rotulo}
         {variacao !== undefined && variacao !== null && (
           <span
-            className={`num inline-flex items-center gap-0.5 rounded-[999px] px-1.5 py-0.5 text-[0.6875rem] font-semibold ${
+            className={`num inline-flex items-center gap-0.5 rounded-[40px] px-1.5 py-0.5 text-[0.6875rem] font-semibold ${
               variacao >= 0 ? "bg-[#E7F5EE] text-sucesso" : "bg-roxo-claro text-erro"
             }`}
           >

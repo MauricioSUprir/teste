@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { buscar, maisVendidos, produtos } from "@/lib/catalogo/consultas";
+import { buscar, lancamentos, maisVendidos, produtos } from "@/lib/catalogo/consultas";
 import { copy } from "@/lib/copy";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -10,8 +10,16 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 export function BuscaResultados() {
   const params = useSearchParams();
   const termo = (params.get("q") ?? "").trim();
-  const ehAtalhoMaisVendidos = termo.toLowerCase() === "mais vendidos";
+  const atalho = termo.toLowerCase();
+  const ehAtalhoMaisVendidos = atalho === "mais vendidos";
+  // atalhos das vitrines da home ("Ver produtos")
+  const ehPromocoes = atalho === "promoções";
+  const ehLancamentos = atalho === "lançamentos";
   const resultados = useMemo(() => {
+    if (ehPromocoes) {
+      return produtos.filter((p) => p.variantes.some((v) => v.precoDe != null && v.precoDe > v.precoPor));
+    }
+    if (ehLancamentos) return lancamentos();
     if (ehAtalhoMaisVendidos) {
       // o catálogo do Hub ainda não marca "mais vendido": a home já cai para a
       // vitrine geral nesse caso, e esta página precisa mostrar a mesma lista,
@@ -20,17 +28,23 @@ export function BuscaResultados() {
       return lista.length > 0 ? lista : produtos;
     }
     return termo ? buscar(termo) : [];
-  }, [ehAtalhoMaisVendidos, termo]);
+  }, [ehAtalhoMaisVendidos, ehPromocoes, ehLancamentos, termo]);
 
   return (
     <div className="container-bn py-6">
       <Breadcrumb itens={[{ rotulo: "Busca" }]} />
       <h1 className="font-titulo mt-2 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
-        {ehAtalhoMaisVendidos ? "Mais vendidos" : `${copy.busca.titulo} “${termo}”`}
+        {ehAtalhoMaisVendidos
+          ? copy.home.maisVendidos
+          : ehPromocoes
+            ? copy.home.vitrinePromocoes
+            : ehLancamentos
+              ? copy.home.vitrineLancamentos
+              : `${copy.busca.titulo} “${termo}”`}
       </h1>
       <div className="mt-6">
         {resultados.length === 0 ? (
-          <p className="rounded-[10px] bg-superficie px-6 py-12 text-center text-[0.9375rem] text-grafite">
+          <p className="rounded-[8px] bg-superficie px-6 py-12 text-center text-[0.9375rem] text-grafite">
             {copy.busca.nenhum(termo)}
           </p>
         ) : (

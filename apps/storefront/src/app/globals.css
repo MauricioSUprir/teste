@@ -1,28 +1,70 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
 
+/*
+ * Design system BeautyNow (docs/design-system-beautynow.md): estrutura,
+ * hierarquia, espaçamento e padrões de UX estudados no benchmark; cor de
+ * marca, logo e imagens próprios (gradiente azul→roxo).
+ * As outras lojas trocam cor e fonte nas peles abaixo; raio, borda e a
+ * ausência de sombra valem para todas.
+ */
 @theme {
-  --color-roxo: #4A2882;
-  --color-roxo-escuro: #381D65;
-  --color-roxo-claro: #F2EDFA;
-  --color-violeta: #6847C8;
-  --color-violeta-claro: #EFEBFA;
-  --color-tinta: #14161A;
-  --color-grafite: #4A4F57;
-  --color-cinza: #697078;
-  --color-linha: #E4E6EA;
-  --color-superficie: #F7F8FA;
+  /* primária: CTA, preço no Pix */
+  --color-roxo: #6B2BD9;
+  --color-roxo-escuro: #3E1A8C;
+  --color-roxo-claro: #F1EAFD;
+  /* azul de apoio: links */
+  --color-violeta: #2F5BEA;
+  --color-violeta-claro: #E9EEFD;
+  --color-tinta: #212121;
+  --color-grafite: #4A4A4A;
+  /* o doc pede #878787, que marca 3,6 de contraste em texto; #707070 é o
+     tom mais próximo que passa nos 4,5 exigidos */
+  --color-cinza: #707070;
+  --color-linha: #EBEBEB;
+  --color-superficie: #F5F4F8;
   --color-sucesso: #17794C;
   --color-alerta: #8C5A0A;
   --color-erro: #C6273E;
-  --color-oferta: #381D65;
-  --font-titulo: var(--font-fraunces), Georgia, serif;
+  --color-oferta: #3E1A8C;
+  /* selo de desconto (texto escuro por cima) e estrelas */
+  --color-selo: #F2D27A;
+  --color-estrela: #FF9700;
+  --font-titulo: var(--font-jost), system-ui, sans-serif;
+  --font-texto: var(--font-jost), system-ui, sans-serif;
+  /* raios do doc: selo/botão 4, card/busca/banner 8, pílula 40 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  /* sem sombra: separação por borda 1px + fundo cinza claro */
+  --shadow-card: none;
+  --shadow-drawer: 0 0 0 1px rgba(33, 33, 33, 0.06), -8px 0 32px rgba(33, 33, 33, 0.12);
+}
+
+/* gradiente de marca — só em faixa do topo, hero e selos especiais.
+   Os dois tons de cada loja passam em contraste como texto sobre branco. */
+:root {
+  --gradiente-marca: linear-gradient(90deg, #2F5BEA, #6B2BD9);
+}
+html[data-loja="be2beauty"] {
+  --gradiente-marca: linear-gradient(90deg, #1f5fa8, #13315c);
+}
+html[data-loja="pulse"] {
+  --gradiente-marca: linear-gradient(90deg, #a15a34, #7a3a1b);
+}
+html[data-loja="bradeco"] {
+  --gradiente-marca: linear-gradient(90deg, #b4540a, #8f4205);
+}
+/* a Jost é da BeautyNow: as outras lojas seguem com o texto em Inter */
+html[data-loja="be2beauty"],
+html[data-loja="pulse"],
+html[data-loja="bradeco"] {
+  --fonte-texto: var(--font-inter), -apple-system, sans-serif;
   --font-texto: var(--font-inter), -apple-system, sans-serif;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --shadow-card: 0 1px 2px rgba(20, 22, 26, 0.06), 0 4px 12px rgba(20, 22, 26, 0.04);
-  --shadow-drawer: 0 0 0 1px rgba(20, 22, 26, 0.05), -8px 0 32px rgba(20, 22, 26, 0.12);
+}
+html[data-loja="be2beauty"] {
+  --fonte-titulo: var(--font-fraunces), Georgia, serif;
+  --font-titulo: var(--font-fraunces), Georgia, serif;
 }
 
 /*
@@ -76,11 +118,9 @@ html[data-loja="pulse"] {
 }
 
 /* formas: as pílulas e cartões arredondados viram retângulos editoriais */
-html[data-loja="pulse"] .rounded-\[999px\] { border-radius: 4px; }
-html[data-loja="pulse"] .rounded-\[16px\] { border-radius: 6px; }
-html[data-loja="pulse"] .rounded-\[12px\] { border-radius: 4px; }
-html[data-loja="pulse"] .rounded-\[10px\] { border-radius: 4px; }
-html[data-loja="pulse"] .rounded-\[6px\] { border-radius: 2px; }
+html[data-loja="pulse"] .rounded-\[40px\] { border-radius: 4px; }
+html[data-loja="pulse"] .rounded-\[8px\] { border-radius: 4px; }
+html[data-loja="pulse"] .rounded-\[4px\] { border-radius: 2px; }
 
 /* tipografia display: caixa alta com respiro largo, como no logo da marca */
 html[data-loja="pulse"] .font-titulo {
@@ -185,11 +225,9 @@ html[data-loja="bradeco"] {
 }
 
 /* formas: quinas vivas, sem pílula — catálogo técnico */
-html[data-loja="bradeco"] .rounded-\[999px\] { border-radius: 2px; }
-html[data-loja="bradeco"] .rounded-\[16px\] { border-radius: 3px; }
-html[data-loja="bradeco"] .rounded-\[12px\] { border-radius: 2px; }
-html[data-loja="bradeco"] .rounded-\[10px\] { border-radius: 2px; }
-html[data-loja="bradeco"] .rounded-\[6px\] { border-radius: 2px; }
+html[data-loja="bradeco"] .rounded-\[40px\] { border-radius: 2px; }
+html[data-loja="bradeco"] .rounded-\[8px\] { border-radius: 3px; }
+html[data-loja="bradeco"] .rounded-\[4px\] { border-radius: 2px; }
 
 /* títulos na tipografia do logo: larga, caixa alta, muito espaçada */
 html[data-loja="bradeco"] .font-titulo {
@@ -254,6 +292,9 @@ html {
 
 body {
   font-family: var(--fonte-texto);
+  /* corpo do doc: 14px / 1.43 */
+  font-size: 14px;
+  line-height: 1.43;
   color: var(--bn-tinta);
   background: var(--bn-branco);
   -webkit-font-smoothing: antialiased;
@@ -267,6 +308,21 @@ body {
   outline: 2px solid var(--bn-violeta);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* texto com o gradiente da marca (faixa do topo, títulos de destaque) */
+.texto-gradiente {
+  background-image: var(--gradiente-marca);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* modo de alto contraste do sistema: texto sólido, gradiente não vale */
+@media (forced-colors: active) {
+  .texto-gradiente {
+    background-image: none;
+    color: CanvasText;
+  }
 }
 
 /* Preço nunca dança entre estados */

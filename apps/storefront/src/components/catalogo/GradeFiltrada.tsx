@@ -298,7 +298,7 @@ export function GradeFiltrada({
               type="button"
               onClick={() => setFiltrosAbertosMobile((v) => !v)}
               aria-expanded={filtrosAbertosMobile}
-              className="rounded-[6px] border border-linha px-3 py-2 text-[0.875rem] font-medium lg:hidden"
+              className="rounded-[4px] border border-linha px-3 py-2 text-[0.875rem] font-medium lg:hidden"
             >
               {copy.plp.filtros}
               {temFiltroAtivo && <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-roxo" />}
@@ -311,7 +311,7 @@ export function GradeFiltrada({
                 aria-label={copy.plp.ordenar}
                 value={ordenacao}
                 onChange={(e) => atualizarParam("ordem", e.target.value === "relevancia" ? null : e.target.value)}
-                className="h-10 rounded-[6px] border border-linha bg-white px-2 text-[0.875rem]"
+                className="h-10 rounded-[4px] border border-linha bg-white px-2 text-[0.875rem]"
               >
                 <option value="relevancia">{copy.plp.ordenacao.relevancia}</option>
                 <option value="mais-vendidos">{copy.plp.ordenacao.maisVendidos}</option>
@@ -326,11 +326,11 @@ export function GradeFiltrada({
 
         {/* filtros mobile */}
         {filtrosAbertosMobile && (
-          <div className="mb-4 rounded-[10px] border border-linha p-4 lg:hidden">{painelFiltros}</div>
+          <div className="mb-4 rounded-[8px] border border-linha p-4 lg:hidden">{painelFiltros}</div>
         )}
 
         {filtrados.length === 0 ? (
-          <p className="rounded-[10px] bg-superficie px-6 py-12 text-center text-[0.9375rem] text-grafite">
+          <p className="rounded-[8px] bg-superficie px-6 py-12 text-center text-[0.9375rem] text-grafite">
             {copy.plp.nenhumResultado}
           </p>
         ) : (
@@ -349,7 +349,7 @@ export function GradeFiltrada({
             <button
               type="button"
               onClick={() => setVisiveis((v) => v + POR_PAGINA)}
-              className="rounded-[999px] border border-roxo px-8 py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
+              className="rounded-[40px] border border-roxo px-8 py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
             >
               {copy.plp.verMais}
             </button>

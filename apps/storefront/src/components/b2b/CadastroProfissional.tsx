@@ -36,7 +36,7 @@ function formatarCnpj(valor: string): string {
 }
 
 const classeCampo =
-  "h-12 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta";
+  "h-12 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta";
 
 export function CadastroProfissional() {
   const { status, cnpj, registrar, verificar, limpar } = useB2B();
@@ -68,7 +68,7 @@ export function CadastroProfissional() {
   // já tem CNPJ neste navegador → painel de situação
   if (cnpj) {
     return (
-      <div className="rounded-[16px] border border-linha bg-superficie p-6">
+      <div className="rounded-[8px] border border-linha bg-superficie p-6">
         <h2 className="font-titulo text-[1.25rem] font-semibold text-tinta">
           {copy.b2b.statusTitulo}
         </h2>
@@ -100,7 +100,7 @@ export function CadastroProfissional() {
                 await verificar();
                 setVerificando(false);
               }}
-              className="h-11 rounded-[999px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
+              className="h-11 rounded-[40px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
             >
               {verificando ? "Verificando…" : copy.b2b.verificarNovamente}
             </button>
@@ -111,7 +111,7 @@ export function CadastroProfissional() {
               limpar();
               setEnviado(false);
             }}
-            className="h-11 rounded-[999px] border border-linha px-5 text-[0.875rem] font-medium text-grafite hover:border-roxo"
+            className="h-11 rounded-[40px] border border-linha px-5 text-[0.875rem] font-medium text-grafite hover:border-roxo"
           >
             {copy.b2b.trocarCnpj}
           </button>
@@ -121,7 +121,7 @@ export function CadastroProfissional() {
   }
 
   return (
-    <form onSubmit={enviar} className="rounded-[16px] border border-linha p-6">
+    <form onSubmit={enviar} className="rounded-[8px] border border-linha p-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block sm:col-span-2">
           <span className="text-[0.875rem] font-medium text-tinta">{copy.b2b.cnpj}</span>
@@ -191,7 +191,7 @@ export function CadastroProfissional() {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-5 h-12 w-full rounded-[999px] bg-roxo text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60 sm:w-auto sm:px-8"
+        className="mt-5 h-12 w-full rounded-[40px] bg-roxo text-[1rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60 sm:w-auto sm:px-8"
       >
         {enviando ? copy.b2b.enviando : copy.b2b.enviar}
       </button>

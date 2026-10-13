@@ -36,7 +36,7 @@ function cnpjValido(cnpj: string): boolean {
 }
 
 const classeCampo =
-  "h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta";
+  "h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta";
 
 type Etapa = "resumo" | "formulario" | "codigo";
 
@@ -139,7 +139,7 @@ export function SecaoAfiliadoConta() {
   }
 
   return (
-    <section className="mt-4 rounded-[16px] border border-linha bg-white p-6">
+    <section className="mt-4 rounded-[8px] border border-linha bg-white p-6">
       <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.afiliado.conta.titulo}</h2>
 
       {status === "aprovado" && (
@@ -149,7 +149,7 @@ export function SecaoAfiliadoConta() {
           <button
             type="button"
             onClick={abrirPainel}
-            className="mt-4 h-11 rounded-[999px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
+            className="mt-4 h-11 rounded-[40px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
           >
             {copy.afiliado.conta.abrirPainel} →
           </button>
@@ -163,7 +163,7 @@ export function SecaoAfiliadoConta() {
           <button
             type="button"
             onClick={() => void carregarStatus()}
-            className="mt-3 h-10 rounded-[999px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-roxo"
+            className="mt-3 h-10 rounded-[40px] border border-linha px-4 text-[0.8125rem] font-medium text-grafite hover:border-roxo"
           >
             {copy.afiliado.verificarNovamente}
           </button>
@@ -183,7 +183,7 @@ export function SecaoAfiliadoConta() {
           <button
             type="button"
             onClick={() => setEtapa("formulario")}
-            className="mt-4 h-11 rounded-[999px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
+            className="mt-4 h-11 rounded-[40px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
           >
             {copy.afiliado.conta.botao}
           </button>
@@ -265,7 +265,7 @@ export function SecaoAfiliadoConta() {
             <button
               type="submit"
               disabled={enviando}
-              className="h-11 rounded-[999px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
+              className="h-11 rounded-[40px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
             >
               {enviando ? copy.afiliado.enviando : copy.afiliado.enviar}
             </button>
@@ -275,7 +275,7 @@ export function SecaoAfiliadoConta() {
                 setEtapa("resumo");
                 setErro(null);
               }}
-              className="h-11 rounded-[999px] border border-linha px-5 text-[0.875rem] font-medium text-grafite hover:border-roxo"
+              className="h-11 rounded-[40px] border border-linha px-5 text-[0.875rem] font-medium text-grafite hover:border-roxo"
             >
               Cancelar
             </button>
@@ -293,7 +293,7 @@ export function SecaoAfiliadoConta() {
             value={codigo}
             onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
             aria-label={copy.conta.codigoRotulo}
-            className="num h-12 w-full max-w-[240px] rounded-[6px] border border-linha bg-white px-3 text-center text-[1.25rem] tracking-[0.4em] outline-none focus:border-violeta"
+            className="num h-12 w-full max-w-[240px] rounded-[4px] border border-linha bg-white px-3 text-center text-[1.25rem] tracking-[0.4em] outline-none focus:border-violeta"
             autoFocus
           />
           {erro && (
@@ -305,7 +305,7 @@ export function SecaoAfiliadoConta() {
             <button
               type="submit"
               disabled={codigo.length !== 6 || enviando}
-              className="h-11 rounded-[999px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
+              className="h-11 rounded-[40px] bg-roxo px-6 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
             >
               {enviando ? copy.conta.botaoConfirmando : copy.conta.codigoBotao}
             </button>
@@ -316,7 +316,7 @@ export function SecaoAfiliadoConta() {
                 setCodigo("");
                 setErro(null);
               }}
-              className="h-11 rounded-[999px] border border-linha px-5 text-[0.875rem] font-medium text-grafite hover:border-roxo"
+              className="h-11 rounded-[40px] border border-linha px-5 text-[0.875rem] font-medium text-grafite hover:border-roxo"
             >
               Voltar
             </button>

@@ -181,7 +181,7 @@ export function GraficoBarras({ faixas, titulo }: { faixas: Faixa[]; titulo: str
         {/* tooltip */}
         {ativa !== null && faixas[ativa] && (
           <div
-            className="pointer-events-none absolute -translate-x-1/2 rounded-[6px] border border-linha bg-white px-3 py-1.5 text-[0.75rem] shadow-card"
+            className="pointer-events-none absolute -translate-x-1/2 rounded-[4px] border border-linha bg-white px-3 py-1.5 text-[0.75rem] shadow-card"
             style={{
               left: `${((PAD_ESQ + ativa * passo + passo / 2) / LARGURA) * 100}%`,
               top: 0,
@@ -243,9 +243,9 @@ export function BarrasRanqueadas({ itens, formatoQtd }: { itens: { rotulo: strin
             <span className="num shrink-0 font-semibold text-tinta">{formatarPreco(item.totalCentavos)}</span>
           </div>
           <div className="mt-1 flex items-center gap-2">
-            <span className="h-2 grow overflow-hidden rounded-[999px] bg-superficie">
+            <span className="h-2 grow overflow-hidden rounded-[40px] bg-superficie">
               <span
-                className="block h-full rounded-[999px]"
+                className="block h-full rounded-[40px]"
                 style={{ width: `${(item.totalCentavos / maximo) * 100}%`, background: "#6847C8" }}
               />
             </span>

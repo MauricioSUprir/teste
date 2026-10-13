@@ -63,7 +63,7 @@ export function AbaBanners() {
 
   if (!servidorConfigurado()) {
     return (
-      <p className="rounded-[10px] bg-superficie px-5 py-8 text-center text-[0.875rem] text-grafite">
+      <p className="rounded-[8px] bg-superficie px-5 py-8 text-center text-[0.875rem] text-grafite">
         Os banners dependem do servidor, que não está configurado nesta versão.
       </p>
     );
@@ -71,7 +71,7 @@ export function AbaBanners() {
 
   return (
     <div>
-      <p className="rounded-[10px] border border-violeta/30 bg-violeta-claro px-4 py-3 text-[0.8125rem] leading-relaxed text-grafite">
+      <p className="rounded-[8px] border border-violeta/30 bg-violeta-claro px-4 py-3 text-[0.8125rem] leading-relaxed text-grafite">
         As artes aparecem no topo da home, na ordem dos números, trocando sozinhas a cada
         20 segundos. <b>Formato ideal: deitado, 1600×600</b> (mínimo 1200 de largura), até 7MB.
         A troca vale na hora, sem esperar atualização do site.
@@ -83,7 +83,7 @@ export function AbaBanners() {
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {SLOTS.map((slot, i) => (
-          <div key={slot} className="rounded-[16px] border border-linha bg-white p-4">
+          <div key={slot} className="rounded-[8px] border border-linha bg-white p-4">
             <div className="flex items-center justify-between">
               <p className="text-[0.9375rem] font-semibold text-tinta">
                 Banner {i + 1}
@@ -91,7 +91,7 @@ export function AbaBanners() {
               </p>
               {status[slot] && <span className="text-[0.75rem] text-grafite">{status[slot]}</span>}
             </div>
-            <div className="mt-3 flex min-h-24 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-linha bg-superficie">
+            <div className="mt-3 flex min-h-24 items-center justify-center overflow-hidden rounded-[8px] border border-dashed border-linha bg-superficie">
               {ativos[slot] ? (
                 /* eslint-disable-next-line @next/next/no-img-element -- prévia da arte do lojista */
                 <img src={ativos[slot]} alt={`Banner ${i + 1}`} className="max-h-40 w-full object-cover" />
@@ -102,7 +102,7 @@ export function AbaBanners() {
               )}
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="cursor-pointer rounded-[999px] bg-roxo px-4 py-2 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro">
+              <label className="cursor-pointer rounded-[40px] bg-roxo px-4 py-2 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro">
                 {ativos[slot] ? "Trocar imagem" : "Enviar imagem"}
                 <input
                   type="file"
@@ -143,7 +143,7 @@ export function AbaBanners() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="cursor-pointer rounded-[999px] border border-roxo px-4 py-2 text-[0.8125rem] font-semibold text-roxo hover:bg-violeta-claro">
+                  <label className="cursor-pointer rounded-[40px] border border-roxo px-4 py-2 text-[0.8125rem] font-semibold text-roxo hover:bg-violeta-claro">
                     {ativos[slotMobile(slot)] ? "Trocar" : "Enviar"}
                     <input
                       type="file"

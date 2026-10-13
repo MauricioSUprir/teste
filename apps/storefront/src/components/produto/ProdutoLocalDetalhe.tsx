@@ -35,7 +35,7 @@ export function ProdutoLocalDetalhe() {
         </p>
         <Link
           href="/"
-          className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           Voltar para a loja
         </Link>
@@ -49,7 +49,7 @@ export function ProdutoLocalDetalhe() {
     <div className="container-bn py-6 pb-32 md:pb-6">
       <Breadcrumb itens={[{ rotulo: produto.titulo }]} />
       <div className="mt-4 grid gap-8 md:grid-cols-2">
-        <div className="overflow-hidden rounded-[16px] border border-linha bg-white">
+        <div className="overflow-hidden rounded-[8px] border border-linha bg-white">
           <ImagemProduto produto={produto} alt={produto.titulo} />
         </div>
         <div>

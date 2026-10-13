@@ -35,7 +35,7 @@ export function CompreJunto({
   }
 
   return (
-    <section aria-labelledby="compre-junto-titulo" className="rounded-[16px] border border-linha p-5">
+    <section aria-labelledby="compre-junto-titulo" className="rounded-[8px] border border-linha p-5">
       <h2 id="compre-junto-titulo" className="font-titulo text-[1.375rem] font-semibold">
         {copy.pdp.compreJunto}
       </h2>
@@ -51,7 +51,7 @@ export function CompreJunto({
             )}
             <Link
               href={`/produto/${p.slug}`}
-              className="block w-24 overflow-hidden rounded-[10px] border border-linha hover:border-roxo sm:w-28"
+              className="block w-24 overflow-hidden rounded-[8px] border border-linha hover:border-roxo sm:w-28"
               title={p.titulo}
             >
               <ImagemProduto produto={p} alt={p.titulo} />
@@ -71,7 +71,7 @@ export function CompreJunto({
         <button
           type="button"
           onClick={adicionarCombo}
-          className="rounded-[999px] border-2 border-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-roxo transition-colors hover:bg-roxo hover:text-white"
+          className="rounded-[40px] border-2 border-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-roxo transition-colors hover:bg-roxo hover:text-white"
         >
           {copy.pdp.adicionarCombo}
         </button>

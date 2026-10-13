@@ -33,9 +33,9 @@ export default function PaginaMarcas() {
             <Link
               key={m.slug}
               href={`/marca/${m.slug}`}
-              className="group flex flex-col items-center rounded-[16px] border border-linha bg-white p-4 text-center transition-shadow hover:shadow-card"
+              className="group flex flex-col items-center rounded-[8px] border border-linha bg-white p-4 text-center transition-shadow hover:shadow-card"
             >
-              <span className="flex h-32 w-full items-center justify-center overflow-hidden rounded-[10px] bg-white">
+              <span className="flex h-32 w-full items-center justify-center overflow-hidden rounded-[8px] bg-white">
                 {m.logo ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img

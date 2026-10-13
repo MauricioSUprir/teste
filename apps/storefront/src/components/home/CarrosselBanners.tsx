@@ -3,7 +3,11 @@
 /**
  * Carrossel de banners da home — as artes são gerenciadas na aba Banners do
  * painel admin e servidas pelo servidor em tempo real (troca sem redeploy).
- * Avança sozinho a cada 20s; bolinhas para navegar; pausa em aba oculta.
+ * Avança sozinho a cada 20s; pausa em aba oculta.
+ *
+ * Design system ("Hero carousel"): setas brancas quadradas nas laterais,
+ * marcadores ABAIXO da arte (o ativo é uma barra alongada na cor primária
+ * escura) e uma linha legal pequena sob o banner.
  *
  * Tamanho: em telas largas o banner para de sangrar de ponta a ponta — fica um
  * pouco menor, com um respiro nas laterais e cantos arredondados — e tem teto
@@ -14,6 +18,7 @@
  * vira uma tira fininha e o texto fica ilegível.
  */
 import { useEffect, useState } from "react";
+import { copy } from "@/lib/copy";
 import { listarBanners, type BannerDaLoja } from "@/lib/servidor";
 
 const INTERVALO_MS = 20_000;
@@ -47,7 +52,7 @@ export function CarrosselBanners() {
   return (
     <section aria-label="Destaques" className="bg-white">
       <div className="mx-auto w-full max-w-[1600px] md:px-4 md:pt-3">
-        <div className="relative overflow-hidden md:rounded-[14px]">
+        <div className="relative overflow-hidden md:rounded-[8px]">
           {/* transição por opacidade, e não deslize: artes de alturas diferentes
               deixavam um vão branco do tamanho da arte mais alta */}
           {banners.map((b, i) => (
@@ -72,23 +77,65 @@ export function CarrosselBanners() {
             </picture>
           ))}
           {banners.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
+            <>
+              <SetaBanner
+                lado="esquerda"
+                aoClicar={() => setAtual((a) => (a - 1 + banners.length) % banners.length)}
+              />
+              <SetaBanner lado="direita" aoClicar={() => setAtual((a) => (a + 1) % banners.length)} />
+            </>
+          )}
+        </div>
+
+        <div className="container-bn flex flex-col items-center gap-2 pt-3 md:px-0">
+          {banners.length > 1 && (
+            <div className="flex items-center gap-2">
               {banners.map((b, i) => (
                 <button
                   key={b.slot}
                   type="button"
-                  aria-label={`Ir para o banner ${i + 1}`}
+                  aria-label={`${copy.home.irParaBanner} ${i + 1}`}
                   aria-current={atual === i}
                   onClick={() => setAtual(i)}
-                  className={`h-2.5 rounded-[999px] border border-white/70 transition-all ${
-                    atual === i ? "w-6 bg-white" : "w-2.5 bg-white/40 hover:bg-white/70"
-                  }`}
-                />
+                  /* área de toque de 24px; o desenho é a barrinha de dentro */
+                  className="flex h-6 items-center justify-center px-0.5"
+                >
+                  <span
+                    className={`block h-2 rounded-[40px] transition-all ${
+                      atual === i ? "w-6 bg-roxo-escuro" : "w-2 bg-[#c4c4c4] hover:bg-cinza"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           )}
+          <p className="text-center text-[0.6875rem] text-cinza">{copy.home.legalBanner}</p>
         </div>
       </div>
     </section>
+  );
+}
+
+function SetaBanner({ lado, aoClicar }: { lado: "esquerda" | "direita"; aoClicar: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      aria-label={lado === "esquerda" ? copy.home.bannerAnterior : copy.home.proximoBanner}
+      className={`absolute top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-[4px] border border-linha bg-white text-tinta hover:text-roxo md:flex ${
+        lado === "esquerda" ? "left-3" : "right-3"
+      }`}
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+        <path
+          d={lado === "esquerda" ? "M9 2 L4 7 L9 12" : "M5 2 L10 7 L5 12"}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   );
 }

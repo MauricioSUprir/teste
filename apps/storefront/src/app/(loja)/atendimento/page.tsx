@@ -91,7 +91,7 @@ export default function PaginaAtendimento() {
         Respostas rápidas para as dúvidas mais comuns. Não achou a sua? Fale com a gente.
       </p>
       {/* promessa de resposta — a pessoa sabe quanto tempo vai esperar */}
-      <p className="mt-3 inline-flex items-center gap-2 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.875rem] font-medium text-roxo-escuro">
+      <p className="mt-3 inline-flex items-center gap-2 rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.875rem] font-medium text-roxo-escuro">
         {NEGOCIO.promessaResposta}
       </p>
 
@@ -99,7 +99,7 @@ export default function PaginaAtendimento() {
         <BuscaFaq itens={faq} />
       </section>
 
-      <section id="contato" className="mt-10 rounded-[16px] bg-superficie p-6">
+      <section id="contato" className="mt-10 rounded-[8px] bg-superficie p-6">
         <h2 className="font-titulo text-[1.25rem] font-semibold">Fale com a gente</h2>
         <div className="mt-3 space-y-2 text-[0.9375rem] text-grafite">
           {NEGOCIO.whatsapp && NEGOCIO.whatsappVisivel ? (

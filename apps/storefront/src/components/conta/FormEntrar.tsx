@@ -49,7 +49,7 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
           inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+          className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
         />
       </div>
       <div>
@@ -63,12 +63,12 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
           autoComplete="current-password"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
-          className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+          className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
         />
       </div>
 
       {erro && (
-        <p role="alert" className="rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
+        <p role="alert" className="rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
           {erro}
         </p>
       )}
@@ -77,7 +77,7 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
         type="submit"
         disabled={enviando}
         aria-busy={enviando}
-        className="w-full rounded-[999px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
+        className="w-full rounded-[40px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
       >
         {enviando ? copy.conta.botaoEntrando : copy.conta.botaoEntrar}
       </button>

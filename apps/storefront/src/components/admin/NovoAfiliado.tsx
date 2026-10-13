@@ -49,7 +49,7 @@ export function NovoAfiliado({ aoCadastrar }: { aoCadastrar: () => void }) {
 
   const rotulo = "text-[0.8125rem] font-medium text-grafite";
   const entrada =
-    "mt-1 h-10 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] text-tinta outline-none focus:border-roxo";
+    "mt-1 h-10 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] text-tinta outline-none focus:border-roxo";
 
   return (
     <div className="mb-8">
@@ -57,13 +57,13 @@ export function NovoAfiliado({ aoCadastrar }: { aoCadastrar: () => void }) {
         type="button"
         onClick={() => setAberto((v) => !v)}
         aria-expanded={aberto}
-        className="rounded-[999px] bg-roxo px-5 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
+        className="rounded-[40px] bg-roxo px-5 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
       >
         {aberto ? t.fechar : t.abrir}
       </button>
 
       {criado && (
-        <div className="mt-3 rounded-[10px] border border-sucesso/40 bg-superficie p-4 text-[0.875rem]" role="status">
+        <div className="mt-3 rounded-[8px] border border-sucesso/40 bg-superficie p-4 text-[0.875rem]" role="status">
           <p className="font-semibold text-sucesso">{t.pronto}</p>
           <p className="mt-2 text-grafite">
             {t.usuarioCriado}: <b className="text-tinta">{criado.usuario}</b>
@@ -75,7 +75,7 @@ export function NovoAfiliado({ aoCadastrar }: { aoCadastrar: () => void }) {
       )}
 
       {aberto && (
-        <form onSubmit={enviar} className="mt-4 rounded-[16px] border border-linha p-5">
+        <form onSubmit={enviar} className="mt-4 rounded-[8px] border border-linha p-5">
           <h3 className="text-[0.9375rem] font-semibold text-tinta">{t.titulo}</h3>
           <p className="mt-1 max-w-[70ch] text-[0.8125rem] text-grafite">{t.texto}</p>
 
@@ -147,7 +147,7 @@ export function NovoAfiliado({ aoCadastrar }: { aoCadastrar: () => void }) {
           <button
             type="submit"
             disabled={enviando}
-            className="mt-5 rounded-[999px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
+            className="mt-5 rounded-[40px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
           >
             {enviando ? t.salvando : t.salvar}
           </button>

@@ -38,7 +38,7 @@ export default async function PaginaMarca({
       <section className="border-b border-linha" style={{ background: `${marca.cor}14` }}>
         <div className="container-bn flex items-center gap-5 py-10">
           {marca.logo ? (
-            <span className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-linha bg-white px-3">
+            <span className="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-linha bg-white px-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={comBase(marca.logo)}

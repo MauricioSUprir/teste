@@ -26,7 +26,7 @@ export function AbaClientes({ clientes, pedidos }: { clientes: ClienteResumo[]; 
 
   if (clientes.length === 0) {
     return (
-      <p className="rounded-[10px] bg-superficie px-5 py-8 text-center text-[0.875rem] leading-relaxed text-grafite">
+      <p className="rounded-[8px] bg-superficie px-5 py-8 text-center text-[0.875rem] leading-relaxed text-grafite">
         Nenhuma conta criada neste navegador ainda. Com o servidor no ar, todas as contas de
         clientes aparecem aqui, com histórico de compras.
       </p>
@@ -34,7 +34,7 @@ export function AbaClientes({ clientes, pedidos }: { clientes: ClienteResumo[]; 
   }
 
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-linha">
+    <div className="overflow-x-auto rounded-[8px] border border-linha">
       <table className="w-full min-w-[560px] text-[0.875rem]">
         <thead>
           <tr className="bg-superficie text-left text-[0.75rem] uppercase tracking-wide text-cinza">

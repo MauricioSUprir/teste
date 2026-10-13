@@ -10,7 +10,7 @@ export default function RotaCriarConta() {
       <h1 className="font-titulo text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
         {copy.conta.criarTitulo}
       </h1>
-      <div className="mt-6 rounded-[16px] border border-linha bg-white p-6">
+      <div className="mt-6 rounded-[8px] border border-linha bg-white p-6">
         <FormCriarConta />
       </div>
     </div>

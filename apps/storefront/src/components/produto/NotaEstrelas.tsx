@@ -15,7 +15,7 @@ export function NotaEstrelas({
       <span className="text-linha select-none">★★★★★</span>
       <span
         className="absolute inset-0 overflow-hidden whitespace-nowrap text-alerta select-none"
-        style={{ width: `${pct}%`, color: "#E8A317" }}
+        style={{ width: `${pct}%`, color: "#FF9700" }}
       >
         ★★★★★
       </span>

@@ -18,13 +18,17 @@ export function PrecoProtegido({
   children,
   comLink = true,
   compacto = false,
+  oculto = false,
 }: {
   children: React.ReactNode;
   comLink?: boolean;
   compacto?: boolean;
+  /** travado, não mostra nada (ex.: botão de compra do card — o convite já aparece no preço) */
+  oculto?: boolean;
 }) {
   const { liberado, status } = useB2B();
   if (liberado) return <>{children}</>;
+  if (oculto) return null;
 
   const texto =
     status === "pendente"
@@ -46,7 +50,7 @@ export function PrecoProtegido({
   }
 
   return (
-    <div className="rounded-[10px] bg-roxo-claro p-4">
+    <div className="rounded-[8px] bg-roxo-claro p-4">
       <p className="flex items-center gap-2 text-[0.9375rem] font-semibold text-roxo-escuro">
         <span aria-hidden="true">🔒</span> {copy.b2b.precoFechado}
       </p>
@@ -55,7 +59,7 @@ export function PrecoProtegido({
         <>
           <Link
             href="/profissional"
-            className="mt-3 inline-flex h-11 items-center rounded-[999px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
+            className="mt-3 inline-flex h-11 items-center rounded-[40px] bg-roxo px-5 text-[0.875rem] font-semibold text-white hover:bg-roxo-escuro"
           >
             {copy.b2b.paginaTitulo} →
           </Link>
@@ -70,7 +74,7 @@ export function PrecoProtegido({
       {status === "pendente" && (
         <Link
           href="/profissional"
-          className="mt-3 inline-flex h-11 items-center rounded-[999px] border border-roxo px-5 text-[0.875rem] font-semibold text-roxo hover:bg-white"
+          className="mt-3 inline-flex h-11 items-center rounded-[40px] border border-roxo px-5 text-[0.875rem] font-semibold text-roxo hover:bg-white"
         >
           {copy.b2b.statusTitulo} →
         </Link>

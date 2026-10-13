@@ -38,7 +38,7 @@ export function LinksProdutos({ codigo }: { codigo: string }) {
   }
 
   return (
-    <div className="mt-6 rounded-[10px] border border-linha bg-superficie p-4">
+    <div className="mt-6 rounded-[8px] border border-linha bg-superficie p-4">
       <h3 className="text-[0.9375rem] font-semibold text-tinta">🔗 {copy.afiliado.links.titulo}</h3>
       <p className="mt-1 text-[0.8125rem] text-grafite">{copy.afiliado.links.texto}</p>
 
@@ -49,13 +49,13 @@ export function LinksProdutos({ codigo }: { codigo: string }) {
           onChange={(e) => setTermo(e.target.value)}
           placeholder={copy.afiliado.links.busca}
           aria-label={copy.afiliado.links.busca}
-          className="h-11 min-w-0 grow basis-52 rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+          className="h-11 min-w-0 grow basis-52 rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
         />
         <select
           value={marca}
           onChange={(e) => setMarca(e.target.value)}
           aria-label="Filtrar por marca"
-          className="h-11 basis-44 rounded-[6px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
+          className="h-11 basis-44 rounded-[4px] border border-linha bg-white px-3 text-[0.875rem] outline-none focus:border-violeta"
         >
           <option value="">{copy.afiliado.links.todasMarcas}</option>
           {marcas.map((m) => (
@@ -83,7 +83,7 @@ export function LinksProdutos({ codigo }: { codigo: string }) {
                 <button
                   type="button"
                   onClick={() => void copiar(p.slug)}
-                  className="h-9 shrink-0 rounded-[999px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+                  className="h-9 shrink-0 rounded-[40px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
                 >
                   {copiado === p.slug ? copy.afiliado.links.copiado : copy.afiliado.links.copiar}
                 </button>

@@ -101,13 +101,13 @@ export function Header() {
     </div>
 
     <header className="sticky top-0 z-40 border-b border-linha bg-white">
-      <div className="container-bn flex h-16 items-center gap-4">
+      <div className="container-bn flex h-16 items-center gap-4 md:h-[4.5rem] md:gap-6">
         {/* menu mobile */}
         <button
           type="button"
           /* text-tinta: sem cor própria o ícone herdava o preto da página e
              sumia no topo escuro da Pulse e da Bradeco */
-          className="flex h-11 w-11 items-center justify-center rounded-[6px] text-tinta hover:bg-superficie lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-[4px] text-tinta hover:bg-superficie lg:hidden"
           aria-label={menuMobileAberto ? copy.header.fecharMenu : copy.header.menu}
           aria-expanded={menuMobileAberto}
           onClick={() => setMenuMobileAberto((v) => !v)}
@@ -132,19 +132,19 @@ export function Header() {
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <Link
             href="/conta#favoritos"
-            className="relative hidden h-11 w-11 items-center justify-center rounded-[6px] text-grafite hover:bg-superficie sm:flex"
+            className="relative hidden h-11 w-11 items-center justify-center rounded-[4px] text-grafite hover:bg-superficie sm:flex"
             aria-label={`${atalhos.favoritos}${totalFavoritos > 0 ? `, ${totalFavoritos}` : ""}`}
           >
             <IconeCoracao tamanho={18} />
             {totalFavoritos > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[999px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white num">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[40px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white num">
                 {totalFavoritos}
               </span>
             )}
           </Link>
           <Link
             href="/conta"
-            className="flex h-11 items-center gap-2 rounded-[6px] px-3 text-[0.875rem] text-grafite hover:bg-superficie"
+            className="flex h-11 items-center gap-2 rounded-[4px] px-3 text-[0.875rem] text-grafite hover:bg-superficie"
             aria-label={rotuloConta}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -156,7 +156,7 @@ export function Header() {
           <button
             type="button"
             onClick={abrir}
-            className="relative flex h-11 items-center gap-2 rounded-[6px] px-3 text-[0.875rem] text-grafite hover:bg-superficie"
+            className="relative flex h-11 items-center gap-2 rounded-[4px] px-3 text-[0.875rem] text-grafite hover:bg-superficie"
             aria-label={`${copy.header.sacola}${totalItens > 0 ? `, ${totalItens} itens` : ""}`}
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
@@ -165,7 +165,7 @@ export function Header() {
             </svg>
             <span className="hidden sm:inline">{copy.header.sacola}</span>
             {totalItens > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[999px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white num">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-[40px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white num">
                 {totalItens}
               </span>
             )}
@@ -183,14 +183,14 @@ export function Header() {
         <div className="container-bn flex items-center gap-1">
           <Link
             href="/"
-            className="flex h-12 items-center px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
+            className="flex h-12 items-center px-3 text-[1rem] font-medium text-tinta hover:text-roxo"
           >
             {copy.nav.inicio}
           </Link>
           <div className="group relative">
             <button
               type="button"
-              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
+              className="flex h-12 items-center gap-1.5 px-3 text-[1rem] font-medium text-tinta hover:text-roxo"
               aria-haspopup="true"
             >
               {copy.nav.categorias}
@@ -202,7 +202,7 @@ export function Header() {
                   <Link
                     key={c.slug}
                     href={`/categoria/${c.slug}`}
-                    className="rounded-[6px] px-3 py-2 hover:bg-superficie"
+                    className="rounded-[4px] px-3 py-2 hover:bg-superficie"
                   >
                     <span className="block text-[0.9375rem] font-medium text-tinta">{c.nome}</span>
                     <span className="mt-0.5 block text-[0.8125rem] leading-snug text-cinza">
@@ -217,7 +217,7 @@ export function Header() {
           <div className="group relative">
             <button
               type="button"
-              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
+              className="flex h-12 items-center gap-1.5 px-3 text-[1rem] font-medium text-tinta hover:text-roxo"
               aria-haspopup="true"
             >
               {copy.nav.marcas}
@@ -229,7 +229,7 @@ export function Header() {
                   <Link
                     key={m.slug}
                     href={`/marca/${m.slug}`}
-                    className="flex items-center gap-2 rounded-[6px] px-3 py-2 text-[0.9375rem] text-tinta hover:bg-superficie"
+                    className="flex items-center gap-2 rounded-[4px] px-3 py-2 text-[0.9375rem] text-tinta hover:bg-superficie"
                   >
                     {m.logo ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -253,7 +253,7 @@ export function Header() {
               </div>
               <Link
                 href="/marcas"
-                className="mt-2 block rounded-[6px] px-3 py-2 text-[0.9375rem] font-semibold text-violeta hover:bg-superficie"
+                className="mt-2 block rounded-[4px] px-3 py-2 text-[0.9375rem] font-semibold text-violeta hover:bg-superficie"
               >
                 {copy.nav.todasMarcas} →
               </Link>
@@ -264,7 +264,7 @@ export function Header() {
           <div className="group relative">
             <button
               type="button"
-              className="flex h-12 items-center gap-1.5 px-3 text-[0.9375rem] font-medium text-tinta hover:text-roxo"
+              className="flex h-12 items-center gap-1.5 px-3 text-[1rem] font-medium text-tinta hover:text-roxo"
               aria-haspopup="true"
             >
               {copy.nav.necessidades}
@@ -276,7 +276,7 @@ export function Header() {
                   <Link
                     key={n.slug}
                     href={`/necessidade/${n.slug}`}
-                    className="rounded-[6px] px-3 py-2 text-[0.9375rem] text-tinta hover:bg-superficie"
+                    className="rounded-[4px] px-3 py-2 text-[0.9375rem] text-tinta hover:bg-superficie"
                   >
                     {n.nome}
                   </Link>
@@ -290,24 +290,35 @@ export function Header() {
             <Link
               key={c.slug}
               href={`/categoria/${c.slug}`}
-              className="flex h-12 items-center px-3 text-[0.9375rem] text-grafite hover:text-roxo"
+              className="hidden h-12 items-center px-3 text-[1rem] font-medium text-grafite hover:text-roxo xl:flex"
             >
               {c.nome}
             </Link>
           ))}
 
-          {/* destaques à direita */}
+          {/* destaques à direita — a pílula cheia é "Marcas Profissionais"
+              (design system); no B2B a cheia é liberar preços */}
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/busca/?q=mais+vendidos"
-              className="rounded-[999px] border border-roxo px-4 py-1.5 text-[0.8125rem] font-semibold text-roxo hover:bg-roxo-claro"
+              className="hidden h-12 items-center px-3 text-[1rem] font-medium text-grafite hover:text-roxo xl:flex"
             >
               {copy.header.destaques.maisVendidos}
+            </Link>
+            <Link
+              href="/marcas"
+              className={`rounded-[40px] px-4 py-1.5 text-[0.875rem] font-medium ${
+                LOJA.b2b
+                  ? "border border-roxo text-roxo hover:bg-roxo-claro"
+                  : "bg-roxo text-white hover:bg-roxo-escuro"
+              }`}
+            >
+              {copy.header.destaques.marcasProfissionais}
             </Link>
             {LOJA.b2b && (
               <Link
                 href="/profissional"
-                className="rounded-[999px] bg-roxo px-4 py-1.5 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+                className="rounded-[40px] bg-roxo px-4 py-1.5 text-[0.875rem] font-medium text-white hover:bg-roxo-escuro"
               >
                 {copy.header.destaques.liberarPrecos}
               </Link>
@@ -326,7 +337,7 @@ export function Header() {
             <Link
               href="/conta"
               onClick={() => setMenuMobileAberto(false)}
-              className="flex items-center gap-2.5 rounded-[10px] bg-roxo-claro px-3 py-3 text-[0.9375rem] font-semibold text-roxo"
+              className="flex items-center gap-2.5 rounded-[8px] bg-roxo-claro px-3 py-3 text-[0.9375rem] font-semibold text-roxo"
             >
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <circle cx="9" cy="6" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -349,7 +360,7 @@ export function Header() {
                   <Link
                     href={a.href}
                     onClick={() => setMenuMobileAberto(false)}
-                    className="block rounded-[6px] border border-linha px-3 py-2.5 text-tinta hover:bg-superficie"
+                    className="block rounded-[4px] border border-linha px-3 py-2.5 text-tinta hover:bg-superficie"
                   >
                     {a.rotulo}
                   </Link>
@@ -361,7 +372,7 @@ export function Header() {
                     href={linkWhatsapp(NEGOCIO.whatsapp)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 rounded-[6px] border border-linha px-3 py-2.5 text-tinta hover:bg-superficie"
+                    className="flex items-center gap-1.5 rounded-[4px] border border-linha px-3 py-2.5 text-tinta hover:bg-superficie"
                   >
                     <IconeWhatsapp />
                     {atalhos.whatsapp}
@@ -372,7 +383,7 @@ export function Header() {
             <Link
               href="/"
               onClick={() => setMenuMobileAberto(false)}
-              className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
+              className="block rounded-[4px] px-2 py-2.5 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie"
             >
               {copy.nav.inicio}
             </Link>
@@ -385,7 +396,7 @@ export function Header() {
                   key={c.slug}
                   href={`/categoria/${c.slug}`}
                   onClick={() => setMenuMobileAberto(false)}
-                  className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] text-tinta hover:bg-superficie"
+                  className="block rounded-[4px] px-2 py-2.5 text-[0.9375rem] text-tinta hover:bg-superficie"
                 >
                   {c.nome}
                 </Link>
@@ -400,7 +411,7 @@ export function Header() {
                   key={m.slug}
                   href={`/marca/${m.slug}`}
                   onClick={() => setMenuMobileAberto(false)}
-                  className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] text-tinta hover:bg-superficie"
+                  className="block rounded-[4px] px-2 py-2.5 text-[0.9375rem] text-tinta hover:bg-superficie"
                 >
                   {m.nome}
                 </Link>
@@ -408,7 +419,7 @@ export function Header() {
               <Link
                 href="/marcas"
                 onClick={() => setMenuMobileAberto(false)}
-                className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] font-semibold text-violeta hover:bg-superficie"
+                className="block rounded-[4px] px-2 py-2.5 text-[0.9375rem] font-semibold text-violeta hover:bg-superficie"
               >
                 {copy.nav.todasMarcas} →
               </Link>
@@ -423,7 +434,7 @@ export function Header() {
                   key={n.slug}
                   href={`/necessidade/${n.slug}`}
                   onClick={() => setMenuMobileAberto(false)}
-                  className="block rounded-[6px] px-2 py-2.5 text-[0.9375rem] text-tinta hover:bg-superficie"
+                  className="block rounded-[4px] px-2 py-2.5 text-[0.9375rem] text-tinta hover:bg-superficie"
                 >
                   {n.nome}
                 </Link>
@@ -492,7 +503,7 @@ function Seta() {
 
 function MegaPainel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="invisible absolute left-0 top-full z-50 w-max min-w-[520px] max-w-[720px] rounded-b-[10px] border border-t-0 border-linha bg-white p-4 opacity-0 shadow-card transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+    <div className="invisible absolute left-0 top-full z-50 w-max min-w-[520px] max-w-[720px] rounded-b-[8px] border border-t-0 border-linha bg-white p-4 opacity-0 shadow-card transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
       {children}
     </div>
   );

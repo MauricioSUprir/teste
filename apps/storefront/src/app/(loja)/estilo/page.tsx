@@ -34,7 +34,7 @@ export default function PaginaEstilo() {
       <h2 className="font-titulo mt-10 text-[1.375rem] font-semibold">Paleta</h2>
       <ul className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
         {cores.map(([token, hexa, uso]) => (
-          <li key={token} className="overflow-hidden rounded-[10px] border border-linha">
+          <li key={token} className="overflow-hidden rounded-[8px] border border-linha">
             <span className="block h-16" style={{ background: hexa }} />
             <span className="block p-3">
               <code className="block text-[0.75rem] font-semibold">{token}</code>
@@ -46,7 +46,7 @@ export default function PaginaEstilo() {
       </ul>
 
       <h2 className="font-titulo mt-10 text-[1.375rem] font-semibold">Escala tipográfica</h2>
-      <div className="mt-4 space-y-3 rounded-[10px] border border-linha p-5">
+      <div className="mt-4 space-y-3 rounded-[8px] border border-linha p-5">
         <p className="font-titulo" style={{ fontSize: "var(--t-hero)" }}>Hero — Fraunces</p>
         <p className="font-titulo" style={{ fontSize: "var(--t-h1)" }}>H1 — Fraunces</p>
         <p className="font-titulo" style={{ fontSize: "var(--t-h2)" }}>H2 — Fraunces</p>
@@ -58,17 +58,17 @@ export default function PaginaEstilo() {
       </div>
 
       <h2 className="font-titulo mt-10 text-[1.375rem] font-semibold">Botões</h2>
-      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[10px] border border-linha p-5">
-        <button type="button" className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro">
+      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[8px] border border-linha p-5">
+        <button type="button" className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro">
           Ação primária
         </button>
-        <button type="button" className="rounded-[999px] border-2 border-tinta px-6 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie">
+        <button type="button" className="rounded-[40px] border-2 border-tinta px-6 py-3 text-[0.9375rem] font-semibold text-tinta hover:bg-superficie">
           Ação secundária
         </button>
-        <button type="button" className="rounded-[6px] bg-violeta px-5 py-2.5 text-[0.875rem] font-semibold text-white">
+        <button type="button" className="rounded-[4px] bg-violeta px-5 py-2.5 text-[0.875rem] font-semibold text-white">
           Ação informativa
         </button>
-        <button type="button" disabled className="rounded-[999px] bg-cinza px-6 py-3 text-[0.9375rem] font-semibold text-white">
+        <button type="button" disabled className="rounded-[40px] bg-cinza px-6 py-3 text-[0.9375rem] font-semibold text-white">
           Desabilitado
         </button>
       </div>

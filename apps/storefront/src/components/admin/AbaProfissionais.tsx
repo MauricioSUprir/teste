@@ -79,13 +79,13 @@ export function AbaProfissionais() {
         {cadastros.map((c) => (
           <li
             key={c.cnpj}
-            className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[10px] border border-linha p-4"
+            className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-[8px] border border-linha p-4"
           >
             <div className="min-w-0 grow">
               <p className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-tinta">{c.razao || c.nome}</span>
                 <span
-                  className={`rounded-[999px] px-2 py-0.5 text-[0.75rem] font-semibold ${corStatus[c.status]}`}
+                  className={`rounded-[40px] px-2 py-0.5 text-[0.75rem] font-semibold ${corStatus[c.status]}`}
                 >
                   {rotuloStatus[c.status]}
                 </span>
@@ -102,7 +102,7 @@ export function AbaProfissionais() {
                   type="button"
                   disabled={salvando === c.cnpj}
                   onClick={() => void decidir(c.cnpj, "aprovado")}
-                  className="h-10 rounded-[999px] bg-sucesso px-4 text-[0.875rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                  className="h-10 rounded-[40px] bg-sucesso px-4 text-[0.875rem] font-semibold text-white hover:opacity-90 disabled:opacity-50"
                 >
                   {copy.b2b.admin.aprovar}
                 </button>
@@ -112,7 +112,7 @@ export function AbaProfissionais() {
                   type="button"
                   disabled={salvando === c.cnpj}
                   onClick={() => void decidir(c.cnpj, "recusado")}
-                  className="h-10 rounded-[999px] border border-erro px-4 text-[0.875rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
+                  className="h-10 rounded-[40px] border border-erro px-4 text-[0.875rem] font-semibold text-erro hover:bg-erro/5 disabled:opacity-50"
                 >
                   {copy.b2b.admin.recusar}
                 </button>

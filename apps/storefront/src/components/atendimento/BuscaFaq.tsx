@@ -47,13 +47,13 @@ export function BuscaFaq({ itens }: { itens: ItemFaq[] }) {
           onChange={(e) => setTermo(e.target.value)}
           aria-label={copy.atendimento.buscaRotulo}
           placeholder={copy.atendimento.buscaPlaceholder}
-          className="h-12 w-full rounded-[999px] border border-linha bg-white pl-11 pr-4 text-[0.9375rem] outline-none focus:border-violeta"
+          className="h-12 w-full rounded-[40px] border border-linha bg-white pl-11 pr-4 text-[0.9375rem] outline-none focus:border-violeta"
         />
       </div>
 
       <div className="mt-5" aria-live="polite">
         {filtrados.length === 0 ? (
-          <p className="rounded-[10px] bg-superficie px-4 py-6 text-center text-[0.9375rem] text-grafite">
+          <p className="rounded-[8px] bg-superficie px-4 py-6 text-center text-[0.9375rem] text-grafite">
             {copy.atendimento.nenhuma(termo.trim())}
           </p>
         ) : (

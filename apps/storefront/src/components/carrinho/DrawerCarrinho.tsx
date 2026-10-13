@@ -82,7 +82,7 @@ export function DrawerCarrinho() {
             type="button"
             onClick={carrinho.fechar}
             aria-label={copy.carrinho.fechar}
-            className="flex h-11 w-11 items-center justify-center rounded-[6px] hover:bg-superficie"
+            className="flex h-11 w-11 items-center justify-center rounded-[4px] hover:bg-superficie"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
               <path d="M4 4 L14 14 M14 4 L4 14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -96,7 +96,7 @@ export function DrawerCarrinho() {
             <Link
               href="/busca?q=mais+vendidos"
               onClick={carrinho.fechar}
-              className="rounded-[999px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+              className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
             >
               {copy.carrinho.verMaisVendidos}
             </Link>
@@ -113,7 +113,7 @@ export function DrawerCarrinho() {
                   <Link
                     href={`/produto/${item.produtoSlug}`}
                     onClick={carrinho.fechar}
-                    className="w-20 shrink-0 overflow-hidden rounded-[6px] border border-linha"
+                    className="w-20 shrink-0 overflow-hidden rounded-[4px] border border-linha"
                   >
                     <ImagemProduto produto={item.produto} alt={item.produto.titulo} />
                   </Link>
@@ -129,7 +129,7 @@ export function DrawerCarrinho() {
                       {item.variante.tituloVariacao}
                     </span>
                     <div className="mt-auto flex items-center justify-between pt-2">
-                      <div className="flex items-center rounded-[6px] border border-linha">
+                      <div className="flex items-center rounded-[4px] border border-linha">
                         <button
                           type="button"
                           aria-label={`Diminuir quantidade de ${item.produto.titulo}`}
@@ -168,7 +168,7 @@ export function DrawerCarrinho() {
 
             <div className="border-t border-linha px-4 py-4">
               {carrinho.cupomAplicado ? (
-                <div className="mb-3 flex items-center justify-between rounded-[6px] bg-violeta-claro px-3 py-2">
+                <div className="mb-3 flex items-center justify-between rounded-[4px] bg-violeta-claro px-3 py-2">
                   <span className="text-[0.8125rem] font-medium text-roxo-escuro">
                     {copy.carrinho.cupomAplicado(carrinho.cupomAplicado)}
                   </span>
@@ -184,7 +184,7 @@ export function DrawerCarrinho() {
                   </button>
                 </div>
               ) : (
-                <details className="mb-3 rounded-[6px] border border-linha">
+                <details className="mb-3 rounded-[4px] border border-linha">
                   <summary className="cursor-pointer px-3 py-2 text-[0.8125rem] text-grafite">
                     {copy.carrinho.cupomTitulo}
                   </summary>
@@ -205,12 +205,12 @@ export function DrawerCarrinho() {
                         }}
                         placeholder={copy.carrinho.cupomPlaceholder}
                         aria-label={copy.carrinho.cupomTitulo}
-                        className="num h-10 min-w-0 grow rounded-[6px] border border-linha px-3 text-[0.875rem] uppercase focus:border-roxo focus:outline-none"
+                        className="num h-10 min-w-0 grow rounded-[4px] border border-linha px-3 text-[0.875rem] uppercase focus:border-roxo focus:outline-none"
                       />
                       <button
                         type="button"
                         onClick={aplicarCupom}
-                        className="h-10 shrink-0 rounded-[6px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+                        className="h-10 shrink-0 rounded-[4px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
                       >
                         {copy.carrinho.cupomAplicar}
                       </button>
@@ -248,7 +248,7 @@ export function DrawerCarrinho() {
               </dl>
 
               {abaixoDoMinimo && (
-                <p className="mt-3 rounded-[6px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
+                <p className="mt-3 rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
                   {copy.carrinho.pedidoMinimo(formatarPreco(PEDIDO_MINIMO_CENTAVOS))}
                 </p>
               )}
@@ -257,7 +257,7 @@ export function DrawerCarrinho() {
                 href="/checkout"
                 onClick={carrinho.fechar}
                 aria-disabled={abaixoDoMinimo}
-                className={`mt-3 block rounded-[999px] py-3.5 text-center text-[1rem] font-semibold text-white ${
+                className={`mt-3 block rounded-[40px] py-3.5 text-center text-[1rem] font-semibold text-white ${
                   abaixoDoMinimo
                     ? "pointer-events-none bg-cinza"
                     : "bg-roxo hover:bg-roxo-escuro"

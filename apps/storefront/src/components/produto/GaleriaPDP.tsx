@@ -12,7 +12,7 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
 
   return (
     <div>
-      <div className="overflow-hidden rounded-[16px] border border-linha">
+      <div className="overflow-hidden rounded-[8px] border border-linha">
         <ImagemProduto produto={produto} alt={alt} variacao={ativa} />
       </div>
       {TOTAL_FOTOS > 1 && (
@@ -30,7 +30,7 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
             aria-selected={i === ativa}
             aria-label={`Foto ${i + 1} de ${TOTAL_FOTOS}`}
             onClick={() => setAtiva(i)}
-            className={`w-16 shrink-0 overflow-hidden rounded-[6px] border-2 transition-colors ${
+            className={`w-16 shrink-0 overflow-hidden rounded-[4px] border-2 transition-colors ${
               i === ativa ? "border-roxo" : "border-linha hover:border-cinza"
             }`}
           >

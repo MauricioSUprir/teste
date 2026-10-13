@@ -72,7 +72,7 @@ export function AbaCupons() {
 
       <form
         onSubmit={criar}
-        className="rounded-[16px] border border-linha bg-white p-5"
+        className="rounded-[8px] border border-linha bg-white p-5"
       >
         <h2 className="font-titulo text-[1.125rem] font-semibold">{copy.conta.admin.cupomCriar}</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -88,7 +88,7 @@ export function AbaCupons() {
                 setErro(null);
               }}
               placeholder="EX.: PRIMAVERA15"
-              className="num mt-1 h-11 w-full rounded-[6px] border border-linha px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta"
+              className="num mt-1 h-11 w-full rounded-[4px] border border-linha px-3 text-[0.9375rem] uppercase outline-none focus:border-violeta"
             />
           </label>
           <label className="block">
@@ -98,7 +98,7 @@ export function AbaCupons() {
             <select
               value={tipo}
               onChange={(e) => setTipo(e.target.value as Cupom["tipo"])}
-              className="mt-1 h-11 w-full rounded-[6px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+              className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
             >
               <option value="percentual">{copy.conta.admin.cupomPercentual}</option>
               <option value="valor">{copy.conta.admin.cupomValorFixo}</option>
@@ -117,7 +117,7 @@ export function AbaCupons() {
                 setErro(null);
               }}
               placeholder={tipo === "percentual" ? "10" : "15,00"}
-              className="num mt-1 h-11 w-full rounded-[6px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta"
+              className="num mt-1 h-11 w-full rounded-[4px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta"
             />
           </label>
           <label className="block">
@@ -130,7 +130,7 @@ export function AbaCupons() {
               value={minimo}
               onChange={(e) => setMinimo(e.target.value)}
               placeholder="99,00"
-              className="num mt-1 h-11 w-full rounded-[6px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta"
+              className="num mt-1 h-11 w-full rounded-[4px] border border-linha px-3 text-[0.9375rem] outline-none focus:border-violeta"
             />
           </label>
         </div>
@@ -141,13 +141,13 @@ export function AbaCupons() {
         )}
         <button
           type="submit"
-          className="mt-4 rounded-[999px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          className="mt-4 rounded-[40px] bg-roxo px-6 py-2.5 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
         >
           {copy.conta.admin.cupomCriar}
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-[16px] border border-linha bg-white">
+      <div className="overflow-x-auto rounded-[8px] border border-linha bg-white">
         {cupons.length === 0 ? (
           <p className="p-5 text-[0.9375rem] text-grafite">{copy.conta.admin.cupomVazio}</p>
         ) : (
@@ -178,7 +178,7 @@ export function AbaCupons() {
                       type="button"
                       onClick={() => alternarAtivo(c.codigo)}
                       aria-pressed={c.ativo}
-                      className={`rounded-[999px] px-2.5 py-1 text-[0.6875rem] font-semibold ${
+                      className={`rounded-[40px] px-2.5 py-1 text-[0.6875rem] font-semibold ${
                         c.ativo
                           ? "bg-[#E7F5EE] text-sucesso"
                           : "bg-superficie text-cinza"
