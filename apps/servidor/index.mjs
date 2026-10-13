@@ -19,7 +19,7 @@
 import express from "express";
 import cors from "cors";
 import { createTransport } from "nodemailer";
-import { randomInt } from "node:crypto";
+import crypto, { randomInt } from "node:crypto";
 
 // Render/Heroku definem PORT; localmente usamos PORTA (padrão 4000)
 const PORTA = Number(process.env.PORTA ?? process.env.PORT ?? 4000);
@@ -154,6 +154,9 @@ const aplicacao = express();
 aplicacao.use("/enviar-logos", express.json({ limit: "8mb" }));
 aplicacao.use("/enviar-banners", express.json({ limit: "10mb" }));
 aplicacao.use(express.json({ limit: "100kb" }));
+// API do painel externo (/api/v1): aceita qualquer origem — quem protege é o
+// token, não o domínio. Precisa vir antes do CORS geral, que só libera as lojas.
+aplicacao.use("/api/v1", cors({ origin: true, allowedHeaders: ["Authorization", "X-API-Key", "Content-Type"] }));
 aplicacao.use(cors({ origin: ORIGENS }));
 
 // transporte de e-mail — timeouts explícitos: sem eles, uma conexão
@@ -853,6 +856,7 @@ function registrarPedidoLoja(pedido) {
   pedidosLoja = [registro, ...pedidosLoja.filter((p) => p.numero !== registro.numero)];
   if (pedidosLoja.length > 2000) pedidosLoja = pedidosLoja.slice(0, 2000);
   salvarPedidosLoja();
+  emitirEventoPainel("pedido.criado", registro);
 }
 
 function atualizarStatusPedidoLoja(numero, status, extras = {}) {
@@ -862,6 +866,7 @@ function atualizarStatusPedidoLoja(numero, status, extras = {}) {
   Object.assign(p, extras);
   salvarPedidosLoja();
   console.log(`[pedidos] ${numero} → ${status}`);
+  emitirEventoPainel(status === "pago" ? "pedido.pago" : "pedido.status", p);
 }
 
 // lista completa para o painel do admin (dados de entrega inclusos)
@@ -896,7 +901,11 @@ aplicacao.post("/pedidos/status", async (req, res) => {
   if (!["pago", "cancelado", "aguardando_pagamento"].includes(status)) {
     return res.status(400).json({ erro: "Status inválido." });
   }
-  atualizarStatusPedidoLoja(String(req.body?.numero ?? ""), status);
+  atualizarStatusPedidoLoja(
+    String(req.body?.numero ?? ""),
+    status,
+    status === "pago" ? { pagoEm: new Date().toISOString(), pagoManual: true } : {}
+  );
   res.json({ ok: true });
 });
 
@@ -1232,6 +1241,159 @@ aplicacao.get("/pagamentos/pedido/:numero", async (req, res) => {
     res.status(502).json({ erro: erro.message });
   }
 });
+
+// ===== API do painel externo (somente leitura) =====
+// Para o painel de gestão do grupo acompanhar as vendas das quatro lojas ao
+// vivo. Token próprio (PAINEL_API_TOKENS, separados por vírgula), diferente
+// da chave do admin — dá para trocar ou revogar sem mexer no site. Só
+// leitura: nada aqui altera pedido. Dados do cliente vão no mínimo para
+// gestão (nome, e-mail, cidade/UF): sem CPF, telefone ou endereço completo.
+// Documentação: docs/api-painel.md
+const PAINEL_TOKENS = (process.env.PAINEL_API_TOKENS ?? "")
+  .split(",")
+  .map((t) => t.trim())
+  .filter((t) => t.length >= 24);
+const PAINEL_WEBHOOK_URL = (process.env.PAINEL_WEBHOOK_URL ?? "").trim();
+
+function tokenPainelValido(req) {
+  const cabecalho = String(req.get("authorization") ?? "");
+  const token = cabecalho.toLowerCase().startsWith("bearer ")
+    ? cabecalho.slice(7).trim()
+    : String(req.get("x-api-key") ?? "").trim();
+  if (!token) return false;
+  const recebido = Buffer.from(token);
+  return PAINEL_TOKENS.some((t) => {
+    const esperado = Buffer.from(t);
+    return esperado.length === recebido.length && crypto.timingSafeEqual(esperado, recebido);
+  });
+}
+
+function exigirTokenPainel(req, res, next) {
+  if (PAINEL_TOKENS.length === 0) return res.status(503).json({ erro: "API do painel não configurada." });
+  if (!tokenPainelValido(req)) return res.status(401).json({ erro: "Token inválido ou ausente." });
+  res.set("Cache-Control", "no-store");
+  next();
+}
+
+/** pedido no formato público da API (sem CPF, telefone nem endereço completo) */
+function pedidoParaPainel(p) {
+  return {
+    numero: p.numero,
+    loja: p.loja,
+    data: p.data,
+    status: p.status,
+    pagoEm: p.pagoEm ?? null,
+    meio: p.meio,
+    totalCentavos: p.totalCentavos,
+    descontoCentavos: p.descontoCentavos ?? 0,
+    cupom: p.cupom ?? null,
+    frete: p.freteNome || null,
+    afiliado: p.afiliado ?? null,
+    vendedor: p.vendedorUsuario ?? null,
+    cliente: {
+      nome: p.clienteNome,
+      email: p.clienteEmail,
+      cidade: p.endereco?.cidade ?? null,
+      uf: p.endereco?.uf ?? null,
+    },
+    itens: (p.itens ?? []).map((i) => ({
+      sku: i.sku ?? null,
+      titulo: i.titulo,
+      quantidade: i.quantidade,
+      precoCentavos: i.precoCentavos,
+    })),
+    enviadoAoBling: Boolean(p.blingId),
+  };
+}
+
+/** filtros comuns: ?desde=AAAA-MM-DD&ate=AAAA-MM-DD&loja=&status= */
+function filtrarPedidosPainel(q) {
+  const desde = q.desde ? new Date(`${q.desde}T00:00:00-03:00`).getTime() : 0;
+  const ate = q.ate ? new Date(`${q.ate}T23:59:59.999-03:00`).getTime() : Infinity;
+  const loja = q.loja ? String(q.loja) : null;
+  const status = q.status ? String(q.status) : null;
+  return pedidosLoja.filter((p) => {
+    const t = new Date(p.data).getTime();
+    return t >= desde && t <= ate && (!loja || p.loja === loja) && (!status || p.status === status);
+  });
+}
+
+const diaBrasilia = (iso) =>
+  new Date(new Date(iso).getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+aplicacao.get("/api/v1/resumo", exigirTokenPainel, (req, res) => {
+  const lista = filtrarPedidosPainel({ ...req.query, status: undefined });
+  const pagos = lista.filter((p) => p.status === "pago");
+  const somar = (l) => l.reduce((s, p) => s + (p.totalCentavos ?? 0), 0);
+  const agrupar = (chave) => {
+    const mapa = {};
+    for (const p of pagos) {
+      const k = chave(p) || "outro";
+      mapa[k] ??= { pedidos: 0, faturamentoCentavos: 0 };
+      mapa[k].pedidos++;
+      mapa[k].faturamentoCentavos += p.totalCentavos ?? 0;
+    }
+    return mapa;
+  };
+  const faturamento = somar(pagos);
+  res.json({
+    periodo: { desde: req.query.desde ?? null, ate: req.query.ate ?? null, loja: req.query.loja ?? null },
+    pedidos: lista.length,
+    pagos: pagos.length,
+    aguardandoPagamento: lista.filter((p) => p.status === "aguardando_pagamento").length,
+    cancelados: lista.filter((p) => p.status === "cancelado").length,
+    faturamentoCentavos: faturamento,
+    ticketMedioCentavos: pagos.length ? Math.round(faturamento / pagos.length) : 0,
+    porLoja: agrupar((p) => p.loja),
+    porMeio: agrupar((p) => p.meio),
+    porDia: agrupar((p) => diaBrasilia(p.pagoEm ?? p.data)),
+    atualizadoEm: new Date().toISOString(),
+  });
+});
+
+aplicacao.get("/api/v1/pedidos", exigirTokenPainel, (req, res) => {
+  const limite = Math.min(500, Math.max(1, Number(req.query.limite ?? 100) || 100));
+  const lista = filtrarPedidosPainel(req.query);
+  res.json({ total: lista.length, pedidos: lista.slice(0, limite).map(pedidoParaPainel) });
+});
+
+aplicacao.get("/api/v1/pedidos/:numero", exigirTokenPainel, (req, res) => {
+  const p = pedidosLoja.find((x) => x.numero === String(req.params.numero));
+  if (!p) return res.status(404).json({ erro: "Pedido não encontrado." });
+  res.json(pedidoParaPainel(p));
+});
+
+// ao vivo: Server-Sent Events. Cada pedido criado, pago ou com status
+// mudado chega na hora; um "ping" a cada 25s mantém a conexão aberta.
+const assinantesPainel = new Set();
+aplicacao.get("/api/v1/eventos", exigirTokenPainel, (req, res) => {
+  res.set({ "Content-Type": "text/event-stream", Connection: "keep-alive", "X-Accel-Buffering": "no" });
+  res.flushHeaders();
+  res.write(`event: conectado\ndata: ${JSON.stringify({ em: new Date().toISOString() })}\n\n`);
+  const ping = setInterval(() => res.write(`: ping\n\n`), 25_000);
+  assinantesPainel.add(res);
+  req.on("close", () => {
+    clearInterval(ping);
+    assinantesPainel.delete(res);
+  });
+});
+
+function emitirEventoPainel(tipo, pedido) {
+  const dados = { tipo, em: new Date().toISOString(), pedido: pedidoParaPainel(pedido) };
+  for (const res of assinantesPainel) res.write(`event: ${tipo}\ndata: ${JSON.stringify(dados)}\n\n`);
+  // e/ou empurra para o painel, se ele tiver um endereço para receber.
+  // Assinatura HMAC-SHA256 do corpo com o 1º token, no cabeçalho X-Assinatura.
+  if (PAINEL_WEBHOOK_URL && PAINEL_TOKENS[0]) {
+    const corpo = JSON.stringify(dados);
+    const assinatura = crypto.createHmac("sha256", PAINEL_TOKENS[0]).update(corpo).digest("hex");
+    fetch(PAINEL_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Assinatura": assinatura },
+      body: corpo,
+      signal: AbortSignal.timeout(10_000),
+    }).catch((erro) => console.error(`[painel] webhook falhou: ${erro.message}`));
+  }
+}
 
 // ===== "Atualizar catálogo agora" (botão do painel) =====
 // O catálogo é montado pelo robô do GitHub (sincronizar-catalogo.yml). O
