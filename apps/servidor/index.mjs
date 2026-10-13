@@ -1845,7 +1845,11 @@ async function bling(caminho, opcoes = {}, tentativa = 1) {
   }
   if (!resposta.ok) {
     const detalhe = corpo?.error?.description ?? corpo?.error?.message ?? JSON.stringify(corpo).slice(0, 300);
-    throw new Error(`Bling HTTP ${resposta.status}: ${detalhe}`);
+    // erro de validação: o Bling diz campo a campo o que recusou
+    const campos = (corpo?.error?.fields ?? [])
+      .map((f) => `${f.element ?? f.namespace ?? "campo"}: ${f.msg ?? f.message ?? ""}`)
+      .join("; ");
+    throw new Error(`Bling HTTP ${resposta.status}: ${detalhe}${campos ? ` (${campos})` : ""}`);
   }
   return corpo;
 }
