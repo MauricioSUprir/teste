@@ -1779,8 +1779,26 @@ async function blingAccessToken() {
   return blingTokens.access;
 }
 
-async function bling(caminho, opcoes = {}) {
+// O Bling aceita no máximo 3 chamadas por segundo. Cada pedido faz 2 ou 3
+// (busca do contato, criação do contato, pedido) e, com dois pedidos em
+// sequência, o Bling devolvia 429. As chamadas passam por uma fila com
+// intervalo mínimo e, se mesmo assim vier 429, esperam e tentam de novo.
+const BLING_INTERVALO_MS = 450;
+let blingFila = Promise.resolve();
+let blingUltimaChamada = 0;
+function blingNaVez() {
+  const vez = blingFila.then(async () => {
+    const espera = blingUltimaChamada + BLING_INTERVALO_MS - Date.now();
+    if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+    blingUltimaChamada = Date.now();
+  });
+  blingFila = vez.catch(() => undefined);
+  return vez;
+}
+
+async function bling(caminho, opcoes = {}, tentativa = 1) {
   const token = await blingAccessToken();
+  await blingNaVez();
   const resposta = await fetch(`${BLING_API}${caminho}`, {
     ...opcoes,
     headers: {
@@ -1792,6 +1810,10 @@ async function bling(caminho, opcoes = {}) {
     signal: AbortSignal.timeout(25_000),
   });
   const corpo = await resposta.json().catch(() => ({}));
+  if (resposta.status === 429 && tentativa < 4) {
+    await new Promise((r) => setTimeout(r, 1500 * tentativa));
+    return bling(caminho, opcoes, tentativa + 1);
+  }
   if (!resposta.ok) {
     const detalhe = corpo?.error?.description ?? corpo?.error?.message ?? JSON.stringify(corpo).slice(0, 300);
     throw new Error(`Bling HTTP ${resposta.status}: ${detalhe}`);
