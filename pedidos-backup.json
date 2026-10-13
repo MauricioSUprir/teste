@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-10-13T04:15:09.699Z",
+  "geradoEm": "2026-10-13T08:17:30.672Z",
   "restauracaoOk": true,
   "pedidos": [
     {
@@ -19,6 +19,7 @@
       "numero": "BN-137355",
       "pagoEm": "2026-10-12T23:57:04.000-04:00",
       "status": "pago",
+      "blingId": 27112140940,
       "afiliado": null,
       "endereco": {
         "uf": "RJ",
@@ -56,6 +57,7 @@
       "numero": "BN-363366",
       "pagoEm": "2026-10-07T18:46:24.000-04:00",
       "status": "pago",
+      "blingId": 27112141045,
       "afiliado": null,
       "endereco": {
         "uf": "MG",
