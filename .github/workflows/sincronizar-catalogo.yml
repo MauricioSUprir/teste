@@ -10,7 +10,9 @@ name: Sincronizar catálogo do Hub
 #
 # Este arquivo vive na branch padrão porque o GitHub só agenda workflows a
 # partir dela — mas todo o código-fonte usado vem da RAMO_FONTE abaixo.
-# Para rodar fora do horário: edite .github/disparar-sincronizacao.txt.
+# Para rodar fora do horário: botão "Atualizar catálogo agora" no painel do
+# admin (o robô manter-servidor-acordado dispara este aqui) ou edite
+# .github/disparar-sincronizacao.txt.
 
 on:
   schedule:
@@ -37,6 +39,12 @@ jobs:
   sincronizar:
     runs-on: ubuntu-latest
     steps:
+      - name: Avisar o painel que começou
+        run: |
+          curl -s --max-time 90 -X POST "$SERVIDOR/catalogo/atualizacao" \
+            -H "Content-Type: application/json" \
+            -d "{\"acao\":\"iniciar\",\"chave\":\"$CHAVE\"}" -o /dev/null || true
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.RAMO_FONTE }}
@@ -138,3 +146,13 @@ jobs:
           git commit -q -m "chore: publicação automática após sincronização do catálogo"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" gh-pages
           echo "Sites republicados com o catálogo novo."
+
+      - name: Avisar o painel como terminou
+        if: always()
+        run: |
+          if [ "${{ job.status }}" != "success" ]; then resultado=falhou
+          elif [ "${{ steps.diff.outputs.mudou }}" = "sim" ]; then resultado=publicado
+          else resultado=sem-novidade; fi
+          curl -s --max-time 60 -X POST "$SERVIDOR/catalogo/atualizacao" \
+            -H "Content-Type: application/json" \
+            -d "{\"acao\":\"terminar\",\"resultado\":\"$resultado\",\"chave\":\"$CHAVE\"}" -o /dev/null || true

@@ -3,10 +3,22 @@ name: manter-servidor-acordado
 # Cutuca o servidor gratuito (Render) a cada 10 minutos para ele nunca
 # hibernar — assim login, pagamento e pedidos respondem na hora para o
 # cliente. Roda na branch padrão porque o agendador do GitHub exige isso.
+#
+# De carona: se o admin apertou "Atualizar catálogo agora" no painel, o
+# servidor guarda o pedido e este robô dispara a sincronização do catálogo
+# na hora, sem esperar a rodada diária.
 on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch: {}
+
+permissions:
+  actions: write # para disparar a sincronização do catálogo
+
+env:
+  SERVIDOR: https://beautynow-servidor.onrender.com
+  # mesma chave que o painel do admin usa no navegador
+  CHAVE: exporta-bn-2026
 
 jobs:
   cutucar:
@@ -16,3 +28,19 @@ jobs:
         run: |
           curl -fsS --max-time 90 "https://beautynow-servidor.onrender.com/saude" -o /dev/null \
             && echo "servidor acordado" || echo "ping falhou (segue a vida)"
+
+      - name: Atualização de catálogo pedida no painel?
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          estado=$(curl -fsS --max-time 60 "$SERVIDOR/catalogo/atualizacao?chave=$CHAVE" || echo '{}')
+          if [ "$(echo "$estado" | jq -r '.pendente // false')" != "true" ]; then
+            echo "nenhum pedido de atualização"
+            exit 0
+          fi
+          # marca como iniciado antes de disparar: o próximo cutucão não dispara de novo
+          curl -fsS --max-time 60 -X POST "$SERVIDOR/catalogo/atualizacao" \
+            -H "Content-Type: application/json" \
+            -d "{\"acao\":\"iniciar\",\"chave\":\"$CHAVE\"}" -o /dev/null
+          gh workflow run sincronizar-catalogo.yml --repo "${{ github.repository }}" --ref "${{ github.ref_name }}"
+          echo "sincronização do catálogo disparada pelo painel"
