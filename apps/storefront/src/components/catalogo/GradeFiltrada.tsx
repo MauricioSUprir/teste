@@ -12,6 +12,7 @@ import { marcas, menorPreco, notaMedia, temEstoque } from "@/lib/catalogo/consul
 import { EVENTO_AJUSTES, aplicarAjustesLista, produtosLocais } from "@/lib/catalogo/ajustes";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
+import { POR_PAGINA } from "@/lib/catalogo/paginacao";
 
 type Ordenacao =
   | "relevancia"
@@ -20,9 +21,6 @@ type Ordenacao =
   | "maior-preco"
   | "lancamentos"
   | "melhor-avaliados";
-
-/** cards montados por vez — o resto entra no botão "ver mais" */
-export const POR_PAGINA = 24;
 
 const faixasPreco = [
   { id: "ate-50", rotulo: "Até R$ 50", min: 0, max: 5000 },

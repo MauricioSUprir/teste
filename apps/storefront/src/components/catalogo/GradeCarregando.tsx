@@ -1,6 +1,6 @@
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
-import { POR_PAGINA } from "./GradeFiltrada";
+import { POR_PAGINA } from "@/lib/catalogo/paginacao";
 
 /**
  * Fallback da <GradeFiltrada> no HTML estático. A grade lê os filtros da URL
