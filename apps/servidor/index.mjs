@@ -1868,6 +1868,8 @@ async function blingContato(pedido) {
     body: JSON.stringify({
       nome: pedido.clienteNome || "Cliente BeautyNow",
       tipo: "F",
+      situacao: "A", // o Bling v3 exige; sem isso recusava o contato
+      indicadorIe: 9, // pessoa física: não contribuinte de ICMS
       numeroDocumento: cpf || undefined,
       celular: pedido.telefone || undefined,
       email: pedido.clienteEmail || undefined,
