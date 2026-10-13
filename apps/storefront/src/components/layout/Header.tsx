@@ -241,11 +241,7 @@ export function Header() {
                         className="h-5 w-[50px] shrink-0 object-contain"
                       />
                     ) : (
-                      <span
-                        aria-hidden="true"
-                        className="inline-block h-2.5 w-2.5 rounded-full"
-                        style={{ background: m.cor }}
-                      />
+                      <span aria-hidden="true" className="inline-block h-5 w-[50px] shrink-0" />
                     )}
                     {m.nome}
                   </Link>

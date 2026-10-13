@@ -45,12 +45,9 @@ export default function PaginaMarcas() {
                     className="max-h-24 max-w-[85%] object-contain transition-transform group-hover:scale-105"
                   />
                 ) : (
-                  <span
-                    aria-hidden="true"
-                    className="flex h-14 w-14 items-center justify-center rounded-full text-[1.5rem] font-bold text-white"
-                    style={{ background: m.cor }}
-                  >
-                    {m.nome.charAt(0)}
+                  /* marca sem logo: o nome no mesmo tom grafite das logos padronizadas */
+                  <span aria-hidden="true" className="px-3 text-center text-[1.375rem] font-bold uppercase leading-tight tracking-wide text-[#2b2b2b]">
+                    {m.nome}
                   </span>
                 )}
               </span>

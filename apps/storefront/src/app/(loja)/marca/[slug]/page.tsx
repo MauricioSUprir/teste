@@ -50,10 +50,9 @@ export default async function PaginaMarca({
           ) : (
             <span
               aria-hidden="true"
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-[1.75rem] font-bold text-white"
-              style={{ background: marca.cor }}
+              className="flex h-24 w-40 shrink-0 items-center justify-center rounded-[8px] border border-linha bg-white px-3 text-center text-[1.125rem] font-bold uppercase leading-tight text-[#2b2b2b]"
             >
-              {marca.nome.charAt(0)}
+              {marca.nome}
             </span>
           )}
           <div>
