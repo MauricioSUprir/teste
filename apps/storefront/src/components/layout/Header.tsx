@@ -238,7 +238,7 @@ export function Header() {
                         alt=""
                         aria-hidden="true"
                         loading="lazy"
-                        className="h-5 w-5 shrink-0 rounded-[4px] object-contain"
+                        className="h-5 w-[50px] shrink-0 object-contain"
                       />
                     ) : (
                       <span

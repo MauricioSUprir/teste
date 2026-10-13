@@ -236,7 +236,7 @@ export default function Home() {
                 <span className="relative mt-auto flex w-full items-center gap-3 bg-white/95 px-4 py-3">
                   {m.logo && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={comBase(m.logo)} alt="" loading="lazy" className="h-9 w-9 shrink-0 object-contain" />
+                    <img src={comBase(m.logo)} alt="" loading="lazy" className="h-10 w-[100px] shrink-0 object-contain" />
                   )}
                   <span className="min-w-0">
                     <span className="block text-[1rem] font-bold uppercase leading-tight text-tinta">{m.nome}</span>
@@ -257,7 +257,7 @@ export default function Home() {
                 >
                   {m.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={comBase(m.logo)} alt={m.nome} loading="lazy" className="max-h-12 max-w-[85%] object-contain" />
+                    <img src={comBase(m.logo)} alt={m.nome} loading="lazy" className="h-14 w-auto max-w-full object-contain" />
                   ) : (
                     <span className="text-[0.875rem] font-bold uppercase text-tinta">{m.nome}</span>
                   )}

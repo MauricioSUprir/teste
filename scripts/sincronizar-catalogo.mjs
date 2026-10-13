@@ -289,10 +289,14 @@ async function principal() {
     // foto real da marca: primeira foto de produto dela no catálogo
     const marcaAtual = marcasMapa.get(p.marca);
     if (!marcaAtual.imagem && p.imagens?.[0]) marcaAtual.imagem = p.imagens[0];
-    // logo oficial versionado em public/logos-marcas/{slug}.{ext}
+    // logo oficial versionado em public/logos-marcas/{slug}.{ext}; a versão
+    // padronizada (mesma cor e tamanho — scripts/padronizar-logos.mjs) tem
+    // preferência
     if (!marcaAtual.logo) {
       const dirLogos = join(RAIZ, "apps/storefront/public/logos-marcas");
-      if (existsSync(dirLogos)) {
+      if (existsSync(join(dirLogos, "padrao", `${p.marca}.png`))) {
+        marcaAtual.logo = `/logos-marcas/padrao/${p.marca}.png`;
+      } else if (existsSync(dirLogos)) {
         const arquivo = readdirSync(dirLogos).find((f) => f.startsWith(`${p.marca}.`));
         if (arquivo) marcaAtual.logo = `/logos-marcas/${arquivo}`;
       }
