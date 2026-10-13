@@ -8,6 +8,7 @@
  * verdade volta a ser o sistema central.
  */
 import { useMemo, useState } from "react";
+import { AtualizarCatalogo } from "./AtualizarCatalogo";
 import {
   catalogoReal,
   categorias,
@@ -120,6 +121,7 @@ export function AbaCatalogo() {
 
   return (
     <div>
+      <AtualizarCatalogo />
       {!catalogoReal && (
         <p className="mb-4 rounded-[8px] border border-violeta/30 bg-violeta-claro px-4 py-3 text-[0.8125rem] text-grafite">
           Catálogo de demonstração. Assim que a importação do Hub Suprir rodar, os 1.222 produtos

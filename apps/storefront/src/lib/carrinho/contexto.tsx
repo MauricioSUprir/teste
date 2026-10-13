@@ -16,7 +16,7 @@ import {
 } from "react";
 import { obterProduto } from "@/lib/catalogo/consultas";
 import type { Produto, Variante } from "@/lib/catalogo/tipos";
-import { calcularDesconto, validarCupom, type Cupom } from "@/lib/cupons";
+import { buscarCupom, calcularDesconto, conferirRegrasCupom, type Cupom } from "@/lib/cupons";
 
 export interface ItemCarrinho {
   produtoSlug: string;
@@ -42,7 +42,7 @@ interface CarrinhoContexto {
   adicionar: (produtoSlug: string, sku: string, quantidade?: number) => void;
   remover: (sku: string) => void;
   alterarQuantidade: (sku: string, quantidade: number) => void;
-  aplicarCupom: (codigo: string) => { ok: boolean; erro?: string };
+  aplicarCupom: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
   removerCupom: () => void;
   limpar: () => void;
 }
@@ -53,7 +53,10 @@ const CHAVE_CUPOM = "beautynow:cupom:v1";
 
 export function CarrinhoProvider({ children }: { children: ReactNode }) {
   const [itens, setItens] = useState<ItemCarrinho[]>([]);
-  const [cupomAplicado, setCupomAplicado] = useState<string | null>(null);
+  // o cupom inteiro (não só o código): a conferência é no servidor, e o
+  // desconto precisa ser recalculado a cada mudança do carrinho sem esperar rede
+  const [cupom, setCupom] = useState<Cupom | null>(null);
+  const cupomAplicado = cupom?.codigo ?? null;
   const [aberto, setAberto] = useState(false);
   const [hidratado, setHidratado] = useState(false);
 
@@ -61,8 +64,17 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     try {
       const salvo = localStorage.getItem(CHAVE_STORAGE);
       if (salvo) setItens(JSON.parse(salvo) as ItemCarrinho[]);
-      const cupom = localStorage.getItem(CHAVE_CUPOM);
-      if (cupom) setCupomAplicado(cupom);
+      const salvoCupom = localStorage.getItem(CHAVE_CUPOM);
+      if (salvoCupom) {
+        // versão antiga guardava só o código; a nova guarda o cupom inteiro
+        const codigo = salvoCupom.startsWith("{") ? (JSON.parse(salvoCupom) as Cupom).codigo : salvoCupom;
+        if (salvoCupom.startsWith("{")) setCupom(JSON.parse(salvoCupom) as Cupom);
+        // reconfere no servidor: o admin pode ter desativado ou mudado o cupom
+        void buscarCupom(codigo).then((r) => {
+          if (r.ok && r.cupom) setCupom(r.cupom);
+          else if (!r.erro?.startsWith("Não consegui")) setCupom(null);
+        });
+      }
     } catch {
       // storage indisponível (modo privado) — segue com carrinho em memória
     }
@@ -73,12 +85,12 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     if (!hidratado) return;
     try {
       localStorage.setItem(CHAVE_STORAGE, JSON.stringify(itens));
-      if (cupomAplicado) localStorage.setItem(CHAVE_CUPOM, cupomAplicado);
+      if (cupom) localStorage.setItem(CHAVE_CUPOM, JSON.stringify(cupom));
       else localStorage.removeItem(CHAVE_CUPOM);
     } catch {
       // sem persistência — aceitável
     }
-  }, [itens, cupomAplicado, hidratado]);
+  }, [itens, cupom, hidratado]);
 
   const adicionar = useCallback((produtoSlug: string, sku: string, quantidade = 1) => {
     setItens((atual) => {
@@ -104,7 +116,7 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
 
   const limpar = useCallback(() => {
     setItens([]);
-    setCupomAplicado(null);
+    setCupom(null);
   }, []);
   const abrir = useCallback(() => setAberto(true), []);
   const fechar = useCallback(() => setAberto(false), []);
@@ -125,19 +137,16 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     // revalida o cupom salvo a cada mudança do carrinho — se deixou de valer
     // (mínimo não atingido, cupom desativado), o desconto zera sem apagar o código
     let descontoCentavos = 0;
-    let cupomValido: Cupom | undefined;
-    if (cupomAplicado && hidratado) {
-      const resultado = validarCupom(cupomAplicado, subtotalCentavos);
-      if (resultado.ok && resultado.cupom) {
-        cupomValido = resultado.cupom;
-        descontoCentavos = calcularDesconto(cupomValido, subtotalCentavos);
-      }
+    if (cupom && hidratado && conferirRegrasCupom(cupom, subtotalCentavos).ok) {
+      descontoCentavos = calcularDesconto(cupom, subtotalCentavos);
     }
 
-    const aplicarCupom = (codigo: string) => {
-      const resultado = validarCupom(codigo, subtotalCentavos);
+    const aplicarCupom = async (codigo: string) => {
+      const resultado = await buscarCupom(codigo);
       if (!resultado.ok || !resultado.cupom) return { ok: false, erro: resultado.erro };
-      setCupomAplicado(resultado.cupom.codigo);
+      const regras = conferirRegrasCupom(resultado.cupom, subtotalCentavos);
+      if (!regras.ok) return regras;
+      setCupom(resultado.cupom);
       return { ok: true };
     };
 
@@ -154,10 +163,10 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
       remover,
       alterarQuantidade,
       aplicarCupom,
-      removerCupom: () => setCupomAplicado(null),
+      removerCupom: () => setCupom(null),
       limpar,
     };
-  }, [itens, cupomAplicado, hidratado, aberto, abrir, fechar, adicionar, remover, alterarQuantidade, limpar]);
+  }, [itens, cupom, cupomAplicado, hidratado, aberto, abrir, fechar, adicionar, remover, alterarQuantidade, limpar]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

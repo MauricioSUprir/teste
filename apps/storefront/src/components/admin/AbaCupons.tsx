@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
-import { gravarCupons, lerCupons, type Cupom } from "@/lib/cupons";
+import { type Cupom } from "@/lib/cupons";
+import { listarCuponsAdmin, salvarCuponsAdmin } from "@/lib/servidor";
+
+/** onde os cupons ficavam antes de irem para o servidor (só neste navegador) */
+const CHAVE_LOCAL_ANTIGA = "beautynow:cupons:v1";
 import { formatarPreco } from "@/lib/preco";
 
 /** Aba Cupons do painel admin — criar, ativar/desativar e excluir códigos. */
@@ -14,13 +18,55 @@ export function AbaCupons() {
   const [minimo, setMinimo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
   useEffect(() => {
-    setCupons(lerCupons());
+    let ativo = true;
+    void (async () => {
+      const r = await listarCuponsAdmin();
+      if (!ativo) return;
+      if (!r.ok) {
+        setErro(copy.conta.admin.cupomErroCarregar);
+        setCarregando(false);
+        return;
+      }
+      // cupons criados antes da mudança ficaram só neste navegador: sobem
+      // para o servidor uma vez, para valerem para os clientes também
+      let lista = r.cupons;
+      try {
+        const antigos = JSON.parse(localStorage.getItem(CHAVE_LOCAL_ANTIGA) ?? "[]") as Cupom[];
+        const faltando = antigos.filter((a) => !lista.some((c) => c.codigo === a.codigo));
+        if (faltando.length > 0) {
+          lista = [...faltando, ...lista];
+          const salvo = await salvarCuponsAdmin(lista);
+          if (salvo.ok) localStorage.removeItem(CHAVE_LOCAL_ANTIGA);
+        } else {
+          localStorage.removeItem(CHAVE_LOCAL_ANTIGA);
+        }
+      } catch {
+        // storage indisponível — segue com a lista do servidor
+      }
+      if (ativo) {
+        setCupons(lista);
+        setCarregando(false);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
   }, []);
 
-  function salvar(nova: Cupom[]) {
+  async function salvar(nova: Cupom[]) {
+    const anterior = cupons;
     setCupons(nova);
-    gravarCupons(nova);
+    setSalvando(true);
+    const r = await salvarCuponsAdmin(nova);
+    setSalvando(false);
+    if (!r.ok) {
+      setCupons(anterior);
+      setErro(r.erro ?? copy.conta.admin.cupomErroSalvar);
+    }
   }
 
   function criar(e: React.FormEvent) {
@@ -30,6 +76,11 @@ export function AbaCupons() {
     const minimoNum = minimo ? Number(minimo.replace(",", ".")) : 0;
     if (!cod) {
       setErro("Informe o código do cupom.");
+      return;
+    }
+    // mesma regra do servidor (que descarta código fora dela)
+    if (!/^[A-Z0-9_-]{2,30}$/.test(cod)) {
+      setErro("Use só letras, números, - ou _ (de 2 a 30 caracteres), sem acento.");
       return;
     }
     if (cupons.some((c) => c.codigo === cod)) {
@@ -51,7 +102,7 @@ export function AbaCupons() {
       minimoCentavos: Math.round(minimoNum * 100),
       ativo: true,
     };
-    salvar([novo, ...cupons]);
+    void salvar([novo, ...cupons]);
     setCodigo("");
     setValor("");
     setMinimo("");
@@ -59,16 +110,21 @@ export function AbaCupons() {
   }
 
   function alternarAtivo(cod: string) {
-    salvar(cupons.map((c) => (c.codigo === cod ? { ...c, ativo: !c.ativo } : c)));
+    void salvar(cupons.map((c) => (c.codigo === cod ? { ...c, ativo: !c.ativo } : c)));
   }
 
   function excluir(cod: string) {
-    salvar(cupons.filter((c) => c.codigo !== cod));
+    void salvar(cupons.filter((c) => c.codigo !== cod));
   }
 
   return (
     <div className="space-y-6">
       <p className="max-w-2xl text-[0.9375rem] text-grafite">{copy.conta.admin.cuponsTexto}</p>
+      {(carregando || salvando) && (
+        <p role="status" className="text-[0.8125rem] text-grafite">
+          {carregando ? copy.conta.admin.cupomCarregando : copy.conta.admin.cupomSalvando}
+        </p>
+      )}
 
       <form
         onSubmit={criar}

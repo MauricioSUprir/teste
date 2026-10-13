@@ -9,6 +9,7 @@
  */
 import { LOJA_ID } from "./loja";
 import type { Pedido } from "./pedidos";
+import type { Cupom } from "./cupons";
 
 export const SERVIDOR_URL = (process.env.NEXT_PUBLIC_SERVIDOR_URL ?? "").replace(/\/$/, "");
 
@@ -849,4 +850,83 @@ export async function definirComissaoAfiliado(email: string, pct: number) {
   } catch {
     return { ok: false };
   }
+}
+
+// ===== Cupons (centralizados no servidor) =====
+
+/** Confere um código no servidor. null = servidor fora do ar (aí vale só o cupom fixo). */
+export async function buscarCupomServidor(codigo: string): Promise<Cupom | "inexistente" | null> {
+  if (!servidorConfigurado()) return null;
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/cupons/validar?codigo=${encodeURIComponent(codigo)}`,
+      65_000,
+      { cache: "no-store" }
+    );
+    if (resposta.status === 404) return "inexistente";
+    if (!resposta.ok) return null;
+    const dados = (await resposta.json()) as { cupom?: Cupom };
+    return dados.cupom ?? "inexistente";
+  } catch {
+    return null;
+  }
+}
+
+/** Admin: lista completa de cupons. */
+export async function listarCuponsAdmin(): Promise<{ ok: boolean; cupons: Cupom[] }> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/cupons/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      75_000,
+      { cache: "no-store" }
+    );
+    if (!resposta.ok) return { ok: false, cupons: [] };
+    const dados = (await resposta.json()) as { cupons?: Cupom[] };
+    return { ok: true, cupons: dados.cupons ?? [] };
+  } catch {
+    return { ok: false, cupons: [] };
+  }
+}
+
+/** Admin: grava a lista inteira de cupons (criar, ativar/desativar, excluir). */
+export function salvarCuponsAdmin(cupons: Cupom[]) {
+  return chamar("/cupons", { cupons, chave: CHAVE_ADMIN_SERVIDOR });
+}
+
+// ===== "Atualizar catálogo agora" =====
+
+export interface EstadoAtualizacaoCatalogo {
+  pendente: boolean;
+  pedidoEm: string | null;
+  iniciadoEm: string | null;
+  terminadoEm: string | null;
+  resultado: "publicado" | "sem-novidade" | "falhou" | null;
+}
+
+async function estadoCatalogo(init?: RequestInit): Promise<EstadoAtualizacaoCatalogo | null> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/catalogo/atualizacao?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+      75_000,
+      { cache: "no-store", ...init }
+    );
+    if (!resposta.ok) return null;
+    return (await resposta.json()) as EstadoAtualizacaoCatalogo;
+  } catch {
+    return null;
+  }
+}
+
+/** Admin: em que pé está a atualização do catálogo. */
+export function consultarAtualizacaoCatalogo() {
+  return estadoCatalogo();
+}
+
+/** Admin: pede ao robô para puxar o catálogo do Hub agora. */
+export function pedirAtualizacaoCatalogo() {
+  return estadoCatalogo({
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ acao: "pedir", chave: CHAVE_ADMIN_SERVIDOR }),
+  });
 }

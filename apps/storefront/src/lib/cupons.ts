@@ -1,7 +1,7 @@
 /**
  * Cupons de desconto — docs/04 §5.
- * Na demo ficam no navegador (o admin cria no painel); com o servidor no ar,
- * passam a ser centralizados. Ordem de aplicação das regras comerciais:
+ * O admin cria no painel e eles ficam no servidor, valendo em qualquer
+ * aparelho. Ordem de aplicação das regras comerciais:
  * desconto de produto → cupom → desconto Pix (sempre por último).
  */
 
@@ -14,8 +14,6 @@ export interface Cupom {
   ativo: boolean;
 }
 
-const CHAVE = "beautynow:cupons:v1";
-
 /** cupom que todo visitante já tem — também anunciado na faixa do topo */
 export const CUPOM_BOAS_VINDAS: Cupom = {
   codigo: "BEMVINDA10",
@@ -25,27 +23,8 @@ export const CUPOM_BOAS_VINDAS: Cupom = {
   ativo: true,
 };
 
-const seedInicial: Cupom[] = [CUPOM_BOAS_VINDAS];
-
-export function lerCupons(): Cupom[] {
-  try {
-    const bruto = localStorage.getItem(CHAVE);
-    if (bruto === null) {
-      localStorage.setItem(CHAVE, JSON.stringify(seedInicial));
-      return seedInicial;
-    }
-    return JSON.parse(bruto) as Cupom[];
-  } catch {
-    return seedInicial;
-  }
-}
-
-export function gravarCupons(cupons: Cupom[]) {
-  try {
-    localStorage.setItem(CHAVE, JSON.stringify(cupons));
-  } catch {
-    // storage indisponível
-  }
+export function normalizarCodigo(codigo: string): string {
+  return codigo.trim().toUpperCase().replace(/\s+/g, "");
 }
 
 export function calcularDesconto(cupom: Cupom, subtotalCentavos: number): number {
@@ -56,22 +35,36 @@ export function calcularDesconto(cupom: Cupom, subtotalCentavos: number): number
   return Math.min(desconto, subtotalCentavos);
 }
 
-export function validarCupom(
-  codigo: string,
-  subtotalCentavos: number
-): { ok: boolean; cupom?: Cupom; erro?: string } {
-  const normalizado = codigo.trim().toUpperCase();
-  if (!normalizado) return { ok: false, erro: "Digite o código do cupom." };
-  const cupom = lerCupons().find((c) => c.codigo === normalizado);
-  if (!cupom || !cupom.ativo) {
-    return { ok: false, erro: "Cupom não encontrado ou expirado. Confira o código." };
-  }
+const reais = (centavos: number) =>
+  (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Regras que dependem do carrinho (por enquanto, o valor mínimo). */
+export function conferirRegrasCupom(cupom: Cupom, subtotalCentavos: number): { ok: boolean; erro?: string } {
+  if (!cupom.ativo) return { ok: false, erro: "Cupom não encontrado ou expirado. Confira o código." };
   if (subtotalCentavos < cupom.minimoCentavos) {
-    const falta = ((cupom.minimoCentavos - subtotalCentavos) / 100).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    return { ok: false, erro: `Este cupom vale para compras a partir de ${(cupom.minimoCentavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} — faltam ${falta}.` };
+    return {
+      ok: false,
+      erro: `Este cupom vale para compras a partir de ${reais(cupom.minimoCentavos)} — faltam ${reais(cupom.minimoCentavos - subtotalCentavos)}.`,
+    };
   }
-  return { ok: true, cupom };
+  return { ok: true };
+}
+
+/**
+ * Procura o cupom no servidor — é lá que ficam os cupons criados no painel,
+ * valendo para qualquer aparelho. Antes eles ficavam só no navegador de quem
+ * criou, e o cliente recebia "cupom não encontrado". Com o servidor fora do
+ * ar, só o cupom de boas-vindas (fixo no site) é aceito.
+ */
+export async function buscarCupom(codigo: string): Promise<{ ok: boolean; cupom?: Cupom; erro?: string }> {
+  const normalizado = normalizarCodigo(codigo);
+  if (!normalizado) return { ok: false, erro: "Digite o código do cupom." };
+  const { buscarCupomServidor } = await import("./servidor");
+  const resposta = await buscarCupomServidor(normalizado);
+  if (resposta && resposta !== "inexistente") return { ok: true, cupom: resposta };
+  if (resposta === null && normalizado === CUPOM_BOAS_VINDAS.codigo) return { ok: true, cupom: CUPOM_BOAS_VINDAS };
+  if (resposta === null) {
+    return { ok: false, erro: "Não consegui conferir o cupom agora. Aguarde uns segundos e tente de novo." };
+  }
+  return { ok: false, erro: "Cupom não encontrado ou expirado. Confira o código." };
 }

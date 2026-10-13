@@ -1188,6 +1188,7 @@ async function conferirPagamentosPendentes() {
       }
     }
     ultimaConferencia = Date.now();
+    reenviarPagosAoBling().catch(() => undefined);
     if (aprovados) console.log(`[pagamentos] conferência: ${aprovados} pedido(s) confirmados`);
     return aprovados;
   })().finally(() => {
@@ -1197,6 +1198,144 @@ async function conferirPagamentosPendentes() {
 }
 setTimeout(() => conferirPagamentosPendentes().catch(() => undefined), 30_000);
 setInterval(() => conferirPagamentosPendentes().catch(() => undefined), 10 * 60 * 1000);
+
+// conferência manual do admin: o que o Mercado Pago diz sobre um pedido
+// (para confirmar um pagamento com o número da transação na mão)
+aplicacao.get("/pagamentos/pedido/:numero", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
+  try {
+    const numero = String(req.params.numero);
+    const busca = await mp(
+      `/v1/payments/search?external_reference=${encodeURIComponent(numero)}&sort=date_created&criteria=desc&limit=20`
+    );
+    const pedido = pedidosLoja.find((p) => p.numero === numero) ?? null;
+    res.json({
+      ok: true,
+      pedido: pedido && { numero: pedido.numero, status: pedido.status, totalCentavos: pedido.totalCentavos },
+      pagamentos: (busca.results ?? []).map((r) => ({
+        id: r.id,
+        status: r.status,
+        detalhe: r.status_detail,
+        valor: r.transaction_amount,
+        valorRecebido: r.transaction_details?.net_received_amount ?? null,
+        meio: r.payment_method_id,
+        criadoEm: r.date_created,
+        aprovadoEm: r.date_approved,
+        producao: r.live_mode,
+        pagadorEmail: r.payer?.email ?? null,
+      })),
+    });
+  } catch (erro) {
+    res.status(502).json({ erro: erro.message });
+  }
+});
+
+// ===== "Atualizar catálogo agora" (botão do painel) =====
+// O catálogo é montado pelo robô do GitHub (sincronizar-catalogo.yml). O
+// botão do admin só deixa um pedido aqui; o robô que acorda o servidor a
+// cada 10 min vê o pedido e dispara a sincronização na hora, sem esperar a
+// rodada diária. O robô devolve o resultado em /catalogo/atualizacao.
+const ESTADO_CATALOGO_PADRAO = { pedidoEm: null, iniciadoEm: null, terminadoEm: null, resultado: null };
+let estadoCatalogo = { ...ESTADO_CATALOGO_PADRAO, ...(doBanco("catalogo-atualizacao") ?? {}) };
+function salvarEstadoCatalogo() {
+  gravarNoBanco("catalogo-atualizacao", estadoCatalogo).catch(() => undefined);
+}
+const chaveAdmin = (req) => String(req.body?.chave ?? req.query?.chave ?? "");
+
+aplicacao.get("/catalogo/atualizacao", (req, res) => {
+  if (!EXPORT_CHAVE || chaveAdmin(req) !== EXPORT_CHAVE) return res.status(403).json({ erro: "Chave inválida." });
+  res.set("Cache-Control", "no-store");
+  res.json({ ok: true, ...estadoCatalogo, pendente: Boolean(estadoCatalogo.pedidoEm) });
+});
+
+aplicacao.post("/catalogo/atualizacao", (req, res) => {
+  if (!EXPORT_CHAVE || chaveAdmin(req) !== EXPORT_CHAVE) return res.status(403).json({ erro: "Chave inválida." });
+  const acao = String(req.body?.acao ?? "");
+  const agora = new Date().toISOString();
+  if (acao === "pedir") {
+    estadoCatalogo.pedidoEm ??= agora;
+  } else if (acao === "iniciar") {
+    estadoCatalogo = { ...estadoCatalogo, pedidoEm: null, iniciadoEm: agora, terminadoEm: null, resultado: null };
+  } else if (acao === "terminar") {
+    const resultado = String(req.body?.resultado ?? "");
+    if (!["publicado", "sem-novidade", "falhou"].includes(resultado)) {
+      return res.status(400).json({ erro: "Resultado inválido." });
+    }
+    estadoCatalogo = { ...estadoCatalogo, terminadoEm: agora, resultado };
+  } else {
+    return res.status(400).json({ erro: "Ação inválida." });
+  }
+  salvarEstadoCatalogo();
+  console.log(`[catalogo] atualização: ${acao}${req.body?.resultado ? ` (${req.body.resultado})` : ""}`);
+  res.json({ ok: true, ...estadoCatalogo, pendente: Boolean(estadoCatalogo.pedidoEm) });
+});
+
+// ===== Cupons de desconto =====
+// O admin cria no painel e o cupom passa a valer em qualquer aparelho. Antes
+// ficavam só no navegador de quem criou — o cliente digitava e recebia
+// "cupom não encontrado". A lista completa só sai com a chave do admin; o
+// público só confere um código por vez.
+const ARQ_CUPONS = "/tmp/cupons.json";
+const CUPOM_BOAS_VINDAS = { codigo: "BEMVINDA10", tipo: "percentual", valor: 10, minimoCentavos: 9900, ativo: true };
+let cupons = [CUPOM_BOAS_VINDAS];
+try {
+  const fs = await import("node:fs");
+  if (fs.existsSync(ARQ_CUPONS)) cupons = JSON.parse(fs.readFileSync(ARQ_CUPONS, "utf8"));
+  else if (Array.isArray(doBanco("cupons"))) cupons = doBanco("cupons");
+} catch {
+  /* fica o cupom de boas-vindas */
+}
+
+function normalizarCupom(c) {
+  const codigo = String(c?.codigo ?? "").trim().toUpperCase().replace(/\s+/g, "");
+  const tipo = c?.tipo === "valor" ? "valor" : "percentual";
+  const valor = Math.round(Number(c?.valor));
+  const minimoCentavos = Math.max(0, Math.round(Number(c?.minimoCentavos ?? 0)));
+  if (!/^[A-Z0-9_-]{2,30}$/.test(codigo) || !Number.isFinite(valor) || valor <= 0) return null;
+  if (tipo === "percentual" && valor > 90) return null;
+  return { codigo, tipo, valor, minimoCentavos, ativo: c?.ativo !== false };
+}
+
+aplicacao.get("/cupons/validar", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const codigo = String(req.query.codigo ?? "").trim().toUpperCase();
+  const cupom = cupons.find((c) => c.codigo === codigo && c.ativo);
+  if (!cupom) return res.status(404).json({ ok: false });
+  res.json({ ok: true, cupom });
+});
+
+aplicacao.get("/cupons/lista", (req, res) => {
+  if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  res.set("Cache-Control", "no-store");
+  res.json({ ok: true, cupons });
+});
+
+aplicacao.post("/cupons", async (req, res) => {
+  if (!EXPORT_CHAVE || String(req.body?.chave ?? "") !== EXPORT_CHAVE) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  if (!Array.isArray(req.body?.cupons)) return res.status(400).json({ erro: "Lista de cupons inválida." });
+  const lista = [];
+  for (const c of req.body.cupons) {
+    const n = normalizarCupom(c);
+    if (n && !lista.some((x) => x.codigo === n.codigo)) lista.push(n);
+  }
+  cupons = lista;
+  try {
+    const fs = await import("node:fs");
+    fs.writeFileSync(ARQ_CUPONS, JSON.stringify(cupons));
+  } catch {
+    /* segue em memória + banco */
+  }
+  await gravarNoBanco("cupons", cupons);
+  console.log(`[cupons] lista salva: ${cupons.map((c) => c.codigo).join(", ")}`);
+  res.json({ ok: true, cupons });
+});
 
 // ===== Envio de banners da home pelo navegador =====
 // O Mauricio sobe as artes aqui; o robô do GitHub coleta em
@@ -1396,6 +1535,10 @@ try {
   const fs = await import("node:fs");
   if (fs.existsSync(BLING_ARQ_TOKENS)) {
     blingTokens = JSON.parse(fs.readFileSync(BLING_ARQ_TOKENS, "utf8"));
+  } else if (doBanco("bling-tokens")?.refresh) {
+    // o Bling troca o refresh token a cada renovação: o válido é sempre o
+    // último guardado no banco, não o que ficou na variável do Render
+    blingTokens = doBanco("bling-tokens");
   } else if (process.env.BLING_REFRESH_TOKEN) {
     blingTokens = { access: "", refresh: process.env.BLING_REFRESH_TOKEN.trim(), expiraEm: 0 };
   }
@@ -1410,6 +1553,9 @@ async function blingSalvarTokens() {
   } catch {
     /* disco indisponível — segue só em memória */
   }
+  // o /tmp some quando o servidor reinicia; sem isto, o refresh token novo
+  // se perdia e a conexão com o Bling caía na reinicialização seguinte
+  await gravarNoBanco("bling-tokens", blingTokens);
 }
 
 async function blingTrocarToken(params) {
@@ -1426,7 +1572,14 @@ async function blingTrocarToken(params) {
   });
   const corpo = await resposta.json().catch(() => ({}));
   if (!resposta.ok || !corpo.access_token) {
-    throw new Error(corpo.error_description ?? corpo.error ?? `Bling OAuth HTTP ${resposta.status}`);
+    // o Bling v3 devolve { error: { type, message, description } } — sem
+    // abrir o objeto, o erro aparecia como "[object Object]"
+    const e = corpo.error;
+    const detalhe =
+      corpo.error_description ??
+      (typeof e === "object" && e ? e.description || e.message || e.type : e) ??
+      `HTTP ${resposta.status}`;
+    throw new Error(`Bling OAuth: ${detalhe}`);
   }
   blingTokens = {
     access: corpo.access_token,
@@ -1503,6 +1656,9 @@ let blingUltimoErro = null;
 
 async function criarPedidoNoBling(pedido) {
   if (!pedido?.numero || blingEnviados.has(pedido.numero)) return;
+  // marca durável no histórico: blingEnviados some quando o servidor reinicia
+  const registro = pedidosLoja.find((p) => p.numero === String(pedido.numero));
+  if (registro?.blingId) return;
   try {
     const contatoId = await blingContato(pedido);
     if (!contatoId) throw new Error("não consegui criar o contato do cliente");
@@ -1523,6 +1679,10 @@ async function criarPedidoNoBling(pedido) {
     });
     blingEnviados.add(pedido.numero);
     blingUltimoErro = null;
+    if (registro) {
+      registro.blingId = corpo?.data?.id ?? true;
+      salvarPedidosLoja();
+    }
     console.log(`[bling] pedido ${pedido.numero} criado (id Bling ${corpo?.data?.id ?? "?"})`);
   } catch (erro) {
     blingUltimoErro = `${pedido.numero}: ${erro.message}`;
@@ -2718,6 +2878,7 @@ aplicacao.get("/bling/callback", async (req, res) => {
   }
   try {
     await blingTrocarToken({ grant_type: "authorization_code", code: String(code) });
+    reenviarPagosAoBling().catch(() => undefined);
     res.send(
       paginaExport(
         "✅ Bling conectado!",
@@ -2729,6 +2890,29 @@ aplicacao.get("/bling/callback", async (req, res) => {
     res.status(502).send(paginaExport("Falha ao conectar", `O Bling recusou: <b>${erro.message}</b><br><br>Confira o Client ID/Secret no Render e tente de novo.`));
   }
 });
+
+/**
+ * Pedidos pagos (últimos 30 dias) que ainda não chegaram ao Bling — porque a
+ * conexão estava caída na hora do pagamento — vão de novo. Roda quando o
+ * Bling é (re)conectado e junto com a conferência de pagamentos.
+ */
+let reenvioBlingEmAndamento = false;
+async function reenviarPagosAoBling() {
+  if (reenvioBlingEmAndamento || !BLING_CLIENT_ID || !(blingTokens?.refresh || blingTokens?.access)) return;
+  reenvioBlingEmAndamento = true;
+  try {
+    await blingAccessToken(); // conexão caída: nem tenta pedido por pedido
+    const limite = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const faltando = pedidosLoja
+      .filter((p) => p.status === "pago" && !p.blingId && new Date(p.data).getTime() >= limite)
+      .slice(0, 20);
+    for (const p of faltando) await criarPedidoNoBling(pedidosRecentes.get(p.numero) ?? p);
+  } catch (erro) {
+    blingUltimoErro = erro.message;
+  } finally {
+    reenvioBlingEmAndamento = false;
+  }
+}
 
 aplicacao.get("/bling/status", async (req, res) => {
   if (!EXPORT_CHAVE || String(req.query.chave ?? "") !== EXPORT_CHAVE) {

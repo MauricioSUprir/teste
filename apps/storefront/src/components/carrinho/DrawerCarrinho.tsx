@@ -15,8 +15,13 @@ export function DrawerCarrinho() {
   const [codigoCupom, setCodigoCupom] = useState("");
   const [erroCupom, setErroCupom] = useState<string | null>(null);
 
-  function aplicarCupom() {
-    const resultado = carrinho.aplicarCupom(codigoCupom);
+  const [conferindoCupom, setConferindoCupom] = useState(false);
+
+  async function aplicarCupom() {
+    if (conferindoCupom) return;
+    setConferindoCupom(true);
+    const resultado = await carrinho.aplicarCupom(codigoCupom);
+    setConferindoCupom(false);
     if (resultado.ok) {
       setCodigoCupom("");
       setErroCupom(null);
@@ -200,7 +205,7 @@ export function DrawerCarrinho() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            aplicarCupom();
+                            void aplicarCupom();
                           }
                         }}
                         placeholder={copy.carrinho.cupomPlaceholder}
@@ -210,9 +215,10 @@ export function DrawerCarrinho() {
                       <button
                         type="button"
                         onClick={aplicarCupom}
-                        className="h-10 shrink-0 rounded-[4px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro"
+                        disabled={conferindoCupom}
+                        className="h-10 shrink-0 rounded-[4px] bg-roxo px-4 text-[0.8125rem] font-semibold text-white hover:bg-roxo-escuro disabled:opacity-60"
                       >
-                        {copy.carrinho.cupomAplicar}
+                        {conferindoCupom ? copy.carrinho.cupomConferindo : copy.carrinho.cupomAplicar}
                       </button>
                     </div>
                     {erroCupom && (
