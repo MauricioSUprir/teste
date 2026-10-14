@@ -69,3 +69,16 @@ Tudo é grátis. Você vai precisar de:
 - **Poço do pátio:** o buraco da direita leva ao **Refúgio do Poço**. O da esquerda sobe.
 - **Separador:** jogue itens no **baú de entrada** do armazém do QG.
 - Os **baús** das bases têm armadura e armas de **netherite** encantadas, totens e maçãs douradas.
+
+## Os estádios
+
+Na frente do castelo sai um caminho até uma **estrada**. Na estrada há duas placas:
+
+- **< MARACANÃ**: siga para a **esquerda** (leste), uns 400 blocos. Entre pela praça com a
+  estátua do Bellini e suba a passarela.
+- **SÃO JANUÁRIO >**: siga para a **direita** (oeste), uns 250 blocos. A fachada do Vasco fica
+  de frente para a estrada; entre pelo portão em arco do meio.
+
+Dica: o jogo mostra as coordenadas no canto da tela. O Maracanã fica perto de **x = 400** e
+São Januário perto de **x = -250**.
+

@@ -71,7 +71,7 @@ def traduzir(nome):
         e = {"facing_direction": FACE[p["facing"]]}
     elif base == "lantern":
         e = {"hanging": b("hanging")}
-    elif base.endswith("_log") or base == "hay_block":
+    elif base.endswith("_log") or base in ("hay_block", "quartz_pillar"):
         e = {"pillar_axis": p.get("axis", "y")}
     elif base.endswith("_bed"):
         return _fmt("bed", {"direction": DIRECAO[p["facing"]], "head_piece_bit": p["part"] == "head"})
@@ -155,8 +155,11 @@ def traduzir(nome):
 
 
 # ---------------------------------------------------------------- comandos
+DESLOC = [0, 0]   # deslocamento (x, z) da estrutura sendo exportada (estádios ficam ao lado do castelo)
+
+
 def mundo(x, y, z):
-    return x, Y0 + y, z
+    return x + DESLOC[0], Y0 + y, z + DESLOC[1]
 
 
 def comandos(lista):
@@ -240,16 +243,25 @@ UUID_H = "4d8c2a7e-1f6b-4b1d-9c3e-7a5f2e8b9d01"
 UUID_M = "8e2f4c6a-3b5d-4e7f-a1c9-0d2b4f6e8a13"
 
 
-def pacote(caminho, cmds, por_arquivo=9000):
-    """Pacote de comportamento com as funções castelo/parteN e as tabelas de loot."""
-    partes = [cmds[i:i + por_arquivo] for i in range(0, len(cmds), por_arquivo)]
+def pacote(caminho, grupos, por_arquivo=9000):
+    """Pacote de comportamento com as funções <grupo>/parteN e as tabelas de loot.
+
+    `grupos` é {nome: lista de comandos} (ou só a lista, que vira o grupo "castelo").
+    Devolve {nome: número de partes}. Cada parte fica abaixo do limite de 10 mil comandos.
+    """
+    if isinstance(grupos, list):
+        grupos = {"castelo": grupos}
     arquivos = {"manifest.json": json.dumps({
         "format_version": 2,
         "header": {"name": "Castelo Enorme", "description": "Constrói o castelo", "uuid": UUID_H,
                    "version": [1, 0, 0], "min_engine_version": [1, 21, 0]},
         "modules": [{"type": "data", "uuid": UUID_M, "version": [1, 0, 0]}]}, indent=2)}
-    for n, parte in enumerate(partes, start=1):
-        arquivos[f"functions/castelo/parte{n}.mcfunction"] = "\n".join(parte) + "\n"
+    partes = {}
+    for grupo, cmds in grupos.items():
+        lotes = [cmds[i:i + por_arquivo] for i in range(0, len(cmds), por_arquivo)]
+        partes[grupo] = len(lotes)
+        for n, parte in enumerate(lotes, start=1):
+            arquivos[f"functions/{grupo}/parte{n}.mcfunction"] = "\n".join(parte) + "\n"
     for nome, t in eq.TABELAS.items():
         arquivos[f"loot_tables/castelo/{nome}.json"] = json.dumps(_loot_bedrock(t), indent=1, ensure_ascii=False)
     os.makedirs(caminho, exist_ok=True)
@@ -258,4 +270,4 @@ def pacote(caminho, cmds, por_arquivo=9000):
         os.makedirs(os.path.dirname(p), exist_ok=True)
         with open(p, "w", encoding="utf-8") as f:
             f.write(conteudo)
-    return len(partes)
+    return partes

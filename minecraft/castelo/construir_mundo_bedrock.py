@@ -195,33 +195,150 @@ def bd_camadas():
     return CAMADAS
 
 
-def instalar_pacote(mundo, cmds):
+def instalar_pacote(mundo, grupos):
     destino = os.path.join(mundo, "behavior_packs", "castelo")
-    partes = bd.pacote(destino, cmds)
+    partes = bd.pacote(destino, grupos)
     with open(os.path.join(mundo, "world_behavior_packs.json"), "w") as f:
         f.write('[{"pack_id":"%s","version":[1,0,0]}]' % bd.UUID_H)
     return partes
 
 
+# ------------------------------------------------------------- estádios e estrada
+def dividir(lista, desloc):
+    """Divide as caixas em etapas que cabem em até 10 áreas carregadas de até 100 chunks.
+
+    A área da estrutura é cortada em faixas norte-sul; cada etapa carrega até 10 faixas.
+    Caixas que atravessam o limite de uma etapa são cortadas, então nenhuma célula é
+    escrita por duas etapas (e a ordem dentro de cada etapa é mantida).
+    """
+    dx, dz = desloc
+    x1 = min(c[0] for c in lista) + dx
+    x2 = max(c[3] for c in lista) + dx
+    z1 = min(c[2] for c in lista) + dz
+    z2 = max(c[5] for c in lista) + dz
+    cz0, cz1 = z1 // 16, z2 // 16
+    largura = max(1, 100 // (cz1 - cz0 + 1))
+    faixas = [(c, min(c + largura - 1, x2 // 16)) for c in range(x1 // 16, x2 // 16 + 1, largura)]
+    for g0 in range(0, len(faixas), 10):
+        grupo = faixas[g0:g0 + 10]
+        xa, xb = grupo[0][0] * 16, grupo[-1][1] * 16 + 15
+        pedacos = []
+        for c in lista:
+            a, b = max(c[0] + dx, xa), min(c[3] + dx, xb)
+            if a <= b:
+                pedacos.append((a - dx, c[1], c[2], b - dx, c[4], c[5], c[6], c[7]))
+        areas = [(f0 * 16, cz0 * 16, f1 * 16 + 15, cz1 * 16 + 15) for f0, f1 in grupo]
+        yield areas, (xa, xb), pedacos
+
+
+def _amostra(n, desloc):
+    """Blocos sorteados do modelo atual, em coordenadas do mundo, para conferir depois."""
+    import random
+    import numpy as np
+    rnd = random.Random(3)
+    celulas = np.argwhere((m.grid != m.AR) & (m.grid != m.KEEP))
+    out = []
+    for i, j, k in (celulas[rnd.randrange(len(celulas))] for _ in range(n)):
+        nome = m.palette[m.grid[i, j, k]]
+        est = bd.traduzir(nome)
+        if est is None or any(p in nome for p in ("air", "leaves", "water", "cauldron", "grass_block")):
+            continue
+        out.append((int(i) - m.XR + desloc[0], bd.Y0 + int(j) + m.YMIN, int(k) - m.XR + desloc[1], est))
+    return out
+
+
+def preparar_estadios():
+    """Monta o Maracanã, São Januário e a estrada; devolve os grupos de funções e as etapas."""
+    import estadios as es
+    grupos, etapas = {}, []
+    for nome, (funcao, desloc) in es.ESTRUTURAS.items():
+        funcao()
+        ex.finalizar()
+        # o mundo plano já está vazio acima do chão: o ar de lá não vira comando, e nenhuma
+        # caixa pode cobri-lo (limpar_acima=True)
+        lista = ex.caixas(limpar_acima=True)
+        bd.DESLOC[:] = desloc
+        amostra = _amostra(3000, desloc)
+        for n, (areas, (xa, xb), pedacos) in enumerate(dividir(lista, desloc), start=1):
+            cmds, extras = bd.comandos(pedacos)
+            grupo = f"{nome}{n}"
+            grupos[grupo] = cmds + extras
+            etapas.append((grupo, areas, [a for a in amostra if xa <= a[0] <= xb]))
+        print(f"{nome}: {sum(len(grupos[e[0]]) for e in etapas if e[0].startswith(nome)):,} comandos", flush=True)
+    bd.DESLOC[:] = [0, 0]
+    m.configurar(100, -34, 92)               # de volta ao tamanho do castelo
+    return grupos, etapas
+
+
+def carregar(srv, areas):
+    srv.cmd("tickingarea remove_all")
+    time.sleep(1)
+    for i, (x1, z1, x2, z2) in enumerate(areas):
+        srv.cmd(f"tickingarea add {x1} 0 {z1} {x2} 0 {z2} etapa{i} true")
+    pontos = [(x, z) for x1, z1, x2, z2 in areas for x, z in ((x1, z1), (x2, z2))]
+    for _ in range(40):
+        time.sleep(4)
+        if all(_existe(srv, (x, -64, z), "bedrock") for x, z in pontos):
+            return
+    raise RuntimeError("as áreas não carregaram")
+
+
+def _existe(srv, pos, estado):
+    x, y, z = pos
+    srv.limpar()
+    srv.cmd(f"testforblock {x} {y} {z} {estado}")
+    try:
+        linha = srv.esperar(rf"{x},{y},{z}\b|outside|Cannot", 20)
+    except TimeoutError:
+        return False
+    return "Successfully found" in linha
+
+
+def construir_estadios(srv, partes, etapas, testar=False):
+    falhas = 0
+    for grupo, areas, amostra in etapas:
+        print(f"== {grupo}: carregando {len(areas)} áreas", flush=True)
+        carregar(srv, areas)
+        for n in range(1, partes[grupo] + 1):
+            srv.limpar()
+            srv.cmd(f"function {grupo}/parte{n}")
+            print("  ", srv.esperar(r"(?i)function|Executed|error|unknown", 300).strip(), flush=True)
+            time.sleep(2)
+        if testar and amostra:
+            erros = [a for a in amostra if not _existe(srv, a[:3], a[3])]
+            for e in erros[:10]:
+                print("   diferente:", e)
+            ok = len(erros) <= max(2, len(amostra) // 100)
+            falhas += not ok
+            print(f"   [{'ok' if ok else 'FALHOU'}] amostra de {len(amostra)} blocos ({len(erros)} diferentes)",
+                  flush=True)
+    srv.cmd("tickingarea remove_all")
+    time.sleep(2)
+    return falhas
+
+
 def main():
     bds = os.path.abspath(sys.argv[1])
+    testar = "--testar" in sys.argv
     destino = os.path.join(AQUI, "servidores", "bedrock-castelo")
+    grupos, etapas = preparar_estadios()
     testes = g.construir_tudo()
     lista = ex.caixas(limpar_acima=False)
     cmds, extras = bd.comandos(lista)
-    print(f"{len(cmds):,} comandos de blocos + {len(extras)} de conteúdo", flush=True)
+    grupos["castelo"] = cmds
+    print(f"castelo: {len(cmds):,} comandos de blocos + {len(extras)} de conteúdo", flush=True)
     mundo = preparar(bds, destino)
-    partes = instalar_pacote(mundo, cmds)
+    partes = instalar_pacote(mundo, grupos)
     srv = Servidor(destino)
     erros = [l for l in open(os.path.join(destino, "console.log")).read().splitlines()
              if re.search(r"(?i)(error|failed|falh)", l)]
     if erros:
         print("\n".join(erros[:40]))
-    # carrega a área toda (áreas de até 100 chunks)
+    # carrega a área toda do castelo (áreas de até 100 chunks)
     for i, (x1, z1, x2, z2) in enumerate([(-100, -100, 0, 0), (1, -100, 100, 0), (-100, 1, 0, 100), (1, 1, 100, 100)]):
         srv.cmd(f"tickingarea add {x1} 0 {z1} {x2} 0 {z2} area{i} true")
     time.sleep(25)
-    for n in range(1, partes + 1):
+    for n in range(1, partes["castelo"] + 1):
         srv.limpar()
         srv.cmd(f"function castelo/parte{n}")
         print(srv.esperar(r"(?i)function|Executed|error|unknown", 120).strip(), flush=True)
@@ -232,7 +349,7 @@ def main():
     for c in ("setworldspawn 0 64 96", "gamerule showcoordinates true", "time set day"):
         srv.cmd(c)
     time.sleep(2)
-    if "--testar" in sys.argv:
+    if testar:
         import testar_bedrock
         testar_bedrock.testar(srv, testes)
     srv.cmd("kill @e[type=minecart]")
@@ -242,6 +359,9 @@ def main():
     time.sleep(2)
     srv.cmd("tickingarea remove_all")
     time.sleep(2)
+    falhas = construir_estadios(srv, partes, etapas, testar)
+    if testar:
+        print("\nESTÁDIOS:", "TUDO OK" if not falhas else f"{falhas} etapa(s) com diferenças", flush=True)
     srv.parar()
     empacotar(destino)
 
@@ -261,6 +381,13 @@ def empacotar(destino):
         props = props.replace("content-log-console-output-enabled=true", "content-log-console-output-enabled=false")
         zf.writestr("server.properties", props)
     print("pronto:", saida)
+    mcworld = os.path.join(AQUI, "saida", "Castelo.mcworld")     # para abrir direto no celular
+    with zipfile.ZipFile(mcworld, "w", zipfile.ZIP_DEFLATED) as zf:
+        for raiz, _, arquivos in os.walk(mundo):
+            for a in arquivos:
+                p = os.path.join(raiz, a)
+                zf.write(p, os.path.relpath(p, mundo))
+    print("pronto:", mcworld)
 
 
 if __name__ == "__main__":

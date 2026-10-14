@@ -25,6 +25,15 @@ CORES = {
     "emerald_block": (42, 203, 87), "iron_block": (220, 220, 220), "white_concrete": (207, 213, 214),
     "black_concrete": (8, 10, 15), "glowstone": (250, 210, 120), "redstone_lamp": (150, 90, 50),
     "polished_blackstone_bricks": (48, 42, 49), "hay_block": (166, 136, 38),
+    "yellow_concrete": (241, 175, 21), "blue_concrete": (45, 47, 143), "light_gray_concrete": (125, 125, 115),
+    "gray_concrete": (55, 58, 62), "red_concrete": (142, 33, 33), "green_concrete": (73, 91, 36),
+    "moss_block": (89, 110, 45), "smooth_stone": (158, 158, 158), "smooth_quartz": (235, 229, 222),
+    "quartz_block": (235, 229, 222), "chiseled_quartz_block": (231, 226, 218), "white_stained_glass_pane": (240, 240, 240),
+    "iron_bars": (136, 139, 135), "yellow_wool": (249, 198, 40), "red_wool": (161, 39, 34),
+    "white_terracotta": (226, 205, 185), "netherite_block": (66, 61, 63), "polished_blackstone": (53, 48, 56),
+    "orange_terracotta": (180, 92, 48), "orange_concrete": (224, 97, 1), "light_blue_concrete": (36, 137, 199),
+    "polished_diorite": (192, 193, 194), "quartz_pillar": (235, 229, 222), "white_wool": (233, 236, 236),
+    "black_wool": (21, 21, 26), "oak_planks": (162, 130, 78), "manter": (95, 159, 53),
 }
 
 
@@ -76,6 +85,13 @@ def isometrica(caminho):
     ys = np.arange(m.SY)[None, :, None] + m.YMIN
     mascara = (m.grid != m.AR) & (m.grid != m.KEEP) & (ys >= -7)
     _desenhar(mascara, caminho, escala=3)
+
+
+def estadio(caminho, escala=2):
+    """Vista do estádio com o chão (as células "manter" do nível do chão aparecem como grama)."""
+    ys = np.arange(m.SY)[None, :, None] + m.YMIN
+    mascara = ((m.grid != m.AR) & (m.grid != m.KEEP) & (ys >= -1)) | ((m.grid == m.KEEP) & (ys == -1))
+    _desenhar(mascara, caminho, escala=escala)
 
 
 def subterraneo(caminho):

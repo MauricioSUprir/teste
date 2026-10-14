@@ -107,6 +107,22 @@ Por dentro da sala secreta, uma **alavanca** ao lado da estante abre a porta par
 | **Alarme com armadilha** | Túnel de fuga da Base Submarina | Quem cruzar o fio de armadilha faz o **sino tocar**, acende as **lâmpadas** e os **dispensers atiram flechas**. Use uma **tesoura** no fio para desarmar. |
 | **Postes automáticos** | Caminho do pátio | Sensores de luz invertidos acendem as lâmpadas ao anoitecer. |
 
+## Estádios: Maracanã e São Januário (só no mundo Bedrock / PlayStation)
+
+O mundo Bedrock (`Castelo_PlayStation.zip` e `Castelo.mcworld`) também traz **dois estádios em
+tamanho real** (1 bloco = 1 metro), feitos a partir de fotos e plantas dos estádios de verdade.
+Uma **estrada** sai da frente do castelo: as placas mostram o caminho.
+
+| | Maracanã | São Januário |
+|---|---|---|
+| Onde | ~400 blocos a **leste** do castelo | ~250 blocos a **oeste** do castelo |
+| Por fora | Oval de 316 x 272 m, fachada de pilares e vidro, cobertura branca, esplanada com postes, **passarela elevada** saindo da praça com palmeiras e rotunda, **estátua do Bellini** com a taça, bilheterias, **Maracanãzinho** e **parque aquático** com torre de saltos | **Fachada neocolonial** de 118 m com o frontão de azulejos e o escudo, portão em arco, sacada, pináculos e bandeiras do Vasco, rua com árvores, **torres de luz**, **placar**, **estátua do Romário**, quadra de tênis |
+| Arquibancadas | Anel único com cadeiras amarelas, azuis e brancas, anel de **camarotes**, vomitórios, telões | Social coberta, **curva com a Cruz de Malta**, arquibancada preta com **VASCO** escrito |
+| Por dentro | 4 níveis de circulação com escadarias, catracas, lanchonetes e banheiros; **tribuna de imprensa**, **tribuna de honra** e **cabines de rádio/TV**; **vestiários**, túnel, **zona mista** e **sala de coletiva** | Saguão com azulejos, **sala de troféus**, **loja**, **salão nobre**, **sala de imprensa**, **presidência**, terraço, **cabines de imprensa** no alto, **vestiários**, sala do árbitro e túnel |
+
+![Maracanã](saida/previa_maracana.png)
+![São Januário](saida/previa_sao_januario.png)
+
 ## Como funciona o código
 
 | Arquivo | O que faz |
@@ -118,10 +134,11 @@ Por dentro da sala secreta, uma **alavanca** ao lado da estante abre a porta par
 | `redstone.py` | Os sistemas de redstone, cada um com um roteiro de teste. |
 | `equipamentos.py` | Os itens dos baús (tabelas de loot). |
 | `exportar.py` | Converte o modelo em comandos otimizados, datapack e schematic. |
+| `estadios.py` | O Maracanã, São Januário e a estrada (`python3 estadios.py` gera as prévias). |
 | `previa.py` | As imagens de prévia. |
 | `testar_no_servidor.py` | Sobe um servidor Minecraft oficial e testa tudo. |
 | `bedrock.py` | Traduz os blocos e o loot para o formato Bedrock. |
-| `construir_mundo_bedrock.py` | Constrói o mundo Bedrock num servidor oficial e empacota (`--testar` roda os testes). |
+| `construir_mundo_bedrock.py` | Constrói o mundo Bedrock (castelo, estádios e estrada) num servidor oficial e empacota (`--testar` roda os testes). |
 | `testar_bedrock.py` | Testes do mundo Bedrock (blocos, redstone, metrô, baús). |
 
 Para gerar de novo: `pip install numpy pillow` e `python3 gerar_castelo.py`.

@@ -28,6 +28,15 @@ pos_ordenadas = {}      # (x, y, z) -> índice em `ordenados`
 rng = random.Random(42)
 
 
+def configurar(xr, ymin, ymax):
+    """Troca o tamanho do modelo (usado pelos estádios, que têm outra área que o castelo)."""
+    global XR, YMIN, YMAX, SX, SY, SZ, grid
+    XR, YMIN, YMAX = xr, ymin, ymax
+    SX, SY, SZ = 2 * XR + 1, YMAX - YMIN + 1, 2 * XR + 1
+    grid = np.zeros((SX, SY, SZ), dtype=np.int16)
+    resetar()
+
+
 def resetar():
     global grid
     grid[:] = 0
