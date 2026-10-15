@@ -155,6 +155,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
       {!liberado ? (
         <Link
           href="/profissional"
+          data-barra-fixa="cnpj"
           className="fixed inset-x-0 bottom-0 z-30 flex h-14 items-center justify-center bg-roxo px-4 text-[0.9375rem] font-semibold text-white md:hidden"
         >
           {copy.b2b.liberarPrecos}
@@ -169,7 +170,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
               {formatarPreco(precoPix(variante.precoPor))} {copy.pdp.noPix}
             </span>
           </p>
-          <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-white px-4 pb-4 pt-2 md:static md:mx-0 md:mt-5 md:border-0 md:p-0">
+          <div data-barra-fixa="compra" className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-white px-4 pb-4 pt-2 md:static md:mx-0 md:mt-5 md:border-0 md:p-0">
             <div className="flex items-center rounded-[40px] border border-linha">
               <button
                 type="button"

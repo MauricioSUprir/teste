@@ -142,7 +142,7 @@ export function AbaCatalogo() {
               type="checkbox"
               checked={soBaixoEstoque}
               onChange={(e) => setSoBaixoEstoque(e.target.checked)}
-              className="h-4 w-4 accent-[#4A2882]"
+              className="h-4 w-4 accent-roxo"
             />
             Só estoque baixo/esgotado
           </label>
@@ -588,7 +588,7 @@ function FormNovoProduto({ aoCriar }: { aoCriar: () => void }) {
             type="checkbox"
             checked={destacar}
             onChange={(e) => setDestacar(e.target.checked)}
-            className="h-4 w-4 accent-[#4A2882]"
+            className="h-4 w-4 accent-roxo"
           />
           Destacar na home (seção Mais vendidos)
         </label>

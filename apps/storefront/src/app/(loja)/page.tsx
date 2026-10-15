@@ -233,13 +233,19 @@ export default function Home() {
                     className="absolute inset-0 h-full w-full bg-white object-contain p-6 pb-24 transition-transform duration-300 group-hover:scale-[1.03]"
                   />
                 )}
-                <span className="relative mt-auto flex w-full items-center gap-3 bg-white/95 px-4 py-3">
+                {/* nos dois cards estreitos do celular (meia largura) a logo vai
+                    para cima do nome: lado a lado, o nome quebrava letra a letra */}
+                <span
+                  className={`relative mt-auto flex w-full gap-3 bg-white/95 px-4 py-3 ${
+                    i === 0 ? "items-center" : "flex-col items-start md:flex-row md:items-center"
+                  }`}
+                >
                   {m.logo && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={comBase(m.logo)} alt="" loading="lazy" className="h-10 w-[100px] shrink-0 object-contain" />
+                    <img src={comBase(m.logo)} alt="" loading="lazy" className="h-8 w-[100px] shrink-0 object-contain object-left md:h-10" />
                   )}
                   <span className="min-w-0">
-                    <span className="block text-[1rem] font-bold uppercase leading-tight text-tinta">{m.nome}</span>
+                    <span className="block text-[1rem] font-bold uppercase leading-tight text-tinta [overflow-wrap:anywhere]">{m.nome}</span>
                     <span className="block text-[0.8125rem] text-grafite">
                       {t.produtosDaMarca(m.total)} · {t.conhecerMarca} →
                     </span>

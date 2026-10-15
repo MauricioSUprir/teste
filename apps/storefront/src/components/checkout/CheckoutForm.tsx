@@ -261,14 +261,17 @@ export function CheckoutForm() {
 
   if (carrinho.itens.length === 0) {
     return (
-      <div className="container-bn flex flex-col items-center gap-4 py-24 text-center">
-        <p className="text-[1rem] text-grafite">{copy.carrinho.vazio}</p>
-        <Link
-          href="/"
-          className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
-        >
-          {copy.checkout.voltarLoja}
-        </Link>
+      <div className="min-h-dvh bg-superficie">
+        <CabecalhoCheckout />
+        <div className="container-bn flex flex-col items-center gap-4 py-24 text-center">
+          <p className="text-[1rem] text-grafite">{copy.carrinho.vazio}</p>
+          <Link
+            href="/"
+            className="rounded-[40px] bg-roxo px-6 py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+          >
+            {copy.checkout.voltarLoja}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -277,17 +280,7 @@ export function CheckoutForm() {
   if (!conta.usuario) {
     return (
       <div className="min-h-dvh bg-superficie">
-        <header className="border-b border-linha bg-white">
-          <div className="container-bn flex h-16 items-center justify-between">
-            <Link href="/">
-              <Logo altura={24} />
-            </Link>
-            <p className="hidden items-center gap-4 text-[0.8125rem] text-grafite sm:flex">
-              <span>🔒 {copy.checkout.seguro}</span>
-              <span className="num">{copy.checkout.atendimento}</span>
-            </p>
-          </div>
-        </header>
+        <CabecalhoCheckout />
         <div className="container-bn max-w-md py-16 text-center">
           <h1 className="font-titulo text-[1.5rem] font-semibold text-tinta">
             {copy.checkout.precisaContaTitulo}
@@ -318,18 +311,7 @@ export function CheckoutForm() {
 
   return (
     <div className="min-h-dvh bg-superficie">
-      {/* header reduzido: logo, selo e telefone — sem navegação */}
-      <header className="border-b border-linha bg-white">
-        <div className="container-bn flex h-16 items-center justify-between">
-          <Link href="/">
-            <Logo altura={24} />
-          </Link>
-          <p className="hidden items-center gap-4 text-[0.8125rem] text-grafite sm:flex">
-            <span>🔒 {copy.checkout.seguro}</span>
-            <span className="num">{copy.checkout.atendimento}</span>
-          </p>
-        </div>
-      </header>
+      <CabecalhoCheckout />
 
       <form onSubmit={concluir} className="container-bn grid gap-6 py-8 lg:grid-cols-[1fr_380px]">
         <h1 className="sr-only">{copy.checkout.titulo}</h1>
@@ -469,7 +451,7 @@ export function CheckoutForm() {
                           value={f.id}
                           checked={freteEscolhido === f.id}
                           onChange={() => setFreteEscolhido(f.id)}
-                          className="h-4 w-4 accent-[#4A2882]"
+                          className="h-4 w-4 accent-roxo"
                         />
                         <span>
                           {f.nome} · Chega até <strong className="num">{f.dataPrevista}</strong>
@@ -507,7 +489,7 @@ export function CheckoutForm() {
                     value={id}
                     checked={meio === id}
                     onChange={() => setMeio(id)}
-                    className="h-4 w-4 accent-[#4A2882]"
+                    className="h-4 w-4 accent-roxo"
                   />
                   <span>
                     <span className="block text-[0.9375rem] font-semibold">
@@ -704,5 +686,22 @@ function Campo({
         }`}
       />
     </div>
+  );
+}
+
+/** header reduzido do checkout: logo, selo e telefone — sem navegação (igual nos três estados) */
+function CabecalhoCheckout() {
+  return (
+    <header className="border-b border-linha bg-white">
+      <div className="container-bn flex h-16 items-center justify-between">
+        <Link href="/">
+          <Logo altura={24} />
+        </Link>
+        <p className="hidden items-center gap-4 text-[0.8125rem] text-grafite sm:flex">
+          <span>🔒 {copy.checkout.seguro}</span>
+          <span className="num">{copy.checkout.atendimento}</span>
+        </p>
+      </div>
+    </header>
   );
 }

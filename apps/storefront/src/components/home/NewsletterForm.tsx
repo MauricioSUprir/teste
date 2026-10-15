@@ -16,7 +16,7 @@ export function NewsletterForm() {
 
   return (
     <form
-      className="mx-auto mt-5 flex max-w-md gap-2"
+      className="mx-auto mt-5 flex max-w-md flex-col gap-2 sm:flex-row"
       onSubmit={(e) => {
         e.preventDefault();
         setEnviado(true);
@@ -36,7 +36,7 @@ export function NewsletterForm() {
       />
       <button
         type="submit"
-        className="shrink-0 rounded-[40px] bg-violeta px-6 text-[0.9375rem] font-semibold text-white hover:opacity-90"
+        className="h-12 shrink-0 rounded-[40px] bg-violeta px-6 text-[0.9375rem] font-semibold text-white hover:opacity-90"
       >
         {copy.home.newsletterCta}
       </button>

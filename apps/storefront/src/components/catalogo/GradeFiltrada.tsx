@@ -13,6 +13,8 @@ import { EVENTO_AJUSTES, aplicarAjustesLista, produtosLocais } from "@/lib/catal
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
 import { POR_PAGINA } from "@/lib/catalogo/paginacao";
+import { useB2B } from "@/lib/b2b/contexto";
+import type { AtributosProduto } from "@/lib/catalogo/tipos";
 
 type Ordenacao =
   | "relevancia"
@@ -31,11 +33,11 @@ const faixasPreco = [
 
 const opcoesTipoCabelo = ["liso", "ondulado", "cacheado", "crespo"];
 const opcoesTipoPele = ["oleosa", "mista", "normal", "seca", "sensivel"];
-const opcoesCaracteristicas = [
-  { id: "vegano", rotulo: "Vegano" },
-  { id: "sem-sulfato", rotulo: "Sem sulfato" },
-  { id: "sem-silicone", rotulo: "Sem silicone" },
-  { id: "cruelty-free", rotulo: "Cruelty-free" },
+const opcoesCaracteristicas: { id: string; rotulo: string; chave: keyof AtributosProduto }[] = [
+  { id: "vegano", rotulo: "Vegano", chave: "vegano" },
+  { id: "sem-sulfato", rotulo: "Sem sulfato", chave: "semSulfato" },
+  { id: "sem-silicone", rotulo: "Sem silicone", chave: "semSilicone" },
+  { id: "cruelty-free", rotulo: "Cruelty-free", chave: "crueltyFree" },
 ];
 
 function capitalizar(s: string) {
@@ -57,6 +59,9 @@ export function GradeFiltrada({
   const pathname = usePathname();
   const params = useSearchParams();
   const [filtrosAbertosMobile, setFiltrosAbertosMobile] = useState(false);
+  // Be2Beauty: sem CNPJ aprovado o preço é segredo, então filtrar ou ordenar
+  // por preço também não pode (revelaria a faixa de preço de cada produto)
+  const { liberado: precoVisivel } = useB2B();
   // quantos cards estão montados na tela. Uma categoria grande tem 700 itens:
   // jogar todos de uma vez trava a rolagem no celular e faz a página demorar
   // a responder. Entram aos poucos, com botão de ver mais.
@@ -84,12 +89,14 @@ export function GradeFiltrada({
   );
 
   const filtroMarcas = lerLista("marca");
-  const filtroPreco = lerLista("preco");
+  const filtroPreco = precoVisivel ? lerLista("preco") : [];
   const filtroCabelo = lerLista("cabelo");
   const filtroPele = lerLista("pele");
   const filtroCarac = lerLista("carac");
   const soDisponiveis = params.get("disp") === "1";
-  const ordenacao = (params.get("ordem") as Ordenacao) ?? "relevancia";
+  const ordemPedida = (params.get("ordem") as Ordenacao) ?? "relevancia";
+  const ordenacao: Ordenacao =
+    !precoVisivel && (ordemPedida === "menor-preco" || ordemPedida === "maior-preco") ? "relevancia" : ordemPedida;
   /**
    * lerLista() devolve um array novo a cada render, então usar os arrays como
    * dependência fazia o React achar que os filtros mudaram sempre: a lista de
@@ -145,10 +152,8 @@ export function GradeFiltrada({
       if (filtroPele.length && !filtroPele.some((t) => p.atributos.tipoPele?.includes(t)))
         return false;
       for (const c of filtroCarac) {
-        if (c === "vegano" && !p.atributos.vegano) return false;
-        if (c === "sem-sulfato" && !p.atributos.semSulfato) return false;
-        if (c === "sem-silicone" && !p.atributos.semSilicone) return false;
-        if (c === "cruelty-free" && !p.atributos.crueltyFree) return false;
+        const opcao = opcoesCaracteristicas.find((o) => o.id === c);
+        if (opcao && !p.atributos[opcao.chave]) return false;
       }
       if (soDisponiveis && !temEstoque(p)) return false;
       return true;
@@ -196,6 +201,8 @@ export function GradeFiltrada({
 
   const temCabelo = produtos.some((p) => p.atributos.tipoCabelo?.length);
   const temPele = produtos.some((p) => p.atributos.tipoPele?.length);
+  // o Hub ainda não manda essas marcações: só oferece o que algum produto tem
+  const caracPresentes = opcoesCaracteristicas.filter((c) => base.some((p) => p.atributos[c.chave]));
 
   const painelFiltros = (
     <div className="space-y-5">
@@ -222,16 +229,18 @@ export function GradeFiltrada({
         </GrupoFiltro>
       )}
 
-      <GrupoFiltro titulo={copy.plp.filtroPreco}>
-        {faixasPreco.map((f) => (
-          <Opcao
-            key={f.id}
-            rotulo={f.rotulo}
-            marcado={filtroPreco.includes(f.id)}
-            aoMudar={() => alternarValor("preco", filtroPreco, f.id)}
-          />
-        ))}
-      </GrupoFiltro>
+      {precoVisivel && (
+        <GrupoFiltro titulo={copy.plp.filtroPreco}>
+          {faixasPreco.map((f) => (
+            <Opcao
+              key={f.id}
+              rotulo={f.rotulo}
+              marcado={filtroPreco.includes(f.id)}
+              aoMudar={() => alternarValor("preco", filtroPreco, f.id)}
+            />
+          ))}
+        </GrupoFiltro>
+      )}
 
       {temCabelo && (
         <GrupoFiltro titulo={copy.plp.filtroTipoCabelo}>
@@ -259,16 +268,18 @@ export function GradeFiltrada({
         </GrupoFiltro>
       )}
 
-      <GrupoFiltro titulo={copy.plp.filtroBeneficios}>
-        {opcoesCaracteristicas.map((c) => (
-          <Opcao
-            key={c.id}
-            rotulo={c.rotulo}
-            marcado={filtroCarac.includes(c.id)}
-            aoMudar={() => alternarValor("carac", filtroCarac, c.id)}
-          />
-        ))}
-      </GrupoFiltro>
+      {caracPresentes.length > 0 && (
+        <GrupoFiltro titulo={copy.plp.filtroBeneficios}>
+          {caracPresentes.map((c) => (
+            <Opcao
+              key={c.id}
+              rotulo={c.rotulo}
+              marcado={filtroCarac.includes(c.id)}
+              aoMudar={() => alternarValor("carac", filtroCarac, c.id)}
+            />
+          ))}
+        </GrupoFiltro>
+      )}
 
       <Opcao
         rotulo={copy.plp.disponiveis}
@@ -313,8 +324,8 @@ export function GradeFiltrada({
               >
                 <option value="relevancia">{copy.plp.ordenacao.relevancia}</option>
                 <option value="mais-vendidos">{copy.plp.ordenacao.maisVendidos}</option>
-                <option value="menor-preco">{copy.plp.ordenacao.menorPreco}</option>
-                <option value="maior-preco">{copy.plp.ordenacao.maiorPreco}</option>
+                {precoVisivel && <option value="menor-preco">{copy.plp.ordenacao.menorPreco}</option>}
+                {precoVisivel && <option value="maior-preco">{copy.plp.ordenacao.maiorPreco}</option>}
                 <option value="lancamentos">{copy.plp.ordenacao.lancamentos}</option>
                 <option value="melhor-avaliados">{copy.plp.ordenacao.melhorAvaliados}</option>
               </select>
@@ -362,13 +373,17 @@ export function GradeFiltrada({
 }
 
 function GrupoFiltro({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  // a linha fica num invólucro: borda no próprio fieldset é desenhada atrás
+  // da legenda, na altura do meio do texto ("PREÇO ————")
   return (
-    <fieldset className="border-t border-linha pt-4 first:border-t-0 first:pt-0">
-      <legend className="pb-2 text-[0.8125rem] font-semibold uppercase tracking-wide text-tinta">
-        {titulo}
-      </legend>
-      <div className="space-y-1.5">{children}</div>
-    </fieldset>
+    <div className="border-t border-linha pt-4 first:border-t-0 first:pt-0">
+      <fieldset>
+        <legend className="pb-2 text-[0.8125rem] font-semibold uppercase tracking-wide text-tinta">
+          {titulo}
+        </legend>
+        <div className="space-y-1.5">{children}</div>
+      </fieldset>
+    </div>
   );
 }
 
@@ -387,7 +402,7 @@ function Opcao({
         type="checkbox"
         checked={marcado}
         onChange={aoMudar}
-        className="h-4 w-4 accent-[#4A2882]"
+        className="h-4 w-4 accent-roxo"
       />
       {rotulo}
     </label>

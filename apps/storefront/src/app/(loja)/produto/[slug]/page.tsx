@@ -54,6 +54,8 @@ export default async function PaginaProduto({
   const marca = obterMarca(produto.marca);
   const categoria = obterCategoria(produto.categorias[0]);
   const { media, total } = notaMedia(produto);
+  // o Hub manda muitos produtos sem descrição: nesse caso o bloco nem aparece
+  const temSobre = produto.descricao.trim() !== "" || produto.beneficios.length > 0;
   const companheiros = (produto.compreJunto ?? [])
     .map((s) => obterProduto(s))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
@@ -142,15 +144,16 @@ export default async function PaginaProduto({
       {/* abaixo da dobra — ordem fixa de docs/03 §5 */}
       <div className="mt-12 grid gap-10 lg:grid-cols-[3fr_2fr]">
         <div>
+          {temSobre && (
           <Acordeao titulo={copy.pdp.sobre} abertoPorPadrao>
-            <p>{produto.descricao}</p>
+            {produto.descricao.trim() && <p>{produto.descricao}</p>}
             {produto.beneficios.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {produto.beneficios.map((b) => (
                 <li key={b} className="flex items-start gap-2">
                   {/* marcador de lista na cor da marca */}
                   <svg width="12" height="14" viewBox="0 0 12 14" aria-hidden="true" className="mt-1 shrink-0">
-                    <path d="M6 1 C8.2 4.4 9.8 6.8 9.8 9 a3.8 3.8 0 0 1 -7.6 0 C2.2 6.8 3.8 4.4 6 1 Z" fill="#4A2882" />
+                    <path d="M6 1 C8.2 4.4 9.8 6.8 9.8 9 a3.8 3.8 0 0 1 -7.6 0 C2.2 6.8 3.8 4.4 6 1 Z" className="fill-roxo" />
                   </svg>
                   {b}
                 </li>
@@ -158,6 +161,7 @@ export default async function PaginaProduto({
             </ul>
             )}
           </Acordeao>
+          )}
 
           {produto.modoDeUso.length > 0 && (
           <Acordeao titulo={copy.pdp.comoUsar}>
@@ -176,7 +180,7 @@ export default async function PaginaProduto({
           )}
 
           {Object.keys(produto.especificacoes).length > 0 && (
-          <Acordeao titulo={copy.pdp.especificacoes}>
+          <Acordeao titulo={copy.pdp.especificacoes} abertoPorPadrao={!temSobre}>
             <table className="w-full text-[0.875rem]">
               <tbody>
                 {Object.entries(produto.especificacoes).map(([chave, valor]) => (

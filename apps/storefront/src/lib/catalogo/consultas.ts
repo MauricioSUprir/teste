@@ -33,7 +33,14 @@ interface CatalogoHub {
  * era sempre igual. Aqui os dois voltam ao formato que o resto do site espera.
  * A ponta que grava é `compactar()`, em scripts/sincronizar-catalogo.mjs.
  */
-const VISUAL_PADRAO = { corA: "#4A2882", corB: "#B9A6E8", forma: "frasco" } as const;
+const CORES_DESENHO = {
+  beautynow: { corA: "#4A2882", corB: "#B9A6E8" },
+  be2beauty: { corA: "#13315C", corB: "#9DBCE3" },
+  pulse: { corA: "#7A3A1B", corB: "#E3B79E" },
+  bradeco: { corA: "#8F4205", corB: "#F2C29C" },
+} as const;
+// cada build é de uma loja só: o desenho sai na cor dela
+const VISUAL_PADRAO = { ...CORES_DESENHO[LOJA.id], forma: "frasco" } as const;
 
 function expandirCatalogo(catalogo: CatalogoHub) {
   const base = catalogo.baseImagem;

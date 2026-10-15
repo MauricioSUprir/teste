@@ -359,3 +359,10 @@ body {
 .scroll-sem-barra::-webkit-scrollbar {
   display: none;
 }
+
+/* PDP no celular: as barras fixas do rodapé (cadastro do CNPJ, ou preço +
+   comprar) cobriam o fim da página. A página ganha folga do tamanho delas. */
+@media (width < 48rem) {
+  body:has([data-barra-fixa="cnpj"]) { padding-bottom: 56px; }
+  body:has([data-barra-fixa="compra"]) { padding-bottom: 108px; }
+}

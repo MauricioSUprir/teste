@@ -3,7 +3,8 @@ import { CUPOM_BOAS_VINDAS } from "@/lib/cupons";
 import { DESCONTO_PIX_PCT, FAIXA_BRINDE_CENTAVOS, MAX_PARCELAS } from "@/lib/preco";
 
 /** reais inteiros para as chamadas do topo (R$ 99, R$ 250) */
-const reais = (centavos: number) => `R$ ${Math.round(centavos / 100)}`;
+// espaço que não quebra: "R$" e o valor nunca ficam em linhas diferentes
+const reais = (centavos: number) => `R$\u00a0${Math.round(centavos / 100)}`;
 
 /**
  * Vantagens da faixa do topo — todas são regras que o checkout cumpre de
