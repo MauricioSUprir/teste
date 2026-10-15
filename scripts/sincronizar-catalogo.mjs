@@ -12,6 +12,7 @@
 import { writeFileSync, mkdirSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { aplicarCorrecoes } from "./correcoes-catalogo.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SAIDA = join(RAIZ, "apps/storefront/src/lib/catalogo/dados-hub.json");
@@ -250,7 +251,7 @@ async function principal() {
 
   // 3. mapeamento
   const slugsUsados = new Set();
-  const produtos = brutos
+  let produtos = brutos
     .map((b) => mapearProduto(b, detalhes.get(String(campo(b, "sku", "codigo", "id"))), slugsUsados))
     // itens sem marca identificável ficam fora da loja (pedido do Mauricio, 21/08)
     .filter((p) => p.marca !== "outros");
@@ -273,6 +274,19 @@ async function principal() {
   } catch {
     /* sem lista de fotos ocultas */
   }
+
+  // correções da revisão do catálogo (scripts/correcoes-catalogo.json +
+  // regras: provadores fora, duplicados unificados, nome limpo)
+  const nomesMarca = Object.fromEntries(produtos.map((p) => [p.marca, p._marcaNome]));
+  const nomesCategoria = Object.fromEntries(produtos.map((p) => [p.categorias[0], p._categoriaNome]));
+  const corrigido = aplicarCorrecoes(produtos, undefined, { nomesMarca, nomesCategoria });
+  produtos = corrigido.produtos;
+  const r = corrigido.relatorio;
+  console.log(
+    `  correções: ${r.provadores} provadores fora, ${r.duplicados.length} duplicados unificados, ` +
+      `${r.ocultados} itens ocultos, ${r.fotosRemovidas} fotos removidas, ${r.marcas} marcas e ` +
+      `${r.categorias} categorias corrigidas, ${r.titulos} nomes limpos`
+  );
 
   // marcas e categorias derivadas dos produtos
   const marcasMapa = new Map();

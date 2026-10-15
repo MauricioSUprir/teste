@@ -166,11 +166,11 @@ export default function Home() {
 
       {/* 4. Vitrine com banner lateral (campanha com regra real: brinde ou preço de CNPJ) */}
       <section id="mais-vendidos" aria-labelledby="titulo-campanha" className="container-bn pt-16 md:pt-20">
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
           <div className="flex flex-col justify-between gap-6 rounded-[8px] bg-roxo-claro p-6 md:p-8">
             <div>
               <p className="text-[0.75rem] font-bold uppercase tracking-wide text-roxo-escuro">{t.campanha.sobretitulo}</p>
-              <h2 id="titulo-campanha" className="mt-2 text-[clamp(1.5rem,2.4vw,2rem)] font-black uppercase leading-[1.08] text-roxo-escuro">
+              <h2 id="titulo-campanha" className="mt-2 text-[clamp(1.375rem,1.9vw,1.625rem)] font-black uppercase leading-[1.1] text-roxo-escuro [overflow-wrap:anywhere]">
                 {t.campanha.titulo}
               </h2>
               <p className="mt-3 text-[0.875rem] text-grafite">{t.campanha.texto}</p>

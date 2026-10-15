@@ -1,0 +1,17 @@
+{
+  "_leia": "Correções do catálogo do Hub (ver scripts/correcoes-catalogo.mjs). Cada entrada vale até alguém apagá-la — apague quando o Hub corrigir o cadastro. Fotos por id do Hub (…/api/ecom/imagem/<id>).",
+  "regras": {
+    "ocultarProvadores": true,
+    "unificarDuplicadosPorEAN": true,
+    "limparTitulo": true
+  },
+  "ocultarProdutos": [
+    { "sku": "93105", "motivo": "provador sem 'PROV' no nome: R$ 2,91 contra R$ 53,27 do produto normal (SKU 3105)" },
+    { "sku": "3401", "motivo": "copo Chupa Chups: item de brinde, não é cosmético (R$ 1,33)" },
+    { "sku": "3402", "motivo": "copo Chupa Chups: item de brinde, não é cosmético (R$ 1,63)" }
+  ],
+  "ocultarFotos": [],
+  "marca": [],
+  "categoria": [],
+  "titulo": []
+}
