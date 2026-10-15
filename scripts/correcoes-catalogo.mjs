@@ -47,21 +47,25 @@ function capitalizarParte(parte, primeira) {
   if (/[.'’&+]/.test(miolo)) return parte;
   const so = miolo.toLowerCase();
   if (SIGLAS.has(so)) return antes + miolo + depois;
-  if (UNIDADES.has(so)) return antes + so + depois;
+  if (UNIDADES.has(so)) return antes + (so === "l" ? "L" : so) + depois; // litro é L maiúsculo
   if (!primeira && MINUSCULAS.has(so) && !depois.startsWith(".")) return antes + so + depois; // "No. 51" fica
   return antes + so.charAt(0).toUpperCase() + so.slice(1) + depois;
 }
 
-/** "SHAMPOO TEC OIL - 1L" → "Shampoo Tec Oil - 1L" (só nomes inteiros em CAIXA ALTA) */
+const emCaixaAlta = (w) => w === w.toUpperCase() && w !== w.toLowerCase();
+
+/**
+ * "SHAMPOO TEC OIL - 1L" → "Shampoo Tec Oil - 1L". Vale para nomes com metade
+ * ou mais das palavras em CAIXA ALTA ("Hidratei H SOLAR SHAMPOO 60ML"); as
+ * palavras já escritas normalmente ficam como estão.
+ */
 function capitalizar(titulo) {
-  // "quase tudo" em maiúsculas também conta ("LATIKA SUN STICK … 20 g")
-  const letras = titulo.replace(/[^\p{L}]/gu, "");
-  const maiusculas = letras.replace(/[^\p{Lu}]/gu, "").length;
-  if (!letras || maiusculas / letras.length < 0.85) return titulo;
+  const palavras = titulo.split(" ").filter((w) => /\p{L}.*\p{L}/u.test(w) && !/\d/.test(w));
+  if (!palavras.length || palavras.filter(emCaixaAlta).length / palavras.length < 0.5) return titulo;
   return titulo
     .split(" ")
     .map((palavra, i) => {
-      if (/\d/.test(palavra)) return palavra; // códigos e medidas: BM-301-2, MM29A, 300ML
+      if (/\d/.test(palavra) || !emCaixaAlta(palavra)) return palavra; // códigos e medidas: BM-301-2, MM29A, 300ML
       return palavra
         .split(/([-/])/)
         .map((parte, k) => (parte === "-" || parte === "/" ? parte : capitalizarParte(parte, i === 0 && k === 0)))
