@@ -34,12 +34,17 @@ const UNIDADES = new Set(["ml", "g", "kg", "l", "un", "mg"]);
 // siglas que ficam em maiúsculas (marcas abreviadas, fatores, linhas)
 const SIGLAS = new Set(["mm", "jj", "bb", "cc", "bt", "wd", "ph", "uv", "fps", "spf", "aha", "bha", "nv", "snc", "sns", "dd", "ii", "iii", "hd", "led", "usb", "kp", "rrb", "mmc", "lt", "dv", "sh", "sos"]);
 
+const MARCAS_PONTO = new Set(["k.pro"]);
+
 /** uma palavra (sem espaço, sem hífen/barra): mantém pontuação das pontas */
 function capitalizarParte(parte, primeira) {
   const m = parte.match(/^([^\p{L}\d]*)(.*?)([^\p{L}\d]*)$/u);
   const [, antes, miolo, depois] = m;
   if (!miolo) return parte;
-  if (/[.'’&+]/.test(miolo)) return parte; // K.PRO, D'VENCE
+  // abreviação colada ("ESC.ACOBREADO") vira "Esc.Acobreado"; marcas (K.PRO, D'VENCE) e siglas (S.H.R.P) ficam
+  if (/^\p{L}{2,}(\.\p{L}+)+$/u.test(miolo) && !MARCAS_PONTO.has(miolo.toLowerCase()))
+    return antes + miolo.split(".").map((x) => capitalizarParte(x, true)).join(".") + depois;
+  if (/[.'’&+]/.test(miolo)) return parte;
   const so = miolo.toLowerCase();
   if (SIGLAS.has(so)) return antes + miolo + depois;
   if (UNIDADES.has(so)) return antes + so + depois;
@@ -49,8 +54,10 @@ function capitalizarParte(parte, primeira) {
 
 /** "SHAMPOO TEC OIL - 1L" → "Shampoo Tec Oil - 1L" (só nomes inteiros em CAIXA ALTA) */
 function capitalizar(titulo) {
+  // "quase tudo" em maiúsculas também conta ("LATIKA SUN STICK … 20 g")
   const letras = titulo.replace(/[^\p{L}]/gu, "");
-  if (!letras || letras !== letras.toUpperCase()) return titulo;
+  const maiusculas = letras.replace(/[^\p{Lu}]/gu, "").length;
+  if (!letras || maiusculas / letras.length < 0.85) return titulo;
   return titulo
     .split(" ")
     .map((palavra, i) => {
@@ -77,11 +84,12 @@ export function limparTitulo(titulo) {
   return t || String(titulo).trim();
 }
 
-/** nota de "qual cadastro fica" entre duplicados do mesmo item */
-function pontuacao(p) {
+/** nota de "qual cadastro fica" entre duplicados do mesmo item: com estoque, depois mais fotos */
+function pontuacao(p, tituloHub = p.titulo) {
+  const estoque = (p.variantes ?? []).some((v) => (v.estoque ?? 0) > 0);
   const fotos = p.imagens?.length ?? 0;
-  const caixaAlta = p.titulo === p.titulo.toUpperCase();
-  return fotos * 10 + (caixaAlta ? 0 : 1) - (/[()]/.test(p.variantes[0]?.sku ?? "") ? 1 : 0);
+  const caixaAlta = tituloHub === tituloHub.toUpperCase();
+  return (estoque ? 1000 : 0) + fotos * 10 + (caixaAlta ? 0 : 1) - (/[()]/.test(p.variantes[0]?.sku ?? "") ? 1 : 0);
 }
 
 /**
@@ -96,6 +104,7 @@ export function aplicarCorrecoes(produtos, correcoes = lerCorrecoes(), { nomesMa
   const porSku = (lista) => new Map((lista ?? []).map((c) => [String(c.sku), c]));
 
   let lista = produtos;
+  const tituloHub = new Map(produtos.map((p) => [p, p.titulo]));
 
   if (regras.ocultarProvadores !== false) {
     const antes = lista.length;
@@ -139,7 +148,7 @@ export function aplicarCorrecoes(produtos, correcoes = lerCorrecoes(), { nomesMa
     }
     const t = titulos.get(s);
     if (t?.titulo) {
-      p.titulo = t.titulo;
+      p.titulo = regras.limparTitulo !== false ? limparTitulo(t.titulo) : t.titulo;
       rel.titulos += 1;
     } else if (regras.limparTitulo !== false) {
       const limpo = limparTitulo(p.titulo);
@@ -164,7 +173,7 @@ export function aplicarCorrecoes(produtos, correcoes = lerCorrecoes(), { nomesMa
     const fora = new Set();
     for (const [ean, g] of grupos) {
       if (g.length < 2) continue;
-      const ordenados = [...g].sort((a, b) => pontuacao(b) - pontuacao(a) || sku(a).localeCompare(sku(b)));
+      const ordenados = [...g].sort((a, b) => pontuacao(b, tituloHub.get(b)) - pontuacao(a, tituloHub.get(a)) || sku(a).localeCompare(sku(b)));
       for (const p of ordenados.slice(1)) fora.add(p);
       rel.duplicados.push({ ean, fica: sku(ordenados[0]), saem: ordenados.slice(1).map(sku) });
     }
