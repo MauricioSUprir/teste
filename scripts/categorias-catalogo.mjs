@@ -15,12 +15,13 @@ export const REGRAS_CATEGORIA = [
   ["Unhas", /\b(esmalte|unha|cutícula|cuticula|alicate|manicure)/i],
   ["Skincare", /\b(skincare|facial|rosto|anti[- ]?idade|antimanchas|niacinamida|hialur[oô]nico|sérum facial|serum facial|acne|vitamina c|protetor solar|limpeza de pele|tônico facial|tonico facial|micelar|água thermal|agua thermal)/i],
   ["Maquiagem", /\b(batom|bto|gloss|lipgloss|lip ?tint|base |base$|corretivo|blush|iluminador|highlighter|bronzer|primer|rimel|rímel|cilios|cílios|delineador|sombra|paleta|contorno|contour|bruma|pó (compacto|solto|facial)|po (compacto|solto|facial)|lip |matte|labial|sobrancelha|maquiagem|makeup|make |pincel|esponja|stick|rouge|lapiseira)/i],
-  ["Perfumaria", /\b(perfume|colônia|colonia|body splash|eau de|desodorante col)/i],
+  // "PERFUM SPRAY" (abreviado no Hub) também é perfume; "perfumado" não
+  ["Perfumaria", /\b(perfume|perfum\b|colônia|colonia|body splash|eau de|desodorante col)/i],
   ["Corpo e Banho", /\b(bumbum|corporal|body |sabonete|esfoliante corporal|desodorante|banho|loção corporal|locao corporal|hidratante corporal|óleo corporal|oleo corporal)/i],
   ["Cabelos", /\b(máscara|mascara|leave[- ]?in|cabelo|finalizador|creme de pentear|gelatina|ampola|reconstru|hidrata|nutri|liso|frizz|termoprotetor|tônico capilar|tonico capilar|óleo|oleo|serum|botox)/i],
 ];
 const MARCAS_MAQUINA = /wahl/i;
-const MARCAS_CABELO = /k\.?pro|jacques|arvensis|widi|hidratei|senscience|joico|rebeel|evoly/i;
+const MARCAS_CABELO = /k\.?pro|jacques|arvensis|widi|hidratei|senscience|joico|rebeel|evoly|d'?vence/i;
 const MARCAS_MAKE = /mari maria|oceane|issue|latika|nina|byem|bruna tavares/i;
 
 export function categorizar(nome, marca) {

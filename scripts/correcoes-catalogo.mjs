@@ -23,8 +23,8 @@ export function lerCorrecoes() {
   return JSON.parse(readFileSync(ARQUIVO_CORRECOES, "utf8"));
 }
 
-/** "PROV MM …", "PROVADOR …": testers de balcão, com preço de brinde no Hub */
-export const ehProvador = (titulo) => /^\s*(prov|provador)\b/i.test(String(titulo));
+/** "PROV MM …", "PROVADOR …", "TESTER …": testers de balcão, com preço de brinde no Hub */
+export const ehProvador = (titulo) => /^\s*(prov|provador|tester)\b/i.test(String(titulo));
 
 /** id da foto no Hub, venha ela como URL completa ou só o número */
 const idFoto = (u) => String(u).split("/").pop();
