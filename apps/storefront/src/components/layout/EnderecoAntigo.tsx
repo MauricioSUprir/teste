@@ -37,7 +37,7 @@ export function EnderecoAntigo({ children }: { children: React.ReactNode }) {
     const ultimo = caminho.split("/").filter(Boolean).pop()?.toLowerCase() ?? "";
 
     // arquivo que não existe (imagem, script): nada a fazer
-    if (!ultimo || /\.(png|jpe?g|webp|gif|svg|ico|css|js|json|xml|txt|pdf)$/i.test(ultimo)) {
+    if (!ultimo || ultimo === "404.html" || /\.(png|jpe?g|webp|gif|svg|ico|css|js|json|xml|txt|pdf)$/i.test(ultimo)) {
       setProcurando(false);
       return;
     }
