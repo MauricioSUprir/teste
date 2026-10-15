@@ -202,7 +202,10 @@ export function GradeFiltrada({
   const temCabelo = produtos.some((p) => p.atributos.tipoCabelo?.length);
   const temPele = produtos.some((p) => p.atributos.tipoPele?.length);
   // o Hub ainda não manda essas marcações: só oferece o que algum produto tem
-  const caracPresentes = opcoesCaracteristicas.filter((c) => base.some((p) => p.atributos[c.chave]));
+  // (e o que já está marcado no link, para dar para desmarcar)
+  const caracPresentes = opcoesCaracteristicas.filter(
+    (c) => filtroCarac.includes(c.id) || base.some((p) => p.atributos[c.chave])
+  );
 
   const painelFiltros = (
     <div className="space-y-5">

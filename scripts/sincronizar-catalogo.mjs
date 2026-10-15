@@ -12,7 +12,7 @@
 import { writeFileSync, mkdirSync, readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { aplicarCorrecoes } from "./correcoes-catalogo.mjs";
+import { aplicarCorrecoes, ehProvador, lerCorrecoes } from "./correcoes-catalogo.mjs";
 import { categorizar } from "./categorias-catalogo.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -218,6 +218,60 @@ function coletarDeArquivo(caminho) {
   return { brutos, detalhes };
 }
 
+/**
+ * Coleta que falha no meio (o Hub dá 502 às vezes) não pode tirar produto do
+ * site: quem estava no catálogo anterior e não veio no feed de hoje continua
+ * por até DIAS_AUSENTE dias, marcado com `ausenteDesde`. Se o Hub tirou o
+ * produto de verdade, ele sai sozinho depois disso. (15/10: uma coleta veio
+ * sem 5 produtos que estavam no Hub com estoque.)
+ */
+const DIAS_AUSENTE = 3;
+function manterAusentes(produtos, brutos) {
+  if (!existsSync(SAIDA)) return produtos;
+  let anterior;
+  try {
+    anterior = JSON.parse(readFileSync(SAIDA, "utf8"));
+  } catch {
+    return produtos;
+  }
+  const sku = (p) => String(p.variantes?.[0]?.sku ?? "");
+  const noFeed = new Set(brutos.map((b) => String(campo(b, "sku", "codigo", "id"))));
+  const skus = new Set(produtos.map(sku));
+  const slugs = new Set(produtos.map((p) => p.slug));
+  const ocultos = new Set((lerCorrecoes().ocultarProdutos ?? []).map((c) => String(c.sku)));
+  const ausentes = (anterior.produtos ?? []).filter((p) => {
+    const s = sku(p);
+    return s && !noFeed.has(s) && !skus.has(s) && !slugs.has(p.slug) && !ocultos.has(s) && !ehProvador(p.titulo);
+  });
+  // sumiço grande não é falha de coleta (e a coleta inteira já é barrada
+  // antes, no workflow, se vier pequena demais): o catálogo segue o Hub
+  if (ausentes.length > (anterior.produtos?.length ?? 0) * 0.1) {
+    console.log(`  ${ausentes.length} produtos fora do feed — muitos para ser falha de coleta; saem do site`);
+    return produtos;
+  }
+  const nomeMarca = Object.fromEntries((anterior.marcas ?? []).map((m) => [m.slug, m.nome]));
+  const nomeCategoria = Object.fromEntries((anterior.categorias ?? []).map((c) => [c.slug, c.nome]));
+  const hoje = new Date().toISOString().slice(0, 10);
+  const mantidos = [];
+  for (const p of ausentes) {
+    const desde = p.ausenteDesde ?? hoje;
+    if ((Date.parse(hoje) - Date.parse(desde)) / 86_400_000 >= DIAS_AUSENTE) continue;
+    mantidos.push({
+      ...p,
+      ausenteDesde: desde,
+      _marcaNome: nomeMarca[p.marca] ?? p.marca,
+      _categoriaNome: nomeCategoria[p.categorias?.[0]] ?? "Beleza",
+    });
+  }
+  if (ausentes.length) {
+    console.log(
+      `  fora do feed de hoje: ${ausentes.length}; mantidos por até ${DIAS_AUSENTE} dias: ` +
+        (mantidos.map((p) => `${sku(p)} (desde ${p.ausenteDesde})`).join(", ") || "nenhum")
+    );
+  }
+  return [...produtos, ...mantidos];
+}
+
 async function principal() {
   const { brutos, detalhes } = ARQUIVO_EXPORT
     ? coletarDeArquivo(ARQUIVO_EXPORT)
@@ -248,6 +302,8 @@ async function principal() {
   } catch {
     /* sem lista de fotos ocultas */
   }
+
+  produtos = manterAusentes(produtos, brutos);
 
   // correções da revisão do catálogo (scripts/correcoes-catalogo.json +
   // regras: provadores fora, duplicados unificados, nome limpo)

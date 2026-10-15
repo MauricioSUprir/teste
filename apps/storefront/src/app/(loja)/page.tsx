@@ -221,7 +221,7 @@ export default function Home() {
                 key={m.slug}
                 href={`/marca/${m.slug}`}
                 className={`group relative flex overflow-hidden rounded-[8px] border border-linha bg-superficie ${
-                  i === 0 ? "col-span-2 min-h-[240px] md:col-span-1 md:min-h-[340px]" : "min-h-[220px] md:min-h-[340px]"
+                  i === 0 ? "col-span-2 min-h-[240px] md:col-span-1 md:min-h-[340px]" : "min-h-[250px] md:min-h-[340px]"
                 }`}
               >
                 {m.foto?.imagens?.[0] && (
@@ -230,7 +230,9 @@ export default function Home() {
                     src={m.foto.imagens[0]}
                     alt=""
                     loading="lazy"
-                    className="absolute inset-0 h-full w-full bg-white object-contain p-6 pb-24 transition-transform duration-300 group-hover:scale-[1.03]"
+                    className={`absolute inset-0 h-full w-full bg-white object-contain p-6 ${
+                      i === 0 ? "pb-24" : "pb-32 md:pb-24"
+                    } transition-transform duration-300 group-hover:scale-[1.03]`}
                   />
                 )}
                 {/* nos dois cards estreitos do celular (meia largura) a logo vai
