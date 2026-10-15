@@ -131,17 +131,19 @@ export function Logo({ altura = 28 }: { altura?: number }) {
         <span
           aria-hidden="true"
           className="leading-none"
-          style={{ fontSize: altura * 0.72, color: "var(--bn-roxo)", letterSpacing: "0.04em" }}
+          /* marinho da logo oficial (o azul dos botões é mais claro) e os
+             pesos que a Jost tem carregados: 900 no BE2, 400 no BEAUTY */
+          style={{ fontSize: altura * 0.72, color: "var(--bn-roxo-escuro)", letterSpacing: "0.04em" }}
         >
-          <strong className="font-extrabold">BE2</strong>
-          <span className="font-light">BEAUTY</span>
+          <strong className="font-black">BE2</strong>
+          <span className="font-normal">BEAUTY</span>
         </span>
         <span
           aria-hidden="true"
-          className="font-semibold leading-none"
+          className="font-medium leading-none"
           style={{
             fontSize: altura * 0.22,
-            color: "var(--bn-roxo)",
+            color: "var(--bn-roxo-escuro)",
             letterSpacing: "0.14em",
             marginTop: altura * 0.12,
           }}

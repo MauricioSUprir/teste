@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Fraunces, Inter, Jost, Michroma, Saira } from "next/font/google";
+import { Archivo, Inter, Jost, Michroma, Saira } from "next/font/google";
 import { B2BProvider } from "@/lib/b2b/contexto";
 import { CarrinhoProvider } from "@/lib/carrinho/contexto";
 import { ContaProvider } from "@/lib/conta/contexto";
@@ -8,8 +8,8 @@ import { LOJA, LOJA_ID } from "@/lib/loja";
 import { Analytics } from "@/components/layout/Analytics";
 import "./globals.css";
 
-// fonte única da BeautyNow (design system): 400 corpo, 500 nav/botão,
-// 700 marca e preço, 900 display. As outras lojas usam a própria.
+// fonte do design system (BeautyNow e Be2Beauty): 400 corpo, 500 nav/botão,
+// 700 marca e preço, 900 display. Pulse e Bradeco usam a própria.
 const jost = Jost({
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
@@ -22,12 +22,6 @@ const jost = Jost({
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -192,7 +186,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="pt-BR"
       data-loja={LOJA_ID}
-      className={`${jost.variable} ${inter.variable} ${fraunces.variable} ${archivo.variable} ${saira.variable} ${michroma.variable}`}
+      className={`${jost.variable} ${inter.variable} ${archivo.variable} ${saira.variable} ${michroma.variable}`}
     >
       <body>
         {HOSTS_EXTERNOS.map((host) => (

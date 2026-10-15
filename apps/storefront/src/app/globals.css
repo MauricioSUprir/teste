@@ -49,7 +49,7 @@
   --gradiente-marca: linear-gradient(90deg, #2F5BEA, #6B2BD9);
 }
 html[data-loja="be2beauty"] {
-  --gradiente-marca: linear-gradient(90deg, #1f5fa8, #13315c);
+  --gradiente-marca: linear-gradient(90deg, #1f6fd1, #13315c);
 }
 html[data-loja="pulse"] {
   --gradiente-marca: linear-gradient(90deg, #a15a34, #7a3a1b);
@@ -57,36 +57,36 @@ html[data-loja="pulse"] {
 html[data-loja="bradeco"] {
   --gradiente-marca: linear-gradient(90deg, #b4540a, #8f4205);
 }
-/* a Jost é da BeautyNow: as outras lojas seguem com o texto em Inter */
-html[data-loja="be2beauty"],
+/* a Jost é da BeautyNow e da Be2Beauty (mesma identidade, cores próprias);
+   Pulse e Bradeco seguem com o texto em Inter */
 html[data-loja="pulse"],
 html[data-loja="bradeco"] {
   --fonte-texto: var(--font-inter), -apple-system, sans-serif;
   --font-texto: var(--font-inter), -apple-system, sans-serif;
 }
-html[data-loja="be2beauty"] {
-  --fonte-titulo: var(--font-fraunces), Georgia, serif;
-  --font-titulo: var(--font-fraunces), Georgia, serif;
-}
 
 /*
- * Pele Be2Beauty (venda profissional) — mesmo motor, paleta azul-marinho.
+ * Pele Be2Beauty (venda profissional) — a mesma identidade da BeautyNow
+ * (design system: Jost, raios, faixa em gradiente, card), com as cores da
+ * marca: azul profissional nos botões e no preço, azul-marinho da logo nos
+ * detalhes escuros e um azul mais vivo de apoio nos links. Mesmos papéis da
+ * BeautyNow (roxo → azul, roxo escuro → marinho, azul de apoio → azul vivo).
  * As utilities do Tailwind 4 compilam para var(--color-*), então basta
  * redefinir as variáveis quando o layout marca html[data-loja="be2beauty"].
  */
 html[data-loja="be2beauty"] {
-  --color-roxo: #13315c;
-  --color-roxo-escuro: #0b2545;
-  --color-roxo-claro: #e9eff6;
-  --color-violeta: #1f5fa8;
-  --color-violeta-claro: #e4edf7;
-  --color-oferta: #0b2545;
-  --bn-roxo: #13315c;
-  --bn-roxo-escuro: #0b2545;
-  --bn-roxo-claro: #e9eff6;
-  --bn-violeta: #1f5fa8;
-  --bn-violeta-claro: #e4edf7;
-  --bn-oferta: #0b2545;
+  --color-roxo: #1f5fa8;
+  --color-roxo-escuro: #13315c;
+  --color-roxo-claro: #eaf1fa;
+  --color-violeta: #1f6fd1;
+  --color-violeta-claro: #e8f0fb;
+  --color-oferta: #13315c;
+  --bn-roxo: #1f5fa8;
+  --bn-roxo-escuro: #13315c;
+  --bn-roxo-claro: #eaf1fa;
+  --bn-violeta: #1f6fd1;
+  --bn-violeta-claro: #e8f0fb;
+  --bn-oferta: #13315c;
 }
 
 /*
