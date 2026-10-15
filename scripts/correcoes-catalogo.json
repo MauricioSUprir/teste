@@ -299,7 +299,14 @@
     { "sku": "KITWIDJUBSHCNDCREECN500", "fotos": ["2674"], "motivo": "titulo errado; outro (fotos 3)" },
     { "sku": "KITWIDJUBSHCNDCREENCA500", "fotos": ["2675"], "motivo": "outro (fotos 1)" },
     { "sku": "KITWIDJUBSHCND500", "fotos": ["2672"], "motivo": "outro (fotos 3)" },
-    { "sku": "KITWIDJUBSHCNDCREOND500", "fotos": ["2678"], "motivo": "outro (fotos 2)" }
+    { "sku": "KITWIDJUBSHCNDCREOND500", "fotos": ["2678"], "motivo": "outro (fotos 2)" },
+    { "sku": "7898623245563", "fotos": ["10479", "10480"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" },
+    { "sku": "7898623245525", "fotos": ["10493"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" },
+    { "sku": "7898623245518", "fotos": ["10490"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" },
+    { "sku": "7898623245495", "fotos": ["10487"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" },
+    { "sku": "7898623245549", "fotos": ["10483", "10484"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" },
+    { "sku": "H00029", "fotos": ["8529", "8531", "8532"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" },
+    { "sku": "H00081", "fotos": ["9670"], "motivo": "foto de outro produto da linha ou só arte (revisão de 15/10)" }
   ],
   "marca": [
     { "sku": "8775", "marca": "melu", "motivo": "produto Melu (linha Made In), cadastrado na marca Made In" },
@@ -418,6 +425,12 @@
     { "sku": "KITWIDJUBSHCNDMASENCA500", "titulo": "Kit Widi Care Juba Cachos - Shampoo + Condicionador + Máscara 500g + Encaracolando a Juba" },
     { "sku": "KITWIDJUBSHCNDMASENC500", "titulo": "Kit Widi Care Juba Crespos - Shampoo + Condicionador + Máscara 500g + Encrespando a Juba" },
     { "sku": "KITWIDJUBSHCNDMASOND500", "titulo": "Kit Widi Care Juba Ondas - Shampoo + Condicionador + Máscara 500g + Ondulando a Juba" },
-    { "sku": "KITWIDJUBSHCNDCREECN500", "titulo": "Kit Widi Care Juba Crespos - Shampoo + Condicionador + Encrespando a Juba 500ml" }
+    { "sku": "KITWIDJUBSHCNDCREECN500", "titulo": "Kit Widi Care Juba Crespos - Shampoo + Condicionador + Encrespando a Juba 500ml" },
+    { "sku": "7898623245563", "titulo": "Widi Care Salva Óleo Reparador Danos e Recuperação 70 Ml" },
+    { "sku": "7898623245525", "titulo": "Widi Care Phytoberry Gel Creme Antiencolhimento Ultra Hidratante Ação Condicionante 500 Ml" },
+    { "sku": "7898623245518", "titulo": "Widi Care Phytoberry Máscara 2 em 1 Ultra Hidratante Ação Condicionante 500 G" },
+    { "sku": "7898623245549", "titulo": "Widi Care Salva Óleo Reparador Frizz e Brilho 70 ml" },
+    { "sku": "H00029", "titulo": "Hidratei Oakberry Creme Capilar 250g" },
+    { "sku": "727", "titulo": "Hidratei Sport Spray Fixador Pré-Treino 200ml" }
   ]
 }
