@@ -3,7 +3,7 @@ import { LOJA } from "@/lib/loja";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { comBase } from "@/lib/caminho";
-import { marcas, produtosPorMarca } from "@/lib/catalogo/consultas";
+import { marcas } from "@/lib/catalogo/consultas";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
 export const metadata: Metadata = {
@@ -27,37 +27,31 @@ export default function PaginaMarcas() {
       </p>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {lista.map((m) => {
-          const total = produtosPorMarca(m.slug).length;
-          return (
-            <Link
-              key={m.slug}
-              href={`/marca/${m.slug}`}
-              className="group flex flex-col items-center rounded-[8px] border border-linha bg-white p-4 text-center transition-shadow hover:shadow-card"
-            >
-              <span className="flex h-32 w-full items-center justify-center overflow-hidden rounded-[8px] bg-white">
-                {m.logo ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={comBase(m.logo)}
-                    alt={`Logo ${m.nome}`}
-                    loading="lazy"
-                    className="max-h-24 max-w-[85%] object-contain transition-transform group-hover:scale-105"
-                  />
-                ) : (
-                  /* marca sem logo: o nome no mesmo tom grafite das logos padronizadas */
-                  <span aria-hidden="true" className="px-3 text-center text-[1.375rem] font-bold uppercase leading-tight tracking-wide text-[#2b2b2b]">
-                    {m.nome}
-                  </span>
-                )}
+        {lista.map((m) => (
+          // só a logo (pedido do Mauricio, 15/10). O nome continua para quem
+          // usa leitor de tela, no rótulo do link
+          <Link
+            key={m.slug}
+            href={`/marca/${m.slug}`}
+            aria-label={m.nome}
+            className="group flex h-36 items-center justify-center rounded-[8px] border border-linha bg-white p-4 transition-colors hover:border-roxo"
+          >
+            {m.logo ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={comBase(m.logo)}
+                alt=""
+                loading="lazy"
+                className="max-h-24 max-w-[85%] object-contain transition-transform group-hover:scale-105"
+              />
+            ) : (
+              /* marca sem logo: o nome no mesmo tom grafite das logos padronizadas */
+              <span aria-hidden="true" className="px-3 text-center text-[1.375rem] font-bold uppercase leading-tight tracking-wide text-[#2b2b2b]">
+                {m.nome}
               </span>
-              <span className="mt-3 text-[0.9375rem] font-semibold text-tinta">{m.nome}</span>
-              <span className="num mt-0.5 text-[0.75rem] text-cinza">
-                {total} {total === 1 ? copy.plp.produto : copy.plp.produtos}
-              </span>
-            </Link>
-          );
-        })}
+            )}
+          </Link>
+        ))}
       </div>
     </div>
   );

@@ -224,26 +224,23 @@ export function Header() {
               <Seta />
             </button>
             <MegaPainel>
-              <div className="grid grid-cols-3 gap-1">
+              {/* só as logos, como na página de marcas; o nome fica no rótulo do link */}
+              <div className="grid grid-cols-5 gap-2">
                 {marcas.slice(0, 15).map((m) => (
                   <Link
                     key={m.slug}
                     href={`/marca/${m.slug}`}
-                    className="flex items-center gap-2 rounded-[4px] px-3 py-2 text-[0.9375rem] text-tinta hover:bg-superficie"
+                    aria-label={m.nome}
+                    className="flex h-14 w-[120px] items-center justify-center rounded-[4px] border border-linha px-2 hover:border-roxo"
                   >
                     {m.logo ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={comBase(m.logo)}
-                        alt=""
-                        aria-hidden="true"
-                        loading="lazy"
-                        className="h-5 w-[50px] shrink-0 object-contain"
-                      />
+                      <img src={comBase(m.logo)} alt="" loading="lazy" className="max-h-10 max-w-full object-contain" />
                     ) : (
-                      <span aria-hidden="true" className="inline-block h-5 w-[50px] shrink-0" />
+                      <span aria-hidden="true" className="text-center text-[0.75rem] font-bold uppercase leading-tight text-[#2b2b2b]">
+                        {m.nome}
+                      </span>
                     )}
-                    {m.nome}
                   </Link>
                 ))}
               </div>

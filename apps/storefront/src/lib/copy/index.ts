@@ -586,6 +586,12 @@ export const copy = {
     nenhuma: (termo: string) =>
       `Nenhuma pergunta encontrada para "${termo}". Fale com a gente pelo WhatsApp.`,
   },
+  naoEncontrada: {
+    procurando: "Procurando a página…",
+    titulo: "Página não encontrada",
+    texto: "O endereço pode ter mudado. Comece pela página inicial ou pelos mais vendidos.",
+    inicio: "Ir para a página inicial",
+  },
   busca: {
     titulo: "Resultados para",
     placeholder: "Buscar produto, marca ou necessidade",
