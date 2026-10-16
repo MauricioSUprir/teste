@@ -23,11 +23,18 @@ export const REGRAS_CATEGORIA = [
 const MARCAS_MAQUINA = /wahl/i;
 const MARCAS_CABELO = /k\.?pro|jacques|arvensis|widi|hidratei|senscience|joico|rebeel|evoly|d'?vence/i;
 const MARCAS_MAKE = /mari maria|oceane|issue|latika|nina|byem|bruna tavares/i;
+// dermocosméticos: "Hidratante Reparador", "Serum Antiolheiras" e
+// "Demaquilante em Óleo" são de rosto, não de cabelo (revisão 16/10)
+const MARCAS_SKINCARE = /sallve|bioderma/i;
+const ULTIMA_REGRA = REGRAS_CATEGORIA.length - 1;
 
 export function categorizar(nome, marca) {
-  for (const [categoria, regex] of REGRAS_CATEGORIA) {
-    if (regex.test(nome)) return categoria;
+  for (const [i, [categoria, regex]] of REGRAS_CATEGORIA.entries()) {
+    if (!regex.test(nome)) continue;
+    if (i === ULTIMA_REGRA && MARCAS_SKINCARE.test(marca)) return "Skincare";
+    return categoria;
   }
+  if (MARCAS_SKINCARE.test(marca)) return "Skincare";
   if (MARCAS_MAQUINA.test(marca)) return "Máquinas e aparadores";
   if (MARCAS_CABELO.test(marca)) return "Cabelos";
   if (MARCAS_MAKE.test(marca)) return "Maquiagem";
