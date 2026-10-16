@@ -1,7 +1,8 @@
 /**
  * Linhas profissionais em destaque — pedido comercial de 16/10 para a
  * Be2Beauty: na primeira impressão, Evoly, as linhas de 1 litro, os
- * finalizadores, o pó descolorante e as OX da D'vence, e a Theoric. Cada
+ * finalizadores, o pó descolorante e as OX da D'vence, a Theoric e a
+ * maquiagem. Cada
  * seleção tem página própria em /destaques/[slug] e é montada por regra (nome,
  * marca, categoria), então produto novo do Hub entra sozinho.
  */
@@ -45,6 +46,7 @@ const REGRAS: Record<SlugDestaque, (p: Produto) => boolean> = {
     p.categorias[0] === "cabelos" && FINALIZADOR.test(p.titulo) && !NAO_FINALIZADOR.test(p.titulo),
   descoloracao: (p) => p.categorias[0] === "cabelos" && DESCOLORACAO.test(p.titulo),
   theoric: (p) => p.marca === "theoric",
+  maquiagem: (p) => p.categorias[0] === "maquiagem",
 };
 
 export const destaques: Destaque[] = (Object.keys(REGRAS) as SlugDestaque[])

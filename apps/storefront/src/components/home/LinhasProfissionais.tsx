@@ -5,12 +5,17 @@ import { ImagemProduto } from "@/components/produto/ImagemProduto";
 
 /**
  * Cartões das linhas profissionais (Evoly, 1 litro, finalizadores,
- * descoloração D'vence, Theoric). No celular deslizam de lado; no desktop
- * ficam os cinco na mesma fileira.
+ * descoloração D'vence, Theoric, maquiagem). No celular deslizam de lado; no
+ * desktop ficam todos na mesma fileira.
  */
 export function LinhasProfissionais({ destaques, prioridade = false }: { destaques: Destaque[]; prioridade?: boolean }) {
   return (
-    <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+    <ul
+      className={`-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 [scrollbar-width:none] md:mx-0 md:grid md:gap-4 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden ${
+        // seis linhas: 3 + 3 no tablet e todas numa fileira no desktop
+        destaques.length === 6 ? "md:grid-cols-3 lg:grid-cols-6" : "md:grid-cols-5"
+      }`}
+    >
       {destaques.map((d) => {
         const vitrine = d.produtos.find((p) => (p.imagens?.length ?? 0) > 0) ?? d.produtos[0];
         return (

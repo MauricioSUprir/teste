@@ -404,7 +404,7 @@ export const copy = {
     titulo: "Linhas profissionais",
     texto: "O que o salão usa todo dia, em tamanho profissional.",
     paginaTitulo: "Linhas profissionais",
-    paginaTexto: "As linhas que o salão usa todo dia: tamanhos de 1 litro, finalizadores, descoloração e as marcas profissionais da casa.",
+    paginaTexto: "As linhas que o salão usa todo dia: tamanhos de 1 litro, finalizadores, descoloração, maquiagem e as marcas profissionais da casa.",
     verTodas: "Ver todas as linhas",
     produtos: (n: number) => (n === 1 ? "1 produto" : `${n} produtos`),
     itens: {
@@ -425,6 +425,11 @@ export const copy = {
         texto: "Pó descolorante e emulsões reveladoras (OX), com a linha Savior Blond da D'vence em primeiro.",
       },
       theoric: { nome: "Theoric", chamada: "Cuidado premium", texto: "Linha Theoric de tratamento, óleos e finalização." },
+      maquiagem: {
+        nome: "Maquiagem",
+        chamada: "Make profissional",
+        texto: "Base, corretivo, pó, blush, batom, pincéis e esponjas das marcas que o maquiador usa no dia a dia.",
+      },
     },
   },
   b2b: {
