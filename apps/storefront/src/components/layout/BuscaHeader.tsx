@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useB2B } from "@/lib/b2b/contexto";
-import { buscar, obterMarca } from "@/lib/catalogo/consultas";
+import { atalhosDaBusca, buscar, obterMarca } from "@/lib/catalogo/consultas";
 import { formatarPreco, precoPix } from "@/lib/preco";
 import { copy } from "@/lib/copy";
 import { ImagemProduto } from "@/components/produto/ImagemProduto";
 
-/** Busca com autocomplete (produto, marca, preço) — ticket 2.5. */
+/**
+ * Busca com autocomplete — ticket 2.5. Em cima, as marcas e categorias que
+ * combinam com o que está sendo digitado; embaixo, os produtos (as regras de
+ * busca estão em lib/catalogo/busca.ts).
+ */
 export function BuscaHeader() {
   const { liberado } = useB2B();
   const [termo, setTermo] = useState("");
@@ -18,8 +22,12 @@ export function BuscaHeader() {
   const router = useRouter();
   const raiz = useRef<HTMLDivElement>(null);
 
-  const sugestoes = useMemo(() => (termo.length >= 2 ? buscar(termo).slice(0, 5) : []), [termo]);
-  const aberto = focado && sugestoes.length > 0;
+  // a lista acompanha a digitação sem travar o campo em celular mais fraco
+  const termoAdiado = useDeferredValue(termo);
+  const sugestoes = useMemo(() => (termoAdiado.trim().length >= 2 ? buscar(termoAdiado).slice(0, 5) : []), [termoAdiado]);
+  const atalhos = useMemo(() => atalhosDaBusca(termoAdiado), [termoAdiado]);
+  const total = atalhos.length + sugestoes.length;
+  const aberto = focado && total > 0;
 
   useEffect(() => {
     function aoClicarFora(e: MouseEvent) {
@@ -38,14 +46,17 @@ export function BuscaHeader() {
   function aoTeclar(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setIndiceAtivo((i) => Math.min(i + 1, sugestoes.length - 1));
+      setIndiceAtivo((i) => Math.min(i + 1, total - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setIndiceAtivo((i) => Math.max(i - 1, -1));
     } else if (e.key === "Enter") {
-      if (indiceAtivo >= 0 && sugestoes[indiceAtivo]) {
+      if (indiceAtivo >= 0 && indiceAtivo < atalhos.length) {
         setFocado(false);
-        router.push(`/produto/${sugestoes[indiceAtivo].slug}`);
+        router.push(atalhos[indiceAtivo].href);
+      } else if (indiceAtivo >= 0 && sugestoes[indiceAtivo - atalhos.length]) {
+        setFocado(false);
+        router.push(`/produto/${sugestoes[indiceAtivo - atalhos.length].slug}`);
       } else {
         irParaBusca();
       }
@@ -94,12 +105,35 @@ export function BuscaHeader() {
           role="listbox"
           className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-[8px] border border-linha bg-white shadow-drawer"
         >
+          {atalhos.length > 0 && (
+            <ul className="border-b border-linha py-1">
+              {atalhos.map((a, i) => (
+                <li key={a.href} role="option" aria-selected={i === indiceAtivo}>
+                  <Link
+                    href={a.href}
+                    onClick={() => setFocado(false)}
+                    className={`flex items-center justify-between gap-3 px-4 py-2 ${
+                      i === indiceAtivo ? "bg-superficie" : "hover:bg-superficie"
+                    }`}
+                  >
+                    <span className="text-[0.875rem] font-semibold text-tinta">{a.nome}</span>
+                    <span className="text-[0.75rem] text-cinza">
+                      {a.tipo === "marca" ? copy.busca.tipoMarca : copy.busca.tipoCategoria} →
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {sugestoes.length > 0 && (
           <p className="px-4 pb-1 pt-3 text-[0.75rem] font-medium uppercase tracking-wide text-cinza">
             {copy.busca.sugestoes}
           </p>
+          )}
           <ul>
-            {sugestoes.map((p, i) => {
+            {sugestoes.map((p, j) => {
               const marca = obterMarca(p.marca);
+              const i = j + atalhos.length;
               return (
                 <li key={p.slug} role="option" aria-selected={i === indiceAtivo}>
                   <Link

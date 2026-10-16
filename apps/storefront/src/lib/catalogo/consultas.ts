@@ -13,6 +13,7 @@ import {
 } from "./dados";
 import dadosHub from "./dados-hub.json";
 import { aplicarAjustesProduto, lerAjustes, obterProdutoLocal } from "./ajustes";
+import { normalizar as normalizarBusca, pesquisar, type FonteBusca, type ResultadoBusca } from "./busca";
 import { LOJA, ajustarPrecoLoja } from "@/lib/loja";
 import { comBase } from "@/lib/caminho";
 import type { Categoria, CategoriaSlug, Marca, Necessidade, Produto } from "./tipos";
@@ -166,64 +167,47 @@ export function menorPreco(produto: Produto): number {
   return Math.min(...produto.variantes.map((v) => v.precoPor));
 }
 
-function normalizar(texto: string): string {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-/** Sinônimos PT-BR — docs/04 §8 */
-const sinonimos: Record<string, string[]> = {
-  xampu: ["shampoo"],
-  shampoo: ["xampu"],
-  capilar: ["cabelo"],
-  cabelo: ["capilar"],
-  "filtro solar": ["protetor solar"],
-  fps: ["protetor solar"],
-  labial: ["batom"],
-  cacho: ["cacheado"],
-  crespo: ["cacheado"],
-  hialuronico: ["acido hialuronico"],
+const fonteBusca: FonteBusca = {
+  nomeMarca: (slug) => marcas.find((m) => m.slug === slug)?.nome ?? slug,
+  nomeCategoria: (slug) => categorias.find((c) => c.slug === slug)?.nome ?? slug,
 };
 
-export function buscar(termo: string): Produto[] {
-  const t = normalizar(termo.trim());
-  if (!t) return [];
-  const termos = [t, ...(sinonimos[t] ?? [])];
-  const marcaPorSlug = new Map(marcas.map((m) => [m.slug, normalizar(m.nome)]));
+/** produtos da busca: os do catálogo com as edições do admin, mais os criados no admin */
+function universoBusca(): Produto[] {
   // busca roda só no cliente — inclui produtos locais e aplica edições/exclusões
-  const universo =
-    typeof window === "undefined"
-      ? produtos
-      : [
-          ...lerAjustes().adicionados,
-          ...produtos
-            .map((p) => aplicarAjustesProduto(p))
-            .filter((p): p is Produto => p !== null),
-        ];
-  return universo
-    .map((p) => {
-      const alvos = [
-        normalizar(p.titulo),
-        marcaPorSlug.get(p.marca) ?? "",
-        normalizar(p.linha ?? ""),
-        normalizar(p.descricao),
-        p.categorias.join(" "),
-        Object.values(p.atributos).flat().join(" "),
-      ];
-      let pontos = 0;
-      for (const termoBusca of termos) {
-        if (alvos[0].includes(termoBusca)) pontos += 10;
-        if (alvos[1].includes(termoBusca)) pontos += 6;
-        if (alvos[2].includes(termoBusca)) pontos += 4;
-        if (alvos.slice(3).some((a) => normalizar(String(a)).includes(termoBusca))) pontos += 2;
-      }
-      return { p, pontos };
-    })
-    .filter((r) => r.pontos > 0)
-    .sort((a, b) => b.pontos - a.pontos)
-    .map((r) => r.p);
+  if (typeof window === "undefined") return produtos;
+  return [
+    ...lerAjustes().adicionados,
+    ...produtos.map((p) => aplicarAjustesProduto(p)).filter((p): p is Produto => p !== null),
+  ];
+}
+
+/** busca com o aviso de "só parecidos" (lib/catalogo/busca.ts explica as regras) */
+export function buscarDetalhado(termo: string): ResultadoBusca {
+  return pesquisar(universoBusca(), termo, fonteBusca);
+}
+
+export function buscar(termo: string): Produto[] {
+  return buscarDetalhado(termo).produtos;
+}
+
+/**
+ * Marcas e categorias que combinam com o que está sendo digitado — atalhos no
+ * topo das sugestões da busca ("wid" → Widi Care).
+ */
+export function atalhosDaBusca(termo: string): { tipo: "marca" | "categoria"; nome: string; href: string }[] {
+  const t = normalizarBusca(termo).trim();
+  if (t.length < 2) return [];
+  const compacto = t.replace(/[^a-z0-9]/g, "");
+  const casa = (nome: string, slug: string) => {
+    const n = normalizarBusca(nome);
+    const junto = n.replace(/[^a-z0-9]/g, "");
+    return junto.startsWith(compacto) || n.split(/[^a-z0-9]+/).some((p) => p.length > 1 && p.startsWith(t)) || slug.startsWith(t);
+  };
+  return [
+    ...marcas.filter((m) => casa(m.nome, m.slug)).map((m) => ({ tipo: "marca" as const, nome: m.nome, href: `/marca/${m.slug}` })),
+    ...categorias.filter((c) => casa(c.nome, c.slug)).map((c) => ({ tipo: "categoria" as const, nome: c.nome, href: `/categoria/${c.slug}` })),
+  ].slice(0, 3);
 }
 
 export { categorias, marcas, necessidades, produtos };

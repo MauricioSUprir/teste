@@ -663,6 +663,11 @@ export const copy = {
       `Nenhum resultado para "${termo}". Confira a digitação ou navegue pelas categorias.`,
     sugestoes: "Sugestões",
     verTodos: "Ver todos os resultados",
+    aproximado: (termo: string) =>
+      `Não achamos produtos com tudo o que você digitou em "${termo}". Estes são os mais parecidos:`,
+    tipoMarca: "Marca",
+    tipoCategoria: "Categoria",
+    explorar: "Ver mais vendidos",
   },
   conta: {
     titulo: "Minha conta",

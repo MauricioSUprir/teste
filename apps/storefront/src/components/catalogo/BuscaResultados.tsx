@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { buscar, lancamentos, maisVendidos, produtos } from "@/lib/catalogo/consultas";
+import { buscarDetalhado, lancamentos, maisVendidos, produtos } from "@/lib/catalogo/consultas";
 import { copy } from "@/lib/copy";
 import { GradeFiltrada } from "@/components/catalogo/GradeFiltrada";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
@@ -15,19 +16,24 @@ export function BuscaResultados() {
   // atalhos das vitrines da home ("Ver produtos")
   const ehPromocoes = atalho === "promoções";
   const ehLancamentos = atalho === "lançamentos";
-  const resultados = useMemo(() => {
+  const { resultados, aproximado } = useMemo(() => {
     if (ehPromocoes) {
-      return produtos.filter((p) => p.variantes.some((v) => v.precoDe != null && v.precoDe > v.precoPor));
+      return {
+        resultados: produtos.filter((p) => p.variantes.some((v) => v.precoDe != null && v.precoDe > v.precoPor)),
+        aproximado: false,
+      };
     }
-    if (ehLancamentos) return lancamentos();
+    if (ehLancamentos) return { resultados: lancamentos(), aproximado: false };
     if (ehAtalhoMaisVendidos) {
       // o catálogo do Hub ainda não marca "mais vendido": a home já cai para a
       // vitrine geral nesse caso, e esta página precisa mostrar a mesma lista,
       // senão o "Ver tudo" da home abria uma página vazia
       const lista = maisVendidos();
-      return lista.length > 0 ? lista : produtos;
+      return { resultados: lista.length > 0 ? lista : produtos, aproximado: false };
     }
-    return termo ? buscar(termo) : [];
+    if (!termo) return { resultados: [], aproximado: false };
+    const r = buscarDetalhado(termo);
+    return { resultados: r.produtos, aproximado: r.aproximado };
   }, [ehAtalhoMaisVendidos, ehPromocoes, ehLancamentos, termo]);
 
   return (
@@ -44,11 +50,17 @@ export function BuscaResultados() {
       </h1>
       <div className="mt-6">
         {resultados.length === 0 ? (
-          <p className="rounded-[8px] bg-superficie px-6 py-12 text-center text-[0.9375rem] text-grafite">
-            {copy.busca.nenhum(termo)}
-          </p>
+          <div className="flex flex-col items-center gap-4 rounded-[8px] bg-superficie px-6 py-12 text-center">
+            <p className="text-[0.9375rem] text-grafite">{copy.busca.nenhum(termo)}</p>
+            <Link href="/busca?q=mais+vendidos" className="text-[0.9375rem] font-medium text-violeta underline">
+              {copy.busca.explorar}
+            </Link>
+          </div>
         ) : (
-          <GradeFiltrada produtos={resultados} />
+          <>
+            {aproximado && <p className="mb-4 text-[0.9375rem] text-grafite">{copy.busca.aproximado(termo)}</p>}
+            <GradeFiltrada produtos={resultados} />
+          </>
         )}
       </div>
     </div>
