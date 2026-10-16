@@ -73,7 +73,9 @@ const tituloLoja =
 const descricaoLoja =
   LOJA_ID === "bradeco"
     ? "Distribuição, consultoria e representação de cosméticos em todo o estado de SP. Cadastre o CNPJ da sua loja e acesse a tabela de preços de distribuidora."
-    : LOJA.b2b
+    : LOJA.b2b && !LOJA.precoFechado
+      ? "Linhas profissionais de cabelo para salões, studios e quem trabalha com beleza: tamanhos de 1 litro, finalizadores, descoloração e as marcas que o salão usa. Compre com ou sem CNPJ."
+      : LOJA.b2b
       ? "Distribuidora de cosméticos para profissionais e revenda. Cadastre o CNPJ do seu salão ou loja e acesse a tabela de preços exclusiva."
       : LOJA_ID === "pulse"
         ? "O encontro entre beleza, bem-estar e performance. Produtos de cabelo, perfumaria e cuidado pessoal para usar depois do treino. Pix com 5% de desconto."
@@ -150,7 +152,9 @@ export const metadata: Metadata = {
     description:
       LOJA_ID === "bradeco"
         ? "Distribuição, consultoria e representação. Cadastre o CNPJ e veja os preços."
-        : LOJA.b2b
+        : LOJA.b2b && !LOJA.precoFechado
+          ? "Linhas profissionais para salões e studios. Compre com ou sem CNPJ."
+          : LOJA.b2b
           ? "Venda exclusiva para profissionais. Cadastre seu CNPJ e veja os preços."
           : "Pix com 5% de desconto · Produtos 100% originais.",
     images: [

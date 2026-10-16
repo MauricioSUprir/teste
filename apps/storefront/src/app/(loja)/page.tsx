@@ -14,6 +14,8 @@ import {
   produtosPorMarca,
 } from "@/lib/catalogo/consultas";
 import type { CategoriaSlug, Produto } from "@/lib/catalogo/tipos";
+import { destaques } from "@/lib/catalogo/destaques";
+import { LinhasProfissionais } from "@/components/home/LinhasProfissionais";
 import { CardProduto } from "@/components/produto/CardProduto";
 import { ProdutosLocaisDestaque } from "@/components/produto/ProdutosLocaisDestaque";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
@@ -25,6 +27,8 @@ import { TituloSecao } from "@/components/home/TituloSecao";
 import { IconeAtalho, type NomeIcone } from "@/components/home/IconesAtalho";
 
 const t = copy.home;
+/** marcas profissionais de cabelo que abrem o mosaico da Be2Beauty */
+const MARCAS_PRO = ["theoric", "d-vence", "k-pro", "senscience", "joico", "widi-care", "jacques-janine", "evoly"];
 const POR_PRATELEIRA = 8;
 
 /** produto que dá vitrine: tem foto e tem estoque */
@@ -67,13 +71,19 @@ const categoriasCheias = categorias
  * mais; senão o espaço vai para as categorias mais cheias.
  */
 export default function Home() {
-  // ---- trio de vitrines
+  // ---- Be2Beauty: linhas profissionais logo na entrada (pedido comercial de
+  // 16/10) — cartões das cinco linhas e uma prateleira para cada uma que tenha
+  // produto suficiente; o resto da home vem depois ("as demais linhas")
+  const linhasPro = LOJA.vitrineProfissional ? destaques : [];
+  const prateleirasPro = linhasPro.filter((d) => d.produtos.filter(vitrinavel).length >= 4);
+
+  // ---- trio de vitrines (a Be2Beauty abre com as linhas profissionais no lugar)
   const trio: { titulo: string; link: string; lista: Produto[] }[] = [];
   const promocoes = produtos.filter((p) => emPromocao(p) && vitrinavel(p));
-  if (promocoes.length >= 3) trio.push({ titulo: t.vitrinePromocoes, link: "/busca?q=promo%C3%A7%C3%B5es", lista: variados(promocoes, 3) });
+  if (!LOJA.vitrineProfissional && promocoes.length >= 3) trio.push({ titulo: t.vitrinePromocoes, link: "/busca?q=promo%C3%A7%C3%B5es", lista: variados(promocoes, 3) });
   const novidades = lancamentos().filter(vitrinavel);
-  if (novidades.length >= 3) trio.push({ titulo: t.vitrineLancamentos, link: "/busca?q=lan%C3%A7amentos", lista: variados(novidades, 3) });
-  for (const c of categoriasCheias) {
+  if (!LOJA.vitrineProfissional && novidades.length >= 3) trio.push({ titulo: t.vitrineLancamentos, link: "/busca?q=lan%C3%A7amentos", lista: variados(novidades, 3) });
+  for (const c of LOJA.vitrineProfissional ? [] : categoriasCheias) {
     if (trio.length === 3) break;
     trio.push({ titulo: t.vitrineCategoria(c.nome), link: `/categoria/${c.slug}`, lista: variados(c.lista, 3) });
   }
@@ -87,11 +97,16 @@ export default function Home() {
   // ---- prateleiras por categoria (as que não foram para o banner lateral)
   const prateleiras = categoriasCheias.slice(vendidos.length >= 4 ? 0 : 1, (vendidos.length >= 4 ? 0 : 1) + 3);
 
-  // ---- mosaico: as três marcas com mais produto (1 grande + 2 estreitas)
+  // ---- mosaico: as três marcas com mais produto (1 grande + 2 estreitas); na
+  // Be2Beauty as marcas profissionais de cabelo vêm na frente
+  const prioridadeMosaico = (slug: string) => {
+    const i = LOJA.vitrineProfissional ? MARCAS_PRO.indexOf(slug) : -1;
+    return i < 0 ? MARCAS_PRO.length : i;
+  };
   const marcasMosaico = marcas
     .map((m) => ({ ...m, total: produtosPorMarca(m.slug).length, foto: produtosPorMarca(m.slug).find(vitrinavel) }))
-    .filter((m) => m.total > 0)
-    .sort((a, b) => b.total - a.total);
+    .filter((m) => m.total > 0 && m.foto)
+    .sort((a, b) => prioridadeMosaico(a.slug) - prioridadeMosaico(b.slug) || b.total - a.total);
 
   const atalhos: { rotulo: string; href: string; icone: NomeIcone; externo?: boolean }[] = [
     { rotulo: t.atalhos.maisVendidos, href: "/busca?q=mais+vendidos", icone: "estrela" },
@@ -110,6 +125,39 @@ export default function Home() {
     <>
       {/* 1. Hero: banners do lojista (troca a cada 20s) */}
       <CarrosselBanners />
+
+      {/* 2a. Be2Beauty: linhas profissionais em destaque */}
+      {linhasPro.length > 0 && (
+        <section aria-labelledby="titulo-linhas-pro" className="container-bn pt-8 md:pt-10">
+          <p className="text-center text-[0.75rem] font-bold uppercase tracking-[0.08em] text-roxo">
+            {copy.destaques.sobretitulo}
+          </p>
+          <div className="mt-1">
+            <TituloSecao id="titulo-linhas-pro" link="/destaques">
+              {copy.destaques.titulo}
+            </TituloSecao>
+          </div>
+          <div className="mt-6">
+            <LinhasProfissionais destaques={linhasPro} prioridade />
+          </div>
+        </section>
+      )}
+      {prateleirasPro.map((d) => (
+        <section key={d.slug} aria-labelledby={`titulo-pro-${d.slug}`} className="container-bn pt-12 md:pt-16">
+          <TituloSecao id={`titulo-pro-${d.slug}`} link={`/destaques/${d.slug}`}>
+            {d.nome}
+          </TituloSecao>
+          <div className="mt-6">
+            <Prateleira rotulo={d.nome}>
+              {variados(d.produtos, POR_PRATELEIRA).map((p) => (
+                <ItemPrateleira key={p.slug}>
+                  <CardProduto produto={p} />
+                </ItemPrateleira>
+              ))}
+            </Prateleira>
+          </div>
+        </section>
+      ))}
 
       {/* 2. Trio de vitrines */}
       {trio.length > 0 && (

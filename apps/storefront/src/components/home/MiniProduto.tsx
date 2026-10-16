@@ -2,8 +2,8 @@
 
 /**
  * Produto em linha, para os cards do "trio de vitrines" da home: foto
- * pequena, marca, nome e preço no Pix. O link cobre a linha toda; no B2B o
- * preço só aparece com o CNPJ aprovado.
+ * pequena, marca, nome e preço no Pix. O link cobre a linha toda; na loja de
+ * preço fechado (LOJA.precoFechado) o preço só aparece com o CNPJ aprovado.
  */
 import Link from "next/link";
 import { obterMarca } from "@/lib/catalogo/consultas";

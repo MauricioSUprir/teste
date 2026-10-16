@@ -14,6 +14,7 @@ import {
 import dadosHub from "./dados-hub.json";
 import { aplicarAjustesProduto, lerAjustes, obterProdutoLocal } from "./ajustes";
 import { LOJA, ajustarPrecoLoja } from "@/lib/loja";
+import { comBase } from "@/lib/caminho";
 import type { Categoria, CategoriaSlug, Marca, Necessidade, Produto } from "./tipos";
 
 interface CatalogoHub {
@@ -45,7 +46,8 @@ const VISUAL_PADRAO = { ...CORES_DESENHO[LOJA.id], forma: "frasco" } as const;
 function expandirCatalogo(catalogo: CatalogoHub) {
   const base = catalogo.baseImagem;
   if (!base) return; // catálogo antigo, já vem por extenso
-  const inteiro = (u: string) => (/^\d+$/.test(u) ? `${base}${u}` : u);
+  // número = foto do Hub; "/fotos-produtos/…" = foto guardada no próprio site
+  const inteiro = (u: string) => (/^\d+$/.test(u) ? `${base}${u}` : u.startsWith("/") ? comBase(u) : u);
   for (const p of catalogo.produtos) {
     if (p.imagens?.length) p.imagens = p.imagens.map(inteiro);
     p.visual ??= { ...VISUAL_PADRAO };

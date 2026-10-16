@@ -503,6 +503,25 @@
     { "sku": "AP2001185CR990F", "titulo": "Shimmer Highlighter - Iluminador em Pó Champagne - Pérola" },
     { "sku": "AP2001181C0306F", "titulo": "Oceane 4 You Flash Color Pen - Caneta Delineadora Neon Pink - Rosa" },
     { "sku": "Shampoocamuflage1litro", "titulo": "NOUÊ Camuflage Shampoo - 1L" },
-    { "sku": "202041", "titulo": "Lip Matte Latika No. 42 - 4 ml" }
+    { "sku": "202041", "titulo": "Lip Matte Latika No. 42 - 4 ml" },
+    { "sku": "3352", "titulo": "D'vence Savior Blond Pó Descolorante 500g" },
+    { "sku": "3361", "titulo": "D'vence Savior Blond Emulsão Reveladora OX 20 Volumes 900ml" },
+    { "sku": "2400", "titulo": "D'vence Nutrition Shampoo 1000ml" },
+    { "sku": "2401", "titulo": "D'vence Nutrition Condicionador 1000ml" },
+    { "sku": "2404", "titulo": "D'vence Hydration Condicionador 1000ml" },
+    { "sku": "3353", "titulo": "D'vence Nutrition Condicionador 250ml" },
+    { "sku": "3357", "titulo": "D'vence Hydration Máscara 250g" },
+    { "sku": "3358", "titulo": "D'vence Daily Use Leave-in Multifuncional 260ml" },
+    { "sku": "3359", "titulo": "D'vence Nutrition Shampoo 250ml" },
+    { "sku": "3360", "titulo": "D'vence Hydration Shampoo 250ml" }
+  ],
+  "fotosProprias": [
+    { "sku": "2401", "fotos": ["/fotos-produtos/d-vence/2401.webp"], "motivo": "foto oficial D'vence (Condicionador Nutrition 1L, dvence.com.br); no Hub a foto é de outro produto" },
+    { "sku": "2404", "fotos": ["/fotos-produtos/d-vence/2404.webp"], "motivo": "foto oficial D'vence (Condicionador Hydration 1L, dvence.com.br); no Hub a foto é de outro produto" },
+    { "sku": "3352", "fotos": ["/fotos-produtos/d-vence/3352.webp"], "motivo": "foto oficial D'vence (Pó Descolorante Savior Blond 500g, dvence.com.br); no Hub a foto é de outro produto" },
+    { "sku": "3353", "fotos": ["/fotos-produtos/d-vence/3353.webp"], "motivo": "foto oficial D'vence (Condicionador Nutrition 250ml, dvence.com.br); no Hub a foto é de outro produto" },
+    { "sku": "3358", "fotos": ["/fotos-produtos/d-vence/3358.webp"], "motivo": "foto oficial D'vence (Leave-in Multifuncional Daily Use 260ml, dvence.com.br); no Hub a foto é de outro produto" },
+    { "sku": "3359", "fotos": ["/fotos-produtos/d-vence/3359.webp"], "motivo": "foto oficial D'vence (Shampoo Nutrition 250ml, dvence.com.br); no Hub a foto é de outro produto" },
+    { "sku": "3361", "fotos": ["/fotos-produtos/d-vence/3361.webp"], "motivo": "foto oficial D'vence (Emulsão Reveladora Savior Blond 20V 900ml, dvence.com.br); no Hub a foto é de outro produto" }
   ]
 }

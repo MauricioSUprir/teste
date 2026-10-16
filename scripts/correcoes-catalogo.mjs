@@ -8,7 +8,9 @@
  * 1. regras automáticas (provadores fora da vitrine, cadastros duplicados do
  *    mesmo item, nome sem código de barras e sem CAIXA ALTA);
  * 2. scripts/correcoes-catalogo.json — decisões da revisão visual, produto a
- *    produto (fotos erradas, marca/categoria/nome errados, item fora de venda).
+ *    produto (fotos erradas, marca/categoria/nome errados, item fora de venda)
+ *    e `fotosProprias`: fotos certas guardadas em apps/storefront/public/
+ *    para produto que no Hub só tem foto errada (ex.: D'vence).
  *    Para desfazer uma correção (ex.: o Hub corrigiu a foto), apague a entrada.
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -122,6 +124,7 @@ export function aplicarCorrecoes(produtos, correcoes = lerCorrecoes(), { nomesMa
   rel.ocultados = antesOcultar - lista.length;
 
   const fotos = porSku(correcoes.ocultarFotos);
+  const proprias = porSku(correcoes.fotosProprias);
   const marcas = porSku(correcoes.marca);
   const categorias = porSku(correcoes.categoria);
   const titulos = porSku(correcoes.titulo);
@@ -138,6 +141,9 @@ export function aplicarCorrecoes(produtos, correcoes = lerCorrecoes(), { nomesMa
         rel.semFotoDepois += 1;
       }
     }
+    // foto oficial guardada no site, no lugar da errada do Hub
+    const fp = proprias.get(s);
+    if (fp?.fotos?.length) p.imagens = [...fp.fotos];
     const m = marcas.get(s);
     if (m && m.marca !== p.marca) {
       p.marca = m.marca;

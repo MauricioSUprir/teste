@@ -21,17 +21,28 @@ const vantagensVarejo: Vantagem[] = [
   { destaque: "Brinde", texto: `nas compras acima de ${reais(FAIXA_BRINDE_CENTAVOS)}` },
   { destaque: `${MAX_PARCELAS}x`, texto: "sem juros no cartão" },
 ];
+/** loja com preço fechado até o CNPJ ser aprovado (hoje a Bradeco) */
 const vantagensB2B: Vantagem[] = [
   { destaque: "CNPJ ou MEI", texto: "cadastre e veja os preços de distribuidora", link: "/profissional" },
   { destaque: "Na hora", texto: "liberação automática com CNPJ ativo" },
   { destaque: `${DESCONTO_PIX_PCT}% off`, texto: `no Pix · até ${MAX_PARCELAS}x sem juros` },
   { destaque: "Brinde", texto: `nas compras acima de ${reais(FAIXA_BRINDE_CENTAVOS)}` },
 ];
+/** loja profissional aberta a todos (Be2Beauty desde 16/10) */
+const vantagensProfissional: Vantagem[] = [
+  { destaque: "Linhas de 1 litro", texto: "tamanho de salão para o seu studio", link: "/destaques/linhas-de-litro" },
+  { destaque: "Profissional", texto: "cadastre o CNPJ e receba condições exclusivas", link: "/profissional" },
+  { destaque: `${DESCONTO_PIX_PCT}% off`, texto: `no Pix · até ${MAX_PARCELAS}x sem juros` },
+  { destaque: "Brinde", texto: `nas compras acima de ${reais(FAIXA_BRINDE_CENTAVOS)}` },
+];
+/** loja voltada ao profissional mas aberta a qualquer comprador */
+const profissionalAberta = LOJA.b2b && !LOJA.precoFechado;
 
 /**
  * Todos os textos de interface em pt-BR — CLAUDE.md §4.
  * Nada de string solta em JSX. Voz: direta, informativa, sem infantilizar (docs/03 §6).
- * Textos que mudam entre BeautyNow e Be2Beauty usam LOJA.b2b.
+ * Textos que mudam entre BeautyNow e Be2Beauty usam LOJA.b2b (voz para o
+ * profissional) e LOJA.precoFechado (preço só com CNPJ aprovado).
  */
 export const copy = {
   marca: {
@@ -55,10 +66,12 @@ export const copy = {
     anuncio:
       LOJA.id === "bradeco"
         ? "Distribuição para lojistas e profissionais em todo o estado de SP · Cadastre o CNPJ e libere os preços"
-        : LOJA.b2b
-          ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
-          : "Pix com 5% de desconto · Produtos 100% originais",
-    vantagens: LOJA.b2b ? vantagensB2B : vantagensVarejo,
+        : profissionalAberta
+          ? "Linhas profissionais para salões e studios · Compre com ou sem CNPJ"
+          : LOJA.b2b
+            ? "Site exclusivo para profissionais da beleza com CNPJ/MEI · Cadastre-se e libere os preços"
+            : "Pix com 5% de desconto · Produtos 100% originais",
+    vantagens: profissionalAberta ? vantagensProfissional : LOJA.b2b ? vantagensB2B : vantagensVarejo,
     vantagensRotulo: "Vantagens da loja",
     atalhos: {
       rotulo: "Atalhos",
@@ -73,7 +86,7 @@ export const copy = {
     destaques: {
       maisVendidos: "Mais vendidos",
       marcasProfissionais: "Marcas Profissionais",
-      liberarPrecos: "Liberar preços",
+      liberarPrecos: profissionalAberta ? "Linhas profissionais" : "Liberar preços",
     },
   },
   nav: {
@@ -131,7 +144,15 @@ export const copy = {
       whatsapp: "Fale no WhatsApp",
       afiliado: "Seja afiliado",
     },
-    campanha: LOJA.b2b
+    campanha: profissionalAberta
+      ? {
+          sobretitulo: "Para o seu studio",
+          titulo: "Linhas profissionais em tamanho de salão",
+          texto: "Shampoo, condicionador e máscara de 1 litro, finalizadores e descoloração para o dia a dia do salão.",
+          cta: "Ver linhas de 1 litro",
+          link: "/destaques/linhas-de-litro",
+        }
+      : LOJA.b2b
       ? {
           sobretitulo: "Para o seu salão",
           titulo: "Preço de distribuidora para CNPJ e MEI",
@@ -366,14 +387,45 @@ export const copy = {
     cnpj:
       LOJA.id === "bradeco"
         ? "Bradeco Distribuidora · Distribuição, consultoria e representação · Exclusivo para CNPJ"
-        : LOJA.b2b
-          ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
-          : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
+        : profissionalAberta
+          ? "Be2Beauty · O e-commerce do cabeleireiro"
+          : LOJA.b2b
+            ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
+            : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
     endereco:
       LOJA.id === "bradeco"
         ? "Av. Rosa Zanetti Ferragut, 195 · Pinheirinho, Vinhedo/SP · admbradeco@gmail.com"
         : "Rio de Janeiro, RJ · Atendimento: (21) 99732-2464",
     direitos: `© ${new Date().getFullYear()} ${LOJA.nome}. Todos os direitos reservados.`,
+  },
+  /** linhas profissionais em destaque (lib/catalogo/destaques.ts) */
+  destaques: {
+    sobretitulo: "Para o seu studio",
+    titulo: "Linhas profissionais",
+    texto: "O que o salão usa todo dia, em tamanho profissional.",
+    paginaTitulo: "Linhas profissionais",
+    paginaTexto: "As linhas que o salão usa todo dia: tamanhos de 1 litro, finalizadores, descoloração e as marcas profissionais da casa.",
+    verTodas: "Ver todas as linhas",
+    produtos: (n: number) => (n === 1 ? "1 produto" : `${n} produtos`),
+    itens: {
+      evoly: { nome: "Evoly", chamada: "Tratamento profissional", texto: "Linha profissional Evoly para o salão." },
+      "linhas-de-litro": {
+        nome: "Linhas de 1 litro",
+        chamada: "Tamanho de salão",
+        texto: "Shampoo, condicionador, máscara e tratamento em embalagem de 1 litro (ou 1 kg), o tamanho que rende no lavatório.",
+      },
+      finalizadores: {
+        nome: "Finalizadores",
+        chamada: "Leave-in, óleo, creme e spray",
+        texto: "Leave-in, creme de pentear, gelatina, óleo, sérum, spray e pomada para fechar o atendimento.",
+      },
+      descoloracao: {
+        nome: "Descoloração e OX",
+        chamada: "Pó descolorante D'vence",
+        texto: "Pó descolorante e emulsões reveladoras (OX), com a linha Savior Blond da D'vence em primeiro.",
+      },
+      theoric: { nome: "Theoric", chamada: "Cuidado premium", texto: "Linha Theoric de tratamento, óleos e finalização." },
+    },
   },
   b2b: {
     precoFechado: LOJA.id === "bradeco" ? "Preço de distribuidora" : "Preço para profissionais",
@@ -388,7 +440,9 @@ export const copy = {
     paginaTexto:
       LOJA.id === "bradeco"
         ? "A Bradeco Distribuidora atende lojistas, farmácias, salões e redes em todo o estado de São Paulo. Informe o CNPJ da sua empresa: a gente confere na Receita Federal e, estando ativo, os preços de distribuidora e a compra liberam na hora."
-        : "A Be2Beauty vende exclusivamente para profissionais e lojistas. Informe o CNPJ do seu salão, clínica ou loja: a gente confere na Receita Federal e, estando ativo, os preços e a compra liberam na hora.",
+        : profissionalAberta
+          ? "A Be2Beauty é feita para quem trabalha com beleza. Cadastre o CNPJ do seu salão, studio, clínica ou loja: a gente confere na Receita Federal e, estando ativo, o cadastro profissional fica valendo na hora para você receber as condições exclusivas."
+          : "A Be2Beauty vende exclusivamente para profissionais e lojistas. Informe o CNPJ do seu salão, clínica ou loja: a gente confere na Receita Federal e, estando ativo, os preços e a compra liberam na hora.",
     semCnpj: "Não tem CNPJ? Compre no varejo pela BeautyNow →",
     semCnpjUrl: "https://www.beautynowstore.com.br",
     cnpj: "CNPJ",
@@ -399,18 +453,22 @@ export const copy = {
     enviar: "Enviar cadastro",
     enviando: "Enviando…",
     enviadoOk: "✅ Cadastro recebido! Vamos analisar e avisar por e-mail.",
-    enviadoLiberado: "✅ CNPJ conferido na Receita Federal. Preços liberados neste navegador.",
+    enviadoLiberado: profissionalAberta
+      ? "✅ CNPJ conferido na Receita Federal. Cadastro profissional ativo."
+      : "✅ CNPJ conferido na Receita Federal. Preços liberados neste navegador.",
     cnpjInvalido: "CNPJ inválido. Confira os 14 dígitos.",
     falha: "Não foi possível enviar agora. Tente novamente em instantes.",
     statusTitulo: "Situação do seu cadastro",
     statusPendente: "⏳ Em análise",
-    statusAprovado: "✅ Aprovado! Preços liberados.",
+    statusAprovado: profissionalAberta ? "✅ Aprovado! Cadastro profissional ativo." : "✅ Aprovado! Preços liberados.",
     statusRecusado: "❌ Não aprovado",
     verificarNovamente: "Verificar novamente",
     trocarCnpj: "Cadastrar outro CNPJ",
     admin: {
       titulo: LOJA.id === "bradeco" ? "Lojistas (B2B)" : "Profissionais (B2B)",
-      texto: `Cadastros com CNPJ do site ${LOJA.nome}. Aprovar libera os preços para o cliente.`,
+      texto: profissionalAberta
+        ? `Cadastros com CNPJ do site ${LOJA.nome}. Aprovar marca o cliente como profissional, para receber as condições exclusivas (cupons).`
+        : `Cadastros com CNPJ do site ${LOJA.nome}. Aprovar libera os preços para o cliente.`,
       vazio: "Nenhum cadastro ainda.",
       aprovar: "Aprovar",
       recusar: "Recusar",

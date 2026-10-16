@@ -10,9 +10,41 @@ export const metadata: Metadata = {
   description: `Perguntas frequentes, trocas, rastreio e contato da ${LOJA.nome}. ${NEGOCIO.promessaResposta}`,
 };
 
-/** As respostas mudam conforme a loja: varejo fala de Pix e troca, as lojas
- *  de venda profissional falam de CNPJ e tabela liberada. */
-const faq: Array<{ pergunta: string; resposta: string }> = LOJA.b2b
+/** As respostas mudam conforme a loja: varejo fala de Pix e troca, a loja
+ *  profissional aberta (Be2Beauty) fala de cadastro de CNPJ, e a de preço
+ *  fechado (Bradeco) fala de tabela liberada. */
+const faq: Array<{ pergunta: string; resposta: string }> = LOJA.b2b && !LOJA.precoFechado
+  ? [
+      {
+        pergunta: "Quem pode comprar aqui?",
+        resposta: `Qualquer pessoa. A ${LOJA.nome} é pensada para quem trabalha com beleza, mas a compra é aberta a todos, com ou sem CNPJ. Quem tem CNPJ pode fazer o cadastro profissional e receber condições exclusivas.`,
+      },
+      {
+        pergunta: "Como funciona o cadastro profissional?",
+        resposta: `Informe o CNPJ do seu salão, studio, clínica ou loja na página de cadastro. Com o CNPJ ativo na Receita Federal, o cadastro vale na hora; nos outros casos a nossa equipe confere em horário comercial (${NEGOCIO.horario}). ${NEGOCIO.promessaResposta}`,
+      },
+      {
+        pergunta: "Os produtos são originais e com nota fiscal?",
+        resposta:
+          "Sim. Trabalhamos como distribuidores autorizados das marcas do catálogo: todo produto vem direto do fabricante e toda venda sai com nota fiscal.",
+      },
+      {
+        pergunta: "Quais formas de pagamento vocês aceitam?",
+        resposta:
+          "Pix (com 5% de desconto), cartão de crédito em até 6x sem juros e boleto à vista. O pedido mínimo é de R$ 99. Cupom de desconto entra no carrinho.",
+      },
+      {
+        pergunta: "Posso trocar ou devolver um produto?",
+        resposta:
+          "Sim. Você tem 7 dias corridos após o recebimento para desistir da compra (CDC, art. 49), com reembolso integral. Produtos com defeito têm prazo de 30 dias. Fale com a gente pelo WhatsApp para iniciar a troca.",
+      },
+      {
+        pergunta: "Como acompanho meu pedido?",
+        resposta:
+          "Pelo link de rastreio enviado por e-mail, ou na área Minha conta. Qualquer dúvida, fale com a gente pelos contatos abaixo.",
+      },
+    ]
+  : LOJA.b2b
   ? [
       {
         pergunta: "Quem pode comprar aqui?",

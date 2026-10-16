@@ -26,8 +26,8 @@ export function urlProduto(produto: Produto): string {
  *
  * O card é um <article>: o link cobre foto e texto; o coração e o botão ficam
  * fora do link (botão dentro de link é HTML inválido). Produto com mais de uma
- * opção leva à página dele em vez de adicionar uma opção às cegas. No B2B o
- * preço e o botão só aparecem com o CNPJ aprovado (PrecoProtegido).
+ * opção leva à página dele em vez de adicionar uma opção às cegas. Com preço
+ * fechado (LOJA.precoFechado) preço e botão só aparecem com o CNPJ aprovado (PrecoProtegido).
  * Após a hidratação aplica os ajustes manuais do admin (editar/excluir).
  */
 export function CardProduto({

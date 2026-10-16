@@ -2278,7 +2278,10 @@ aplicacao.post("/b2b/decidir", async (req, res) => {
           : "Sobre o seu cadastro Be2Beauty",
       texto:
         status === "aprovado"
-          ? `Olá, ${cadastro.nome || "profissional"}!\n\nSeu cadastro profissional foi aprovado. Acesse o site, informe o CNPJ ${cnpj} na página "Cadastro profissional" e os preços ficam liberados.\n\nBoas compras!\nEquipe Be2Beauty`
+          ? // a Be2Beauty abriu a compra a todos em 16/10: o cadastro aprovado
+            // passa a valer para as condições exclusivas (cupons), não para
+            // "liberar preço"
+            `Olá, ${cadastro.nome || "profissional"}!\n\nSeu cadastro profissional foi aprovado. A partir de agora você recebe as condições exclusivas da Be2Beauty para profissionais da beleza. Se o site pedir, informe o CNPJ ${cnpj} na página "Cadastro profissional".\n\nBoas compras!\nEquipe Be2Beauty`
           : `Olá, ${cadastro.nome || "profissional"}.\n\nSeu cadastro não foi aprovado neste momento. Em caso de dúvida, fale com a gente: (21) 99732-2464.\n\nEquipe Be2Beauty`,
     }).catch((erro) => console.error(`[b2b] falha ao avisar cliente: ${erro.message}`));
   }

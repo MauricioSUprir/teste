@@ -279,28 +279,30 @@ export function Header() {
           </div>
           )}
 
-          {categorias.slice(0, 4).map((c) => (
+          {/* a loja profissional tem duas pílulas à direita: cabem 3 categorias */}
+          {categorias.slice(0, LOJA.b2b ? 3 : 4).map((c) => (
             <Link
               key={c.slug}
               href={`/categoria/${c.slug}`}
-              className="hidden h-12 items-center px-3 text-[1rem] font-medium text-grafite hover:text-roxo xl:flex"
+              className="hidden h-12 items-center whitespace-nowrap px-3 text-[1rem] font-medium text-grafite hover:text-roxo xl:flex"
             >
               {c.nome}
             </Link>
           ))}
 
           {/* destaques à direita — a pílula cheia é "Marcas Profissionais"
-              (design system); no B2B a cheia é liberar preços */}
+              (design system); na loja profissional a cheia leva às linhas
+              profissionais (ou ao cadastro, se o preço é fechado) */}
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/busca/?q=mais+vendidos"
-              className="hidden h-12 items-center px-3 text-[1rem] font-medium text-grafite hover:text-roxo xl:flex"
+              className="hidden h-12 items-center whitespace-nowrap px-3 text-[1rem] font-medium text-grafite hover:text-roxo xl:flex"
             >
               {copy.header.destaques.maisVendidos}
             </Link>
             <Link
               href="/marcas"
-              className={`rounded-[40px] px-4 py-1.5 text-[0.875rem] font-medium ${
+              className={`whitespace-nowrap rounded-[40px] px-4 py-1.5 text-[0.875rem] font-medium ${
                 LOJA.b2b
                   ? "border border-roxo text-roxo hover:bg-roxo-claro"
                   : "bg-roxo text-white hover:bg-roxo-escuro"
@@ -310,8 +312,8 @@ export function Header() {
             </Link>
             {LOJA.b2b && (
               <Link
-                href="/profissional"
-                className="rounded-[40px] bg-roxo px-4 py-1.5 text-[0.875rem] font-medium text-white hover:bg-roxo-escuro"
+                href={LOJA.precoFechado ? "/profissional" : "/destaques"}
+                className="whitespace-nowrap rounded-[40px] bg-roxo px-4 py-1.5 text-[0.875rem] font-medium text-white hover:bg-roxo-escuro"
               >
                 {copy.header.destaques.liberarPrecos}
               </Link>
@@ -341,6 +343,7 @@ export function Header() {
             <ul className="grid grid-cols-2 gap-2 text-[0.875rem]">
               {[
                 ...(LOJA.b2b ? [{ href: "/profissional", rotulo: atalhos.profissional }] : []),
+                ...(LOJA.vitrineProfissional ? [{ href: "/destaques", rotulo: copy.destaques.titulo }] : []),
                 { href: "/conta#pedidos", rotulo: atalhos.pedidos },
                 {
                   href: "/conta#favoritos",

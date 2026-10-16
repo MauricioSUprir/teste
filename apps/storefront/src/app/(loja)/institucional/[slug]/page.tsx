@@ -15,7 +15,13 @@ const contato = NEGOCIO.whatsappVisivel
   ? `pelo WhatsApp ${NEGOCIO.whatsappVisivel} ou por ${NEGOCIO.email}`
   : `por ${NEGOCIO.email}`;
 
-const quemSomos = LOJA.b2b
+const quemSomos = LOJA.b2b && !LOJA.precoFechado
+  ? [
+      `A ${LOJA.nome} é o e-commerce do cabeleireiro, de uma operação com 15 anos de estrada na distribuição de cosméticos profissionais. ${NEGOCIO.regiao}`,
+      "Atendemos salões, studios, clínicas e lojas com as linhas que o profissional usa todo dia: tamanhos de 1 litro, finalizadores, descoloração e tratamento. A compra é aberta a todos, e quem tem CNPJ recebe condições exclusivas.",
+      "Trabalhamos apenas com marcas das quais somos distribuidores autorizados: o produto sai do fabricante e chega até você sem passar por atravessador, com nota fiscal em toda venda.",
+    ]
+  : LOJA.b2b
   ? [
       `A ${LOJA.nome} é o braço de venda para empresas de uma operação com 15 anos de estrada na distribuição de cosméticos. ${NEGOCIO.regiao}`,
       "Atendemos salões, clínicas, farmácias, lojas e redes: catálogo aberto para consulta, preço de distribuidor liberado assim que o CNPJ é aprovado, e nota fiscal em toda venda.",

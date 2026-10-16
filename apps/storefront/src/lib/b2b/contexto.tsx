@@ -1,12 +1,15 @@
 "use client";
 
 /**
- * Estado B2B da Be2Beauty — catálogo aberto, preço fechado.
+ * Estado do cadastro profissional (CNPJ). Nas lojas com preço fechado
+ * (LOJA.precoFechado, hoje a Bradeco) o preço só aparece com o CNPJ aprovado;
+ * na Be2Beauty, aberta a todos desde 16/10, o cadastro segue para o
+ * profissional receber as condições exclusivas.
  *
  * O CNPJ cadastrado fica no localStorage do navegador junto com o último
  * status conhecido (o servidor no plano grátis pode levar ~1min para acordar,
  * então o status em cache libera a tela na hora e a checagem real roda em
- * segundo plano). No BeautyNow (LOJA.b2b = false) tudo é liberado sempre.
+ * segundo plano). Sem preço fechado tudo é liberado sempre.
  */
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { LOJA } from "@/lib/loja";
@@ -30,7 +33,7 @@ interface ContextoB2B {
 }
 
 const Contexto = createContext<ContextoB2B>({
-  liberado: !LOJA.b2b,
+  liberado: !LOJA.precoFechado,
   status: null,
   cnpj: null,
   registrar: () => {},
@@ -85,7 +88,7 @@ export function B2BProvider({ children }: { children: React.ReactNode }) {
   return (
     <Contexto.Provider
       value={{
-        liberado: !LOJA.b2b || status === "aprovado",
+        liberado: !LOJA.precoFechado || status === "aprovado",
         status,
         cnpj,
         registrar,
