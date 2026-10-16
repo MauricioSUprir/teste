@@ -149,6 +149,31 @@ export async function statusPagamento(paymentId: number | string): Promise<strin
   }
 }
 
+/**
+ * Situação atual de um pedido no servidor (para "Meus pedidos"): o status
+ * guardado no navegador na hora da compra fica velho quando o Pix é pago
+ * depois, no app do banco. Exige o e-mail do pedido.
+ */
+export async function situacaoPedido(
+  numero: string,
+  email: string
+): Promise<"aguardando_pagamento" | "pago" | "cancelado" | null> {
+  try {
+    const resposta = await fetchComTimeout(
+      `${SERVIDOR_URL}/pedidos/situacao/${encodeURIComponent(numero)}?email=${encodeURIComponent(email)}`,
+      30_000,
+      {}
+    );
+    if (!resposta.ok) return null;
+    const dados = (await resposta.json()) as { status?: string };
+    return dados.status === "pago" || dados.status === "cancelado" || dados.status === "aguardando_pagamento"
+      ? dados.status
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 // ===== Preços manuais (admin fixa um preço e vale para todos os clientes) =====
 
 export interface PrecoManual {

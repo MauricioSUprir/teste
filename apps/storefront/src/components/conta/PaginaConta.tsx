@@ -7,7 +7,8 @@ import { copy } from "@/lib/copy";
 import { obterProduto } from "@/lib/catalogo/consultas";
 import { useConta } from "@/lib/conta/contexto";
 import { useFavoritos } from "@/lib/favoritos/contexto";
-import { lerPedidos, type Pedido } from "@/lib/pedidos";
+import { atualizarStatus, lerPedidos, type Pedido } from "@/lib/pedidos";
+import { situacaoPedido } from "@/lib/servidor";
 import { formatarPreco } from "@/lib/preco";
 import { CardProduto } from "@/components/produto/CardProduto";
 import { FormEntrar } from "./FormEntrar";
@@ -49,7 +50,23 @@ export function PaginaConta() {
 
   useEffect(() => {
     if (!conta.usuario) return;
-    setMeusPedidos(lerPedidos().filter((p) => p.clienteEmail === conta.usuario?.email));
+    const email = conta.usuario.email;
+    const locais = lerPedidos().filter((p) => p.clienteEmail === email);
+    setMeusPedidos(locais);
+    // o status guardado aqui é o da hora da compra: quem pagou o Pix depois,
+    // no app do banco, via "Aguardando pagamento" para sempre. Pergunta ao
+    // servidor a situação real de cada pedido ainda em aberto.
+    let ativo = true;
+    for (const p of locais.filter((x) => x.status === "aguardando_pagamento")) {
+      situacaoPedido(p.numero, email).then((status) => {
+        if (!ativo || !status || status === p.status) return;
+        atualizarStatus(p.numero, status);
+        setMeusPedidos((lista) => lista.map((x) => (x.numero === p.numero ? { ...x, status } : x)));
+      });
+    }
+    return () => {
+      ativo = false;
+    };
   }, [conta.usuario]);
 
   if (!conta.usuario) {

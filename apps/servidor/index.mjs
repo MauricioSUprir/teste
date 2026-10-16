@@ -959,6 +959,28 @@ aplicacao.get("/pedidos/lista", async (req, res) => {
   res.json({ ok: true, total: pedidosLoja.length, pedidos: pedidosLoja.slice(0, 300) });
 });
 
+// situação de um pedido para a tela "Meus pedidos" do cliente. O navegador
+// guarda o status da hora da compra, que fica velho quando o Pix é pago depois,
+// no app do banco (BN-185545, 15/10: pago no servidor, "aguardando" na tela).
+// Só responde com o e-mail do pedido junto: sem ele não dá para sair testando
+// números. Devolve só o status, nenhum dado pessoal.
+aplicacao.get("/pedidos/situacao/:numero", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const numero = String(req.params.numero ?? "").trim().toUpperCase();
+  const email = String(req.query.email ?? "").trim().toLowerCase();
+  const p = pedidosLoja.find((x) => x.numero === numero);
+  if (!p || !email || String(p.clienteEmail ?? "").trim().toLowerCase() !== email) {
+    return res.status(404).json({ ok: false });
+  }
+  if (p.status === "aguardando_pagamento" && Date.now() - ultimaConferencia > 60_000) {
+    await Promise.race([
+      conferirPagamentosPendentes().catch(() => undefined),
+      new Promise((r) => setTimeout(r, 8_000)),
+    ]);
+  }
+  res.json({ ok: true, status: p.status, pagoEm: p.pagoEm ?? null });
+});
+
 // backup para o robô do GitHub versionar (o histórico sobrevive à publicação)
 aplicacao.get("/pedidos/exportar", (req, res) => {
   if (!ehAdmin(req)) {
