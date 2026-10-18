@@ -555,6 +555,32 @@ async function coletarCatalogoHub(modo = "rapido") {
     if (itens.length < 100) break;
     pagina++;
   }
+  // marcas que ficam fora da listagem de e-commerce do Hub (Bradeco e grupo:
+  // Sallve, Bioderma, Ruby Rose…): a listagem não traz, mas a ficha por SKU
+  // sim — busca cada uma e junta. SKU que já veio pela listagem é ignorado,
+  // então quando o Hub liberar a marca nada duplica. Ficha que falhar fica de
+  // fora sem derrubar a coleta.
+  try {
+    const fs = await import("node:fs");
+    const { skus: extras = [] } = JSON.parse(fs.readFileSync(new URL("./produtos-extras.json", import.meta.url), "utf8"));
+    const jaVieram = new Set(brutos.map((b) => String(valor(b, "sku", "codigo", "id"))));
+    const faltam = extras.map(String).filter((s) => !jaVieram.has(s));
+    for (let i = 0; i < faltam.length; i += 8) {
+      const lote = await Promise.all(
+        faltam.slice(i, i + 8).map((sku) => apiHub(`/produtos/${encodeURIComponent(sku)}`).catch(() => null))
+      );
+      for (const p of lote) {
+        if (!p || !valor(p, "sku", "codigo")) continue;
+        // sem preço no Hub não se vende (Ruby Rose): sai sem estoque, e o
+        // site mostra "Avise-me" em vez de R$ 0,00 com botão de comprar
+        const temPreco = Number(valor(p, "preco", "preco_venda")) > 0;
+        brutos.push(temPreco ? p : { ...p, estoque: 0, disponivel: false });
+      }
+      exportacao.progresso = `marcas extras: ${Math.min(i + 8, faltam.length)}/${faltam.length}`;
+    }
+  } catch (erro) {
+    console.error(`[catalogo] marcas extras: ${erro.message}`);
+  }
   const detalhes = [];
   if (modo === "completo") {
     const skus = brutos.map((b) => valor(b, "sku", "codigo", "id")).filter((s) => s !== undefined);

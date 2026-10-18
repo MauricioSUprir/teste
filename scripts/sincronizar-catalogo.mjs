@@ -131,7 +131,9 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
         tituloVariacao: String(campo(bruto, "volume", "conteudo", "variacao") ?? "Único"),
         precoDe: precoDe && precoDe > precoPor ? precoDe : null,
         precoPor,
-        estoque: Number.isFinite(estoque) ? estoque : 0,
+        // sem preço no Hub (Ruby Rose, 18/10) não se vende: entra como
+        // indisponível ("Avise-me") em vez de R$ 0,00 com botão de comprar
+        estoque: precoPor > 0 && Number.isFinite(estoque) ? estoque : 0,
         pesoG: Number(campo(bruto, "peso_g", "peso") ?? 300),
       },
     ],
