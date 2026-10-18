@@ -189,6 +189,8 @@ export const copy = {
   card: {
     adicionar: "Adicionar",
     esgotado: "Esgotado",
+    /** produto que o Hub ainda não precificou (tem estoque, falta preço) */
+    emBreve: "Em breve",
     noPix: "no Pix",
     ate: "até",
     semJuros: "sem juros",
@@ -231,6 +233,7 @@ export const copy = {
     adicionarSacola: "Adicionar à sacola",
     adicionado: "Adicionado à sacola",
     esgotado: "Produto esgotado",
+    emBreve: "Em breve no site",
     aviseMe: "Avise-me quando chegar",
     aviseMeOk: "Pronto! Você será avisada assim que o produto voltar.",
     quantidade: "Quantidade",

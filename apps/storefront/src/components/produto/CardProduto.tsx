@@ -77,7 +77,7 @@ export function CardProduto({
           </div>
           {!disponivel && (
             <span className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-[40px] bg-tinta/80 px-3 py-1 text-[0.75rem] font-medium text-white">
-              {copy.card.esgotado}
+              {variante.precoPor > 0 ? copy.card.esgotado : copy.card.emBreve}
             </span>
           )}
           {disponivel && temOpcoes && (

@@ -114,7 +114,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
             )}
           </>
         ) : (
-          <p className="text-[1.125rem] font-semibold text-erro">{copy.pdp.esgotado}</p>
+          <p className="text-[1.125rem] font-semibold text-erro">{variante.precoPor > 0 ? copy.pdp.esgotado : copy.pdp.emBreve}</p>
         )}
         </PrecoProtegido>
       </div>
