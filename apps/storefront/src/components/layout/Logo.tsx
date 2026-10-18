@@ -138,17 +138,21 @@ export function Logo({ altura = 28 }: { altura?: number }) {
           <strong className="font-black">BE2</strong>
           <span className="font-normal">BEAUTY</span>
         </span>
+        {/* assinatura na mesma LARGURA do BE2BEAUTY (pedido do Mauricio, 18/10):
+            cada letra é um item e o flex distribui de ponta a ponta — sem
+            engrossar a fonte; a largura vem do wordmark de cima */}
         <span
           aria-hidden="true"
-          className="font-medium leading-none"
+          className="flex justify-between font-medium leading-none"
           style={{
-            fontSize: altura * 0.22,
+            fontSize: altura * 0.24,
             color: "var(--bn-roxo-escuro)",
-            letterSpacing: "0.14em",
             marginTop: altura * 0.12,
           }}
         >
-          ONLY PROFESSIONAL
+          {"ONLY PROFESSIONAL".split("").map((letra, i) => (
+            <span key={i}>{letra === " " ? " " : letra}</span>
+          ))}
         </span>
       </span>
     );

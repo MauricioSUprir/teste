@@ -19,18 +19,33 @@
  */
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
+import { comBase } from "@/lib/caminho";
+import { LOJA } from "@/lib/loja";
 import { listarBanners, type BannerDaLoja } from "@/lib/servidor";
 
 const INTERVALO_MS = 20_000;
 
+/**
+ * Banner de abertura fixo do Be2Beauty (a arte "Only Professional" da marca,
+ * a mesma da prévia do WhatsApp). Entra sempre como primeiro slide, antes das
+ * artes que o lojista sobe no painel. Nas outras lojas não há banner fixo.
+ */
+const BANNER_INTRO: BannerDaLoja | null = LOJA.vitrineProfissional
+  ? {
+      slot: "intro-b2b",
+      url: comBase("/banner-b2b-intro.webp"),
+      urlMobile: comBase("/banner-b2b-intro-mobile.webp"),
+    }
+  : null;
+
 export function CarrosselBanners() {
-  const [banners, setBanners] = useState<BannerDaLoja[]>([]);
+  const [banners, setBanners] = useState<BannerDaLoja[]>(BANNER_INTRO ? [BANNER_INTRO] : []);
   const [atual, setAtual] = useState(0);
 
   useEffect(() => {
     let ativo = true;
     void listarBanners().then((lista) => {
-      if (ativo) setBanners(lista);
+      if (ativo) setBanners(BANNER_INTRO ? [BANNER_INTRO, ...lista] : lista);
     });
     return () => {
       ativo = false;

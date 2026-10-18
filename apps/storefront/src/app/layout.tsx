@@ -161,7 +161,7 @@ export const metadata: Metadata = {
       {
         url:
           LOJA_ID === "be2beauty"
-            ? "og-imagem-b2b.png"
+            ? "og-imagem-b2b.jpg"
             : LOJA_ID === "pulse"
               ? "og-imagem-pulse.png"
               : LOJA_ID === "bradeco"
