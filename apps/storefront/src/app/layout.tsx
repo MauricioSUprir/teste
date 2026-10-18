@@ -64,7 +64,7 @@ const prefixo = process.env.BASE_PATH ?? "";
 
 const tituloLoja =
   LOJA_ID === "be2beauty"
-    ? "Be2Beauty: o e-commerce do cabeleireiro"
+    ? "Be2Beauty: only professional"
     : LOJA_ID === "pulse"
       ? "Pulse Beauty Store: cuidado no ritmo certo"
       : LOJA_ID === "bradeco"

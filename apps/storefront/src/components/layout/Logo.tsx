@@ -4,7 +4,7 @@ import { LOJA } from "@/lib/loja";
  * Logo da loja — recriação vetorial da identidade oficial de cada marca.
  * BeautyNow: monograma "BN" + wordmark "BEAUTY NOW".
  * Be2Beauty: wordmark "BE2BEAUTY" ("BE2" em peso forte) com a assinatura
- * "O E-COMMERCE DO CABELEIREIRO." — como no site oficial da marca.
+ * "ONLY PROFESSIONAL" — assinatura da marca.
  * As cores vêm das variáveis do tema, então cada pele pinta com a própria
  * paleta (roxo ou azul-marinho).
  *
@@ -127,7 +127,7 @@ export function Logo({ altura = 28 }: { altura?: number }) {
   if (LOJA.id === "be2beauty") {
     return (
       <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
-        <span className="sr-only">Be2Beauty — o e-commerce do cabeleireiro</span>
+        <span className="sr-only">Be2Beauty — only professional</span>
         <span
           aria-hidden="true"
           className="leading-none"
@@ -148,34 +148,42 @@ export function Logo({ altura = 28 }: { altura?: number }) {
             marginTop: altura * 0.12,
           }}
         >
-          O E-COMMERCE DO CABELEIREIRO.
+          ONLY PROFESSIONAL
         </span>
       </span>
     );
   }
+  // logo oficial (2026): wordmark empilhado — "BEAUTY" fino e espaçado por
+  // cima, "NOW!" em peso máximo embaixo, nos dois roxos da marca. "NOW!" manda
+  // na cor primária (var), então a pele pinta com o próprio tom; o "BEAUTY" é
+  // o roxo claro de apoio da identidade BeautyNow.
   return (
-    <span
-      className="inline-flex items-baseline"
-      style={{ gap: altura * 0.35, height: altura }}
-    >
+    <span className="inline-flex flex-col justify-center" style={{ height: altura }}>
       <span className="sr-only">BeautyNow</span>
       <span
         aria-hidden="true"
-        className="font-titulo font-semibold leading-none"
-        style={{ fontSize: altura, color: "var(--bn-roxo)", letterSpacing: "-0.03em" }}
+        className="font-titulo leading-none"
+        style={{
+          fontSize: altura * 0.32,
+          fontWeight: 400,
+          color: "#8B45E6",
+          letterSpacing: "0.345em",
+        }}
       >
-        BN
+        BEAUTY
       </span>
       <span
         aria-hidden="true"
-        className="font-medium leading-none"
+        className="font-titulo leading-none"
         style={{
-          fontSize: altura * 0.4,
-          color: "var(--bn-violeta)",
-          letterSpacing: "0.3em",
+          fontSize: altura * 0.66,
+          fontWeight: 900,
+          color: "var(--bn-roxo)",
+          letterSpacing: "-0.015em",
+          marginTop: altura * 0.04,
         }}
       >
-        BEAUTY&nbsp;NOW
+        NOW!
       </span>
     </span>
   );

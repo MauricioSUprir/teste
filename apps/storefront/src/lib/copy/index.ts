@@ -51,7 +51,7 @@ export const copy = {
       LOJA.id === "bradeco"
         ? "Elo entre indústria e varejo."
         : LOJA.b2b
-          ? "O e-commerce do cabeleireiro."
+          ? "Only professional."
           : LOJA.id === "pulse"
             ? "Cuidado no ritmo certo."
             : "Cosméticos profissionais, curadoria de verdade.",
@@ -86,7 +86,7 @@ export const copy = {
     destaques: {
       maisVendidos: "Mais vendidos",
       marcasProfissionais: "Marcas Profissionais",
-      liberarPrecos: profissionalAberta ? "Linhas profissionais" : "Liberar preços",
+      liberarPrecos: profissionalAberta ? "Ver categorias" : "Liberar preços",
     },
   },
   nav: {
@@ -388,9 +388,9 @@ export const copy = {
       LOJA.id === "bradeco"
         ? "Bradeco Distribuidora · Distribuição, consultoria e representação · Exclusivo para CNPJ"
         : profissionalAberta
-          ? "Be2Beauty · O e-commerce do cabeleireiro"
+          ? "Be2Beauty · Only Professional"
           : LOJA.b2b
-            ? "Be2Beauty · O e-commerce do cabeleireiro · Exclusivo para CNPJ/MEI"
+            ? "Be2Beauty · Only Professional · Exclusivo para CNPJ/MEI"
             : "BeautyNow Cosméticos · CNPJ 52.286.975/0001-21",
     endereco:
       LOJA.id === "bradeco"

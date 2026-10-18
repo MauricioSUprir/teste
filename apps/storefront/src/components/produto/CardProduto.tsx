@@ -58,7 +58,7 @@ export function CardProduto({
 
 
   return (
-    <article className="group relative flex flex-col rounded-[8px] border border-linha bg-white p-4 transition-colors hover:border-[#d6d6d6]">
+    <article className="group relative flex flex-col rounded-[8px] border border-roxo/25 bg-white p-4 transition-colors hover:border-roxo/60">
       <div className="absolute right-3 top-3 z-10">
         <BotaoFavorito slug={produto.slug} />
       </div>

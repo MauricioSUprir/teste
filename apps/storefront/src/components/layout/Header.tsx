@@ -312,7 +312,7 @@ export function Header() {
             </Link>
             {LOJA.b2b && (
               <Link
-                href={LOJA.precoFechado ? "/profissional" : "/destaques"}
+                href={LOJA.precoFechado ? "/profissional" : "/categorias"}
                 className="whitespace-nowrap rounded-[40px] bg-roxo px-4 py-1.5 text-[0.875rem] font-medium text-white hover:bg-roxo-escuro"
               >
                 {copy.header.destaques.liberarPrecos}
@@ -343,7 +343,6 @@ export function Header() {
             <ul className="grid grid-cols-2 gap-2 text-[0.875rem]">
               {[
                 ...(LOJA.b2b ? [{ href: "/profissional", rotulo: atalhos.profissional }] : []),
-                ...(LOJA.vitrineProfissional ? [{ href: "/destaques", rotulo: copy.destaques.titulo }] : []),
                 { href: "/conta#pedidos", rotulo: atalhos.pedidos },
                 {
                   href: "/conta#favoritos",

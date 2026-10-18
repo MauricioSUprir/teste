@@ -17,7 +17,7 @@ const contato = NEGOCIO.whatsappVisivel
 
 const quemSomos = LOJA.b2b && !LOJA.precoFechado
   ? [
-      `A ${LOJA.nome} é o e-commerce do cabeleireiro, de uma operação com 15 anos de estrada na distribuição de cosméticos profissionais. ${NEGOCIO.regiao}`,
+      `A ${LOJA.nome} é only professional, de uma operação com 15 anos de estrada na distribuição de cosméticos profissionais. ${NEGOCIO.regiao}`,
       "Atendemos salões, studios, clínicas e lojas com as linhas que o profissional usa todo dia: tamanhos de 1 litro, finalizadores, descoloração e tratamento. A compra é aberta a todos, e quem tem CNPJ recebe condições exclusivas.",
       "Trabalhamos apenas com marcas das quais somos distribuidores autorizados: o produto sai do fabricante e chega até você sem passar por atravessador, com nota fiscal em toda venda.",
     ]

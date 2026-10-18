@@ -14,9 +14,8 @@ import {
   produtosPorMarca,
 } from "@/lib/catalogo/consultas";
 import type { CategoriaSlug, Produto } from "@/lib/catalogo/tipos";
-import { destaques } from "@/lib/catalogo/destaques";
-import { LinhasProfissionais } from "@/components/home/LinhasProfissionais";
 import { CardProduto } from "@/components/produto/CardProduto";
+import { ImagemProduto } from "@/components/produto/ImagemProduto";
 import { ProdutosLocaisDestaque } from "@/components/produto/ProdutosLocaisDestaque";
 import { NewsletterForm } from "@/components/home/NewsletterForm";
 import { CarrosselBanners } from "@/components/home/CarrosselBanners";
@@ -71,19 +70,20 @@ const categoriasCheias = categorias
  * mais; senão o espaço vai para as categorias mais cheias.
  */
 export default function Home() {
-  // ---- Be2Beauty: linhas profissionais logo na entrada (pedido comercial de
-  // 16/10) — cartões das cinco linhas e uma prateleira para cada uma que tenha
-  // produto suficiente; o resto da home vem depois ("as demais linhas")
-  const linhasPro = LOJA.vitrineProfissional ? destaques : [];
-  const prateleirasPro = linhasPro.filter((d) => d.produtos.filter(vitrinavel).length >= 4);
+  // ---- Be2Beauty: a entrada é a divisão por categorias (substitui o antigo
+  // bloco de "linhas profissionais", que não convertia). Cada categoria com
+  // vitrine vira um quadro com foto e nome, logo abaixo do hero.
+  const categoriasVitrine = LOJA.vitrineProfissional
+    ? categoriasCheias.map((c) => ({ ...c, foto: c.lista.find((p) => (p.imagens?.length ?? 0) > 0) }))
+    : [];
 
-  // ---- trio de vitrines (a Be2Beauty abre com as linhas profissionais no lugar)
+  // ---- trio de vitrines (promoções, lançamentos e, se faltar, categorias cheias)
   const trio: { titulo: string; link: string; lista: Produto[] }[] = [];
   const promocoes = produtos.filter((p) => emPromocao(p) && vitrinavel(p));
-  if (!LOJA.vitrineProfissional && promocoes.length >= 3) trio.push({ titulo: t.vitrinePromocoes, link: "/busca?q=promo%C3%A7%C3%B5es", lista: variados(promocoes, 3) });
+  if (promocoes.length >= 3) trio.push({ titulo: t.vitrinePromocoes, link: "/busca?q=promo%C3%A7%C3%B5es", lista: variados(promocoes, 3) });
   const novidades = lancamentos().filter(vitrinavel);
-  if (!LOJA.vitrineProfissional && novidades.length >= 3) trio.push({ titulo: t.vitrineLancamentos, link: "/busca?q=lan%C3%A7amentos", lista: variados(novidades, 3) });
-  for (const c of LOJA.vitrineProfissional ? [] : categoriasCheias) {
+  if (novidades.length >= 3) trio.push({ titulo: t.vitrineLancamentos, link: "/busca?q=lan%C3%A7amentos", lista: variados(novidades, 3) });
+  for (const c of categoriasCheias) {
     if (trio.length === 3) break;
     trio.push({ titulo: t.vitrineCategoria(c.nome), link: `/categoria/${c.slug}`, lista: variados(c.lista, 3) });
   }
@@ -126,38 +126,42 @@ export default function Home() {
       {/* 1. Hero: banners do lojista (troca a cada 20s) */}
       <CarrosselBanners />
 
-      {/* 2a. Be2Beauty: linhas profissionais em destaque */}
-      {linhasPro.length > 0 && (
-        <section aria-labelledby="titulo-linhas-pro" className="container-bn pt-8 md:pt-10">
-          <p className="text-center text-[0.75rem] font-bold uppercase tracking-[0.08em] text-roxo">
-            {copy.destaques.sobretitulo}
-          </p>
-          <div className="mt-1">
-            <TituloSecao id="titulo-linhas-pro" link="/destaques">
-              {copy.destaques.titulo}
-            </TituloSecao>
-          </div>
-          <div className="mt-6">
-            <LinhasProfissionais destaques={linhasPro} prioridade />
-          </div>
+      {/* 2a. Be2Beauty: divisão por categorias logo na entrada */}
+      {categoriasVitrine.length > 0 && (
+        <section aria-labelledby="titulo-categorias" className="container-bn pt-8 md:pt-10">
+          <TituloSecao id="titulo-categorias" link="/categorias">
+            {t.porCategoria}
+          </TituloSecao>
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4">
+            {categoriasVitrine.map((c, i) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/categoria/${c.slug}`}
+                  className="group flex h-full flex-col overflow-hidden rounded-[8px] border border-roxo/25 bg-white transition-colors hover:border-roxo/60"
+                >
+                  <div className="bg-white">
+                    {c.foto ? (
+                      <ImagemProduto produto={c.foto} alt="" prioridade={i < 4} />
+                    ) : (
+                      <span className="flex aspect-square items-center justify-center text-[0.75rem] text-cinza">
+                        {c.nome}
+                      </span>
+                    )}
+                  </div>
+                  <div className="border-t border-linha px-3 py-3">
+                    <span className="block text-[0.9375rem] font-semibold leading-tight text-tinta group-hover:text-roxo">
+                      {c.nome}
+                    </span>
+                    <span className="mt-0.5 block text-[0.75rem] text-grafite">
+                      {t.verProdutos} →
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
-      {prateleirasPro.map((d) => (
-        <section key={d.slug} aria-labelledby={`titulo-pro-${d.slug}`} className="container-bn pt-12 md:pt-16">
-          <TituloSecao id={`titulo-pro-${d.slug}`} link={`/destaques/${d.slug}`}>
-            {d.nome}
-          </TituloSecao>
-          <div className="mt-6">
-            <Prateleira rotulo={d.nome}>
-              {variados(d.produtos, POR_PRATELEIRA).map((p) => (
-                <ItemPrateleira key={p.slug}>
-                  <CardProduto produto={p} />
-                </ItemPrateleira>
-              ))}
-            </Prateleira>
-          </div>
-        </section>
-      ))}
 
       {/* 2. Trio de vitrines */}
       {trio.length > 0 && (
