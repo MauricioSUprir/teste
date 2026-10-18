@@ -1,9 +1,16 @@
 {
-  "geradoEm": "2026-09-20T12:57:05.431Z",
+  "geradoEm": "2026-10-18T01:25:45.028Z",
   "restauracaoOk": true,
   "precos": {
     "beautynow": {},
-    "be2beauty": {},
+    "be2beauty": {
+      "evoly-ev03-evoly-reduct-frizz-organic-blond-1l": {
+        "precoPorCentavos": 19900,
+        "precoDeCentavos": null,
+        "titulo": "Evoly Reduct Frizz Organic Blond - 1L",
+        "em": "2026-10-18T00:59:12.525Z"
+      }
+    },
     "pulse": {},
     "bradeco": {}
   }

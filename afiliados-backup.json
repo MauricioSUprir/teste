@@ -1,10 +1,10 @@
 {
-  "geradoEm": "2026-10-16T21:23:36.997Z",
+  "geradoEm": "2026-10-18T01:25:44.684Z",
   "restauracaoOk": true,
   "contagem": 1,
   "cifrado": {
-    "iv": "48h4OMs8lbnnSkwz",
-    "tag": "7q2KiffPuEY7ECbx+loP9g==",
-    "dados": "P30/EAI1kkT96ZOTllFQoRBytXUB00kr8UwpRdiwuXqA80pUDeKkuuLAoLXFB8uxxBAPJ/LN67RRb4UrmsA4y4Z2hCBH3LCLZV47MBHTreOGSIWVcuoJN0JNOKAkk1pyqg7NRRQVOylXRaz0GA5NCK4iOBMfpxY2ID4VGtwS6E+4S0btl1e1uhpJsglL/nLUtfEGRVIE8FIKfRItiMfmB7wBWWPRoUtRuxYuOPl4khrf90Hkko5HhzPV6f6/DY0FWWfHLDrbEd1XJxgwmeS4JQcw1n8pvEdaHqIz9Z8uWZ9fa1p2n0GC6UrCJXfEUmhINP99nHUvBluE3WKG4OzjMQRe+ehsW1up8BXtRKBOynfhPM0zGpX3K2JApVcdNM9p2JsL0oLgeh00UFscE9LCfXHLPXhGio5tq2Nv91ezhU/iR6XhPX6JbRHhYNpoA1yx2SJ1rBy0rwn8hlCnSu6p"
+    "iv": "XS/ijQHwQmiCwekh",
+    "tag": "It+XmNpuzjYBHm0Brpbifw==",
+    "dados": "nTH30ZQvcLCwJn2w1wfUQ3nhmq5u8wtkFefd7hPMvdaeErArEQdtJML88A/V3dGPusxX+Xhh719sbgzah0sycmmjJTzUEgR2SnaWT2MvyMqOoSadj/Z9lXgcE3QUP9lds8RlilkD6CMgHtJcqAgsEoUMg4VBNMRseehC1gaHNvxnpEsy/Z16UJjeBobUN92dNlvhzaoxlkNmvHiLxPNndftRYcv/4DQMf/0T8gO9HauIyz8QD+YT3htQuYX8/rCU0+NQV+rDB/pxg0G2+qJrh/z/s/CPJICjvWQvaKq4t/a/oh4wTrDelhbqH2s8wuW21HmoxM+ap7iXGB86/SYClxteYaPpuapEOCcixfUdESwx4r7Q1/bYl3v5fIFyoHEdwilKseXFbFrWF1FKgSMtc8P7MeiCIsqu128sieqMk16JRvVXhDDgcZNdt01nOsfLiokyV+8jmJzJybA3ReDGNxJZzn/1hfmR09PJOEy712YINuH+aG3NCQS/5Kc1/YhO3Rgo6Ux2ijP3ceCMY52nRbESQ09H"
   }
 }
