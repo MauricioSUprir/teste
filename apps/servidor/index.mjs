@@ -1549,6 +1549,32 @@ aplicacao.get("/hub/marcas", async (req, res) => {
   }
 });
 
+// diagnóstico do catálogo do Hub (só leitura, só o token de ADMIN do painel —
+// a chave pública de exportação não serve aqui): consulta a ficha ou a
+// listagem de produtos do Hub para ver o que vem das marcas que ficam fora da
+// vitrine do e-commerce (Bradeco: Ruby Rose, Sallve, Bioderma…). Só caminhos
+// /produtos e /marcas, só GET.
+aplicacao.get("/hub/diagnostico", async (req, res) => {
+  if (!tokenNaLista(tokenDoCabecalho(req), PAINEL_ADMIN_TOKENS)) {
+    return res.status(403).json({ erro: "Token de admin obrigatório." });
+  }
+  if (!HUB_API_KEY) return res.status(503).json({ erro: "Hub não configurado." });
+  const caminho = String(req.query.caminho ?? "");
+  if (!/^\/(produtos|marcas)(\/[\w.\-]+)?(\?[\w=&%.+\- ]*)?$/.test(caminho)) {
+    return res.status(400).json({ erro: "Caminho não permitido." });
+  }
+  try {
+    const r = await fetch(`${HUB_API_URL}${caminho}`, {
+      headers: { "X-API-Key": HUB_API_KEY, Accept: "application/json" },
+      signal: AbortSignal.timeout(45_000),
+    });
+    res.set("Cache-Control", "no-store");
+    res.status(r.status).type(r.headers.get("content-type") ?? "application/json").send(await r.text());
+  } catch (erro) {
+    res.status(502).json({ erro: erro.message });
+  }
+});
+
 // ===== Cupons de desconto =====
 // O admin cria no painel e o cupom passa a valer em qualquer aparelho. Antes
 // ficavam só no navegador de quem criou — o cliente digitava e recebia
