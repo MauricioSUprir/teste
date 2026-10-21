@@ -563,7 +563,7 @@ def gerar(destino=None):
     # manifestos
     _w(os.path.join(bp, "manifest.json"), {
         "format_version": 2,
-        "header": {"name": "Heróis Marvel (e o Flash)", "description": "31 heróis com trajes e poderes",
+        "header": {"name": "Heróis Marvel (e o Flash)", "description": "31 heróis, 20 vilões e 16 artefatos",
                    "uuid": UUID["bp"], "version": VERSAO, "min_engine_version": [1, 21, 0]},
         "modules": [{"type": "data", "uuid": UUID["bp_dados"], "version": VERSAO},
                     {"type": "script", "language": "javascript", "uuid": UUID["bp_script"], "version": VERSAO,
@@ -636,6 +636,7 @@ def gerar(destino=None):
                                               "minecraft:use_modifiers": {"use_duration": 0.1},
                                               "minecraft:cooldown": {"category": f"{NS}_{pid}", "duration": recarga}}}})
         lang.append(f"item.{iid}={nome}")
+    gerar_viloes(bp, rp, lang, texturas_itens)
     _w(os.path.join(rp, "textures", "item_texture.json"),
        {"resource_pack_name": "herois", "texture_name": "atlas.items", "texture_data": texturas_itens})
     for pasta in (bp, rp):
@@ -648,6 +649,10 @@ def gerar(destino=None):
     js = open(os.path.join(AQUI, "herois_main.js"), encoding="utf-8").read()
     js = js.replace("/*HEROIS*/[]", json.dumps(dados, ensure_ascii=False))
     js = js.replace("/*NOMES_PODERES*/{}", json.dumps(nomes_poderes, ensure_ascii=False))
+    js = js.replace("/*VILOES*/[]", json.dumps([{"id": v[0], "nome": v[1], "covil": v[8], "chefe": v[7]}
+                                                for v in VILOES], ensure_ascii=False))
+    js = js.replace("/*ARTEFATOS*/[]", json.dumps([{"id": a[0], "nome": a[1], "recarga": a[4], "local": a[5]}
+                                                    for a in ARTEFATOS], ensure_ascii=False))
     _w(os.path.join(bp, "scripts", "main.js"), js)
     # ícone do pacote (o relógio)
     for pasta in (bp, rp):
@@ -666,3 +671,322 @@ def gerar(destino=None):
 
 if __name__ == "__main__":
     print(gerar())
+
+
+# ================================================================== vilões
+def _v_thanos(t):
+    roxo, ouro, azul = "#7b4d9e", "#d4a72c", "#2b3f8f"
+    basico(t, roxo, ouro, roxo, azul, ouro, luvas=ouro)
+    t.desenho("cabeca", "frente", ["PPPPPPPP", "PPPPPPPP", "PDPPPPDP", "PBBPPBBP", "PPPPPPPP", "PDPPPPDP",
+                                   "PDDDDDDP", "PPPPPPPP"], {"P": roxo, "D": "#5a3576", "B": "#3d6cc8"})
+    t.desenho("corpo", "frente", ["OOOOOOOO", "OAAOOAAO", "OOOOOOOO", "AAOOOOAA", "AAAAAAAA"], {"O": ouro, "A": azul})
+
+
+def _v_loki(t):
+    verde, ouro = "#1f6b3a", "#d4a72c"
+    basico(t, "#141414", verde, "#141414", "#1f2a1f", "#141414", pele=PELE)
+    t.parte("cabeca", ouro, faces=("topo",))
+    t.desenho("cabeca", "frente", ["OO....OO", "OOOOOOOO", "KSSSSSSK", "KGGSSGGK"], {"O": ouro, "K": "#141414",
+                                                                                    "S": PELE, "G": "#2f8a3a"})
+    t.desenho("corpo", "frente", ["GOGGGGOG", "GGOGGOGG", "GGGOOGGG"], {"G": verde, "O": ouro})
+
+
+def _v_ultron(t):
+    prata = "#a7acb4"
+    basico(t, prata, prata, prata, prata, "#7d828a")
+    t.desenho("cabeca", "frente", ["SSSSSSSS", "SDSSSSDS", "SRRSSRRS", "SSSSSSSS", "SSSDDSSS", "SRRRRRRS",
+                                   "SSRRRRSS", "SSSSSSSS"], {"S": prata, "D": "#7d828a", "R": "#e2202a"})
+    t.desenho("corpo", "frente", ["SSSSSSSS", "SSSRRSSS", "SSRRRRSS", "SSSRRSSS"], {"S": prata, "R": "#e2202a"})
+
+
+def _v_caveira(t):
+    verm = "#b11e1e"
+    basico(t, verm, "#2b2b30", "#2b2b30", "#2b2b30", "#141414", luvas="#141414")
+    t.desenho("cabeca", "frente", ["RRRRRRRR", "RKKRRKKR", "RKKRRKKR", "RRRKKRRR", "RRRRRRRR", "RKRKRKRR",
+                                   "RRRRRRRR", ".RRRRRR."], {"R": verm, "K": "#141414"})
+    t.desenho("corpo", "frente", ["KKKKKKKK", "KKKRRKKK", "KKRKKRKK", "KKKRRKKK"], {"K": "#2b2b30", "R": verm})
+
+
+def _v_duende(t):
+    verde = "#3f7a2a"
+    basico(t, verde, verde, verde, verde, "#2a4f1c")
+    t.desenho("cabeca", "frente", ["GGGGGGGG", "GDGGGGDG", "GYYGGYYG", "GGGGGGGG", "GGGDDGGG", "GDDDDDDG",
+                                   "GGGGGGGG", "GGGGGGGG"], {"G": verde, "D": "#2a4f1c", "Y": "#f2e23a"})
+    t.desenho("corpo", "frente", ["PPGGGGPP", "GPPGGPPG", "GGPPPPGG"], {"P": "#5b2a86", "G": verde})
+
+
+def _v_octopus(t):
+    basico(t, "#3a2a1c", "#5d4a2c", "#5d4a2c", "#3a3a40", "#141414", pele=PELE)
+    t.desenho("cabeca", "frente", ["HHHHHHHH", "HHHHHHHH", "HSSSSSSH", "KGGKKGGK", "SSSSSSSS", "SSSKKSSS"],
+              {"H": "#3a2a1c", "S": PELE, "K": "#141414", "G": "#9ff3ff"})
+    t.desenho("corpo", "frente", ["CCCCCCCC", "CMMMMMMC", "CMMMMMMC", "CCCCCCCC"], {"C": "#5d4a2c", "M": "#9aa0aa"})
+
+
+def _v_venom(t):
+    preto, branco = "#111114", "#ffffff"
+    basico(t, preto, preto, preto, preto, preto)
+    t.desenho("cabeca", "frente", ["KKKKKKKK", "WWKKKKWW", "WWWKKWWW", "KWWKKWWK", "KKKKKKKK", "WKWKWKWK",
+                                   "KRRRRRRK", "WKWKWKWK"], {"K": preto, "W": branco, "R": "#c8102e"})
+    t.desenho("corpo", "frente", ["KWKKKKWK", "KKWWWWKK", "WKKWWKKW", "KKWWWWKK", "KWKKKKWK"], {"K": preto, "W": branco})
+
+
+def _v_electro(t):
+    verde, amar = "#2f8a3a", "#f2e23a"
+    basico(t, amar, verde, verde, verde, amar, luvas=amar)
+    t.desenho("cabeca", "frente", ["Y.Y..Y.Y", "YYYYYYYY", "YSSSSSSY", "SWWSSWWS", "SSSSSSSS", "SSSKKSSS"],
+              {"Y": amar, "S": PELE, "W": "#ffffff", "K": "#a06a50"})
+    t.desenho("corpo", "frente", ["GGYGGGGG", "GGGYGGGG", "GGYYYGGG", "GGGGYGGG", "GGGYGGGG"], {"G": verde, "Y": amar})
+
+
+def _v_mysterio(t):
+    verde = "#2f6b3a"
+    basico(t, "#9fd8e8", verde, verde, verde, "#5b2a86", luvas="#5b2a86")
+    t.desenho("cabeca", "frente", ["CCCCCCCC", "CBCCCCBC", "CCCCCCCC", "CCWCCWCC", "CCCCCCCC", "CCCCCCCC",
+                                   "CBCCCCBC", "CCCCCCCC"], {"C": "#9fd8e8", "B": "#d0f0ff", "W": "#ffffff"})
+    t.parte("corpo", "#5b2a86", faces=("tras",))
+    t.desenho("corpo", "frente", ["OOOOOOOO", "GOGGGGOG", "GGOGGOGG"], {"O": "#d4a72c", "G": verde})
+
+
+def _v_abutre(t):
+    verde = "#4a5a3a"
+    basico(t, verde, verde, verde, "#3a3a40", "#2b2b30")
+    t.desenho("cabeca", "frente", ["GGGGGGGG", "GKKKKKKG", "GGGGGGGG", "GOOGGOOG", "GGGGGGGG", "GGGGGGGG"],
+              {"G": verde, "K": "#2b2b30", "O": "#5bd35b"})
+    t.parte("corpo", "#6b5a3a", faces=("tras",))
+
+
+def _v_destino(t):
+    prata, verde = "#8f949c", "#2f6b3a"
+    basico(t, verde, prata, prata, prata, prata)
+    t.desenho("cabeca", "frente", ["GGGGGGGG", "GSSSSSSG", "GSKSSKSG", "GSSSSSSG", "GSSKKSSG", "GSSSSSSG",
+                                   "GSKKKKSG", "GGSSSSGG"], {"G": verde, "S": prata, "K": "#1b1b1f"})
+    t.desenho("corpo", "frente", ["GGSSSSGG", "GGSSSSGG", "GGGGGGGG", "GGGGGGGG", "GGGGGGGG", "KKKKKKKK",
+                                  "GGGGGGGG"], {"G": verde, "S": prata, "K": "#5a3a22"})
+
+
+def _v_hela(t):
+    preto, verde = "#141414", "#1f5a2f"
+    basico(t, preto, preto, preto, preto, preto, pele="#d8d0d8")
+    t.desenho("cabeca", "frente", ["K.K..K.K", "KKKKKKKK", "KSSSSSSK", "KGGSSGGK", "KSSSSSSK", "KSSKKSSK"],
+              {"K": preto, "S": "#d8d0d8", "G": "#2f8a3a"})
+    t.desenho("corpo", "frente", ["GKKKKKKG", "KGKKKKGK", "KKGKKGKK", "KKKGGKKK"], {"G": verde, "K": preto})
+
+
+def _v_kang(t):
+    roxo, verde = "#4a2a7a", "#2f6b3a"
+    basico(t, roxo, verde, roxo, roxo, verde, luvas=verde)
+    t.desenho("cabeca", "frente", ["PPPPPPPP", "PBBBBBBP", "PBWBBWBP", "PBBBBBBP", "PBBBBBBP", "PPBBBBPP",
+                                   "PPPPPPPP", "PPPPPPPP"], {"P": roxo, "B": "#4a7ad0", "W": "#ffffff"})
+
+
+def _v_killmonger(t):
+    ouro, preto = "#c9a227", "#1b1b1f"
+    basico(t, ouro, preto, preto, preto, ouro)
+    t.desenho("cabeca", "frente", ["OOOOOOOO", "OKOOOOKO", "OWWOOWWO", "OOOOOOOO", "OOOKKOOO", "OKKKKKKO",
+                                   "OOOOOOOO", "OOOOOOOO"], {"O": ouro, "K": preto, "W": "#ffffff"})
+    t.desenho("corpo", "frente", ["OKOKKOKO", "KOKOOKOK", "KKOOOOKK"], {"O": ouro, "K": preto})
+
+
+def _v_ronan(t):
+    azul, preto = "#2f4f8a", "#141414"
+    basico(t, azul, preto, preto, preto, preto)
+    t.desenho("cabeca", "frente", ["KKKKKKKK", "KKKKKKKK", "AKKAAKKA", "AAAAAAAA", "AKAAAAKA", "AAKKKKAA",
+                                   "AAAAAAAA", "AAAAAAAA"], {"K": preto, "A": azul})
+    t.desenho("corpo", "frente", ["KKKKKKKK", "KGKKKKGK", "KKGGGGKK"], {"K": preto, "G": "#6a6f78"})
+
+
+def _v_galactus(t):
+    roxo, azul = "#6a2a9a", "#2f4fb8"
+    basico(t, roxo, azul, roxo, azul, roxo, luvas=roxo)
+    t.desenho("cabeca", "frente", ["P.PPPP.P", "PPPPPPPP", "PSSSSSSP", "PSWSSWSP", "PSSSSSSP", "PSSKKSSP",
+                                   "PSSSSSSP", "PPPPPPPP"], {"P": roxo, "S": "#d8a080", "W": "#7fe7ff", "K": "#7a4a30"})
+    t.desenho("corpo", "frente", ["PPPPPPPP", "PAAAAAAP", "PAPPPPAP", "PAPAAPAP", "PAPAAPAP", "PAPPPPAP",
+                                  "PAAAAAAP", "PPPPPPPP"], {"P": roxo, "A": azul})
+
+
+def _v_carnificina(t):
+    verm, preto = "#c8102e", "#141414"
+    basico(t, verm, verm, verm, verm, verm)
+    t.desenho("cabeca", "frente", ["RKRRRKRR", "WWKRRKWW", "WWWKKWWW", "RWWKKWWR", "RRKRRKRR", "WKWKWKWK",
+                                   "KRRRRRRK", "WKWKWKWK"], {"R": verm, "K": preto, "W": "#ffffff"})
+    for parte in ("corpo", "braco"):
+        t.desenho(parte, "frente", ["RKRR", "RRKR", "KRRK", "RKKR"] * 3, {"R": verm, "K": preto})
+
+
+def _v_kraven(t):
+    basico(t, "#3a2a1c", "#c48a3a", PELE2, "#3a3a2a", "#3a2a1c", pele=PELE2)
+    t.desenho("cabeca", "frente", ["HHHHHHHH", "HHHHHHHH", "HSSSSSSH", "SKKSSKKS", "SSSSSSSS", "HHHHHHHH",
+                                   "HHHHHHHH", ".HHHHHH."], {"H": "#3a2a1c", "S": PELE2, "K": "#141414"})
+    t.desenho("corpo", "frente", ["LLLLLLLL", "LMMLLMML", "LLLLLLLL", "LLMMMMLL"], {"L": "#c48a3a", "M": "#7a4a20"})
+
+
+def _v_abominavel(t):
+    verde = "#5a7a3a"
+    basico(t, verde, verde, verde, "#3a3a40", verde)
+    t.desenho("cabeca", "frente", ["GDGDGDGD", "DGGGGGGD", "GYYGGYYG", "GGGGGGGG", "GDGDDGDG", "GWWWWWWG",
+                                   "GGGGGGGG", "DGDGDGDG"], {"G": verde, "D": "#3d5a28", "Y": "#f2e23a", "W": "#ffffff"})
+    for parte in ("corpo", "braco"):
+        t.desenho(parte, "frente", ["GDGD", "DGDG"] * 6, {"G": verde, "D": "#3d5a28"})
+
+
+def _v_flash_reverso(t):
+    amar, verm = "#f2c418", "#c8141c"
+    basico(t, amar, amar, amar, amar, verm)
+    t.desenho("cabeca", "frente", ["YYYYYYYY", "YYYYYYYY", "YRRYYRRY", "YYYYYYYY", "SSSSSSSS", "SSSSSSSS",
+                                   "SSSSSSSS", "SSSSSSSS"], {"Y": amar, "R": verm, "S": PELE})
+    t.desenho("corpo", "frente", ["YYYYYYYY", "YYKKKKYY", "YKKRKKKY", "YKRRRKKY", "YKKRRRKY", "YKKKRKKY",
+                                  "YYKKKKYY", "YYYYYYYY", "RRRRRRRR"], {"Y": amar, "K": "#1b1b1f", "R": verm})
+
+
+# id, nome, desenho, vida, dano, escala, velocidade, chefão, covil (x, y, z do mundo)
+VILOES = [
+    ("thanos", "Thanos", _v_thanos, 400, 14, 1.5, 0.28, True, (-305, 247, -1065)),
+    ("loki", "Loki", _v_loki, 140, 7, 1.0, 0.32, False, (185, 64, -854)),
+    ("ultron", "Ultron", _v_ultron, 240, 10, 1.2, 0.3, True, (600, 64, -560)),
+    ("caveira_vermelha", "Caveira Vermelha", _v_caveira, 160, 8, 1.0, 0.3, False, (-255, 32, -544)),
+    ("duende_verde", "Duende Verde", _v_duende, 160, 9, 1.0, 0.33, False, (294, 227, -905)),
+    ("doutor_octopus", "Doutor Octopus", _v_octopus, 180, 10, 1.1, 0.28, False, (388, 64, -448)),
+    ("venom", "Venom", _v_venom, 220, 12, 1.4, 0.34, True, (-200, 64, -1000)),
+    ("electro", "Electro", _v_electro, 130, 8, 1.0, 0.32, False, (-360, 64, -605)),
+    ("mysterio", "Mysterio", _v_mysterio, 130, 7, 1.0, 0.3, False, (-90, 64, -880)),
+    ("abutre", "Abutre", _v_abutre, 130, 8, 1.0, 0.34, False, (520, 64, -1150)),
+    ("doutor_destino", "Doutor Destino", _v_destino, 280, 12, 1.1, 0.28, True, (-366, 64, -906)),
+    ("hela", "Hela", _v_hela, 280, 12, 1.1, 0.3, True, (-110, 64, -1122)),
+    ("kang", "Kang", _v_kang, 240, 11, 1.1, 0.3, True, (-140, 64, -1068)),
+    ("killmonger", "Killmonger", _v_killmonger, 170, 10, 1.0, 0.34, False, (14, 64, -1207)),
+    ("ronan", "Ronan", _v_ronan, 240, 12, 1.3, 0.28, True, (416, 64, -1015)),
+    ("galactus", "Galactus", _v_galactus, 1500, 25, 6.0, 0.22, True, (-250, 64, -363)),
+    ("carnificina", "Carnificina", _v_carnificina, 200, 12, 1.2, 0.36, False, (520, 64, -510)),
+    ("kraven", "Kraven, o Caçador", _v_kraven, 160, 9, 1.0, 0.38, False, (-310, 64, -870)),
+    ("abominavel", "Abominável", _v_abominavel, 350, 15, 1.8, 0.28, True, (675, 64, -560)),
+    ("flash_reverso", "Flash Reverso", _v_flash_reverso, 170, 9, 1.0, 0.45, False, (518, 64, -1308)),
+]
+
+# Artefatos: id, nome, cor, símbolo, recarga, onde fica (x, y, z do mundo)
+ARTEFATOS = [
+    ("manopla", "Manopla do Infinito", "#d4a72c", "punho", 60, (-305, 245, -1050)),
+    ("darkhold", "Darkhold", "#2b1b1b", "escudo", 20, (-257, 77, -669)),
+    ("olho_agamotto", "Olho de Agamotto", "#2f8a3a", "anel", 30, (-254, 77, -669)),
+    ("capa_levitacao", "Capa da Levitação", "#b51d24", "seta", 1, (-251, 77, -669)),
+    ("livro_vishanti", "Livro dos Vishanti", "#d4a72c", "escudo", 30, (-248, 77, -669)),
+    ("mjolnir_artefato", "Mjolnir", "#9aa0aa", "martelo", 2, (172, 205, -904)),
+    ("rompe_tormentas", "Rompe-Tormentas", "#6e4b2a", "martelo", 10, (176, 205, -904)),
+    ("tesseract", "Tesseract", "#3d9cff", "bola", 10, (362, 64, -378)),
+    ("lanca_odin", "Lança de Odin (Gungnir)", "#d4a72c", "flecha", 3, (-75, 64, -1112)),
+    ("dez_aneis", "Os Dez Anéis", "#3db8ff", "anel", 4, (-10, 64, -1207)),
+    ("cetro_loki", "Cetro do Loki", "#3d9cff", "raio", 15, (184, 64, -850)),
+    ("capacete_magneto", "Capacete do Magneto", "#a8121c", "escudo", 30, (590, 64, -1310)),
+    ("necroespada", "Necroespada", "#141414", "garra", 3, (-140, 64, -1064)),
+    ("erva_coracao", "Erva-Coração de Wakanda", "#8a5cd6", "bola", 60, (388, 64, -900)),
+    ("orbe_morag", "Orbe de Morag", "#8a5cd6", "bola", 15, (443, 138, -1015)),
+    ("forca_fenix", "Força Fênix", "#ff7a00", "bola", 90, (600, 40, -1291)),
+]
+
+GEOMETRIA = {
+    "format_version": "1.12.0",
+    "minecraft:geometry": [{
+        "description": {"identifier": "geometry.mv.humanoide", "texture_width": 64, "texture_height": 64,
+                        "visible_bounds_width": 2, "visible_bounds_height": 3, "visible_bounds_offset": [0, 1.5, 0]},
+        "bones": [
+            {"name": "root", "pivot": [0, 0, 0]},
+            {"name": "body", "parent": "root", "pivot": [0, 24, 0],
+             "cubes": [{"origin": [-4, 12, -2], "size": [8, 12, 4], "uv": [16, 16]}]},
+            {"name": "head", "parent": "body", "pivot": [0, 24, 0],
+             "cubes": [{"origin": [-4, 24, -4], "size": [8, 8, 8], "uv": [0, 0]}]},
+            {"name": "rightArm", "parent": "body", "pivot": [-5, 22, 0],
+             "cubes": [{"origin": [-8, 12, -2], "size": [4, 12, 4], "uv": [40, 16]}]},
+            {"name": "leftArm", "parent": "body", "pivot": [5, 22, 0],
+             "cubes": [{"origin": [4, 12, -2], "size": [4, 12, 4], "uv": [32, 48]}]},
+            {"name": "rightLeg", "parent": "root", "pivot": [-1.9, 12, 0],
+             "cubes": [{"origin": [-3.9, 0, -2], "size": [4, 12, 4], "uv": [0, 16]}]},
+            {"name": "leftLeg", "parent": "root", "pivot": [1.9, 12, 0],
+             "cubes": [{"origin": [-0.1, 0, -2], "size": [4, 12, 4], "uv": [16, 48]}]},
+        ]}]}
+
+
+def _pele_vilao(desenho):
+    """Textura 64x64 do vilão (o mesmo desenho dos trajes, com os membros esquerdos copiados)."""
+    t = Traje()
+    desenho(t)
+    junto = t.c2.copy()
+    m1 = t.c1[:, :, 3] > 0
+    junto[m1] = t.c1[m1]
+    pele = np.zeros((64, 64, 4), np.uint8)
+    pele[0:32] = junto
+    pele[48:64, 32:48] = junto[16:32, 40:56]           # braço esquerdo
+    pele[48:64, 16:32] = junto[16:32, 0:16]            # perna esquerda
+    pele[:, :, 3] = np.where(pele[:, :, 3] > 0, 255, 0)
+    return pele
+
+
+def gerar_viloes(bp, rp, lang, texturas_itens):
+    _w(os.path.join(rp, "models", "entity", "mv_humanoide.geo.json"), GEOMETRIA)
+    for vid, nome, desenho, vida, dano, escala, vel, chefe, _ in VILOES:
+        Image.fromarray(_pele_vilao(desenho), "RGBA").save(_caminho(rp, "textures", "entity", "viloes", f"{vid}.png"))
+        comp = {
+            "minecraft:type_family": {"family": ["monster", "vilao", "mob"]},
+            "minecraft:health": {"value": vida, "max": vida},
+            "minecraft:attack": {"damage": dano},
+            "minecraft:movement": {"value": vel},
+            "minecraft:navigation.walk": {"can_path_over_water": True, "avoid_water": True, "can_open_doors": True},
+            "minecraft:movement.basic": {}, "minecraft:jump.static": {}, "minecraft:can_climb": {},
+            "minecraft:collision_box": {"width": 0.6, "height": 1.9},
+            "minecraft:scale": {"value": escala},
+            "minecraft:physics": {}, "minecraft:pushable": {"is_pushable": True, "is_pushable_by_piston": True},
+            "minecraft:follow_range": {"value": 48, "max": 64},
+            "minecraft:knockback_resistance": {"value": 0.6 if chefe else 0.3},
+            "minecraft:nameable": {"always_show": True, "allow_name_tag_renaming": False},
+            "minecraft:fire_immune": True,
+            "minecraft:damage_sensor": {"triggers": [{"cause": "fall", "deals_damage": "no"}]},
+            "minecraft:breathable": {"total_supply": 15, "suffocate_time": 0, "breathes_water": True},
+            "minecraft:behavior.float": {"priority": 0},
+            "minecraft:behavior.hurt_by_target": {"priority": 1},
+            "minecraft:behavior.nearest_attackable_target": {
+                "priority": 2, "must_see": False, "reselect_targets": True, "within_radius": 32,
+                "entity_types": [{"filters": {"test": "is_family", "subject": "other", "value": "player"},
+                                  "max_dist": 32}]},
+            "minecraft:behavior.melee_attack": {"priority": 3, "speed_multiplier": 1.2, "track_target": True},
+            "minecraft:behavior.random_stroll": {"priority": 6, "speed_multiplier": 0.8},
+            "minecraft:behavior.look_at_player": {"priority": 7, "look_distance": 12},
+            "minecraft:behavior.random_look_around": {"priority": 8},
+        }
+        if chefe:
+            comp["minecraft:boss"] = {"should_darken_sky": False, "hud_range": 48, "name": nome}
+        _w(os.path.join(bp, "entities", f"{vid}.json"), {
+            "format_version": "1.21.0",
+            "minecraft:entity": {"description": {"identifier": f"{NS}:{vid}", "is_spawnable": True,
+                                                 "is_summonable": True, "is_experimental": False},
+                                 "components": comp}})
+        _w(os.path.join(rp, "entity", f"{vid}.entity.json"), {
+            "format_version": "1.10.0",
+            "minecraft:client_entity": {"description": {
+                "identifier": f"{NS}:{vid}",
+                "materials": {"default": "entity_alphatest"},
+                "textures": {"default": f"textures/entity/viloes/{vid}"},
+                "geometry": {"default": "geometry.mv.humanoide"},
+                "animations": {"move": "animation.humanoid.move", "look": "animation.humanoid.look_at_target.default",
+                               "pose": "animation.humanoid.base_pose"},
+                "scripts": {"animate": ["pose", "look", "move"]},
+                "render_controllers": ["controller.render.default"],
+                "spawn_egg": {"base_color": "#1b1b1f", "overlay_color": "#c8141c"}}}})
+        lang.append(f"entity.{NS}:{vid}.name={nome}")
+        lang.append(f"item.spawn_egg.entity.{NS}:{vid}.name=Ovo: {nome}")
+    for aid, nome, c_ic, simbolo, recarga, _ in ARTEFATOS:
+        iid = f"{NS}:artefato_{aid}"
+        _icone(_caminho(rp, "textures", "items", f"artefato_{aid}.png"), ICONES[simbolo], c_ic,
+               "#ffffff" if c_ic not in ("#d4a72c",) else "#1b1b1f")
+        texturas_itens[iid] = {"textures": f"textures/items/artefato_{aid}"}
+        _w(os.path.join(bp, "items", "artefatos", f"{aid}.json"), {
+            "format_version": "1.21.40",
+            "minecraft:item": {"description": {"identifier": iid, "menu_category": {"category": "equipment"}},
+                               "components": {"minecraft:icon": iid, "minecraft:max_stack_size": 1,
+                                              "minecraft:display_name": {"value": f"§d{nome}"},
+                                              "minecraft:glint": True,
+                                              "minecraft:use_modifiers": {"use_duration": 0.1}}}})
+        lang.append(f"item.{iid}={nome}")
+
+
+def _caminho(*partes):
+    p = os.path.join(*partes)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    return p

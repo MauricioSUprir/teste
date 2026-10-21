@@ -82,3 +82,11 @@ Na frente do castelo sai um caminho até uma **estrada**. Na estrada há duas pl
 Dica: o jogo mostra as coordenadas no canto da tela. O Maracanã fica perto de **x = 400** e
 São Januário perto de **x = -250**.
 
+## Nova York e os heróis
+
+- Na estrada, siga a placa **"^ NOVA YORK"** (vire à esquerda saindo do castelo e suba a avenida).
+- Ao entrar no mundo você ganha o **Relógio dos Heróis**: segure e use para escolher um dos 31 heróis.
+  Se ele sumir, digite no chat: `/scriptevent mv:relogio`
+- Os **vilões** aparecem quando você chega perto do covil deles. Os **artefatos** ficam em blocos de
+  ouro com brilho: é só pisar perto para pegar.
+

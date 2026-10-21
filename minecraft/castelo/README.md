@@ -123,6 +123,28 @@ Uma **estrada** sai da frente do castelo: as placas mostram o caminho.
 ![Maracanã](saida/previa_maracana.png)
 ![São Januário](saida/previa_sao_januario.png)
 
+## Nova York, heróis, vilões e artefatos (só no mundo Bedrock / celular / PlayStation)
+
+![Nova York](saida/previa_nova_york.png)
+
+- **Nova York** (1200 x 1000 blocos), ao norte do castelo: grade de avenidas com calçadas, faixas,
+  semáforos, táxis e metrô; arranha-céus, prédios de tijolo com escada de incêndio e caixa d'água,
+  brownstones e as casas do Queens; Central Park, Times Square, Empire State, Chrysler, Grand Central,
+  Flatiron, Rockefeller Center, One WTC e o memorial, Wall Street e o Touro, Ponte do Brooklyn,
+  Estátua da Liberdade e Guggenheim.
+- **Marvel na cidade:** Torre dos Vingadores (elevadores de bolhas, Salão dos Heróis, laboratório,
+  heliponto e Quinjet), Sanctum Sanctorum, Clarim Diário, Edifício Baxter, casa do Peter Parker,
+  Praça dos Heróis com estátuas gigantes, Mansão X (Sala de Perigo, Cérebro e o jato X), Triskelion
+  e Aeroporta-aviões da S.H.I.E.L.D., Embaixada de Wakanda e a Balsa.
+- **Covis dos vilões:** Torre Oscorp, Latvéria, base da Hidra (escondida no subsolo), fábrica do
+  Ultron, ferro-velho, usina do Electro, laboratório do Octopus, a nave do Thanos no céu, a máquina
+  do Galactus, a nave do Ronan e o portal do Kang.
+- **31 heróis:** o **Relógio dos Heróis** abre o menu; o herói escolhido veste o traje e ganha os
+  poderes (51 no total: voar, raios, teia, martelo, esmagar, teletransporte, invisibilidade...).
+- **20 vilões:** aparecem nos covis quando você chega perto, com ataques especiais (os chefões têm barra de vida).
+- **16 artefatos** escondidos (marcados por um bloco de ouro e brilho): Manopla do Infinito, Darkhold,
+  Olho de Agamotto, Mjolnir, Rompe-Tormentas, Tesseract, Capa da Levitação e outros.
+
 ## Como funciona o código
 
 | Arquivo | O que faz |
@@ -135,6 +157,8 @@ Uma **estrada** sai da frente do castelo: as placas mostram o caminho.
 | `equipamentos.py` | Os itens dos baús (tabelas de loot). |
 | `exportar.py` | Converte o modelo em comandos otimizados, datapack e schematic. |
 | `estadios.py` | O Maracanã, São Januário e a estrada (`python3 estadios.py` gera as prévias). |
+| `cidade.py`, `marcos_ny.py`, `monumentos.py` | Nova York: ruas e prédios, pontos famosos, monumentos e covis. |
+| `herois.py`, `herois_main.js` | O pacote de heróis, vilões e artefatos (trajes em pixel art, itens, entidades e o script). |
 | `previa.py` | As imagens de prévia. |
 | `testar_no_servidor.py` | Sobe um servidor Minecraft oficial e testa tudo. |
 | `bedrock.py` | Traduz os blocos e o loot para o formato Bedrock. |

@@ -158,6 +158,18 @@ def todos():
     ):
         if no_ladrilho(*caixa, margem=16):
             f()
+    pedestais()
+
+
+def pedestais():
+    """O lugar de cada artefato: um bloco de ouro no chão (o script entrega o artefato a quem pisar perto)."""
+    import herois
+    for _, _, _, _, _, (x, y, z) in herois.ARTEFATOS:
+        cx, cy, cz = x, y - 64, z - c.DESLOC_MUNDO[1]
+        if no_ladrilho(cx, cz, cx, cz, 0):
+            P(cx, cy - 1, cz, "gold_block")
+            for dy in (0, 1):
+                P(cx, cy + dy, cz, "air")
 
 
 # ------------------------------------------------------------------ heróis
