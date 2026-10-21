@@ -32,6 +32,8 @@ def reservas():
     reservar("ponte_b", 466, 327, 512, 362)
     reservar("guggenheim", 30, -423, 119, -388)
     reservar("parker", 568, 9, 586, 26)
+    import monumentos
+    monumentos.reservas()
 
 
 def todos():
@@ -60,6 +62,8 @@ def todos():
     ):
         if no_ladrilho(*caixa, margem=12):
             f()
+    import monumentos
+    monumentos.todos()
 
 
 # ------------------------------------------------------------------ utilidades

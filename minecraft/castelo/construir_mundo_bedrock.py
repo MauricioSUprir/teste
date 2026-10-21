@@ -34,7 +34,7 @@ PROPRIEDADES = {
     "server-name": "Castelo Enorme", "level-name": MUNDO, "level-type": "FLAT", "gamemode": "survival",
     "difficulty": "easy", "allow-cheats": "true", "allow-list": "false", "online-mode": "true",
     "default-player-permission-level": "operator", "content-log-console-output-enabled": "true",
-    "view-distance": "16", "tick-distance": "6",
+    "view-distance": "16", "tick-distance": "6", "texturepack-required": "true",
 }
 
 
@@ -382,11 +382,30 @@ def main():
     empacotar(destino)
 
 
+def incluir_herois(mundo):
+    """Troca os pacotes do mundo pelo pacote dos heróis (os pacotes de construção saem)."""
+    import herois
+    bp, rp, _ = herois.gerar()
+    for pasta in ("behavior_packs", "resource_packs"):
+        shutil.rmtree(os.path.join(mundo, pasta), ignore_errors=True)
+    shutil.copytree(bp, os.path.join(mundo, "behavior_packs", "herois"))
+    shutil.copytree(rp, os.path.join(mundo, "resource_packs", "herois"))
+    with open(os.path.join(mundo, "world_behavior_packs.json"), "w") as f:
+        f.write('[{"pack_id":"%s","version":[%s]}]' % (herois.UUID["bp"], ",".join(map(str, herois.VERSAO))))
+    with open(os.path.join(mundo, "world_resource_packs.json"), "w") as f:
+        f.write('[{"pack_id":"%s","version":[%s]}]' % (herois.UUID["rp"], ",".join(map(str, herois.VERSAO))))
+
+
 def empacotar(destino):
     """Zip com o mundo e o server.properties para o usuário."""
     mundo = os.path.join(destino, "worlds", MUNDO)
-    shutil.rmtree(os.path.join(mundo, "behavior_packs"), ignore_errors=True)
-    os.remove(os.path.join(mundo, "world_behavior_packs.json"))
+    incluir_herois(mundo)
+    props_srv = os.path.join(destino, "server.properties")
+    linhas = open(props_srv).read().splitlines()
+    if not any(l.startswith("texturepack-required=") for l in linhas):
+        linhas.append("texturepack-required=true")
+    linhas = [("texturepack-required=true" if l.startswith("texturepack-required=") else l) for l in linhas]
+    open(props_srv, "w").write("\n".join(linhas) + "\n")
     saida = os.path.join(AQUI, "saida", "Castelo_PlayStation.zip")
     with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as zf:
         for raiz, _, arquivos in os.walk(mundo):

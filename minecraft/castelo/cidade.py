@@ -26,7 +26,7 @@ import estadios as es
 DESLOC_MUNDO = (0, -850)
 X_MIN, X_MAX, Z_MIN, Z_MAX = -500, 699, -500, 499
 TILE = 200
-YMIN, YMAX = -8, 236
+YMIN, YMAX = -40, 236
 SKIP = -1
 
 # ------------------------------------------------------------------ geografia
@@ -167,7 +167,6 @@ def chao_e_ruas():
     agua &= (X >= X_MIN) & (X <= X_MAX) & (Z >= Z_MIN) & (Z <= Z_MAX)
     for y in range(-5, 0):
         pintar(agua, y, "water")
-    pintar(agua, -6, "sand")
     dentro = (X >= X_MIN) & (X <= X_MAX) & (Z >= Z_MIN) & (Z <= Z_MAX) & ~agua
     # muro do cais e calçadão em volta da água
     viz = np.zeros_like(agua)

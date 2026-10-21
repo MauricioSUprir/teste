@@ -47,6 +47,14 @@ CORES = {
 
 
 def cor_de(nome):
+    if not CORES.get("_paleta"):
+        CORES["_paleta"] = True
+        try:
+            import monumentos
+            for k, v in monumentos.PALETA.items():
+                CORES.setdefault(k, v)
+        except ImportError:
+            pass
     base = nome.replace("minecraft:", "").split("[")[0]
     if base in CORES:
         return CORES[base]

@@ -80,12 +80,13 @@ def grama_morta():
     if "minecraft:grass_block" not in m.pidx:
         return
     g = m.pidx["minecraft:grass_block"]
+    terra = m.B("dirt")
     solido = np.array([eh_solido(n) and n != m.MANTER and n != "minecraft:air" and "leaves" not in n
                        for n in m.palette])
     for nome in ("minecraft:grass_block", "minecraft:dirt_path"):
         if nome in m.pidx:
             cobertas = (m.grid[:, :-1, :] == m.pidx[nome]) & solido[m.grid[:, 1:, :]]
-            m.grid[:, :-1, :][cobertas] = m.B("dirt")
+            m.grid[:, :-1, :][cobertas] = terra
 
 
 def _conexoes_painel(x, y, z, nome):
