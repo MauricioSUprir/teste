@@ -483,7 +483,7 @@ def ferro_velho():
     rnd = random.Random(8)
     for x in range(649, 700):
         for z in range(273, 307):
-            P(x, -1, z, "coarse_dirt" if (x + z) % 3 else "gravel")
+            P(x, -1, z, "coarse_dirt" if (x + z) % 3 else "coarse_dirt")
     for _ in range(40):
         x, z = rnd.randint(651, 696), rnd.randint(275, 304)
         h = rnd.randint(1, 5)
@@ -498,7 +498,7 @@ def usina_electro():
     x1, z1, x2, z2 = -410, 227, -321, 262
     for x in range(x1, x2 + 1):
         for z in range(z1, z2 + 1):
-            P(x, -1, z, "gravel")
+            P(x, -1, z, "coarse_dirt")
     c.predio(-405, 230, -380, 258, [(0, 20)], "tijolo", "e", 1882, caixa_dagua=False)
     cx, cz = -345, 245                                           # torre de resfriamento (hiperboloide)
     for y in range(0, 36):

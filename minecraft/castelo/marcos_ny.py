@@ -147,7 +147,7 @@ def central_park():
         for z in range(rz - az - 4, rz + az + 5):
             d = ((x - rx) / ax) ** 2 + ((z - rz) / az) ** 2
             if d <= 1:
-                col(x, z, -4, -1, "water"); P(x, -5, z, "sand")
+                col(x, z, -4, -1, "water"); P(x, -5, z, "dirt")
             elif d <= 1.16:
                 P(x, -1, z, "dirt_path")
                 if d <= 1.05:
@@ -159,7 +159,7 @@ def central_park():
     for x in range(-190, 10):
         for z in range(-345, -265):
             if any((x - a) ** 2 + (z - b) ** 2 <= r * r for a, b, r in lagos):
-                col(x, z, -3, -1, "water"); P(x, -4, z, "sand")
+                col(x, z, -3, -1, "water"); P(x, -4, z, "dirt")
                 ocupado.add((x, z))
     for x in range(-115, -94):                               # Ponte Bow (ferro fundido, em arco)
         y = int(2 - abs(x + 104) * 0.15)
