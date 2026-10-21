@@ -45,6 +45,11 @@ FONTE = {
     "Y": "10001 10001 01010 00100 00100 00100 00100", "Z": "11111 00001 00010 00100 01000 10000 11111",
     "0": "01110 10011 10101 10101 11001 10001 01110", "1": "00100 01100 00100 00100 00100 00100 01110",
     "2": "01110 10001 00001 00010 00100 01000 11111", "3": "11110 00001 00001 01110 00001 00001 11110",
+    "4": "00010 00110 01010 10010 11111 00010 00010", "5": "11111 10000 11110 00001 00001 10001 01110",
+    "6": "00110 01000 10000 11110 10001 10001 01110", "7": "11111 00001 00010 00100 01000 01000 01000",
+    "8": "01110 10001 10001 01110 10001 10001 01110", "9": "01110 10001 10001 01111 00001 00010 01100",
+    "^": "00100 01110 10101 00100 00100 00100 00100", ".": "00000 00000 00000 00000 00000 01100 01100",
+    "'": "00100 00100 01000 00000 00000 00000 00000",
     "<": "00010 00100 01000 11111 01000 00100 00010", ">": "01000 00100 00010 11111 00010 00100 01000",
     "-": "00000 00000 00000 11111 00000 00000 00000", " ": "00000 00000 00000 00000 00000 00000 00000",
 }
@@ -1283,12 +1288,36 @@ def _placa(texto, x_ini, cor, fundo):
         col(x, z, 0, 1, "iron_block")
 
 
+def estrada_ny():
+    """Avenida que sai da estrada principal (perto do Maracanã) e vai para o norte até Nova York.
+
+    Modelo centrado em (130, -115) do mundo; a cidade começa em z = -351 do mundo.
+    """
+    m.configurar(245, -2, 20)
+    _chao()
+    for z in range(-236, 241):                   # mundo: z de -351 a 125
+        for x in range(-13, 14):                 # mundo: x de 117 a 143
+            if abs(x) <= 8:
+                put(x, -1, z, "gray_concrete")
+                if x in (-2, 1) and (z // 4) % 2 == 0:
+                    put(x, -1, z, "white_concrete")
+            else:
+                put(x, -1, z, "smooth_stone")
+        if z % 20 == 0 and z < 230:
+            poste(-12, z, 7); poste(12, z, 7)
+    # placa para quem anda na estrada principal, virado para o norte (o leste fica à direita)
+    largura = escrever("^ NOVA YORK", (16, 3, 233), (1, 0), "white_concrete", fundo="blue_concrete", margem=1)
+    for x in (15, 16 + largura):
+        col(x, 233, 0, 1, "iron_block")
+
+
 # ===================================================================== conjunto
 ESTRUTURAS = {
     # nome: (função que monta o modelo, deslocamento (x, z) no mundo)
     "maracana": (maracana, (400, -126)),
     "sao_januario": (sao_januario, (-250, 44)),
     "acessos": (acessos, (160, 130)),
+    "estrada_ny": (estrada_ny, (130, -115)),
 }
 
 

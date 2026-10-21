@@ -265,6 +265,22 @@ def preparar_estadios():
             grupos[grupo] = cmds + extras
             etapas.append((grupo, areas, [a for a in amostra if xa <= a[0] <= xb]))
         print(f"{nome}: {sum(len(grupos[e[0]]) for e in etapas if e[0].startswith(nome)):,} comandos", flush=True)
+    import cidade                            # Nova York, ladrilho por ladrilho
+    total = 0
+    for n_lad, (tx, tz) in enumerate(cidade.ladrilhos(), start=1):
+        cidade.construir_ladrilho(tx, tz)
+        ex.finalizar()
+        lista = ex.caixas(limpar_acima=True)
+        desloc = (tx + cidade.DESLOC_MUNDO[0], tz + cidade.DESLOC_MUNDO[1])
+        bd.DESLOC[:] = desloc
+        amostra = _amostra(400, desloc)
+        for n, (areas, (xa, xb), pedacos) in enumerate(dividir(lista, desloc), start=1):
+            cmds, extras = bd.comandos(pedacos)
+            grupo = f"ny{n_lad}_{n}"
+            grupos[grupo] = cmds + extras
+            total += len(grupos[grupo])
+            etapas.append((grupo, areas, [a for a in amostra if xa <= a[0] <= xb]))
+    print(f"nova york: {total:,} comandos", flush=True)
     bd.DESLOC[:] = [0, 0]
     m.configurar(100, -34, 92)               # de volta ao tamanho do castelo
     return grupos, etapas

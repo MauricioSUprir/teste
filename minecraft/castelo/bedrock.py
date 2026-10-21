@@ -29,6 +29,7 @@ RENOMEAR = {
     "dirt_path": "grass_path", "note_block": "noteblock", "cobweb": "web", "magma_block": "magma",
     "powered_rail": "golden_rail", "tripwire": "trip_wire",
     "flowering_azalea_leaves": "azalea_leaves_flowered",
+    "bricks": "brick_block", "terracotta": "hardened_clay", "oak_door": "wooden_door",
 }
 ITENS_BEDROCK = {"minecraft:spectral_arrow": "minecraft:arrow", "minecraft:shulker_box": "minecraft:undyed_shulker_box"}
 # blocos sem equivalente simples no Bedrock (decoração que exige dados de bloco)

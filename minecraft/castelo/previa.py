@@ -34,6 +34,15 @@ CORES = {
     "orange_terracotta": (180, 92, 48), "orange_concrete": (224, 97, 1), "light_blue_concrete": (36, 137, 199),
     "polished_diorite": (192, 193, 194), "quartz_pillar": (235, 229, 222), "white_wool": (233, 236, 236),
     "black_wool": (21, 21, 26), "oak_planks": (162, 130, 78), "manter": (95, 159, 53),
+    "oak_leaves": (60, 120, 40), "birch_leaves": (90, 130, 60), "dark_oak_leaves": (50, 95, 30),
+    "jungle_leaves": (55, 130, 30), "spruce_leaves": (40, 80, 50), "oxidized_copper": (82, 162, 132),
+    "oxidized_cut_copper": (80, 153, 126), "light_blue_stained_glass": (110, 170, 215),
+    "cyan_stained_glass": (75, 125, 150), "gray_stained_glass": (75, 75, 75), "black_stained_glass": (30, 30, 35),
+    "blue_stained_glass": (50, 75, 175), "light_gray_stained_glass": (150, 150, 150), "packed_ice": (140, 180, 250),
+    "brown_terracotta": (77, 51, 36), "red_terracotta": (143, 61, 47), "terracotta": (152, 94, 68),
+    "bricks": (150, 97, 83), "granite": (149, 103, 86), "polished_granite": (154, 107, 89),
+    "smooth_sandstone": (223, 214, 170), "cut_sandstone": (217, 206, 159), "light_gray_terracotta": (135, 107, 98),
+    "stone_bricks": (122, 121, 122), "cyan_terracotta": (87, 91, 91), "lime_concrete": (94, 169, 24),
 }
 
 
