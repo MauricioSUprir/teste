@@ -17,6 +17,18 @@ export const ADMIN_SENHA_PBKDF2 =
 export const ADMIN_SALT = "beautynow-admin-v1";
 export const ADMIN_PBKDF2_ITERACOES = 310000;
 
+/**
+ * Outras pessoas com acesso ao painel (pedido do Mauricio, 21/10). Entram SÓ
+ * com o código de 6 dígitos que chega no próprio e-mail — não existe senha
+ * delas guardada no site. O e-mail fica como hash SHA-256 (em minúsculas)
+ * para o endereço não aparecer no código público. Para tirar o acesso de
+ * alguém, apague a linha e publique.
+ */
+export const ADMINS_POR_CODIGO: Readonly<Record<string, string>> = {
+  // Fabiana (fabiana@gruposuprir.com)
+  "45e590fc9272ca2a68b2a266e38590a7b389ef2af62051dc8cdee52caee53698": "Fabiana",
+};
+
 /** Validade do código de verificação, em minutos. */
 export const CODIGO_VALIDADE_MIN = 10;
 

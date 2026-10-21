@@ -9,6 +9,7 @@
  */
 import { LOJA } from "@/lib/loja";
 import type { LojaId } from "@/lib/loja";
+import { useConta } from "@/lib/conta/contexto";
 
 const DESTINOS: Record<
   LojaId,
@@ -45,6 +46,9 @@ const DESTINOS: Record<
 };
 
 export function BotaoConectarLojaIrma() {
+  // o código vai para quem está logado aqui (o admin principal ou a Fabiana)
+  const { usuario } = useConta();
+  const comEmail = (url: string) => (usuario?.email ? `${url}&email=${encodeURIComponent(usuario.email)}` : url);
   // mostra todas as lojas do grupo, menos a que está aberta
   const outras = (Object.keys(DESTINOS) as LojaId[]).filter((id) => id !== LOJA.id);
   return (
@@ -54,7 +58,7 @@ export function BotaoConectarLojaIrma() {
         return (
           <a
             key={id}
-            href={destino.url}
+            href={comEmail(destino.url)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[40px] px-4 text-[0.875rem] font-semibold text-white shadow-card transition-colors"

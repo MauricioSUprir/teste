@@ -20,6 +20,7 @@ import {
 } from "react";
 import {
   ADMIN_EMAIL,
+  ADMINS_POR_CODIGO,
   ADMIN_PBKDF2_ITERACOES,
   ADMIN_SALT,
   ADMIN_SENHA_PBKDF2,
@@ -76,7 +77,9 @@ interface ContaContexto {
    * "Conectar" entre os dois sites (mesma conta admin nos dois): a pessoa já
    * provou quem é ao entrar no primeiro site, então aqui só falta o código.
    */
-  iniciarLoginDiretoAdmin: () => Promise<{ ok: boolean; erro?: string }>;
+  iniciarLoginDiretoAdmin: (email?: string) => Promise<{ ok: boolean; erro?: string }>;
+  /** e-mail de quem entra no painel só com o código (sem senha) */
+  ehAdminPorCodigo: (email: string) => Promise<boolean>;
   confirmarCodigo: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
   /** manda um novo código para o mesmo e-mail (botão "Reenviar") */
   reenviarCodigo: () => Promise<{ ok: boolean; erro?: string }>;
@@ -138,6 +141,18 @@ function gerarCodigo(): string {
   return String(aleatorio % 1000000).padStart(6, "0");
 }
 
+/** nome de quem tem acesso ao painel só com o código (null = não tem) */
+async function nomeAdminPorCodigo(emailBruto: string): Promise<string | null> {
+  const email = emailBruto.trim().toLowerCase();
+  if (!email.includes("@")) return null;
+  const hash = await sha256(email);
+  return Object.prototype.hasOwnProperty.call(ADMINS_POR_CODIGO, hash) ? ADMINS_POR_CODIGO[hash] : null;
+}
+
+function sessaoAdmin(email: string, nome = "Administrador BeautyNow"): UsuarioPublico {
+  return { nome, email, cep: "", numero: "", complemento: "", viaGoogle: false, admin: true };
+}
+
 function lerUsuarios(): Usuario[] {
   try {
     const bruto = localStorage.getItem(CHAVE_USUARIOS);
@@ -172,27 +187,26 @@ export function ContaProvider({ children }: { children: ReactNode }) {
 
   // restaura sessão
   useEffect(() => {
+    let email: string;
     try {
       const salvo = localStorage.getItem(CHAVE_SESSAO);
       if (!salvo) return;
-      const email = JSON.parse(salvo) as string;
-      if (email === ADMIN_EMAIL) {
-        setUsuario({
-          nome: "Administrador BeautyNow",
-          email,
-          cep: "",
-          numero: "",
-          complemento: "",
-          viaGoogle: false,
-          admin: true,
-        });
+      email = JSON.parse(salvo) as string;
+    } catch {
+      return; // sem sessão
+    }
+    if (email === ADMIN_EMAIL) {
+      setUsuario(sessaoAdmin(email));
+      return;
+    }
+    void nomeAdminPorCodigo(email).then((nome) => {
+      if (nome) {
+        setUsuario(sessaoAdmin(email, nome));
         return;
       }
       const u = lerUsuarios().find((x) => x.email === email);
       if (u) setUsuario(publico(u));
-    } catch {
-      // sem sessão
-    }
+    });
   }, []);
 
   const criarConta: ContaContexto["criarConta"] = useCallback(async (dados) => {
@@ -201,7 +215,9 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     if (dados.senha.length < 8) return { ok: false, erro: "A senha precisa de pelo menos 8 caracteres." };
     if (!/^\d{5}-?\d{3}$/.test(dados.cep.trim())) return { ok: false, erro: "CEP inválido. Use o formato 00000-000." };
     if (!dados.numero.trim()) return { ok: false, erro: "Informe o número da residência." };
-    if (email === ADMIN_EMAIL) return { ok: false, erro: "Este e-mail é reservado. Use outro." };
+    if (email === ADMIN_EMAIL || (await nomeAdminPorCodigo(email))) {
+      return { ok: false, erro: "Este e-mail é reservado. Use outro." };
+    }
     const usuarios = lerUsuarios();
     if (usuarios.some((u) => u.email === email)) {
       return { ok: false, erro: "Já existe uma conta com este e-mail. Entre com sua senha." };
@@ -237,6 +253,8 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       if ((await pbkdf2(senha)) !== ADMIN_SENHA_PBKDF2) {
         return { ok: false, erro: "E-mail ou senha incorretos." };
       }
+    } else if (await nomeAdminPorCodigo(email)) {
+      // acesso ao painel só com o código: a prova é o próprio e-mail
     } else {
       const u = lerUsuarios().find((x) => x.email === email);
       if (!u || u.senhaHash !== (await sha256(senha))) {
@@ -257,16 +275,27 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }, []);
 
-  const iniciarLoginDiretoAdmin: ContaContexto["iniciarLoginDiretoAdmin"] = useCallback(async () => {
+  const iniciarLoginDiretoAdmin: ContaContexto["iniciarLoginDiretoAdmin"] = useCallback(async (emailBruto) => {
+    // o código vai para quem estava logado na loja de origem — o admin
+    // principal ou alguém da lista ADMINS_POR_CODIGO; outro e-mail é ignorado
+    const alvo = emailBruto ? emailBruto.trim().toLowerCase() : ADMIN_EMAIL;
+    if (alvo !== ADMIN_EMAIL && !(await nomeAdminPorCodigo(alvo))) {
+      return { ok: false, erro: "Acesso não autorizado." };
+    }
     if (await emailRealAtivo()) {
-      const r = await solicitarCodigoPorEmail(ADMIN_EMAIL);
+      const r = await solicitarCodigoPorEmail(alvo);
       if (!r.ok) return { ok: false, erro: r.erro };
-      setPendente({ email: ADMIN_EMAIL, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+      setPendente({ email: alvo, codigo: null, expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
     } else {
-      setPendente({ email: ADMIN_EMAIL, codigo: gerarCodigo(), expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
+      setPendente({ email: alvo, codigo: gerarCodigo(), expiraEm: Date.now() + CODIGO_VALIDADE_MIN * 60_000 });
     }
     return { ok: true };
   }, []);
+
+  const ehAdminPorCodigo: ContaContexto["ehAdminPorCodigo"] = useCallback(
+    async (email) => Boolean(await nomeAdminPorCodigo(email)),
+    []
+  );
 
   const confirmarCodigo: ContaContexto["confirmarCodigo"] = useCallback(
     async (codigo) => {
@@ -284,16 +313,11 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       }
       const email = pendente.email;
       let sessao: UsuarioPublico;
+      const nomeAdmin = email === ADMIN_EMAIL ? null : await nomeAdminPorCodigo(email);
       if (email === ADMIN_EMAIL) {
-        sessao = {
-          nome: "Administrador BeautyNow",
-          email,
-          cep: "",
-          numero: "",
-          complemento: "",
-          viaGoogle: false,
-          admin: true,
-        };
+        sessao = sessaoAdmin(email);
+      } else if (nomeAdmin) {
+        sessao = sessaoAdmin(email, nomeAdmin);
       } else {
         const u = lerUsuarios().find((x) => x.email === email);
         if (!u) return { ok: false, erro: "Conta não encontrada." };
@@ -423,7 +447,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
 
       // a conta de administrador NUNCA entra só pelo Google: segue pedindo o
       // código, para um clique não bastar para ganhar acesso ao painel
-      if (email === ADMIN_EMAIL) {
+      if (email === ADMIN_EMAIL || (await nomeAdminPorCodigo(email))) {
         const r = await iniciarVerificacaoGoogle(nome, email);
         return { ...r, direto: false };
       }
@@ -476,6 +500,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       criarConta,
       iniciarLogin,
       iniciarLoginDiretoAdmin,
+      ehAdminPorCodigo,
       confirmarCodigo,
       reenviarCodigo,
       cancelarVerificacao,
@@ -490,6 +515,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
       criarConta,
       iniciarLogin,
       iniciarLoginDiretoAdmin,
+      ehAdminPorCodigo,
       confirmarCodigo,
       reenviarCodigo,
       cancelarVerificacao,

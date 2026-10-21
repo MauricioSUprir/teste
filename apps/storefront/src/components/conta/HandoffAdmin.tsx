@@ -20,7 +20,7 @@ export function HandoffAdmin() {
     if (params.get("entrar") !== "direto") return;
     if (conta.usuario?.admin || conta.aguardandoCodigo) return;
     disparado.current = true;
-    void conta.iniciarLoginDiretoAdmin();
+    void conta.iniciarLoginDiretoAdmin(params.get("email") ?? undefined);
   }, [params, conta]);
 
   return null;

@@ -5,7 +5,7 @@
  * enviado ao e-mail que está tentando entrar (EtapaCodigo).
  * Pelo Google não há segunda etapa: o Google já confirmou o e-mail.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
@@ -20,6 +20,19 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
+  // e-mail de quem entra no painel só com o código: some o campo de senha
+  const [semSenha, setSemSenha] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    const t = setTimeout(() => {
+      void conta.ehAdminPorCodigo(email).then((sim) => ativo && setSemSenha(sim));
+    }, 250);
+    return () => {
+      ativo = false;
+      clearTimeout(t);
+    };
+  }, [email, conta]);
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
@@ -52,20 +65,26 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
           className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
         />
       </div>
-      <div>
-        <label htmlFor="login-senha" className="block text-[0.8125rem] font-medium text-grafite">
-          {copy.conta.senha}
-        </label>
-        <input
-          id="login-senha"
-          type="password"
-          required
-          autoComplete="current-password"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
-        />
-      </div>
+      {semSenha ? (
+        <p role="status" className="rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
+          {copy.conta.acessoPorCodigo}
+        </p>
+      ) : (
+        <div>
+          <label htmlFor="login-senha" className="block text-[0.8125rem] font-medium text-grafite">
+            {copy.conta.senha}
+          </label>
+          <input
+            id="login-senha"
+            type="password"
+            required
+            autoComplete="current-password"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            className="mt-1 h-11 w-full rounded-[4px] border border-linha bg-white px-3 text-[0.9375rem] outline-none focus:border-violeta"
+          />
+        </div>
+      )}
 
       {erro && (
         <p role="alert" className="rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] font-medium text-erro">
@@ -79,7 +98,7 @@ export function FormEntrar({ destino = "/conta" }: { destino?: string }) {
         aria-busy={enviando}
         className="w-full rounded-[40px] bg-roxo py-3 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro disabled:bg-cinza"
       >
-        {enviando ? copy.conta.botaoEntrando : copy.conta.botaoEntrar}
+        {enviando ? copy.conta.botaoEntrando : semSenha ? copy.conta.botaoEnviarCodigo : copy.conta.botaoEntrar}
       </button>
       {enviando && (
         <p role="status" className="text-center text-[0.8125rem] text-grafite">

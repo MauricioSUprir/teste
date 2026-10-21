@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
-import { ADMIN_EMAIL, GOOGLE_CLIENT_ID } from "@/lib/conta/config";
+import { ADMIN_EMAIL, ADMINS_POR_CODIGO, GOOGLE_CLIENT_ID } from "@/lib/conta/config";
 import { catalogoReal } from "@/lib/catalogo/consultas";
 import { emailRealAtivo, mercadoPagoAtivo, servidorConfigurado } from "@/lib/servidor";
 
@@ -72,6 +72,12 @@ export function AbaConfiguracoes() {
         <p className="mt-2 text-[0.875rem] text-grafite">
           {ADMIN_EMAIL} · senha protegida por PBKDF2 · verificação em 2 etapas obrigatória
         </p>
+        {Object.values(ADMINS_POR_CODIGO).length > 0 && (
+          <p className="mt-1 text-[0.875rem] text-grafite">
+            Também têm acesso (entram com o código enviado ao próprio e-mail, sem senha):{" "}
+            <strong className="text-tinta">{Object.values(ADMINS_POR_CODIGO).join(", ")}</strong>
+          </p>
+        )}
       </section>
 
       <section className="mt-4 rounded-[8px] border border-linha bg-white p-5">

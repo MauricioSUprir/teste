@@ -686,6 +686,9 @@ export const copy = {
     numero: "Número da residência",
     complemento: "Complemento (opcional)",
     botaoEntrar: "Entrar",
+    /** acesso ao painel só com o código (ADMINS_POR_CODIGO) */
+    botaoEnviarCodigo: "Enviar código",
+    acessoPorCodigo: "Acesso ao painel: enviamos um código de 6 dígitos para este e-mail. Não precisa de senha.",
     botaoEntrando: "Enviando código…",
     botaoCriar: "Criar conta",
     botaoCriando: "Criando conta…",
