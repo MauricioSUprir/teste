@@ -9,11 +9,12 @@
  * neste navegador (demonstração); com o servidor no ar, a mesma tela passa
  * a mostrar os dados reais centralizados.
  */
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
 import { useConta } from "@/lib/conta/contexto";
 import { atualizarStatus, lerPedidos, type Pedido, type StatusPedido } from "@/lib/pedidos";
+import { listarPedidosAdmin, servidorConfigurado, type PedidoAdmin } from "@/lib/servidor";
 import { AbaVisaoGeral } from "@/components/admin/AbaVisaoGeral";
 import { AbaPedidos } from "@/components/admin/AbaPedidos";
 import { AbaCatalogo } from "@/components/admin/AbaCatalogo";
@@ -50,15 +51,44 @@ const abas: { id: Aba; rotulo: string }[] = [
   { id: "config", rotulo: "Configurações" },
 ];
 
+/** pedido do servidor no formato que os gráficos e a aba Clientes usam */
+function deServidor(p: PedidoAdmin): Pedido {
+  return {
+    numero: p.numero,
+    data: p.data,
+    clienteNome: p.clienteNome,
+    clienteEmail: p.clienteEmail,
+    itens: p.itens,
+    totalCentavos: p.totalCentavos,
+    meio: p.meio === "pix" || p.meio === "boleto" ? p.meio : "cartao",
+    freteNome: p.freteNome,
+    cupom: p.cupom ?? undefined,
+    descontoCentavos: p.descontoCentavos,
+    status: p.status,
+  };
+}
+
 export function PainelAdmin() {
   const conta = useConta();
   const [aba, setAba] = useState<Aba>("visao");
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  // pedidos feitos NESTE navegador (demonstração / compras do próprio admin)
+  const [pedidosLocais, setPedidosLocais] = useState<Pedido[]>([]);
+  // todos os pedidos das lojas, guardados no servidor (24/10: a visão geral,
+  // os gráficos e os clientes liam só os do navegador e ficavam zerados)
+  const [pedidosServidor, setPedidosServidor] = useState<Pedido[] | null>(null);
+  const [carregandoPedidos, setCarregandoPedidos] = useState(false);
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
 
   useEffect(() => {
     if (!conta.usuario?.admin) return;
-    setPedidos(lerPedidos());
+    setPedidosLocais(lerPedidos());
+    if (servidorConfigurado()) {
+      setCarregandoPedidos(true);
+      void listarPedidosAdmin().then((r) => {
+        if (r.ok) setPedidosServidor(r.pedidos.map(deServidor));
+        setCarregandoPedidos(false);
+      });
+    }
     try {
       const bruto = localStorage.getItem("beautynow:usuarios:v1");
       const lista = bruto ? (JSON.parse(bruto) as ClienteResumo[]) : [];
@@ -68,9 +98,29 @@ export function PainelAdmin() {
     }
   }, [conta.usuario]);
 
+  // servidor primeiro; pedido local que o servidor não conhece entra junto
+  const pedidos = useMemo(() => {
+    const doServidor = pedidosServidor ?? [];
+    const numeros = new Set(doServidor.map((p) => p.numero));
+    return [...doServidor, ...pedidosLocais.filter((p) => !numeros.has(p.numero))].sort((a, b) =>
+      a.data < b.data ? 1 : -1
+    );
+  }, [pedidosServidor, pedidosLocais]);
+
+  // clientes: contas deste navegador + quem comprou (pedidos do servidor)
+  const todosClientes = useMemo(() => {
+    const porEmail = new Map(clientes.map((c) => [c.email.toLowerCase(), c]));
+    for (const p of pedidos) {
+      const email = p.clienteEmail.trim().toLowerCase();
+      if (email && !porEmail.has(email)) porEmail.set(email, { nome: p.clienteNome, email: p.clienteEmail });
+    }
+    return [...porEmail.values()];
+  }, [clientes, pedidos]);
+
   function mudarStatus(numero: string, status: StatusPedido) {
     atualizarStatus(numero, status);
-    setPedidos(lerPedidos());
+    setPedidosLocais(lerPedidos());
+    setPedidosServidor((lista) => lista && lista.map((p) => (p.numero === numero ? { ...p, status } : p)));
   }
 
   if (!conta.usuario?.admin) {
@@ -134,14 +184,14 @@ export function PainelAdmin() {
       </div>
 
       <div className="pt-6">
-        {aba === "visao" && <AbaVisaoGeral pedidos={pedidos} />}
-        {aba === "pedidos" && <AbaPedidos pedidos={pedidos} aoMudarStatus={mudarStatus} />}
+        {aba === "visao" && <AbaVisaoGeral pedidos={pedidos} carregando={carregandoPedidos} />}
+        {aba === "pedidos" && <AbaPedidos pedidos={pedidosLocais} aoMudarStatus={mudarStatus} />}
         {aba === "catalogo" && <AbaCatalogo />}
         {aba === "banners" && <AbaBanners />}
         {aba === "profissionais" && <AbaProfissionais />}
         {aba === "afiliados" && <AbaAfiliados />}
         {aba === "cupons" && <AbaCupons />}
-        {aba === "clientes" && <AbaClientes clientes={clientes} pedidos={pedidos} />}
+        {aba === "clientes" && <AbaClientes clientes={todosClientes} pedidos={pedidos} />}
         {aba === "config" && <AbaConfiguracoes />}
       </div>
     </div>

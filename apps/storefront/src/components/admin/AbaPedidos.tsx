@@ -17,6 +17,15 @@ import {
 } from "@/lib/servidor";
 import { LOJA_ID } from "@/lib/loja";
 
+/** o que o Mercado Pago diz de um pedido ainda não pago (conferência automática) */
+const vereditoMp: Record<NonNullable<PedidoAdmin["conferenciaMp"]>["resultado"], string> = {
+  sem_tentativa: "Mercado Pago: cliente não concluiu o pagamento",
+  pendente: "Mercado Pago: dentro do prazo, ainda pode ser pago",
+  expirado: "Mercado Pago: Pix expirou sem pagamento",
+  recusado: "Mercado Pago: pagamento recusado",
+  cancelado: "Mercado Pago: pagamento cancelado",
+};
+
 const rotuloStatus: Record<StatusPedido, string> = {
   aguardando_pagamento: "Aguardando pagamento",
   pago: "Pago",
@@ -280,6 +289,11 @@ function PedidoLinha({
           >
             {rotuloStatus[p.status]}
           </span>
+          {p.status === "aguardando_pagamento" && p.conferenciaMp && (
+            <span className="mt-1 block max-w-[180px] text-[0.6875rem] leading-snug text-cinza">
+              {vereditoMp[p.conferenciaMp.resultado]}
+            </span>
+          )}
         </td>
       </tr>
       {aberto && (

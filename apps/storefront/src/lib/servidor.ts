@@ -292,6 +292,11 @@ export interface PedidoAdmin {
   afiliado: string | null;
   vendedorUsuario?: string | null;
   status: "aguardando_pagamento" | "pago" | "cancelado";
+  /** o que o Mercado Pago diz de um pedido ainda não pago (conferência automática) */
+  conferenciaMp?: {
+    resultado: "sem_tentativa" | "pendente" | "expirado" | "recusado" | "cancelado";
+    em: string;
+  } | null;
 }
 
 /** Admin: todos os pedidos do site, com endereço e contato do cliente. */

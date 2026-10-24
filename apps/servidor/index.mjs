@@ -1299,6 +1299,28 @@ async function aplicarPagamentoAprovado(pagamento, origem) {
  */
 let ultimaConferencia = 0;
 let conferenciaEmAndamento = null;
+
+/**
+ * Resumo do que o Mercado Pago tem de um pedido ainda não pago:
+ * sem_tentativa — nenhum pagamento criado (cliente saiu do checkout)
+ * pendente      — Pix/boleto ainda dentro do prazo, pode ser pago
+ * expirado      — Pix venceu sem pagamento
+ * recusado      — cartão recusado
+ * cancelado     — pagamento cancelado/estornado no MP
+ */
+function resultadoMp(pagamentos) {
+  if (!pagamentos.length) return "sem_tentativa";
+  if (pagamentos.some((r) => ["pending", "in_process", "authorized", "in_mediation"].includes(r.status))) return "pendente";
+  if (pagamentos.some((r) => r.status === "rejected")) return "recusado";
+  if (pagamentos.some((r) => r.status === "cancelled" && r.status_detail === "expired")) return "expirado";
+  return "cancelado";
+}
+
+function anotarConferenciaMp(pedido, resultado) {
+  const antes = pedido.conferenciaMp?.resultado;
+  pedido.conferenciaMp = { resultado, em: new Date().toISOString() };
+  if (antes !== resultado) salvarPedidosLoja();
+}
 async function conferirPagamentosPendentes() {
   if (!MP_ACCESS_TOKEN) return 0;
   if (conferenciaEmAndamento) return conferenciaEmAndamento;
@@ -1313,12 +1335,15 @@ async function conferirPagamentosPendentes() {
         const busca = await mp(
           `/v1/payments/search?external_reference=${encodeURIComponent(p.numero)}&sort=date_created&criteria=desc&limit=10`
         );
-        const aprovado = (busca.results ?? []).find(
-          (r) => r.status === "approved" && String(r.external_reference) === p.numero
-        );
+        const doPedido = (busca.results ?? []).filter((r) => String(r.external_reference) === p.numero);
+        const aprovado = doPedido.find((r) => r.status === "approved");
         if (aprovado) {
           await aplicarPagamentoAprovado(aprovado, "conferencia");
           aprovados++;
+        } else {
+          // o que o Mercado Pago diz deste pedido, para o painel não mostrar
+          // só "aguardando" quando o Pix já expirou ou o cartão nem foi pago
+          anotarConferenciaMp(p, resultadoMp(doPedido));
         }
       } catch (erro) {
         console.error(`[pagamentos] falha ao conferir ${p.numero}: ${erro.message}`);
@@ -1364,6 +1389,44 @@ aplicacao.get("/pagamentos/pedido/:numero", async (req, res) => {
         producao: r.live_mode,
         pagadorEmail: r.payer?.email ?? null,
       })),
+    });
+  } catch (erro) {
+    res.status(502).json({ erro: erro.message });
+  }
+});
+
+// pagamentos dos últimos 30 dias no Mercado Pago, cruzados com os pedidos do
+// site — mostra pagamento aprovado cujo pedido não está no histórico. Sem
+// dado pessoal (nem e-mail do pagador)
+aplicacao.get("/pagamentos/recentes", async (req, res) => {
+  if (!ehAdmin(req)) {
+    return res.status(403).json({ erro: "Chave inválida." });
+  }
+  if (!MP_ACCESS_TOKEN) return res.status(503).json({ erro: "Mercado Pago ainda não configurado." });
+  try {
+    const busca = await mp(
+      "/v1/payments/search?sort=date_created&criteria=desc&range=date_created&begin_date=NOW-30DAYS&end_date=NOW&limit=100"
+    );
+    const porNumero = new Map(pedidosLoja.map((p) => [p.numero, p]));
+    res.set("Cache-Control", "no-store");
+    res.json({
+      ok: true,
+      pagamentos: (busca.results ?? []).map((r) => {
+        const pedido = r.external_reference ? porNumero.get(String(r.external_reference)) : null;
+        return {
+          id: r.id,
+          status: r.status,
+          detalhe: r.status_detail,
+          pedido: r.external_reference ?? null,
+          pedidoNoSite: Boolean(pedido),
+          statusNoSite: pedido?.status ?? null,
+          valor: r.transaction_amount,
+          meio: r.payment_method_id,
+          criadoEm: r.date_created,
+          aprovadoEm: r.date_approved,
+          producao: r.live_mode,
+        };
+      }),
     });
   } catch (erro) {
     res.status(502).json({ erro: erro.message });

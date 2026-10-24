@@ -21,8 +21,10 @@ const periodos: { id: Periodo; rotulo: string; tituloGrafico: string; nomeFalado
 
 import { GraficoBarras, BarrasRanqueadas } from "./GraficoBarras";
 
-export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
-  const [periodo, setPeriodo] = useState<Periodo>("semana");
+export function AbaVisaoGeral({ pedidos, carregando = false }: { pedidos: Pedido[]; carregando?: boolean }) {
+  // 30 dias por padrão: em 7 dias a tela costumava abrir vazia
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const aguardando = pedidos.filter((p) => p.status === "aguardando_pagamento").length;
   const config = periodos.find((p) => p.id === periodo)!;
 
   const resumo = resumoDoPeriodo(pedidos, periodo);
@@ -50,6 +52,18 @@ export function AbaVisaoGeral({ pedidos }: { pedidos: Pedido[] }) {
           </button>
         ))}
       </div>
+
+      {carregando && (
+        <p role="status" className="mt-4 text-[0.8125rem] text-grafite">
+          Carregando os pedidos das lojas…
+        </p>
+      )}
+      {!carregando && aguardando > 0 && (
+        <p className="mt-4 text-[0.8125rem] text-grafite">
+          {aguardando === 1 ? "1 pedido aguardando pagamento" : `${aguardando} pedidos aguardando pagamento`} — não
+          entram na receita até o Mercado Pago confirmar. Detalhes na aba Pedidos.
+        </p>
+      )}
 
       {/* KPIs com comparativo */}
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
