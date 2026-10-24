@@ -33,10 +33,13 @@ export function urlProduto(produto: Produto): string {
 export function CardProduto({
   produto: produtoBase,
   prioridade = false,
+  abrirSacola = true,
 }: {
   produto: Produto;
   /** cards da primeira dobra: a foto carrega na frente, sem esperar o scroll */
   prioridade?: boolean;
+  /** false: o Adicionar não abre a gaveta da sacola (na loja 3D o produto vai para a cesta) */
+  abrirSacola?: boolean;
 }) {
   const ajustado = useProdutoAjustado(produtoBase);
   const carrinho = useCarrinho();
@@ -159,7 +162,7 @@ export function CardProduto({
           ) : (
             <button
               type="button"
-              onClick={() => carrinho.adicionar(produto.slug, variante.sku, 1)}
+              onClick={() => carrinho.adicionar(produto.slug, variante.sku, 1, abrirSacola)}
               aria-label={`${copy.card.adicionar} ${alt}`}
               className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-[4px] bg-roxo text-[1rem] font-medium text-white hover:bg-roxo-escuro"
             >

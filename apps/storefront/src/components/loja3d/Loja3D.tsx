@@ -2,9 +2,10 @@
 
 /**
  * Loja 3D — moldura React da cena (components/loja3d/cena.ts): botões da visão
- * geral e de cada setor, dica de como andar e o card do produto selecionado no
- * canto vazio da tela. O card é o mesmo CardProduto do site (preço, Pix, Adicionar),
- * então a sacola e o pagamento são os de sempre.
+ * geral e de cada categoria, dica de como andar, atalho para a marca da seção
+ * onde a pessoa parou e o card do produto selecionado no canto vazio da tela.
+ * O card é o mesmo CardProduto do site (preço, Pix, Adicionar); o Adicionar põe
+ * na sacola de sempre sem abrir a gaveta, e a cena mostra o produto caindo na cesta.
  *
  * three.js só baixa nesta página (import dinâmico) — as outras não pesam nada.
  * Só abre no computador: no celular e no tablet aparece o convite para a loja normal.
@@ -14,9 +15,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
 import { useEhComputador } from "@/lib/dispositivo";
+import { useCarrinho } from "@/lib/carrinho/contexto";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
-import type { Cena, ModoCena, PosicaoCena } from "./cena";
+import type { Cena, ModoCena, PosicaoCena, Qualidade } from "./cena";
 
 const t = copy.loja3d;
 const BASE_IMAGEM = "https://comercial.thebeautyhub.app/api/ecom/imagem/";
@@ -36,24 +38,38 @@ function lerVolta(): Volta | null {
   }
 }
 
-export interface Corredor3D {
+/** ?qualidade=alta|media|baixa fixa a qualidade (para conferir a imagem); sem isso ela se ajusta sozinha */
+function qualidadeDaUrl(): Qualidade | undefined {
+  const q = new URLSearchParams(window.location.search).get("qualidade");
+  return q === "alta" || q === "media" || q === "baixa" ? q : undefined;
+}
+
+/** uma seção da loja = uma marca */
+export interface Setor3D {
   slug: string;
   nome: string;
+  logo?: string;
+  categoria: string;
   produtos: Produto[];
 }
 
-export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
+export interface Categoria3D {
+  slug: string;
+  nome: string;
+}
+
+export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias: Categoria3D[] }) {
   const moldura = useRef<HTMLDivElement>(null);
   const palco = useRef<HTMLDivElement>(null);
   const cena = useRef<Cena | null>(null);
   const [estado, setEstado] = useState<"montando" | "pronta" | "erro">("montando");
   const [selecionado, setSelecionado] = useState<string | null>(null);
-  const [corredorAtual, setCorredorAtual] = useState<number | null>(null);
+  const [setorAtual, setSetorAtual] = useState<number | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [mostrarDica, setMostrarDica] = useState(true);
-  const [modo, setModo] = useState<ModoCena>("alto");
-  const jaChegouPerto = useRef(false);
+  const [modo, setModo] = useState<ModoCena>("perto");
   const computador = useEhComputador();
+  const carrinho = useCarrinho();
   const selecionadoAgora = useRef<string | null>(null);
   useEffect(() => {
     selecionadoAgora.current = selecionado;
@@ -61,9 +77,9 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
 
   const porSlug = useMemo(() => {
     const mapa = new Map<string, Produto>();
-    for (const c of corredores) for (const p of c.produtos) mapa.set(p.slug, p);
+    for (const s of setores) for (const p of s.produtos) mapa.set(p.slug, p);
     return mapa;
-  }, [corredores]);
+  }, [setores]);
   const produto = selecionado ? porSlug.get(selecionado) : undefined;
 
   // a moldura ocupa o resto da tela abaixo do cabeçalho
@@ -89,39 +105,37 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
       try {
         const [{ criarCena }] = await Promise.all([import("./cena"), document.fonts?.ready]);
         if (cancelado) return;
-        if (volta?.slug && corredores.some((c) => c.produtos.some((p) => p.slug === volta.slug))) {
-          setSelecionado(volta.slug);
-        }
+        if (volta?.slug && porSlug.has(volta.slug)) setSelecionado(volta.slug);
         const raiz = getComputedStyle(document.documentElement);
         const cor = (nome: string, padrao: string) => raiz.getPropertyValue(nome).trim() || padrao;
+        const profissional = LOJA.id === "be2beauty";
         cena.current = criarCena(el, {
-          corredores: corredores.map((c, i) => ({
-            numero: String(i + 1).padStart(2, "0"),
-            nome: c.nome,
-            produtos: c.produtos
+          setores: setores.map((s) => ({
+            slug: s.slug,
+            nome: s.nome,
+            logo: s.logo,
+            categoria: s.categoria,
+            produtos: s.produtos
               .filter((p) => p.imagens?.length)
               .map((p) => {
                 const foto = p.imagens![0];
                 return { slug: p.slug, foto: foto.startsWith("http") ? foto : BASE_IMAGEM + foto };
               }),
           })),
-          estilo: LOJA.id === "be2beauty" ? "profissional" : "conceito",
+          categorias: categorias.map((c) => c.slug),
+          estilo: profissional ? "profissional" : "conceito",
           logo: [...t.logo],
           fraseVitrine: t.fraseVitrine,
           tituloDestaques: t.destaques,
           corPrimaria: cor("--bn-roxo", "#6B2BD9"),
           corEscura: cor("--bn-roxo-escuro", "#3E1A8C"),
+          // a cesta é roxa; na Be2Beauty, do azul da marca
+          corCesta: profissional ? cor("--bn-roxo", "#1f5fa8") : "#6d35d8",
           fonte: getComputedStyle(document.body).fontFamily || "sans-serif",
+          qualidade: qualidadeDaUrl(),
           aoSelecionarProduto: (slug) => setSelecionado(slug),
-          aoMudarCorredor: (i) => setCorredorAtual(i),
-          aoMudarModo: (m) => {
-            setModo(m);
-            // a primeira vez que chega perto, ensina a andar
-            if (m === "perto" && !jaChegouPerto.current) {
-              jaChegouPerto.current = true;
-              setAviso(t.dicaPerto);
-            }
-          },
+          aoMudarSetor: (i) => setSetorAtual(i),
+          aoMudarModo: (m) => setModo(m),
           aoChegarPrateleira: () => setAviso(t.naPrateleira),
           inicio: volta ?? undefined,
         });
@@ -136,18 +150,33 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
         try {
           sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ ...cena.current.posicao(), slug: selecionadoAgora.current }));
         } catch {
-          // sem armazenamento: volta pela visão geral
+          // sem armazenamento: volta pela entrada
         }
       }
       cena.current?.destruir();
       cena.current = null;
     };
-  }, [corredores, computador]);
+  }, [setores, categorias, porSlug, computador]);
+
+  // a cesta espelha a sacola: o que entra agora voa da prateleira; o resto já está lá
+  const quantidades = useRef<Map<string, number> | null>(null);
+  useEffect(() => {
+    if (estado !== "pronta" || !cena.current) return;
+    const agora = new Map<string, number>();
+    for (const i of carrinho.itens) agora.set(i.produtoSlug, (agora.get(i.produtoSlug) ?? 0) + i.quantidade);
+    const antes = quantidades.current;
+    const lista = [...agora.entries()].flatMap(([slug, q]) => Array.from({ length: Math.min(q, 3) }, () => slug));
+    const novos = antes ? [...agora.entries()].filter(([slug, q]) => q > (antes.get(slug) ?? 0)).map(([slug]) => slug) : [];
+    const removeu = antes ? [...antes.entries()].some(([slug, q]) => (agora.get(slug) ?? 0) < q) : true;
+    if (removeu || !antes) cena.current.definirCesta(lista);
+    else for (const slug of novos) cena.current.colocarNaCesta(slug);
+    quantidades.current = agora;
+  }, [carrinho.itens, estado]);
 
   // a dica some sozinha; o aviso da prateleira também
   useEffect(() => {
     if (estado !== "pronta") return;
-    const id = setTimeout(() => setMostrarDica(false), 7000);
+    const id = setTimeout(() => setMostrarDica(false), 9000);
     return () => clearTimeout(id);
   }, [estado]);
   useEffect(() => {
@@ -182,10 +211,11 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
     );
   }
 
-  const corredor = corredorAtual !== null ? corredores[corredorAtual] : null;
+  const setor = setorAtual !== null ? setores[setorAtual] : null;
+  const categoriaAtual = setor?.categoria ?? null;
 
   return (
-    <div ref={moldura} className="relative w-full overflow-hidden bg-[#f3f3f6]">
+    <div ref={moldura} className="relative w-full overflow-hidden bg-[#ecebee]">
       <div
         ref={palco}
         className="absolute inset-0 outline-none"
@@ -206,11 +236,11 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
           role="status"
           className="pointer-events-none absolute left-1/2 top-4 max-w-[90%] -translate-x-1/2 rounded-[40px] bg-tinta/85 px-4 py-2 text-center text-[0.8125rem] font-medium text-white"
         >
-          {aviso ?? t.dica}
+          {aviso ?? (modo === "alto" ? t.dicaAlto : t.dica)}
         </p>
       )}
 
-      {/* visão geral e setores */}
+      {/* visão geral e categorias */}
       {estado === "pronta" && (
         <nav
           aria-label={t.setores}
@@ -226,14 +256,14 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
           >
             {t.visaoGeral}
           </button>
-          {corredores.map((c, i) => (
+          {categorias.map((c) => (
             <button
               key={c.slug}
               type="button"
-              onClick={() => cena.current?.irParaCorredor(i)}
-              aria-pressed={corredorAtual === i}
+              onClick={() => cena.current?.irParaCategoria(c.slug)}
+              aria-pressed={categoriaAtual === c.slug}
               className={`shrink-0 whitespace-nowrap rounded-[40px] px-3.5 py-2 text-[0.8125rem] font-semibold shadow-sm ${
-                corredorAtual === i ? "bg-roxo text-white" : "bg-white text-tinta hover:text-roxo"
+                categoriaAtual === c.slug ? "bg-roxo text-white" : "bg-white text-tinta hover:text-roxo"
               }`}
             >
               {c.nome}
@@ -242,22 +272,19 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
         </nav>
       )}
 
-      {/* na estante de uma categoria: atalho para a lista completa */}
-      {estado === "pronta" && corredor && !produto && (
+      {/* na seção de uma marca: atalho para a página dela */}
+      {estado === "pronta" && setor && !produto && (
         <Link
-          href={`/categoria/${corredor.slug}`}
+          href={`/marca/${setor.slug}`}
           className="absolute right-4 top-4 rounded-[40px] bg-white px-4 py-2 text-[0.8125rem] font-semibold text-roxo shadow-sm hover:bg-roxo-claro"
         >
-          {t.verTodos(corredor.nome)} →
+          {t.verTodos(setor.nome)} →
         </Link>
       )}
 
       {/* card do produto no canto vazio da tela — o mesmo do site */}
       {produto && (
-        <aside
-          aria-label={produto.titulo}
-          className="absolute right-5 top-5 w-[260px]"
-        >
+        <aside aria-label={produto.titulo} className="absolute right-5 top-5 w-[260px]">
           <div className="relative rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
             <button
               type="button"
@@ -269,7 +296,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
                 <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
             </button>
-            <CardProduto key={produto.slug} produto={produto} prioridade />
+            <CardProduto key={produto.slug} produto={produto} prioridade abrirSacola={false} />
           </div>
         </aside>
       )}

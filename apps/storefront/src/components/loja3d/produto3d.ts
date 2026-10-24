@@ -231,7 +231,7 @@ function contornos(fundo: Uint8Array): Ponto[][] {
 /**
  * Uma chamada de desenho por produto: frente e laterais no mesmo material. As
  * laterais apontam (uv) para um pedaço branco e opaco da textura e levam a cor
- * e o sombreado no vértice; a frente fica sem luz, com a cor fiel da foto.
+ * no vértice; a luz e as sombras da loja fazem o resto.
  */
 function umMaterialSo(
   geo: THREE.BufferGeometry,
@@ -249,8 +249,8 @@ function umMaterialSo(
       continue;
     }
     uv.setXY(i, uvBranco[0], uvBranco[1]);
-    // luz que vem de cima e da frente, igual para os dois lados do corredor
-    const luz = THREE.MathUtils.clamp(0.72 + 0.28 * normal.getY(i) + 0.1 * normal.getZ(i), 0.45, 1);
+    // um toque de luz de cima (a loja já ilumina; isso só tira o ar de "chapado")
+    const luz = THREE.MathUtils.clamp(0.88 + 0.12 * normal.getY(i), 0.7, 1);
     cores.set([corLado.r * luz, corLado.g * luz, corLado.b * luz], i * 3);
   }
   uv.needsUpdate = true;
@@ -289,14 +289,16 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
     g.fillRect(0, 0, LADO, LADO);
     const tex = guardar(new THREE.CanvasTexture(c));
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
+    tex.anisotropy = 8;
     const lado = Math.min(larguraMax, alturaMax) * 0.95;
     const geo = guardar(new THREE.BoxGeometry(lado, lado, 0.014));
     geo.translate(0, lado / 2, 0);
     // vértices da caixa, 4 por face: +x, -x, +y, -y, +z (frente, 16 a 19), -z;
     // a borda usa a margem branca de 4 px em volta da foto
     umMaterialSo(geo, (i) => i >= 16 && i < 20, [2 / LADO, 0.5], new THREE.Color("#e4e4ea"));
-    const material = guardar(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true }));
+    const material = guardar(
+      new THREE.MeshStandardMaterial({ map: tex, vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 2.2, emissive: "#ffffff", emissiveMap: tex, emissiveIntensity: 0.12 })
+    );
     return { geometria: geo, material, altura: lado, descartar };
   }
 
@@ -344,7 +346,7 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
   g.putImageData(dados, 0, 0);
   const tex = guardar(new THREE.CanvasTexture(c));
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.anisotropy = 8;
 
   const escala = Math.min(larguraMax / Math.max(uMax - uMin, 0.01), alturaMax / Math.max(vMax - vMin, 0.01));
   const largura = (uMax - uMin) * escala;
@@ -375,6 +377,20 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
   const tampas = geo.groups.filter((gr) => gr.materialIndex === 0);
   const ehTampa = (i: number) => tampas.some((t) => i >= t.start && i < t.start + t.count);
   umMaterialSo(geo, ehTampa, [(bx + 8) / LADO, 1 - (by + 8) / LADO], cor);
-  const material = guardar(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, alphaTest: 0.5 }));
+  // levemente brilhante, como embalagem de verdade
+  // o reflexo do ambiente e um fio de luz própria deixam a foto legível de qualquer lado da loja
+  const material = guardar(
+    new THREE.MeshStandardMaterial({
+      map: tex,
+      vertexColors: true,
+      alphaTest: 0.5,
+      roughness: 0.42,
+      metalness: 0,
+      envMapIntensity: 2.2,
+      emissive: "#ffffff",
+      emissiveMap: tex,
+      emissiveIntensity: 0.12,
+    })
+  );
   return { geometria: geo, material, altura, descartar };
 }

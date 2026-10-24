@@ -657,13 +657,13 @@ export const copy = {
   },
   loja3d: {
     titulo: "Loja 3D",
-    descricao: (loja: string) => `Passeie pela ${loja} em 3D e escolha seus produtos nas estantes.`,
+    descricao: (loja: string) => `Passeie pela ${loja} em 3D, de cesta na mão, e escolha seus produtos nas estantes das marcas.`,
     montando: "Montando a loja…",
     setores: "Setores da loja",
     visaoGeral: "Visão geral",
     destaques: "Destaques",
-    dica: "Clique numa estante, num produto ou no chão para chegar perto · arraste para girar · rodinha para aproximar",
-    dicaPerto: "Arraste para olhar em volta · clique no chão para andar · W/S ou a rodinha para ir e voltar",
+    dica: "Ande com W/A/S/D ou as setas · arraste para olhar · clique no chão para ir até lá · clique num produto para ver",
+    dicaAlto: "Clique numa estante, num produto ou no chão para descer até lá · arraste para girar · rodinha para aproximar",
     naPrateleira: "Você chegou. Escolha seu produto.",
     fechar: "Fechar",
     verTodos: (categoria: string) => `Ver tudo de ${categoria}`,
@@ -672,7 +672,7 @@ export const copy = {
     soComputador: "A loja em 3D foi feita para computador.",
     soComputadorTexto: "No celular e no tablet, a loja normal é mais rápida e fácil de usar. Os produtos e os preços são os mesmos.",
     irParaLoja: "Ir para a loja",
-    rotuloCena: "Loja em 3D: estantes com os produtos de cada categoria",
+    rotuloCena: "Loja em 3D: estantes com os produtos de cada marca",
     // logo na parede do fundo e na vitrine: a linha "destaque" é a grande
     logo:
       LOJA.id === "beautynow"

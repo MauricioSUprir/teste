@@ -39,7 +39,8 @@ interface CarrinhoContexto {
   aberto: boolean;
   abrir: () => void;
   fechar: () => void;
-  adicionar: (produtoSlug: string, sku: string, quantidade?: number) => void;
+  /** `abrirSacola: false` só põe na sacola, sem abrir a gaveta (a loja 3D mostra na cesta) */
+  adicionar: (produtoSlug: string, sku: string, quantidade?: number, abrirSacola?: boolean) => void;
   remover: (sku: string) => void;
   alterarQuantidade: (sku: string, quantidade: number) => void;
   aplicarCupom: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
@@ -92,7 +93,7 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     }
   }, [itens, cupom, hidratado]);
 
-  const adicionar = useCallback((produtoSlug: string, sku: string, quantidade = 1) => {
+  const adicionar = useCallback((produtoSlug: string, sku: string, quantidade = 1, abrirSacola = true) => {
     setItens((atual) => {
       const existente = atual.find((i) => i.sku === sku);
       if (existente) {
@@ -102,7 +103,7 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
       }
       return [...atual, { produtoSlug, sku, quantidade }];
     });
-    setAberto(true);
+    if (abrirSacola) setAberto(true);
   }, []);
 
   const remover = useCallback((sku: string) => {
