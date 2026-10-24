@@ -682,7 +682,7 @@ export const copy = {
           ]
         : LOJA.id === "be2beauty"
           ? [
-              { texto: "BE2BEAUTY", destaque: true },
+              { texto: "BE2", sufixo: "BEAUTY", destaque: true },
               { texto: "ONLY PROFESSIONAL", destaque: false },
             ]
           : [{ texto: LOJA.nome.toUpperCase(), destaque: true }],

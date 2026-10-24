@@ -1,8 +1,11 @@
 /**
  * Loja 3D — a cena em three.js (sem React), no estilo de uma loja-conceito de
  * beleza: salão de piso claro, estantes iluminadas nas paredes (uma por
- * categoria, com o nome em cima), ilhas e mesa redonda no meio, caixa com o
- * logo na parede do fundo, cantinho com sofá e vitrine de vidro na entrada.
+ * categoria, com o nome em cima), ilhas no meio, caixa com o logo na parede do
+ * fundo, cantinho com sofá e vitrine de vidro na entrada. Dois arranjos:
+ * "conceito" (BeautyNow e Pulse: mesa redonda, painéis lilases) e
+ * "profissional" (Be2Beauty: moldura azul-marinho, três ilhas com o nome na
+ * frente, balcão de atendimento com banquetas e painéis de água na vitrine).
  *
  * Abre na vista do alto — a loja inteira, como uma maquete. Clicar numa
  * estante, num produto ou no chão leva a câmera até lá, na altura dos olhos.
@@ -33,6 +36,8 @@ export interface CorredorCena {
 export interface LinhaLogo {
   texto: string;
   destaque: boolean;
+  /** continuação na mesma linha, em peso normal (o "BEAUTY" de BE2BEAUTY) */
+  sufixo?: string;
 }
 
 export type ModoCena = "alto" | "perto";
@@ -47,6 +52,7 @@ export interface PosicaoCena {
 
 export interface OpcoesCena {
   corredores: CorredorCena[];
+  estilo: "conceito" | "profissional";
   /** linhas do logo na parede do fundo e na vitrine */
   logo: LinhaLogo[];
   /** frase do painel da vitrine (null = repete o logo) */
@@ -54,6 +60,7 @@ export interface OpcoesCena {
   /** título das estantes que sobram quando há poucas categorias */
   tituloDestaques: string;
   corPrimaria: string;
+  corEscura: string;
   fonte: string;
   aoSelecionarProduto: (slug: string) => void;
   aoMudarCorredor: (indice: number | null) => void;
@@ -227,8 +234,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
 
   // ---- cores e materiais
+  const profissional = op.estilo === "profissional";
   const branco = new THREE.Color("#ffffff");
   const primaria = new THREE.Color(op.corPrimaria);
+  const escura = new THREE.Color(op.corEscura);
   const lilas = primaria.clone().lerp(branco, 0.5);
   const lilasClaro = primaria.clone().lerp(branco, 0.74);
   const hex = (c: THREE.Color) => `#${c.getHexString()}`;
@@ -237,13 +246,14 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const basico = (cor: THREE.ColorRepresentation, extra: THREE.MeshBasicMaterialParameters = {}) =>
     guardar(new THREE.MeshBasicMaterial({ color: cor, ...extra }));
   const mat = {
-    parede: lambert("#f5f0e9"),
-    casca: lambert("#2d2d34"),
+    parede: lambert(profissional ? "#f4f2ef" : "#f5f0e9"),
+    casca: lambert(profissional ? escura : "#2d2d34"),
     movel: lambert("#fbf9f6"),
     tampo: lambert("#ffffff"),
     marca: lambert("#f7f4ef"),
     led: basico("#ffeccb"),
     metal: lambert("#3a3a41"),
+    cromado: lambert("#d5d5da"),
     vaso: lambert("#f3efe9"),
     tronco: lambert("#7b5b3f"),
     folha: [
@@ -252,8 +262,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       lambert("#74a35d", { flatShading: true }),
     ],
     sofa: lambert("#eee6dd"),
-    tapete: lambert(lilasClaro),
-    pe: lambert(primaria.clone().lerp(new THREE.Color("#1d1530"), 0.45)),
+    tapete: lambert(profissional ? "#d9d8dc" : lilasClaro),
+    pe: profissional ? lambert("#ffffff") : lambert(primaria.clone().lerp(new THREE.Color("#1d1530"), 0.45)),
     monitor: lambert("#1e1e23"),
     rua: lambert("#e4e4e8"),
     capacho: lambert("#45454c"),
@@ -427,8 +437,16 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       })
     );
   }
-  /** logo em linhas: a fina (espaçada) e a forte, como no topo do site */
-  function desenharLogo(g: CanvasRenderingContext2D, cx: number, cy: number, base: number, corFina: string, corForte: string) {
+  /** logo em linhas: a fina (espaçada) e a forte, como no topo do site; encolhe para caber em `largura` */
+  function desenharLogo(g: CanvasRenderingContext2D, cx: number, cy: number, base: number, corFina: string, corForte: string, largura = Infinity) {
+    const larguraForte = (l: LinhaLogo, tam: number) => {
+      g.font = `900 ${tam}px ${op.fonte}`;
+      const a = g.measureText(l.texto).width;
+      g.font = `400 ${tam}px ${op.fonte}`;
+      return a + (l.sufixo ? g.measureText(l.sufixo).width : 0);
+    };
+    const maior = Math.max(...op.logo.filter((l) => l.destaque).map((l) => larguraForte(l, base)), 1);
+    if (maior > largura * 0.92) base *= (largura * 0.92) / maior;
     const linhas = op.logo.map((l) => ({ ...l, tam: l.destaque ? base : base * 0.34 }));
     const alturaDe = (l: { destaque: boolean; tam: number }) => l.tam * (l.destaque ? 0.95 : 1.25);
     let y = cy - linhas.reduce((a, l) => a + alturaDe(l), 0) / 2;
@@ -436,8 +454,18 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     for (const l of linhas) {
       const h = alturaDe(l);
       g.fillStyle = l.destaque ? corForte : corFina;
-      g.font = `${l.destaque ? 900 : 400} ${l.tam}px ${op.fonte}`;
-      escreverEspacado(g, l.texto, cx, y + h / 2, l.destaque ? l.tam * 0.02 : l.tam * 0.42);
+      if (l.destaque && l.sufixo) {
+        const total = larguraForte(l, l.tam);
+        g.font = `900 ${l.tam}px ${op.fonte}`;
+        const a = g.measureText(l.texto).width;
+        g.textAlign = "left";
+        g.fillText(l.texto, cx - total / 2, y + h / 2);
+        g.font = `400 ${l.tam}px ${op.fonte}`;
+        g.fillText(l.sufixo, cx - total / 2 + a, y + h / 2);
+      } else {
+        g.font = `${l.destaque ? 900 : 400} ${l.tam}px ${op.fonte}`;
+        escreverEspacado(g, l.texto, cx, y + h / 2, l.destaque ? l.tam * 0.02 : l.tam * 0.42);
+      }
       y += h;
     }
   }
@@ -465,6 +493,38 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       })
     );
   }
+  /** painel azul com uma gota d'água em luz suave (vitrine e pôsteres do arranjo profissional) */
+  function texPainelAgua(largura: number, altura: number, variante: number) {
+    return guardar(
+      textura(largura, altura, (g) => {
+        const fundo = g.createLinearGradient(0, 0, largura * 0.5, altura);
+        fundo.addColorStop(0, hex(escura));
+        fundo.addColorStop(0.6, hex(primaria));
+        fundo.addColorStop(1, hex(primaria.clone().lerp(branco, 0.55)));
+        g.fillStyle = fundo;
+        g.fillRect(0, 0, largura, altura);
+        const gx = largura * (variante ? 0.4 : 0.58);
+        const gy = altura * (variante ? 0.58 : 0.42);
+        for (let k = 1; k <= 3; k++) {
+          g.strokeStyle = `rgba(255,255,255,${0.22 - k * 0.05})`;
+          g.lineWidth = 3;
+          g.beginPath();
+          g.ellipse(gx, gy + largura * 0.22, largura * 0.12 * k, largura * 0.03 * k, 0, 0, Math.PI * 2);
+          g.stroke();
+        }
+        const r = largura * 0.2;
+        const gota = g.createRadialGradient(gx - r * 0.3, gy - r * 0.35, r * 0.05, gx, gy, r);
+        gota.addColorStop(0, "rgba(255,255,255,0.85)");
+        gota.addColorStop(0.35, "rgba(255,255,255,0.25)");
+        gota.addColorStop(0.9, "rgba(255,255,255,0.12)");
+        gota.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = gota;
+        g.beginPath();
+        g.arc(gx, gy, r, 0, Math.PI * 2);
+        g.fill();
+      })
+    );
+  }
   const matFundoEstante = basico("#ffffff", {
     map: guardar(
       textura(256, 256, (g) => {
@@ -480,9 +540,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   // ---- piso, rua, paredes e teto
   const texPiso = guardar(
     textura(256, 256, (g) => {
-      g.fillStyle = "#f2ece5";
+      g.fillStyle = profissional ? "#f0eeea" : "#f2ece5";
       g.fillRect(0, 0, 256, 256);
-      g.strokeStyle = "#e3dad0";
+      g.strokeStyle = profissional ? "#e3e0db" : "#e3dad0";
       g.lineWidth = 3;
       g.strokeRect(1.5, 1.5, 253, 253);
     })
@@ -549,8 +609,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   cena.add(sol);
 
   // ---- móveis
-  function planta(x: number, z: number, e = 1, y = 0) {
-    juntar(mat.vaso, geoCilindro, matriz(x, y + 0.22 * e, z, 0, 0.2 * e, 0.44 * e, 0.2 * e));
+  function planta(x: number, z: number, e = 1, y = 0, vasoQuadrado = false) {
+    if (vasoQuadrado) juntar(mat.vaso, geoCaixa, matriz(x, y + 0.25 * e, z, 0, 0.5 * e, 0.5 * e, 0.5 * e));
+    else juntar(mat.vaso, geoCilindro, matriz(x, y + 0.22 * e, z, 0, 0.2 * e, 0.44 * e, 0.2 * e));
     juntar(mat.tronco, geoCilindro, matriz(x, y + 0.6 * e, z, 0, 0.025 * e, 0.5 * e, 0.025 * e));
     const folhas: [number, number, number, number][] = [
       [0, 1.05, 0, 0.3],
@@ -607,13 +668,37 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     }
   }
 
-  /** ilha em pílula (com degrau no meio, se for alta); produtos dos dois lados compridos */
-  function ilha(cx: number, cz: number, ang: number, comp: number, larg: number, setor: number | null, alta = true, logo = false) {
+  interface OpcoesIlha {
+    setor: number | null;
+    alta?: boolean; // com degrau no meio
+    logo?: boolean; // cartão com o logo na ponta da frente
+    rotulo?: string; // nome escrito na ponta da frente
+    raio?: number; // canto (o padrão é ponta redonda)
+    plantaNoTopo?: boolean;
+    distVista?: number;
+  }
+  /** ilha em pílula ou retângulo de cantos redondos; produtos dos dois lados compridos */
+  function ilha(cx: number, cz: number, ang: number, comp: number, larg: number, o: OpcoesIlha) {
+    const { setor, alta = true, logo = false, rotulo, raio, plantaNoTopo = false, distVista = 1.5 } = o;
     const f = new Moldura(cx, cz, ang);
     const H = alta ? 0.78 : 0.7;
-    juntar(mat.movel, guardar(extrudarDeitado(formaPilula(comp, larg), H, 0.02)), matriz(cx, 0, cz, ang));
-    juntar(mat.led, guardar(extrudarDeitado(formaPilula(comp + 0.05, larg + 0.05), 0.035)), matriz(cx, 0.02, cz, ang));
-    juntar(mat.tampo, guardar(extrudarDeitado(formaPilula(comp + 0.03, larg + 0.03), 0.03)), matriz(cx, H, cz, ang));
+    const r = raio ?? larg / 2;
+    juntar(mat.movel, guardar(extrudarDeitado(formaPilula(comp, larg, r), H, 0.02)), matriz(cx, 0, cz, ang));
+    juntar(mat.led, guardar(extrudarDeitado(formaPilula(comp + 0.05, larg + 0.05, r), 0.035)), matriz(cx, 0.02, cz, ang));
+    juntar(mat.tampo, guardar(extrudarDeitado(formaPilula(comp + 0.03, larg + 0.03, r), 0.03)), matriz(cx, H, cz, ang));
+    if (rotulo) {
+      // a ponta de u negativo é a da frente
+      const [x, z] = f.ponto(-comp / 2 - 0.004, 0);
+      const etiqueta = new THREE.Mesh(geoPlano, basico("#ffffff", { map: texTitulo(rotulo) }));
+      etiqueta.position.set(x, H * 0.5, z);
+      etiqueta.rotation.y = ang - Math.PI / 2;
+      etiqueta.scale.set(Math.max(0.5, larg - 2 * r) * 0.9, 0.11, 1);
+      cena.add(etiqueta);
+    }
+    if (plantaNoTopo) {
+      const [x, z] = f.ponto(comp / 2 - 0.32, 0);
+      planta(x, z, 0.5, H + 0.03);
+    }
     const reto = Math.max(comp - larg, comp * 0.45);
     if (alta) caixa(mat.tampo, f, 0, H + 0.19, 0, reto, 0.32, 0.3);
     if (logo) {
@@ -631,7 +716,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const proximo = fornecedor(setor);
     for (const lado of [1, -1]) {
       const fl = new Moldura(cx, cz, ang + (lado > 0 ? 0 : Math.PI));
-      const alvo = (u: number) => vistaDe(fl, limitar(u, -reto / 2, reto / 2), larg / 2, 1.5, H + 0.2, setor);
+      const alvo = (u: number) => vistaDe(fl, limitar(u, -reto / 2, reto / 2), larg / 2, distVista, H + 0.2, setor);
       // só o corpo da ilha, embaixo dos produtos: o clique no produto acerta o produto
       volumeCaixa(fl, 0, H / 2, larg / 4, comp, H, larg / 2, (p) => alvo(fl.local(p.x, p.z)[0]));
       if (setor !== null && lado > 0) vistasSetor[setor] = alvo(0);
@@ -650,7 +735,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
           if (!p) continue;
           const u = -util / 2 + passo * (k + 0.5);
           const [x, z] = fl.ponto(u, v);
-          vaga(p, x, y, z, fl.ang, escala, vistaDe(fl, limitar(u, -reto / 2, reto / 2), larg / 2, 1.4, y + 0.12, setor));
+          vaga(p, x, y, z, fl.ang, escala, vistaDe(fl, limitar(u, -reto / 2, reto / 2), larg / 2, distVista - 0.1, y + 0.12, setor));
         }
       }
     }
@@ -699,122 +784,21 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     bloquearRet(f, u - larg / 2, u + larg / 2, 0, 0.1);
   }
 
-  // estantes de parede, na ordem em que as categorias ocupam: [x, z, ângulo, largura]
-  const lugares: [number, number, number, number][] = [
-    [-5.55, Z0, 0, 3.0],
-    [4.6, Z0, 0, 2.6],
-    [7.75, Z0, 0, 2.3],
-    [X1, -2.1, -Math.PI / 2, 2.4],
-    [X0, -3.6, Math.PI / 2, 2.6],
-    [X1, 1.0, -Math.PI / 2, 2.4],
-    [X0, -0.6, Math.PI / 2, 2.6],
-  ];
-  lugares.forEach(([x, z, ang, larg], k) => {
-    const setor = k < N ? k : null;
-    estante(x, z, ang, larg, setor, (setor !== null ? op.corredores[setor].nome : op.tituloDestaques).toUpperCase());
-  });
-
-  // fundo: painel roxo e a parede do logo entre dois pilares escuros, com o caixa na frente
-  painel(paredeFundo, -3.6, 0.72, 2.6, texPainelRoxo(256, 900));
-  for (const lado of [-1, 1]) caixa(mat.casca, paredeFundo, lado * 2.85, ALTURA / 2, 0.3, 0.5, ALTURA, 0.6);
-  caixa(mat.marca, paredeFundo, 0, ALTURA / 2, 0.14, 5.2, ALTURA, 0.26);
-  placa(
-    guardar(
-      textura(1024, 420, (g) => {
-        g.fillStyle = "#f7f4ef";
-        g.fillRect(0, 0, 1024, 420);
-        desenharLogo(g, 512, 210, 230, hex(primaria.clone().lerp(branco, 0.25)), hex(primaria));
-      })
-    ),
-    paredeFundo,
-    0,
-    2.35,
-    0.272,
-    3.6,
-    1.48
-  );
-  bloquearRet(paredeFundo, -3.1, 3.1, 0, 0.6);
-  {
-    const cz = Z0 + 1.95;
-    const f = new Moldura(0, cz, 0);
-    juntar(mat.movel, guardar(extrudarDeitado(formaPilula(4.4, 0.85), 1.0, 0.02)), matriz(0, 0, cz));
-    juntar(mat.tampo, guardar(extrudarDeitado(formaPilula(4.55, 0.98), 0.04)), matriz(0, 1.0, cz));
-    juntar(mat.led, guardar(extrudarDeitado(formaPilula(4.46, 0.9), 0.03)), matriz(0, 0.02, cz));
-    for (const x of [-1.05, 1.05]) {
-      caixa(mat.monitor, f, x, 1.32, -0.12, 0.56, 0.36, 0.03);
-      caixa(mat.monitor, f, x, 1.1, -0.16, 0.05, 0.14, 0.05);
-      caixa(mat.monitor, f, x, 1.045, -0.16, 0.22, 0.01, 0.14);
-    }
-    planta(-1.85, cz, 0.45, 1.04);
-    juntar(mat.tampo, geoCilindro, matriz(1.9, 1.16, cz, 0, 0.05, 0.24, 0.05));
-    mancha(matSombra, 0, cz, 5.2, 1.6);
-    bloquearRet(f, -2.2, 2.2, -0.45, 0.45);
-    const vistaCaixa: Vista = { x: 0, z: cz + 1.9, yaw: 0, pitch: Math.atan2(1.6 - OLHO, 3), setor: null };
-    volumeCaixa(f, 0, 0.6, 0, 4.4, 1.2, 0.85, () => vistaCaixa);
+  // ---- arrumação: as categorias ocupam os lugares na ordem (a maior primeiro);
+  // lugar que sobra vira "Destaques" com produtos de todas
+  const nomeDoLugar = (setor: number | null) => (setor !== null ? op.corredores[setor].nome : op.tituloDestaques).toUpperCase();
+  const estanteEm = (x: number, z: number, ang: number, larg: number) => (setor: number | null) =>
+    estante(x, z, ang, larg, setor, nomeDoLugar(setor));
+  function ocupar(lugares: ((setor: number | null) => void)[]) {
+    lugares.forEach((montar, k) => montar(k < N ? k : null));
   }
-  {
-    // prateleirinha de plantas entre as estantes da direita
-    const f = new Moldura(6.27, Z0, 0);
-    caixa(mat.movel, f, 0, 1.25, 0.15, 0.5, 2.5, 0.3);
-    planta(6.27, Z0 + 0.16, 0.38, 1.1);
-    planta(6.27, Z0 + 0.16, 0.32, 0.5);
-    bloquearRet(f, -0.25, 0.25, 0, 0.3);
-  }
+  const paredeEsq = new Moldura(X0, 0, Math.PI / 2); // u = -z
+  const paredeDir = new Moldura(X1, 0, -Math.PI / 2); // u = z
 
-  // parede esquerda: pôster iluminado; direita: espelho em arco e painel com a marca na vertical
-  const paredeEsq = new Moldura(X0, 0, Math.PI / 2);
-  painel(paredeEsq, -2.4, 1.5, 2.3, texPainelRoxo(512, 780));
-  const paredeDir = new Moldura(X1, 0, -Math.PI / 2);
-  const marcaForte = op.logo.find((l) => l.destaque)?.texto ?? "";
-  painel(
-    paredeDir,
-    3.4,
-    0.8,
-    2.6,
-    texPainelRoxo(300, 980, (g) => {
-      g.save();
-      g.translate(150, 490);
-      g.rotate(-Math.PI / 2);
-      g.fillStyle = "#ffffff";
-      g.font = `900 ${Math.min(210, 1500 / Math.max(3, marcaForte.length))}px ${op.fonte}`;
-      g.textAlign = "center";
-      g.textBaseline = "middle";
-      g.fillText(marcaForte, 0, 0);
-      g.restore();
-    })
-  );
-  {
-    const u = -4.6;
-    const arco = new THREE.Shape();
-    arco.moveTo(-0.42, 0);
-    arco.lineTo(0.42, 0);
-    arco.lineTo(0.42, 1.7);
-    arco.absarc(0, 1.7, 0.42, 0, Math.PI, false);
-    arco.lineTo(-0.42, 0);
-    const texEspelho = guardar(
-      textura(64, 256, (g) => {
-        const gr = g.createLinearGradient(0, 0, 64, 256);
-        gr.addColorStop(0, "#f4f5f8");
-        gr.addColorStop(0.5, "#d9dde5");
-        gr.addColorStop(1, "#eceef2");
-        g.fillStyle = gr;
-        g.fillRect(0, 0, 64, 256);
-      })
-    );
-    caixa(mat.movel, paredeDir, u, 1.3, 0.03, 1.05, 2.6, 0.06);
-    const [x, z] = paredeDir.ponto(u, 0.065);
-    const espelho = new THREE.Mesh(guardar(new THREE.ShapeGeometry(arco, 16)), basico("#ffffff", { map: texEspelho }));
-    espelho.position.set(x, 0.25, z);
-    espelho.rotation.y = paredeDir.ang;
-    cena.add(espelho);
-    bloquearRet(paredeDir, u - 0.5, u + 0.5, 0, 0.1);
-  }
-
-  // cantinho com sofá curvo, tapete lilás e mesinha
-  {
-    const [cx, cz] = [-4.6, -1.9];
+  /** sofá curvo em volta de uma mesinha, num tapete redondo; `abertura` = para onde o sofá abre */
+  function cantinho(cx: number, cz: number, abertura: number, comLivro: boolean) {
     juntar(mat.tapete, guardar(new THREE.CircleGeometry(1.4, 48).rotateX(-Math.PI / 2)), matriz(cx, 0.006, cz));
-    const abertura = Math.PI / 6; // o sofá abre para a frente e para a direita
+    // na forma o ângulo é o do chão com o sinal trocado (o y da forma vira -z)
     const pedacoDeAnel = (r0: number, r1: number) => {
       const a0 = -(abertura + Math.PI * 1.65);
       const a1 = -(abertura + Math.PI * 0.35);
@@ -827,52 +811,300 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     };
     juntar(mat.sofa, guardar(extrudarDeitado(pedacoDeAnel(0.55, 1.08), 0.42, 0.05)), matriz(cx, 0, cz));
     juntar(mat.sofa, guardar(extrudarDeitado(pedacoDeAnel(0.88, 1.08), 0.82, 0.05)), matriz(cx, 0, cz));
-    juntar(mat.pe, geoCilindro, matriz(cx + 0.2, 0.22, cz + 0.1, 0, 0.17, 0.44, 0.17));
-    juntar(mat.tampo, geoCilindro, matriz(cx + 0.2, 0.46, cz + 0.1, 0, 0.3, 0.04, 0.3));
-    planta(cx + 0.2, cz + 0.1, 0.34, 0.48);
+    const [mx, mz] = [cx + Math.cos(abertura) * 0.25, cz + Math.sin(abertura) * 0.25];
+    juntar(mat.pe, geoCilindro, matriz(mx, 0.22, mz, 0, 0.17, 0.44, 0.17));
+    juntar(mat.tampo, geoCilindro, matriz(mx, 0.46, mz, 0, 0.3, 0.04, 0.3));
+    planta(mx - 0.06, mz - 0.04, 0.34, 0.48);
+    if (comLivro) juntar(mat.monitor, geoCaixa, matriz(mx + 0.13, 0.49, mz + 0.06, 0.4, 0.16, 0.025, 0.22));
     mancha(matSombra, cx, cz, 2.6, 2.6);
     bloquearCirculo(cx, cz, 1.1);
   }
 
-  // ilhas, mesa redonda e expositores — a 8ª categoria (se houver) fica na ilha grande da esquerda
-  ilha(-1.9, 0.5, Math.PI / 2, 3.4, 1.1, N > lugares.length ? lugares.length : null);
-  ilha(2.2, 0.2, Math.PI / 2, 3.4, 1.1, null, true, true);
-  ilha(5.3, 0.1, Math.PI / 2, 2.4, 0.75, null);
-  mesaRedonda(0.15, -1.2, 0.8);
-  ilha(-5.0, 2.6, 0, 1.7, 0.85, null, false);
-  ilha(-2.2, 3.9, 0, 1.1, 0.8, null, false);
-  ilha(0.2, 3.1, 0, 1.2, 0.85, null, false);
-  ilha(2.6, 3.9, 0, 1.1, 0.8, null, false);
-  ilha(5.6, 3.2, Math.PI / 2, 2.0, 0.8, null, false);
+  if (!profissional) {
+    // ===== conceito (BeautyNow, Pulse): fundo com logo e caixa em pílula, mesa redonda, painéis lilases
+    ocupar([
+      estanteEm(-5.55, Z0, 0, 3.0),
+      estanteEm(4.6, Z0, 0, 2.6),
+      estanteEm(7.75, Z0, 0, 2.3),
+      estanteEm(X1, -2.1, -Math.PI / 2, 2.4),
+      estanteEm(X0, -3.6, Math.PI / 2, 2.6),
+      estanteEm(X1, 1.0, -Math.PI / 2, 2.4),
+      estanteEm(X0, -0.6, Math.PI / 2, 2.6),
+      (setor) => ilha(-1.9, 0.5, Math.PI / 2, 3.4, 1.1, { setor }),
+    ]);
+    // fundo: painel roxo e a parede do logo entre dois pilares escuros, com o caixa na frente
+    painel(paredeFundo, -3.6, 0.72, 2.6, texPainelRoxo(256, 900));
+    for (const lado of [-1, 1]) caixa(mat.casca, paredeFundo, lado * 2.85, ALTURA / 2, 0.3, 0.5, ALTURA, 0.6);
+    caixa(mat.marca, paredeFundo, 0, ALTURA / 2, 0.14, 5.2, ALTURA, 0.26);
+    placa(
+      guardar(
+        textura(1024, 420, (g) => {
+          g.fillStyle = "#f7f4ef";
+          g.fillRect(0, 0, 1024, 420);
+          desenharLogo(g, 512, 210, 230, hex(primaria.clone().lerp(branco, 0.25)), hex(primaria));
+        })
+      ),
+      paredeFundo,
+      0,
+      2.35,
+      0.272,
+      3.6,
+      1.48
+    );
+    bloquearRet(paredeFundo, -3.1, 3.1, 0, 0.6);
+    {
+      const cz = Z0 + 1.95;
+      const f = new Moldura(0, cz, 0);
+      juntar(mat.movel, guardar(extrudarDeitado(formaPilula(4.4, 0.85), 1.0, 0.02)), matriz(0, 0, cz));
+      juntar(mat.tampo, guardar(extrudarDeitado(formaPilula(4.55, 0.98), 0.04)), matriz(0, 1.0, cz));
+      juntar(mat.led, guardar(extrudarDeitado(formaPilula(4.46, 0.9), 0.03)), matriz(0, 0.02, cz));
+      for (const x of [-1.05, 1.05]) {
+        caixa(mat.monitor, f, x, 1.32, -0.12, 0.56, 0.36, 0.03);
+        caixa(mat.monitor, f, x, 1.1, -0.16, 0.05, 0.14, 0.05);
+        caixa(mat.monitor, f, x, 1.045, -0.16, 0.22, 0.01, 0.14);
+      }
+      planta(-1.85, cz, 0.45, 1.04);
+      juntar(mat.tampo, geoCilindro, matriz(1.9, 1.16, cz, 0, 0.05, 0.24, 0.05));
+      mancha(matSombra, 0, cz, 5.2, 1.6);
+      bloquearRet(f, -2.2, 2.2, -0.45, 0.45);
+      const vistaCaixa: Vista = { x: 0, z: cz + 1.9, yaw: 0, pitch: Math.atan2(1.6 - OLHO, 3), setor: null };
+      volumeCaixa(f, 0, 0.6, 0, 4.4, 1.2, 0.85, () => vistaCaixa);
+    }
+    {
+      // prateleirinha de plantas entre as estantes da direita
+      const f = new Moldura(6.27, Z0, 0);
+      caixa(mat.movel, f, 0, 1.25, 0.15, 0.5, 2.5, 0.3);
+      planta(6.27, Z0 + 0.16, 0.38, 1.1);
+      planta(6.27, Z0 + 0.16, 0.32, 0.5);
+      bloquearRet(f, -0.25, 0.25, 0, 0.3);
+    }
+
+    // parede esquerda: pôster iluminado; direita: espelho em arco e painel com a marca na vertical
+    painel(paredeEsq, -2.4, 1.5, 2.3, texPainelRoxo(512, 780));
+    const marcaForte = op.logo.find((l) => l.destaque)?.texto ?? "";
+    painel(
+      paredeDir,
+      3.4,
+      0.8,
+      2.6,
+      texPainelRoxo(300, 980, (g) => {
+        g.save();
+        g.translate(150, 490);
+        g.rotate(-Math.PI / 2);
+        g.fillStyle = "#ffffff";
+        g.font = `900 ${Math.min(210, 1500 / Math.max(3, marcaForte.length))}px ${op.fonte}`;
+        g.textAlign = "center";
+        g.textBaseline = "middle";
+        g.fillText(marcaForte, 0, 0);
+        g.restore();
+      })
+    );
+    {
+      const u = -4.6;
+      const arco = new THREE.Shape();
+      arco.moveTo(-0.42, 0);
+      arco.lineTo(0.42, 0);
+      arco.lineTo(0.42, 1.7);
+      arco.absarc(0, 1.7, 0.42, 0, Math.PI, false);
+      arco.lineTo(-0.42, 0);
+      const texEspelho = guardar(
+        textura(64, 256, (g) => {
+          const gr = g.createLinearGradient(0, 0, 64, 256);
+          gr.addColorStop(0, "#f4f5f8");
+          gr.addColorStop(0.5, "#d9dde5");
+          gr.addColorStop(1, "#eceef2");
+          g.fillStyle = gr;
+          g.fillRect(0, 0, 64, 256);
+        })
+      );
+      caixa(mat.movel, paredeDir, u, 1.3, 0.03, 1.05, 2.6, 0.06);
+      const [x, z] = paredeDir.ponto(u, 0.065);
+      const espelho = new THREE.Mesh(guardar(new THREE.ShapeGeometry(arco, 16)), basico("#ffffff", { map: texEspelho }));
+      espelho.position.set(x, 0.25, z);
+      espelho.rotation.y = paredeDir.ang;
+      cena.add(espelho);
+      bloquearRet(paredeDir, u - 0.5, u + 0.5, 0, 0.1);
+    }
+
+    cantinho(-4.6, -1.9, Math.PI / 6, false);
+
+    // ilhas, mesa redonda e expositores
+    ilha(2.2, 0.2, Math.PI / 2, 3.4, 1.1, { setor: null, logo: true });
+    ilha(5.3, 0.1, Math.PI / 2, 2.4, 0.75, { setor: null });
+    mesaRedonda(0.15, -1.2, 0.8);
+    ilha(-5.0, 2.6, 0, 1.7, 0.85, { setor: null, alta: false });
+    ilha(-2.2, 3.9, 0, 1.1, 0.8, { setor: null, alta: false });
+    ilha(0.2, 3.1, 0, 1.2, 0.85, { setor: null, alta: false });
+    ilha(2.6, 3.9, 0, 1.1, 0.8, { setor: null, alta: false });
+    ilha(5.6, 3.2, Math.PI / 2, 2.0, 0.8, { setor: null, alta: false });
+    planta(X0 + 0.55, Z0 + 0.6, 1.3);
+    planta(X0 + 0.5, 1.4, 1.0);
+    planta(X0 + 0.5, 4.6, 1.0);
+    planta(X1 - 0.5, 4.7, 1.0);
+  } else {
+    // ===== profissional (Be2Beauty): moldura azul-marinho, parede do logo larga, três ilhas
+    // com o nome na frente, balcão de atendimento com banquetas
+    const ilhaEm = (x: number) => (setor: number | null) =>
+      ilha(x, 0.9, Math.PI / 2, 2.6, 1.2, { setor, rotulo: nomeDoLugar(setor), raio: 0.12, distVista: 1.35 });
+    ocupar([
+      estanteEm(-5.45, Z0, 0, 2.9),
+      ilhaEm(-2.7),
+      estanteEm(5.45, Z0, 0, 2.9),
+      ilhaEm(2.7),
+      estanteEm(X1, 1.6, -Math.PI / 2, 3.0),
+      estanteEm(X0, 0.2, Math.PI / 2, 2.4),
+      estanteEm(X0, -2.6, Math.PI / 2, 2.4),
+      estanteEm(X1, -2.6, -Math.PI / 2, 2.0),
+    ]);
+    ilha(0, 0.9, Math.PI / 2, 2.4, 1.0, { setor: null, rotulo: op.tituloDestaques.toUpperCase(), plantaNoTopo: true, distVista: 1.35 });
+
+    // parede do logo entre pilares azul-marinho, com o caixa reto na frente
+    for (const lado of [-1, 1]) caixa(mat.casca, paredeFundo, lado * 3.65, ALTURA / 2, 0.3, 0.5, ALTURA, 0.6);
+    caixa(mat.marca, paredeFundo, 0, ALTURA / 2, 0.12, 6.8, ALTURA, 0.22);
+    caixa(mat.led, paredeFundo, 0, 0.03, 0.235, 6.8, 0.02, 0.02);
+    const corMarca = hex(escura);
+    placa(
+      guardar(
+        textura(1024, 420, (g) => {
+          g.fillStyle = "#f7f4ef";
+          g.fillRect(0, 0, 1024, 420);
+          desenharLogo(g, 512, 210, 230, corMarca, corMarca, 1024);
+        })
+      ),
+      paredeFundo,
+      0,
+      2.3,
+      0.232,
+      4.2,
+      1.72
+    );
+    bloquearRet(paredeFundo, -3.9, 3.9, 0, 0.6);
+    {
+      const cz = Z0 + 1.9;
+      const f = new Moldura(0, cz, 0);
+      juntar(mat.movel, guardar(extrudarDeitado(formaPilula(3.8, 0.85, 0.05), 1.05, 0.02)), matriz(0, 0, cz));
+      juntar(mat.tampo, guardar(extrudarDeitado(formaPilula(3.92, 0.95, 0.05), 0.04)), matriz(0, 1.05, cz));
+      juntar(mat.led, guardar(extrudarDeitado(formaPilula(3.86, 0.9, 0.05), 0.03)), matriz(0, 0.02, cz));
+      for (const x of [-0.9, 0.9]) {
+        caixa(mat.monitor, f, x, 1.37, -0.12, 0.56, 0.36, 0.03);
+        caixa(mat.monitor, f, x, 1.15, -0.16, 0.05, 0.14, 0.05);
+        caixa(mat.monitor, f, x, 1.095, -0.16, 0.22, 0.01, 0.14);
+      }
+      planta(-1.6, cz, 0.45, 1.09);
+      caixa(mat.tampo, f, 1.65, 1.17, 0, 0.14, 0.2, 0.12); // maquininha
+      mancha(matSombra, 0, cz, 4.6, 1.6);
+      bloquearRet(f, -1.9, 1.9, -0.45, 0.45);
+      const vistaCaixa: Vista = { x: 0, z: cz + 1.9, yaw: 0, pitch: Math.atan2(1.6 - OLHO, 3), setor: null };
+      volumeCaixa(f, 0, 0.6, 0, 3.8, 1.2, 0.85, () => vistaCaixa);
+    }
+    // porta da área interna, no canto do fundo à direita
+    {
+      const x = 7.8;
+      caixa(mat.movel, paredeFundo, x, 1.25, 0.03, 1.45, 2.5, 0.06);
+      const matPorta = lambert("#e8e6e2");
+      for (const lado of [-1, 1]) {
+        caixa(matPorta, paredeFundo, x + lado * 0.34, 1.2, 0.07, 0.64, 2.3, 0.02);
+        caixa(mat.metal, paredeFundo, x + lado * 0.08, 1.1, 0.09, 0.025, 0.5, 0.025);
+      }
+      bloquearRet(paredeFundo, x - 0.75, x + 0.75, 0, 0.1);
+    }
+    planta(5.45 + 0.95, Z0 + 0.25, 0.38, 2.5); // em cima da estante da direita
+
+    // paredes laterais: pôsteres de água à esquerda; à direita, a marca em cima da estante
+    painel(paredeEsq, 4.9, 1.2, 2.2, texPainelAgua(400, 740, 1));
+    painel(paredeEsq, -3.6, 1.5, 2.3, texPainelAgua(512, 780, 0));
+    {
+      const f = new Moldura(X1, 1.6, -Math.PI / 2);
+      placa(
+        guardar(
+          textura(1024, 256, (g) => {
+            g.fillStyle = "#f5f0e9";
+            g.fillRect(0, 0, 1024, 256);
+            desenharLogo(g, 512, 128, 150, corMarca, corMarca, 1024);
+          })
+        ),
+        f,
+        0,
+        2.95,
+        0.012,
+        2.5,
+        0.62
+      );
+    }
+    // balcão de atendimento com três banquetas, de frente para o meio da loja
+    {
+      const f = new Moldura(5.9, 1.4, -Math.PI / 2); // u = z; v aponta para o meio (-x)
+      const comp = 3.4;
+      caixa(mat.movel, f, 0, 0.525, 0, comp, 1.05, 0.6);
+      caixa(mat.tampo, f, 0, 1.07, 0, comp + 0.06, 0.04, 0.66);
+      caixa(mat.led, f, 0, 0.02, 0, comp + 0.04, 0.03, 0.64);
+      bloquearRet(f, -comp / 2, comp / 2, -0.3, 0.3);
+      const vistaBalcao = (u: number): Vista => vistaDe(f, limitar(u, -1.2, 1.2), 0.3, 1.6, 1.25, null);
+      volumeCaixa(f, 0, 0.525, 0, comp, 1.05, 0.6, (p) => vistaBalcao(f.local(p.x, p.z)[0]));
+      for (const u of [-1.0, 0, 1.0]) {
+        const [x, z] = f.ponto(u, 0.65);
+        juntar(mat.tampo, geoCilindro, matriz(x, 0.76, z, 0, 0.19, 0.07, 0.19));
+        caixa(mat.tampo, f, u, 0.97, 0.82, 0.34, 0.3, 0.04); // encosto
+        juntar(mat.cromado, geoCilindro, matriz(x, 0.38, z, 0, 0.025, 0.72, 0.025));
+        juntar(mat.cromado, geoCilindro, matriz(x, 0.012, z, 0, 0.2, 0.024, 0.2));
+        bloquearCirculo(x, z, 0.2);
+      }
+      const proximo = fornecedor(null);
+      for (let k = 0; k < 7; k++) {
+        const p = proximo();
+        if (!p) continue;
+        const u = -1.35 + k * 0.4;
+        const [x, z] = f.ponto(u, 0.05);
+        vaga(p, x, 1.09, z, f.ang, 0.8, vistaBalcao(u));
+      }
+      const [px, pz] = f.ponto(comp / 2 - 0.2, -0.1);
+      planta(px, pz, 0.42, 1.09);
+    }
+    cantinho(-5.6, 3.0, 0, true);
+    planta(X0 + 0.6, Z0 + 0.6, 1.3);
+    planta(X1 - 0.5, -4.5, 1.1);
+    planta(X1 - 0.55, 4.5, 1.2);
+  }
 
   // vitrine: painéis iluminados nas pontas (virados para a rua) e mesinhas com produtos
   {
     const dentro = new Moldura(0, Z1, Math.PI); // v cresce para dentro da loja
-    const texLogoVitrine = texPainelRoxo(512, 740, (g) => desenharLogo(g, 256, 370, 150, hex(primaria), hex(primaria)));
-    const texFrase = op.fraseVitrine
-      ? texPainelRoxo(512, 740, (g) => {
-          g.fillStyle = hex(primaria.clone().lerp(new THREE.Color("#000000"), 0.35));
-          g.font = `500 64px ${op.fonte}`;
-          g.textBaseline = "top";
-          g.textAlign = "left";
-          let linha = "";
-          let y = 230;
-          for (const palavra of (op.fraseVitrine ?? "").split(" ")) {
-            const teste = linha ? `${linha} ${palavra}` : palavra;
-            if (g.measureText(teste).width > 360 && linha) {
-              g.fillText(linha, 70, y);
-              y += 76;
-              linha = palavra;
-            } else linha = teste;
-          }
-          g.font = `800 64px ${op.fonte}`;
-          g.fillText(linha, 70, y);
-        })
-      : texLogoVitrine;
-    for (const [x, tex] of [
-      [-7.7, texLogoVitrine],
-      [7.7, texFrase],
-    ] as const) {
+    /** conceito: logo de um lado e a frase do outro, em painel lilás */
+    function vitrinesConceito(): [number, THREE.Texture][] {
+      const logo = texPainelRoxo(512, 740, (g) => desenharLogo(g, 256, 370, 150, hex(primaria), hex(primaria), 512));
+      const frase = op.fraseVitrine
+        ? texPainelRoxo(512, 740, (g) => {
+            g.fillStyle = hex(primaria.clone().lerp(new THREE.Color("#000000"), 0.35));
+            g.font = `500 64px ${op.fonte}`;
+            g.textBaseline = "top";
+            g.textAlign = "left";
+            let linha = "";
+            let y = 230;
+            for (const palavra of (op.fraseVitrine ?? "").split(" ")) {
+              const teste = linha ? `${linha} ${palavra}` : palavra;
+              if (g.measureText(teste).width > 360 && linha) {
+                g.fillText(linha, 70, y);
+                y += 76;
+                linha = palavra;
+              } else linha = teste;
+            }
+            g.font = `800 64px ${op.fonte}`;
+            g.fillText(linha, 70, y);
+          })
+        : logo;
+      return [
+        [-7.7, logo],
+        [7.7, frase],
+      ];
+    }
+    // profissional: painéis de água nas duas pontas
+    const vitrines: [number, THREE.Texture][] = profissional
+      ? [
+          [-7.7, texPainelAgua(512, 740, 0)],
+          [7.7, texPainelAgua(512, 740, 1)],
+        ]
+      : vitrinesConceito();
+    for (const [x, tex] of vitrines) {
       const [u] = dentro.local(x, Z1);
       caixa(mat.movel, dentro, u, 1.35, 0.25, 1.85, 2.6, 0.12);
       const painelRua = new THREE.Mesh(geoPlano, basico("#ffffff", { map: tex }));
@@ -895,13 +1127,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         if (p) vaga(p, x - 0.45 + k * 0.3, 0.6, Z1 - 0.85, 0, 0.8, vistaVitrine);
       }
     }
-    planta(-2.0, Z1 + PAREDE + 0.75, 1.15);
-    planta(2.0, Z1 + PAREDE + 0.75, 1.15);
+    planta(-2.0, Z1 + PAREDE + 0.75, 1.15, 0, profissional);
+    planta(2.0, Z1 + PAREDE + 0.75, 1.15, 0, profissional);
   }
-  planta(X0 + 0.55, Z0 + 0.6, 1.3);
-  planta(X0 + 0.5, 1.4, 1.0);
-  planta(X0 + 0.5, 4.6, 1.0);
-  planta(X1 - 0.5, 4.7, 1.0);
 
   // junta o cenário: uma malha por material
   for (const [m, lista] of lotes) {

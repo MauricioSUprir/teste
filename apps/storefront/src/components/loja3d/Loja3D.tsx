@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
+import { LOJA } from "@/lib/loja";
 import { useEhComputador } from "@/lib/dispositivo";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
@@ -104,10 +105,12 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
                 return { slug: p.slug, foto: foto.startsWith("http") ? foto : BASE_IMAGEM + foto };
               }),
           })),
+          estilo: LOJA.id === "be2beauty" ? "profissional" : "conceito",
           logo: [...t.logo],
           fraseVitrine: t.fraseVitrine,
           tituloDestaques: t.destaques,
           corPrimaria: cor("--bn-roxo", "#6B2BD9"),
+          corEscura: cor("--bn-roxo-escuro", "#3E1A8C"),
           fonte: getComputedStyle(document.body).fontFamily || "sans-serif",
           aoSelecionarProduto: (slug) => setSelecionado(slug),
           aoMudarCorredor: (i) => setCorredorAtual(i),
