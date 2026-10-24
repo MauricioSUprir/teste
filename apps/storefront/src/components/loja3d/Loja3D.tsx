@@ -195,7 +195,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
       {produto && (
         <aside
           aria-label={produto.titulo}
-          className="absolute bottom-20 right-3 w-[min(250px,calc(100%-24px))] md:bottom-auto md:right-5 md:top-5 md:w-[260px]"
+          className="absolute bottom-20 right-3 w-[min(210px,calc(100%-24px))] md:bottom-auto md:right-5 md:top-5 md:w-[260px]"
         >
           <div className="relative rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
             <button

@@ -204,19 +204,22 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   cena.add(placaNome);
 
   // ---- gôndolas (uma entre cada par de corredores, mais as das pontas)
+  // guardadas à parte: o toque que bate na gôndola não atravessa para o chão do outro lado
+  const gondolas: THREE.Mesh[] = [];
+  const peca = (...a: Parameters<typeof bloco>) => gondolas.push(bloco(...a));
   for (let j = 0; j <= N; j++) {
     const gx = xMin + j * PASSO;
     const zc = -COMPR / 2;
-    bloco(matPrimaria, PROF, 0.12, COMPR, gx, 0.06, zc); // rodapé
-    bloco(matFundoGondola, 0.05, 2.12, COMPR, gx, 1.12, zc); // painel do meio
+    peca(matPrimaria, PROF, 0.12, COMPR, gx, 0.06, zc); // rodapé
+    peca(matFundoGondola, 0.05, 2.12, COMPR, gx, 1.12, zc); // painel do meio
     for (const nivel of NIVEIS) {
       for (const lado of [-1, 1]) {
-        bloco(matBranco, PROF / 2 - 0.03, 0.035, COMPR, gx + lado * (PROF / 4), nivel - 0.018, zc);
-        bloco(matPrimaria, 0.012, 0.045, COMPR, gx + lado * (PROF / 2 - 0.006), nivel - 0.02, zc); // etiqueta
+        peca(matBranco, PROF / 2 - 0.03, 0.035, COMPR, gx + lado * (PROF / 4), nivel - 0.018, zc);
+        peca(matPrimaria, 0.012, 0.045, COMPR, gx + lado * (PROF / 2 - 0.006), nivel - 0.02, zc); // etiqueta
       }
     }
-    for (let z = 0; z >= -COMPR; z -= COMPR / 4) bloco(matPrimaria, PROF, 2.2, 0.05, gx, 1.1, z); // colunas
-    bloco(matPrimaria, PROF + 0.04, 0.07, COMPR, gx, 2.2, zc); // topo
+    for (let z = 0; z >= -COMPR; z -= COMPR / 4) peca(matPrimaria, PROF, 2.2, 0.05, gx, 1.1, z); // colunas
+    peca(matPrimaria, PROF + 0.04, 0.07, COMPR, gx, 2.2, zc); // topo
   }
 
   // ---- placas numeradas na entrada de cada corredor (clicáveis)
@@ -400,8 +403,39 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const r = canvas.getBoundingClientRect();
     ponteiro.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ponteiro, camera);
-    const hits = raycaster.intersectObjects([...malhas.map((m) => m.malha), ...placas, piso], false);
+    const hits = raycaster.intersectObjects([...malhas.map((m) => m.malha), ...placas, ...gondolas, piso], false);
     return hits[0] ?? null;
+  }
+
+  function produtoDoAcerto(hit: THREE.Intersection | null) {
+    if (!(hit?.object instanceof THREE.InstancedMesh) || hit.instanceId === undefined) return null;
+    const m = malhas.find((x) => x.malha === hit.object);
+    return m ? { m, k: hit.instanceId } : null;
+  }
+
+  // Dentro do corredor, as fotos ficam de lado e finas no celular: o toque que cai
+  // entre duas delas escolhe a mais próxima na tela, dentro de um raio em pixels.
+  const auxTela = new THREE.Vector3();
+  function produtoPerto(ev: PointerEvent, raio: number) {
+    const atual = corredorDaPosicao(posicao.x, posicao.z);
+    if (atual === null) return null;
+    const r = canvas.getBoundingClientRect();
+    let melhor: { m: ProdutoMalha; k: number } | null = null;
+    let menor = raio;
+    for (const m of malhas) {
+      for (let k = 0; k < m.vagas.length; k++) {
+        const v = m.vagas[k];
+        if (v.corredor !== atual || (posicao.x - v.pos.x) * v.face <= 0) continue; // de costas para a pessoa
+        auxTela.copy(v.pos).project(camera);
+        if (auxTela.z > 1) continue;
+        const d = Math.hypot(r.left + ((auxTela.x + 1) / 2) * r.width - ev.clientX, r.top + ((1 - auxTela.y) / 2) * r.height - ev.clientY);
+        if (d < menor) {
+          menor = d;
+          melhor = { m, k };
+        }
+      }
+    }
+    return melhor;
   }
 
   function destacar(novo: { m: ProdutoMalha; k: number } | null) {
@@ -439,9 +473,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     }
     if (ev.pointerType !== "mouse") return;
     const hit = alvoNoPonteiro(ev);
-    const malha = hit?.object instanceof THREE.InstancedMesh ? malhas.find((m) => m.malha === hit.object) : undefined;
-    destacar(malha && hit?.instanceId !== undefined ? { m: malha, k: hit.instanceId } : null);
-    canvas.style.cursor = malha || (hit && placas.includes(hit.object as THREE.Mesh)) ? "pointer" : "grab";
+    const alvo = produtoDoAcerto(hit);
+    destacar(alvo);
+    canvas.style.cursor = alvo || (hit && placas.includes(hit.object as THREE.Mesh)) ? "pointer" : "grab";
   }
 
   function aoSoltar(ev: PointerEvent) {
@@ -450,11 +484,11 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     canvas.style.cursor = "grab";
     if (moveu) return;
     const hit = alvoNoPonteiro(ev);
-    if (!hit) return;
-    if (hit.object instanceof THREE.InstancedMesh && hit.instanceId !== undefined) {
-      const m = malhas.find((x) => x.malha === hit.object);
-      if (!m) return;
-      const vaga = m.vagas[hit.instanceId];
+    const placa = placas.find((p) => p === hit?.object);
+    const alvo = produtoDoAcerto(hit) ?? (placa ? null : produtoPerto(ev, ev.pointerType === "mouse" ? 14 : 30));
+    if (alvo) {
+      const { m } = alvo;
+      const vaga = m.vagas[alvo.k];
       // fica no meio do corredor, de frente para a prateleira
       const dist = Math.abs(vaga.pos.x - xCorredor(vaga.corredor));
       irPara(xCorredor(vaga.corredor), vaga.pos.z, vaga.face > 0 ? Math.PI / 2 : -Math.PI / 2, Math.atan2(vaga.pos.y - OLHO, dist));
@@ -462,9 +496,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       op.aoSelecionarProduto(m.slug);
       return;
     }
-    const placa = placas.find((p) => p === hit.object);
     if (placa) return irParaCorredor(placa.userData.corredor as number);
-    if (hit.object === piso) {
+    if (hit?.object === piso) {
       const dx = hit.point.x - posicao.x;
       const dz = hit.point.z - posicao.z;
       const viraPara = Math.hypot(dx, dz) > 1.5 ? Math.atan2(-dx, -dz) : undefined;
@@ -495,6 +528,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   canvas.addEventListener("pointerup", aoSoltar);
   canvas.addEventListener("pointercancel", () => (arrastando = false));
   canvas.addEventListener("wheel", aoRolar, { passive: false });
+  // sem isso, o toque que abre o card também "clica" no card que surge embaixo do dedo
+  canvas.addEventListener("touchend", (ev) => ev.preventDefault(), { passive: false });
   container.addEventListener("keydown", aoTeclar);
   container.addEventListener("keyup", aoSoltarTecla);
 
