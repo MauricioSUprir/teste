@@ -414,8 +414,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
 
   // Dentro do corredor, as fotos ficam de lado e finas no celular: o toque que cai
-  // entre duas delas escolhe a mais próxima na tela, dentro de um raio em pixels.
+  // entre duas delas (ou na coluna da gôndola) escolhe a mais próxima na tela,
+  // até `raio` pixels da borda da foto.
   const auxTela = new THREE.Vector3();
+  const auxTopo = new THREE.Vector3();
   function produtoPerto(ev: PointerEvent, raio: number) {
     const atual = corredorDaPosicao(posicao.x, posicao.z);
     if (atual === null) return null;
@@ -428,7 +430,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         if (v.corredor !== atual || (posicao.x - v.pos.x) * v.face <= 0) continue; // de costas para a pessoa
         auxTela.copy(v.pos).project(camera);
         if (auxTela.z > 1) continue;
-        const d = Math.hypot(r.left + ((auxTela.x + 1) / 2) * r.width - ev.clientX, r.top + ((1 - auxTela.y) / 2) * r.height - ev.clientY);
+        auxTopo.set(v.pos.x, v.pos.y + TAM / 2, v.pos.z).project(camera);
+        const meiaFoto = ((auxTopo.y - auxTela.y) / 2) * r.height;
+        const centro = Math.hypot(r.left + ((auxTela.x + 1) / 2) * r.width - ev.clientX, r.top + ((1 - auxTela.y) / 2) * r.height - ev.clientY);
+        const d = Math.max(0, centro - meiaFoto);
         if (d < menor) {
           menor = d;
           melhor = { m, k };
@@ -485,7 +490,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     if (moveu) return;
     const hit = alvoNoPonteiro(ev);
     const placa = placas.find((p) => p === hit?.object);
-    const alvo = produtoDoAcerto(hit) ?? (placa ? null : produtoPerto(ev, ev.pointerType === "mouse" ? 14 : 30));
+    const alvo = produtoDoAcerto(hit) ?? (placa ? null : produtoPerto(ev, ev.pointerType === "mouse" ? 12 : 24));
     if (alvo) {
       const { m } = alvo;
       const vaga = m.vagas[alvo.k];
