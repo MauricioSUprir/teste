@@ -15,6 +15,7 @@ import {
 } from "@/lib/catalogo/consultas";
 import { precoPix } from "@/lib/preco";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { BotaoVoltar } from "@/components/layout/BotaoVoltar";
 import { Acordeao } from "@/components/produto/Acordeao";
 import { Avaliacoes } from "@/components/produto/Avaliacoes";
 import { CardProduto } from "@/components/produto/CardProduto";
@@ -97,12 +98,15 @@ export default async function PaginaProduto({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <Breadcrumb
-        itens={[
-          ...(categoria ? [{ rotulo: categoria.nome, href: `/categoria/${categoria.slug}` }] : []),
-          { rotulo: produto.titulo },
-        ]}
-      />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <BotaoVoltar alternativa={categoria ? `/categoria/${categoria.slug}` : "/"} />
+        <Breadcrumb
+          itens={[
+            ...(categoria ? [{ rotulo: categoria.nome, href: `/categoria/${categoria.slug}` }] : []),
+            { rotulo: produto.titulo },
+          ]}
+        />
+      </div>
 
       {/* acima da dobra: galeria 60% / coluna de compra 40% sticky (docs/03 §5) */}
       {/* min-w-0: sem ele, a fileira de miniaturas alarga a coluna e a página

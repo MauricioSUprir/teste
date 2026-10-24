@@ -32,11 +32,21 @@ export interface OpcoesCena {
   aoSelecionarProduto: (slug: string) => void;
   aoMudarCorredor: (indice: number | null) => void;
   aoChegarPrateleira: () => void;
+  /** onde a pessoa estava antes de abrir um produto (volta para o mesmo lugar) */
+  inicio?: PosicaoCena;
+}
+
+export interface PosicaoCena {
+  x: number;
+  z: number;
+  yaw: number;
+  pitch: number;
 }
 
 export interface Cena {
   irParaCorredor: (indice: number) => void;
   irParaEntrada: () => void;
+  posicao: () => PosicaoCena;
   destruir: () => void;
 }
 
@@ -335,9 +345,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
 
   // ---- câmera em primeira pessoa
-  const posicao = new THREE.Vector3(0, OLHO, ENTRADA_Z);
-  let yaw = 0;
-  let pitch = -0.04;
+  const posicao = new THREE.Vector3(op.inicio?.x ?? 0, OLHO, op.inicio?.z ?? ENTRADA_Z);
+  let yaw = op.inicio?.yaw ?? 0;
+  let pitch = op.inicio?.pitch ?? -0.04;
   let alvoYaw = yaw;
   let alvoPitch = pitch;
   type Ponto = { x: number; z: number; yaw?: number; pitch?: number };
@@ -621,6 +631,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   return {
     irParaCorredor,
     irParaEntrada,
+    posicao: () => ({ x: posicao.x, z: posicao.z, yaw, pitch }),
     destruir() {
       destruida = true;
       cancelAnimationFrame(quadro);

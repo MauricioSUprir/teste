@@ -4,6 +4,7 @@ import { CapturaAfiliado } from "@/components/layout/CapturaAfiliado";
 import { SincronizaPrecos } from "@/components/layout/SincronizaPrecos";
 import { DrawerCarrinho } from "@/components/carrinho/DrawerCarrinho";
 import { DadosDoNegocio } from "@/components/layout/DadosDoNegocio";
+import { TrilhaNavegacao } from "@/components/layout/BotaoVoltar";
 
 /**
  * Layout das páginas de loja: header com megamenu, footer e drawer de carrinho.
@@ -15,6 +16,7 @@ export default function LayoutLoja({ children }: { children: React.ReactNode }) 
     <>
       <DadosDoNegocio />
       <CapturaAfiliado />
+      <TrilhaNavegacao />
       <SincronizaPrecos />
       <Header />
       <main id="conteudo">{children}</main>

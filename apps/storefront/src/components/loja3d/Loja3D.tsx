@@ -14,10 +14,24 @@ import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
-import type { Cena } from "./cena";
+import type { Cena, PosicaoCena } from "./cena";
 
 const t = copy.loja3d;
 const BASE_IMAGEM = "https://comercial.thebeautyhub.app/api/ecom/imagem/";
+
+// Quem abre um produto e toca em "Voltar" cai no mesmo corredor, com o mesmo card aberto.
+const CHAVE_VOLTA = "bn:loja3d";
+type Volta = PosicaoCena & { slug: string | null };
+
+function lerVolta(): Volta | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(CHAVE_VOLTA) ?? "null") as Partial<Volta> | null;
+    if (!v || ![v.x, v.z, v.yaw, v.pitch].every((n) => typeof n === "number" && Number.isFinite(n))) return null;
+    return v as Volta;
+  } catch {
+    return null;
+  }
+}
 
 export interface Corredor3D {
   slug: string;
@@ -35,6 +49,10 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
   const [aviso, setAviso] = useState<string | null>(null);
   const [mostrarDica, setMostrarDica] = useState(true);
   const [toque, setToque] = useState(false);
+  const selecionadoAgora = useRef<string | null>(null);
+  useEffect(() => {
+    selecionadoAgora.current = selecionado;
+  }, [selecionado]);
 
   const porSlug = useMemo(() => {
     const mapa = new Map<string, Produto>();
@@ -61,10 +79,14 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
     const el = palco.current;
     if (!el) return;
     let cancelado = false;
+    const volta = lerVolta();
     (async () => {
       try {
         const [{ criarCena }] = await Promise.all([import("./cena"), document.fonts?.ready]);
         if (cancelado) return;
+        if (volta?.slug && corredores.some((c) => c.produtos.some((p) => p.slug === volta.slug))) {
+          setSelecionado(volta.slug);
+        }
         const raiz = getComputedStyle(document.documentElement);
         const cor = (nome: string, padrao: string) => raiz.getPropertyValue(nome).trim() || padrao;
         cena.current = criarCena(el, {
@@ -85,6 +107,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
           aoSelecionarProduto: (slug) => setSelecionado(slug),
           aoMudarCorredor: (i) => setCorredorAtual(i),
           aoChegarPrateleira: () => setAviso(t.naPrateleira),
+          inicio: volta ?? undefined,
         });
         setEstado("pronta");
       } catch {
@@ -93,6 +116,13 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
     })();
     return () => {
       cancelado = true;
+      if (cena.current) {
+        try {
+          sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ ...cena.current.posicao(), slug: selecionadoAgora.current }));
+        } catch {
+          // sem armazenamento: volta pela entrada
+        }
+      }
       cena.current?.destruir();
       cena.current = null;
     };

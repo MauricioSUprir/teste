@@ -95,6 +95,7 @@ export const copy = {
     marcas: "Marcas",
     necessidades: "Por necessidade",
     todasMarcas: "Ver todas as marcas",
+    voltar: "Voltar",
   },
   home: {
     heroTitulo: "Seu cabelo, tratado como em salão.",

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { obterMarca, obterProduto } from "@/lib/catalogo/consultas";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { BotaoVoltar } from "@/components/layout/BotaoVoltar";
 import { ColunaCompra } from "./ColunaCompra";
 import { ImagemProduto } from "./ImagemProduto";
 
@@ -47,7 +48,10 @@ export function ProdutoLocalDetalhe() {
 
   return (
     <div className="container-bn py-6 pb-32 md:pb-6">
-      <Breadcrumb itens={[{ rotulo: produto.titulo }]} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <BotaoVoltar alternativa="/" />
+        <Breadcrumb itens={[{ rotulo: produto.titulo }]} />
+      </div>
       <div className="mt-4 grid gap-8 md:grid-cols-2">
         <div className="overflow-hidden rounded-[8px] border border-linha bg-white">
           <ImagemProduto produto={produto} alt={produto.titulo} />
