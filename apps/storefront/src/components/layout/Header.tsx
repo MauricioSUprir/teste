@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { LOJA, LOJA_ID } from "@/lib/loja";
+import { AlternarVersao } from "./AlternarVersao";
 import { comBase } from "@/lib/caminho";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
@@ -79,6 +80,7 @@ export function Header() {
           )}
         </ul>
         <ul className="flex items-center gap-6">
+          <AlternarVersao />
           <li>
             <Link href="/afiliado" className="hover:text-roxo">
               {atalhos.afiliado}

@@ -33,6 +33,8 @@ interface ConfigLoja {
   precoFechado: boolean;
   /** home abre com as linhas profissionais em destaque (lib/catalogo/destaques.ts) */
   vitrineProfissional: boolean;
+  /** opção "Loja em 3D" no topo (só aparece no computador) */
+  loja3d: boolean;
 }
 
 const CONFIGS: Record<LojaId, ConfigLoja> = {
@@ -43,6 +45,7 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
     b2b: false,
     precoFechado: false,
     vitrineProfissional: false,
+    loja3d: true,
   },
   // 16/10 (pedido comercial): aberta a todos, inclusive sem CNPJ; preço mais
   // alto (mesmo ×1,3 do BeautyNow) para trabalhar com cupom sem comprometer o
@@ -54,6 +57,7 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
     b2b: true,
     precoFechado: false,
     vitrineProfissional: true,
+    loja3d: true,
   },
   // 3ª loja (12/09): varejo com o mesmo catálogo e preço do BeautyNow,
   // identidade visual própria — formas retas e tipografia display forte
@@ -64,6 +68,7 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
     b2b: false,
     precoFechado: false,
     vitrineProfissional: false,
+    loja3d: true,
   },
   // 4ª loja (12/09): distribuidora em SP — elo entre indústria e varejo.
   // Igual à Be2Beauty na regra comercial (preço do Hub sem acréscimo, fechado
@@ -75,6 +80,7 @@ const CONFIGS: Record<LojaId, ConfigLoja> = {
     b2b: true,
     precoFechado: true,
     vitrineProfissional: false,
+    loja3d: false,
   },
 };
 

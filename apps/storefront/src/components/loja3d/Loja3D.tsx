@@ -7,11 +7,13 @@
  * então a sacola e o pagamento são os de sempre.
  *
  * three.js só baixa nesta página (import dinâmico) — as outras não pesam nada.
+ * Só abre no computador: no celular e no tablet aparece o convite para a loja normal.
  */
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
+import { useEhComputador } from "@/lib/dispositivo";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
 import type { Cena, PosicaoCena } from "./cena";
@@ -49,6 +51,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
   const [aviso, setAviso] = useState<string | null>(null);
   const [mostrarDica, setMostrarDica] = useState(true);
   const [toque, setToque] = useState(false);
+  const computador = useEhComputador();
   const selecionadoAgora = useRef<string | null>(null);
   useEffect(() => {
     selecionadoAgora.current = selecionado;
@@ -75,6 +78,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
   }, []);
 
   useEffect(() => {
+    if (!computador) return;
     setToque(window.matchMedia("(pointer: coarse)").matches);
     const el = palco.current;
     if (!el) return;
@@ -126,7 +130,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
       cena.current?.destruir();
       cena.current = null;
     };
-  }, [corredores]);
+  }, [corredores, computador]);
 
   // a dica some sozinha; o aviso da prateleira também
   useEffect(() => {
@@ -139,6 +143,21 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
     const id = setTimeout(() => setAviso(null), 3500);
     return () => clearTimeout(id);
   }, [aviso]);
+
+  if (computador === false) {
+    return (
+      <div className="container-bn py-16 text-center">
+        <p className="text-[1.125rem] font-semibold text-tinta">{t.soComputador}</p>
+        <p className="mx-auto mt-2 max-w-[48ch] text-[0.9375rem] text-grafite">{t.soComputadorTexto}</p>
+        <Link
+          href="/"
+          className="mt-6 inline-flex h-11 items-center rounded-[40px] bg-roxo px-6 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+        >
+          {t.irParaLoja}
+        </Link>
+      </div>
+    );
+  }
 
   if (estado === "erro") {
     return (

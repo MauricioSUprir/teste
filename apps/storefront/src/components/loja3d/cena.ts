@@ -1,16 +1,18 @@
 /**
  * Loja 3D — a cena em three.js (sem React). Um corredor por categoria, lado a
  * lado, cada um com placa numerada na entrada ("01 CABELOS") e prateleiras dos
- * dois lados com as fotos reais dos produtos, em várias frentes como numa loja
- * física. A pessoa anda em primeira pessoa: arrasta para olhar, clica numa
+ * dois lados com os produtos em pé, recortados da foto real e com volume
+ * (produto3d.ts), em várias frentes como numa loja física. A pessoa anda em primeira pessoa: arrasta para olhar, clica numa
  * placa ou no chão para ir até lá, e clica num produto para a câmera chegar
  * perto da prateleira e o card do produto abrir (o card é React, fora daqui).
  *
  * Desempenho: uma malha instanciada por produto (as frentes repetidas são a
- * mesma malha), e as fotos só baixam quando a câmera chega a ~15 m delas,
+ * mesma malha), e as fotos só baixam quando a câmera chega a ~17 m delas,
  * reduzidas para 256 px num canvas — o 3D não pesa como 300 fotos de uma vez.
+ * Até a foto chegar, o lugar do produto mostra uma caixinha cinza.
  */
 import * as THREE from "three";
+import { montarProduto3D } from "./produto3d";
 
 export interface ProdutoCena {
   slug: string;
@@ -56,7 +58,8 @@ const PROF = 0.7; // gôndola de duas faces
 const PASSO = LARG + PROF; // de um corredor ao outro
 const COMPR = 11; // comprimento dos corredores
 const NIVEIS = [0.32, 0.8, 1.28, 1.76]; // altura de cada tábua
-const TAM = 0.34; // lado da foto na prateleira
+const LARG_PRODUTO = 0.32; // o produto cabe nessa largura...
+const ALT_PRODUTO = 0.38; // ...e nessa altura (sobra ar até a tábua de cima)
 const COL = 0.4; // largura de cada frente
 const FRENTES = 3; // quantas frentes seguidas de cada produto
 const ENTRADA_Z = 7; // onde a pessoa começa
@@ -67,32 +70,6 @@ const DIST_FOTO = 17; // a foto baixa quando a câmera chega a essa distância
 const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 /** diferença entre ângulos pelo caminho mais curto */
 const difAngulo = (alvo: number, atual: number) => Math.atan2(Math.sin(alvo - atual), Math.cos(alvo - atual));
-
-function carregarFoto(url: string): Promise<THREE.Texture> {
-  return new Promise((ok, falha) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.decoding = "async";
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      c.width = c.height = 256;
-      const g = c.getContext("2d");
-      if (!g) return falha(new Error("canvas"));
-      g.fillStyle = "#ffffff";
-      g.fillRect(0, 0, 256, 256);
-      const r = Math.min(240 / img.width, 240 / img.height);
-      const w = img.width * r;
-      const h = img.height * r;
-      g.drawImage(img, (256 - w) / 2, (256 - h) / 2, w, h);
-      const t = new THREE.CanvasTexture(c);
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 4;
-      ok(t);
-    };
-    img.onerror = () => falha(new Error("foto"));
-    img.src = url;
-  });
-}
 
 function textura(largura: number, altura: number, desenhar: (g: CanvasRenderingContext2D) => void) {
   const c = document.createElement("canvas");
@@ -148,6 +125,28 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     cena.add(m);
     return m;
   }
+  /**
+   * Peças que se repetem (gôndolas, luzes do teto) — anotadas aqui e montadas no
+   * fim como uma malha instanciada por material: centenas de caixas, poucas
+   * chamadas de desenho para a placa de vídeo.
+   */
+  const pecas = new Map<THREE.Material, THREE.Matrix4[]>();
+  function peca(mat: THREE.Material, sx: number, sy: number, sz: number, x: number, y: number, z: number) {
+    const lista = pecas.get(mat) ?? [];
+    lista.push(new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), new THREE.Vector3(sx, sy, sz)));
+    pecas.set(mat, lista);
+  }
+  function montarPecas() {
+    const feitas: THREE.InstancedMesh[] = [];
+    for (const [mat, lista] of pecas) {
+      const m = new THREE.InstancedMesh(caixa, mat, lista.length);
+      lista.forEach((matriz, k) => m.setMatrixAt(k, matriz));
+      cena.add(m);
+      feitas.push(m);
+    }
+    pecas.clear();
+    return feitas;
+  }
 
   // ---- luz
   // intensidades no padrão físico do three (sem o fator π antigo): branco fica branco
@@ -188,7 +187,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
 
   const matLuz = guardar(new THREE.MeshBasicMaterial({ color: "#ffffff" }));
   for (let i = 0; i < N; i++) {
-    for (let z = -1; z > -COMPR; z -= 3) bloco(matLuz, 0.5, 0.04, 2.2, xCorredor(i), TETO - 0.04, z);
+    for (let z = -1; z > -COMPR; z -= 3) peca(matLuz, 0.5, 0.04, 2.2, xCorredor(i), TETO - 0.04, z);
   }
   const matParede = guardar(new THREE.MeshLambertMaterial({ color: "#f7f7f9" }));
   bloco(matParede, larguraLoja, TETO, 0.2, (xMin + xMax) / 2, TETO / 2, zFundo);
@@ -215,8 +214,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
 
   // ---- gôndolas (uma entre cada par de corredores, mais as das pontas)
   // guardadas à parte: o toque que bate na gôndola não atravessa para o chão do outro lado
-  const gondolas: THREE.Mesh[] = [];
-  const peca = (...a: Parameters<typeof bloco>) => gondolas.push(bloco(...a));
+  montarPecas(); // luzes do teto
   for (let j = 0; j <= N; j++) {
     const gx = xMin + j * PASSO;
     const zc = -COMPR / 2;
@@ -231,6 +229,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     for (let z = 0; z >= -COMPR; z -= COMPR / 4) peca(matPrimaria, PROF, 2.2, 0.05, gx, 1.1, z); // colunas
     peca(matPrimaria, PROF + 0.04, 0.07, COMPR, gx, 2.2, zc); // topo
   }
+  const gondolas = montarPecas();
 
   // ---- placas numeradas na entrada de cada corredor (clicáveis)
   const placas: THREE.Mesh[] = [];
@@ -252,11 +251,11 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     placa.userData = { corredor: i };
     cena.add(placa);
     placas.push(placa);
-    for (const lado of [-1, 1]) bloco(matPrimaria, 0.03, 0.9, 0.03, xCorredor(i) + lado * (LARG / 2), 3.25, BOCA_Z);
+    for (const lado of [-1, 1]) peca(matPrimaria, 0.03, 0.9, 0.03, xCorredor(i) + lado * (LARG / 2), 3.25, BOCA_Z);
   });
+  montarPecas(); // hastes das placas
 
   // ---- produtos nas prateleiras: uma malha instanciada por produto
-  const geoFoto = guardar(new THREE.PlaneGeometry(TAM, TAM));
   const colunas = Math.floor((COMPR - 0.6) / COL);
   interface Vaga {
     pos: THREE.Vector3;
@@ -279,7 +278,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
           fotoDe.set(p.slug, p.foto);
           const vagas = vagasPorProduto.get(p.slug) ?? [];
           vagas.push({
-            pos: new THREE.Vector3(lado.x, nivel + TAM / 2 + 0.02, -0.4 - col * COL - COL / 2),
+            pos: new THREE.Vector3(lado.x, nivel + 0.001, -0.4 - col * COL - COL / 2), // base do produto
             face: lado.face,
             corredor: i,
           });
@@ -292,8 +291,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   interface ProdutoMalha {
     slug: string;
     malha: THREE.InstancedMesh;
-    material: THREE.MeshBasicMaterial;
     vagas: Vaga[];
+    altura: number;
     estado: "nada" | "baixando" | "pronto";
   }
   const malhas: ProdutoMalha[] = [];
@@ -302,14 +301,40 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const eixoY = new THREE.Vector3(0, 1, 0);
   const matrizDa = (v: Vaga, escala = 1) =>
     auxMatriz.compose(v.pos, auxQuat.setFromAxisAngle(eixoY, (v.face * Math.PI) / 2), new THREE.Vector3(escala, escala, escala));
+  // até a foto chegar: uma caixinha cinza no lugar do produto
+  const geoReserva = guardar(new THREE.BoxGeometry(0.22, 0.26, 0.05));
+  geoReserva.translate(0, 0.13, 0);
+  const matReserva = guardar(new THREE.MeshLambertMaterial({ color: "#e4e4eb" }));
   for (const [slug, vagas] of vagasPorProduto) {
-    const material = guardar(new THREE.MeshBasicMaterial({ color: "#f5f5f8" }));
-    const malha = new THREE.InstancedMesh(geoFoto, material, vagas.length);
+    const malha = new THREE.InstancedMesh(geoReserva, matReserva, vagas.length);
     vagas.forEach((v, k) => malha.setMatrixAt(k, matrizDa(v)));
     malha.userData = { slug };
     cena.add(malha);
-    malhas.push({ slug, malha, material, vagas, estado: "nada" });
+    malhas.push({ slug, malha, vagas, altura: 0.26, estado: "nada" });
   }
+
+  // sombra suave embaixo de cada produto: é o que faz ele "pousar" na prateleira
+  const texSombra = guardar(
+    textura(64, 64, (g) => {
+      const grad = g.createRadialGradient(32, 32, 1, 32, 32, 31);
+      grad.addColorStop(0, "rgba(20,18,40,0.5)");
+      grad.addColorStop(1, "rgba(20,18,40,0)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 64, 64);
+    })
+  );
+  const todasVagas = [...vagasPorProduto.values()].flat();
+  const sombras = new THREE.InstancedMesh(
+    guardar(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)),
+    guardar(new THREE.MeshBasicMaterial({ map: texSombra, transparent: true, depthWrite: false })),
+    todasVagas.length
+  );
+  const escalaSombra = new THREE.Vector3(0.16, 1, LARG_PRODUTO * 0.95);
+  todasVagas.forEach((v, k) =>
+    sombras.setMatrixAt(k, new THREE.Matrix4().compose(new THREE.Vector3(v.pos.x, v.pos.y + 0.001, v.pos.z), new THREE.Quaternion(), escalaSombra))
+  );
+  sombras.renderOrder = 1;
+  cena.add(sombras);
 
   // fotos sob demanda, das mais perto para as mais longe
   let baixando = 0;
@@ -326,17 +351,19 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       if (!url) continue;
       m.estado = "baixando";
       baixando++;
-      carregarFoto(url)
-        .then((t) => {
-          if (destruida) return t.dispose();
-          guardar(t);
-          m.material.map = t;
-          m.material.color.set("#ffffff");
-          m.material.needsUpdate = true;
+      montarProduto3D(url, LARG_PRODUTO, ALT_PRODUTO)
+        .then((p) => {
+          if (destruida) return p.descartar();
+          descartar.push({ dispose: p.descartar });
+          m.malha.geometry = p.geometria;
+          m.malha.material = p.material;
+          m.malha.boundingSphere = null; // a caixinha era menor que o produto
+          m.malha.boundingBox = null;
+          m.altura = p.altura;
           m.estado = "pronto";
         })
         .catch(() => {
-          m.estado = "pronto"; // sem foto: fica o quadro cinza
+          m.estado = "pronto"; // sem foto: fica a caixinha cinza
         })
         .finally(() => {
           baixando--;
@@ -438,9 +465,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       for (let k = 0; k < m.vagas.length; k++) {
         const v = m.vagas[k];
         if (v.corredor !== atual || (posicao.x - v.pos.x) * v.face <= 0) continue; // de costas para a pessoa
-        auxTela.copy(v.pos).project(camera);
+        auxTela.set(v.pos.x, v.pos.y + m.altura / 2, v.pos.z).project(camera);
         if (auxTela.z > 1) continue;
-        auxTopo.set(v.pos.x, v.pos.y + TAM / 2, v.pos.z).project(camera);
+        auxTopo.set(v.pos.x, v.pos.y + m.altura, v.pos.z).project(camera);
         const meiaFoto = ((auxTopo.y - auxTela.y) / 2) * r.height;
         const centro = Math.hypot(r.left + ((auxTela.x + 1) / 2) * r.width - ev.clientX, r.top + ((1 - auxTela.y) / 2) * r.height - ev.clientY);
         const d = Math.max(0, centro - meiaFoto);
@@ -506,7 +533,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       const vaga = m.vagas[alvo.k];
       // fica no meio do corredor, de frente para a prateleira
       const dist = Math.abs(vaga.pos.x - xCorredor(vaga.corredor));
-      irPara(xCorredor(vaga.corredor), vaga.pos.z, vaga.face > 0 ? Math.PI / 2 : -Math.PI / 2, Math.atan2(vaga.pos.y - OLHO, dist));
+      const centro = vaga.pos.y + m.altura / 2;
+      irPara(xCorredor(vaga.corredor), vaga.pos.z, vaga.face > 0 ? Math.PI / 2 : -Math.PI / 2, Math.atan2(centro - OLHO, dist));
       avisarPrateleira = true;
       op.aoSelecionarProduto(m.slug);
       return;

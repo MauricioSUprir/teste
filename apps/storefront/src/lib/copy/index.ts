@@ -82,6 +82,7 @@ export const copy = {
       afiliado: "Seja afiliado",
       pedidos: "Meus pedidos",
       favoritos: "Favoritos",
+      versao: { rotulo: "Ver a loja:", normal: "Normal", tresD: "Em 3D" },
     },
     destaques: {
       maisVendidos: "Mais vendidos",
@@ -667,6 +668,9 @@ export const copy = {
     verTodos: (categoria: string) => `Ver tudo de ${categoria}`,
     verEmLista: "Ver a loja em lista",
     semWebgl: "Seu aparelho não conseguiu abrir a loja em 3D. Use a loja normal — os produtos e preços são os mesmos.",
+    soComputador: "A loja em 3D foi feita para computador.",
+    soComputadorTexto: "No celular e no tablet, a loja normal é mais rápida e fácil de usar. Os produtos e os preços são os mesmos.",
+    irParaLoja: "Ir para a loja",
     rotuloCena: "Loja em 3D: corredores com os produtos nas prateleiras",
   },
   naoEncontrada: {
