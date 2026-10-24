@@ -657,13 +657,14 @@ export const copy = {
   },
   loja3d: {
     titulo: "Loja 3D",
-    descricao: (loja: string) => `Passeie pelos corredores da ${loja} em 3D e escolha seus produtos na prateleira.`,
+    descricao: (loja: string) => `Passeie pela ${loja} em 3D e escolha seus produtos nas estantes.`,
     montando: "Montando a loja…",
-    corredores: "Corredores",
-    entrada: "Entrada",
-    dica: "Arraste para olhar · clique numa placa ou num produto · W/S ou a rodinha para andar",
-    dicaToque: "Arraste para olhar · toque numa placa ou num produto",
-    naPrateleira: "Você chegou na prateleira. Escolha seu produto.",
+    setores: "Setores da loja",
+    visaoGeral: "Visão geral",
+    destaques: "Destaques",
+    dica: "Clique numa estante, num produto ou no chão para chegar perto · arraste para girar · rodinha para aproximar",
+    dicaPerto: "Arraste para olhar em volta · clique no chão para andar · W/S ou a rodinha para ir e voltar",
+    naPrateleira: "Você chegou. Escolha seu produto.",
     fechar: "Fechar",
     verTodos: (categoria: string) => `Ver tudo de ${categoria}`,
     verEmLista: "Ver a loja em lista",
@@ -671,7 +672,21 @@ export const copy = {
     soComputador: "A loja em 3D foi feita para computador.",
     soComputadorTexto: "No celular e no tablet, a loja normal é mais rápida e fácil de usar. Os produtos e os preços são os mesmos.",
     irParaLoja: "Ir para a loja",
-    rotuloCena: "Loja em 3D: corredores com os produtos nas prateleiras",
+    rotuloCena: "Loja em 3D: estantes com os produtos de cada categoria",
+    // logo na parede do fundo e na vitrine: a linha "destaque" é a grande
+    logo:
+      LOJA.id === "beautynow"
+        ? [
+            { texto: "BEAUTY", destaque: false },
+            { texto: "NOW!", destaque: true },
+          ]
+        : LOJA.id === "be2beauty"
+          ? [
+              { texto: "BE2BEAUTY", destaque: true },
+              { texto: "ONLY PROFESSIONAL", destaque: false },
+            ]
+          : [{ texto: LOJA.nome.toUpperCase(), destaque: true }],
+    fraseVitrine: LOJA.id === "beautynow" ? "Beleza que acontece agora." : LOJA.id === "be2beauty" ? "Only professional." : null,
   },
   naoEncontrada: {
     procurando: "Procurando a página…",

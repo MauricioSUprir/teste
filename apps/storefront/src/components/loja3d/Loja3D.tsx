@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Loja 3D — moldura React da cena (components/loja3d/cena.ts): botões dos
- * corredores, dica de como andar e o card do produto selecionado no canto
- * vazio da tela. O card é o mesmo CardProduto do site (preço, Pix, Adicionar),
+ * Loja 3D — moldura React da cena (components/loja3d/cena.ts): botões da visão
+ * geral e de cada setor, dica de como andar e o card do produto selecionado no
+ * canto vazio da tela. O card é o mesmo CardProduto do site (preço, Pix, Adicionar),
  * então a sacola e o pagamento são os de sempre.
  *
  * three.js só baixa nesta página (import dinâmico) — as outras não pesam nada.
@@ -12,23 +12,23 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
-import { LOJA } from "@/lib/loja";
 import { useEhComputador } from "@/lib/dispositivo";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
-import type { Cena, PosicaoCena } from "./cena";
+import type { Cena, ModoCena, PosicaoCena } from "./cena";
 
 const t = copy.loja3d;
 const BASE_IMAGEM = "https://comercial.thebeautyhub.app/api/ecom/imagem/";
 
-// Quem abre um produto e toca em "Voltar" cai no mesmo corredor, com o mesmo card aberto.
+// Quem abre um produto e toca em "Voltar" cai no mesmo lugar da loja, com o mesmo card aberto.
 const CHAVE_VOLTA = "bn:loja3d";
 type Volta = PosicaoCena & { slug: string | null };
 
 function lerVolta(): Volta | null {
   try {
     const v = JSON.parse(sessionStorage.getItem(CHAVE_VOLTA) ?? "null") as Partial<Volta> | null;
-    if (!v || ![v.x, v.z, v.yaw, v.pitch].every((n) => typeof n === "number" && Number.isFinite(n))) return null;
+    if (!v || (v.modo !== "alto" && v.modo !== "perto")) return null;
+    if (![v.x, v.z, v.yaw, v.pitch].every((n) => typeof n === "number" && Number.isFinite(n))) return null;
     return v as Volta;
   } catch {
     return null;
@@ -50,7 +50,8 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
   const [corredorAtual, setCorredorAtual] = useState<number | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [mostrarDica, setMostrarDica] = useState(true);
-  const [toque, setToque] = useState(false);
+  const [modo, setModo] = useState<ModoCena>("alto");
+  const jaChegouPerto = useRef(false);
   const computador = useEhComputador();
   const selecionadoAgora = useRef<string | null>(null);
   useEffect(() => {
@@ -79,7 +80,6 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
 
   useEffect(() => {
     if (!computador) return;
-    setToque(window.matchMedia("(pointer: coarse)").matches);
     const el = palco.current;
     if (!el) return;
     let cancelado = false;
@@ -104,12 +104,21 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
                 return { slug: p.slug, foto: foto.startsWith("http") ? foto : BASE_IMAGEM + foto };
               }),
           })),
-          nomeLoja: LOJA.nome,
+          logo: [...t.logo],
+          fraseVitrine: t.fraseVitrine,
+          tituloDestaques: t.destaques,
           corPrimaria: cor("--bn-roxo", "#6B2BD9"),
-          corEscura: cor("--bn-roxo-escuro", "#3E1A8C"),
           fonte: getComputedStyle(document.body).fontFamily || "sans-serif",
           aoSelecionarProduto: (slug) => setSelecionado(slug),
           aoMudarCorredor: (i) => setCorredorAtual(i),
+          aoMudarModo: (m) => {
+            setModo(m);
+            // a primeira vez que chega perto, ensina a andar
+            if (m === "perto" && !jaChegouPerto.current) {
+              jaChegouPerto.current = true;
+              setAviso(t.dicaPerto);
+            }
+          },
           aoChegarPrateleira: () => setAviso(t.naPrateleira),
           inicio: volta ?? undefined,
         });
@@ -124,7 +133,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
         try {
           sessionStorage.setItem(CHAVE_VOLTA, JSON.stringify({ ...cena.current.posicao(), slug: selecionadoAgora.current }));
         } catch {
-          // sem armazenamento: volta pela entrada
+          // sem armazenamento: volta pela visão geral
         }
       }
       cena.current?.destruir();
@@ -194,25 +203,25 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
           role="status"
           className="pointer-events-none absolute left-1/2 top-4 max-w-[90%] -translate-x-1/2 rounded-[40px] bg-tinta/85 px-4 py-2 text-center text-[0.8125rem] font-medium text-white"
         >
-          {aviso ?? (toque ? t.dicaToque : t.dica)}
+          {aviso ?? t.dica}
         </p>
       )}
 
-      {/* corredores */}
+      {/* visão geral e setores */}
       {estado === "pronta" && (
         <nav
-          aria-label={t.corredores}
+          aria-label={t.setores}
           className="absolute inset-x-0 bottom-0 flex gap-2 overflow-x-auto bg-gradient-to-t from-black/25 to-transparent px-4 pb-4 pt-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <button
             type="button"
-            onClick={() => cena.current?.irParaEntrada()}
-            aria-pressed={corredorAtual === null}
+            onClick={() => cena.current?.irParaVisaoGeral()}
+            aria-pressed={modo === "alto"}
             className={`shrink-0 rounded-[40px] px-3.5 py-2 text-[0.8125rem] font-semibold shadow-sm ${
-              corredorAtual === null ? "bg-roxo text-white" : "bg-white text-tinta hover:text-roxo"
+              modo === "alto" ? "bg-roxo text-white" : "bg-white text-tinta hover:text-roxo"
             }`}
           >
-            {t.entrada}
+            {t.visaoGeral}
           </button>
           {corredores.map((c, i) => (
             <button
@@ -224,13 +233,13 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
                 corredorAtual === i ? "bg-roxo text-white" : "bg-white text-tinta hover:text-roxo"
               }`}
             >
-              <span className="num opacity-70">{String(i + 1).padStart(2, "0")}</span> {c.nome}
+              {c.nome}
             </button>
           ))}
         </nav>
       )}
 
-      {/* dentro de um corredor: atalho para a lista completa da categoria */}
+      {/* na estante de uma categoria: atalho para a lista completa */}
       {estado === "pronta" && corredor && !produto && (
         <Link
           href={`/categoria/${corredor.slug}`}
@@ -244,7 +253,7 @@ export function Loja3D({ corredores }: { corredores: Corredor3D[] }) {
       {produto && (
         <aside
           aria-label={produto.titulo}
-          className="absolute bottom-20 right-3 w-[min(210px,calc(100%-24px))] md:bottom-auto md:right-5 md:top-5 md:w-[260px]"
+          className="absolute right-5 top-5 w-[260px]"
         >
           <div className="relative rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
             <button
