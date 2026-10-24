@@ -662,7 +662,7 @@ export const copy = {
     setores: "Setores da loja",
     visaoGeral: "Visão geral",
     destaques: "Destaques",
-    dica: "Ande com W/A/S/D ou as setas · arraste para olhar · clique no chão para ir até lá · clique num produto para ver",
+    dica: "Ande para a frente (W ou ↑) e a porta abre · arraste para olhar · clique no chão para ir até lá · clique num produto para ver",
     dicaAlto: "Clique numa estante, num produto ou no chão para descer até lá · arraste para girar · rodinha para aproximar",
     naPrateleira: "Você chegou. Escolha seu produto.",
     fechar: "Fechar",

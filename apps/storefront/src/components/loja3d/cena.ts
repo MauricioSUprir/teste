@@ -6,9 +6,11 @@
  * mesa redonda, painéis lilases) e "profissional" (Be2Beauty: moldura
  * azul-marinho, balcão de atendimento com banquetas, painéis de água).
  *
- * A pessoa entra pela porta, em primeira pessoa, com uma cesta na mão (cesta.ts):
- * anda com W/A/S/D ou as setas, arrasta para olhar e clica no chão para ir até
- * lá — o caminho desvia dos móveis (A* numa grade do piso). Clicar num produto
+ * A pessoa começa do lado de fora, no corredor do shopping, em primeira pessoa e
+ * com uma cesta na mão (cesta.ts). Andando para a frente, a porta de vidro abre
+ * sozinha (e fecha quando ela se afasta); lá dentro anda livre com W/A/S/D ou as
+ * setas, arrasta para olhar e clica no chão para ir até lá — o caminho desvia
+ * dos móveis e passa pela porta (A* numa grade do piso). Clicar num produto
  * leva até a prateleira e abre o card (React, fora daqui). "Visão geral" sobe
  * para ver a loja inteira de cima, como uma maquete.
  *
@@ -120,7 +122,8 @@ const EL_ALTO = 0.86; // inclinação da vista do alto
 const DIST_ALTO = 35;
 const ALVO_ALTO = new THREE.Vector3(0, 0, 0.8);
 const FOV_PERTO = 62;
-const ENTRADA: PosicaoCena = { modo: "perto", x: 0, z: Z1 - 1.8, yaw: 0, pitch: -0.06 };
+const FORA = 8; // corredor do shopping na frente da loja, onde a pessoa começa
+const ENTRADA: PosicaoCena = { modo: "perto", x: 0, z: Z1 + 5.2, yaw: 0, pitch: -0.03 };
 
 const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 /** diferença entre ângulos pelo caminho mais curto */
@@ -408,16 +411,19 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
 
   // ---- grade do piso (onde dá para pisar)
+  // vai do fundo da loja até o fim do corredor de fora; a fachada só deixa passar pelo vão da porta
   const GX = Math.round(LARGURA / CELULA);
-  const GZ = Math.round(FUNDO / CELULA);
+  const GZ = Math.round((FUNDO + FORA) / CELULA);
   const livre = new Uint8Array(GX * GZ).fill(1);
   const celX = (i: number) => X0 + (i + 0.5) * CELULA;
   const celZ = (j: number) => Z0 + (j + 0.5) * CELULA;
+  const naFachada = (z: number) => z > Z1 - RAIO && z < Z1 + PAREDE + RAIO;
   for (let j = 0; j < GZ; j++) {
     for (let i = 0; i < GX; i++) {
       const x = celX(i);
       const z = celZ(j);
-      if (x < X0 + RAIO || x > X1 - RAIO || z < Z0 + RAIO || z > Z1 - RAIO) livre[j * GX + i] = 0;
+      const foraDosLimites = x < X0 + RAIO || x > X1 - RAIO || z < Z0 + RAIO || z > Z1 + FORA - RAIO;
+      if (foraDosLimites || (naFachada(z) && Math.abs(x) > VAO - RAIO)) livre[j * GX + i] = 0;
     }
   }
   function bloquearRet(f: Moldura, u0: number, u1: number, v0: number, v1: number) {
@@ -700,14 +706,67 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const meio = lado * (VAO + 0.6 + comp / 2);
     juntar(matVidro, geoPlano, matriz(meio, altVidro / 2, Z1 + 0.02, 0, comp, altVidro, 1));
     for (let k = 0; k <= 4; k++) caixa(mat.metal, fachada, lado * (VAO + 0.6) + lado * k * (comp / 4), altVidro / 2, -0.12, 0.05, altVidro, 0.06);
-    juntar(matVidro, geoPlano, matriz((lado * VAO) / 2, 1.45, Z1 + 0.04, 0, VAO - 0.06, 2.9, 1));
-    caixa(mat.metal, fachada, lado * (VAO - 0.03), 1.45, -0.14, 0.05, 2.9, 0.05);
-    caixa(mat.metal, fachada, lado * 0.03, 1.45, -0.14, 0.05, 2.9, 0.05);
-    caixa(mat.cromado, fachada, lado * 0.24, 1.15, -0.07, 0.03, 1.0, 0.03); // puxador
   }
   juntar(matVidro, geoPlano, matriz(0, 3.15, Z1 + 0.04, 0, VAO * 2, 0.5, 1));
   caixa(mat.metal, fachada, 0, 2.9, -0.14, VAO * 2, 0.05, 0.05);
-  volumeCaixa(new Moldura(0, Z1 + 0.05, 0), 0, ALTURA / 2, 0, LARGURA, ALTURA, 0.1, null);
+  // porta automática: duas folhas de vidro que correm para os lados (por fora do vidro fixo)
+  const folhas: THREE.Group[] = [];
+  for (const lado of [-1, 1]) {
+    const folha = new THREE.Group();
+    const vidro = new THREE.Mesh(geoPlano, matVidro);
+    vidro.scale.set(VAO - 0.06, 2.9, 1);
+    vidro.position.y = 1.45;
+    vidro.renderOrder = 1;
+    folha.add(vidro);
+    for (const borda of [-1, 1]) {
+      const perfil = new THREE.Mesh(geoCaixa, mat.metal);
+      perfil.scale.set(0.05, 2.9, 0.05);
+      perfil.position.set((borda * (VAO - 0.06)) / 2, 1.45, 0);
+      folha.add(perfil);
+    }
+    const puxador = new THREE.Mesh(geoCaixa, mat.cromado);
+    puxador.scale.set(0.03, 1.0, 0.03);
+    puxador.position.set(-lado * (VAO / 2 - 0.22), 1.15, 0.05);
+    folha.add(puxador);
+    folha.position.set((lado * VAO) / 2, 0, Z1 + 0.1);
+    folha.userData = { lado };
+    cena.add(folha);
+    folhas.push(folha);
+  }
+  // letreiro iluminado em cima da porta, do lado de fora
+  placa(
+    guardar(
+      textura(1024, 160, (g) => {
+        g.fillStyle = hex(profissional ? escura : new THREE.Color("#2b2b31"));
+        g.fillRect(0, 0, 1024, 160);
+        desenharLogo(g, 512, 80, 96, profissional ? "#ffffff" : hex(lilasClaro), "#ffffff", 700);
+      })
+    ),
+    new Moldura(0, Z1 + PAREDE + 0.004, 0),
+    0,
+    ALTURA - 0.3,
+    0,
+    3.6,
+    0.56,
+    1.4
+  );
+  // corredor do shopping: piso claro em placas grandes, onde a pessoa começa
+  const texCorredor = guardar(
+    textura(256, 256, (g) => {
+      g.fillStyle = "#e9e8ec";
+      g.fillRect(0, 0, 256, 256);
+      g.strokeStyle = "#dcdbe0";
+      g.lineWidth = 2;
+      g.strokeRect(1, 1, 254, 254);
+    })
+  );
+  texCorredor.wrapS = texCorredor.wrapT = THREE.RepeatWrapping;
+  texCorredor.repeat.set((LARGURA + 20) / 1.6, (FORA + 4) / 1.6);
+  const pisoFora = new THREE.Mesh(guardar(new THREE.PlaneGeometry(LARGURA + 20, FORA + 4)), fisico("#ffffff", { map: texCorredor, roughness: 0.2 }));
+  pisoFora.rotation.x = -Math.PI / 2;
+  pisoFora.position.set(0, -0.002, Z1 + PAREDE + (FORA + 4) / 2);
+  pisoFora.receiveShadow = true;
+  cena.add(pisoFora);
 
   // teto com spots (só de perto; de cima a loja fica aberta, como maquete)
   const teto = new THREE.Group();
@@ -1305,9 +1364,12 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     limitar(Math.floor((x - X0) / CELULA), 0, GX - 1),
     limitar(Math.floor((z - Z0) / CELULA), 0, GZ - 1),
   ];
+  let porta = 0; // 0 = fechada, 1 = aberta
+  /** no vão da porta só se passa com ela aberta */
+  const barradoPelaPorta = (x: number, z: number) => naFachada(z) && Math.abs(x) < VAO && porta < 0.85;
   const pisavel = (x: number, z: number) => {
     const [i, j] = celula(x, z);
-    return x > X0 && x < X1 && z > Z0 && z < Z1 && livre[j * GX + i] === 1;
+    return x > X0 && x < X1 && z > Z0 && z < Z1 + FORA && livre[j * GX + i] === 1 && !barradoPelaPorta(x, z);
   };
   function livreMaisPerto(i0: number, j0: number): number | null {
     const inicio = j0 * GX + i0;
@@ -1335,9 +1397,14 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     }
     return null;
   }
+  /** como pisavel, mas sem a porta: o caminho é planejado com ela aberta (ela abre quando a pessoa chega) */
+  const livreNaGrade = (x: number, z: number) => {
+    const [i, j] = celula(x, z);
+    return x > X0 && x < X1 && z > Z0 && z < Z1 + FORA && livre[j * GX + i] === 1;
+  };
   function vistaLivre(ax: number, az: number, bx: number, bz: number) {
     const passos = Math.ceil(Math.hypot(bx - ax, bz - az) / (CELULA / 2));
-    for (let k = 1; k < passos; k++) if (!pisavel(ax + ((bx - ax) * k) / passos, az + ((bz - az) * k) / passos)) return false;
+    for (let k = 1; k < passos; k++) if (!livreNaGrade(ax + ((bx - ax) * k) / passos, az + ((bz - az) * k) / passos)) return false;
     return true;
   }
   function acharCaminho(dx: number, dz: number): Ponto[] {
@@ -1414,7 +1481,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     if (veio[alvo] === -1 && alvo !== origem) return [{ x: dx, z: dz }];
     const celulas: [number, number][] = [];
     for (let c = alvo; c !== -1; c = veio[c]) celulas.unshift([celX(c % GX), celZ(Math.floor(c / GX))]);
-    if (pisavel(dx, dz)) celulas[celulas.length - 1] = [dx, dz]; // termina no ponto pedido, não no meio da célula
+    if (livreNaGrade(dx, dz)) celulas[celulas.length - 1] = [dx, dz]; // termina no ponto pedido, não no meio da célula
     const pontos: Ponto[] = [];
     let de: [number, number] = [posicao.x, posicao.z];
     for (let k = 0; k < celulas.length - 1; ) {
@@ -1480,7 +1547,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const r = canvas.getBoundingClientRect();
     ponteiro.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ponteiro, camera);
-    const hits = raycaster.intersectObjects([...malhas.map((m) => m.malha), ...volumes, piso], false);
+    const hits = raycaster.intersectObjects([...malhas.map((m) => m.malha), ...volumes, piso, pisoFora], false);
     return hits[0] ?? null;
   }
   function produtoDoAcerto(hit: THREE.Intersection | null) {
@@ -1564,7 +1631,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const hit = alvoNoPonteiro(ev);
     const alvo = produtoDoAcerto(hit);
     destacar(alvo);
-    canvas.style.cursor = alvo || vistaDoVolume(hit) || hit?.object === piso ? "pointer" : "grab";
+    canvas.style.cursor = alvo || vistaDoVolume(hit) || hit?.object === piso || hit?.object === pisoFora ? "pointer" : "grab";
   }
   function aoSoltar(ev: PointerEvent) {
     if (!arrastando) return;
@@ -1582,7 +1649,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     if (!hit) return;
     const vista = vistaDoVolume(hit);
     if (vista) return irParaVista(vista(hit.point));
-    if (hit.object === piso && pisavel(hit.point.x, hit.point.z)) {
+    if ((hit.object === piso || hit.object === pisoFora) && livreNaGrade(hit.point.x, hit.point.z)) {
       if (modo === "alto") {
         irParaVista({ x: hit.point.x, z: hit.point.z, yaw: azimute, pitch: -0.08, setor: null });
         return;
@@ -1802,9 +1869,12 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         if (ultimoPonto && alvo.pitch !== undefined) alvoPitch = alvo.pitch;
         const vel = limitar(dist * 2.6, 0.6, 4.2);
         const anda = Math.min(dist, vel * dt);
-        if (dist > 0.0001) {
-          posicao.x += (dx / dist) * anda;
-          posicao.z += (dz / dist) * anda;
+        const nx = posicao.x + (dx / Math.max(dist, 0.0001)) * anda;
+        const nz = posicao.z + (dz / Math.max(dist, 0.0001)) * anda;
+        // na porta, espera ela abrir (ela já está abrindo: a pessoa está perto)
+        if (dist > 0.0001 && !barradoPelaPorta(nx, nz)) {
+          posicao.x = nx;
+          posicao.z = nz;
         }
         if (dist < (ultimoPonto ? 0.02 : 0.25)) {
           rota.shift();
@@ -1825,6 +1895,14 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         azimute += vira * dt * 0.9;
         aplicar(poseAlto());
       }
+    }
+    // a porta abre com alguém a menos de 3,5 m dela, na altura do chão
+    const pertoDaPorta = posicao.y < 3 && Math.abs(posicao.x) < VAO + 2.5 && Math.abs(posicao.z - Z1) < 3.5;
+    const antesPorta = porta;
+    porta = limitar(porta + (pertoDaPorta ? 1 : -1) * dt * 1.6, 0, 1);
+    if (porta !== antesPorta) {
+      const k = suave(porta);
+      for (const folha of folhas) folha.position.x = ((folha.userData.lado as number) * VAO) / 2 + (folha.userData.lado as number) * k * (VAO - 0.08);
     }
     camera.position.copy(posicao);
     camera.rotation.set(pitch, yaw, 0);
