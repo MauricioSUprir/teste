@@ -653,6 +653,21 @@ export const copy = {
     nenhuma: (termo: string) =>
       `Nenhuma pergunta encontrada para "${termo}". Fale com a gente pelo WhatsApp.`,
   },
+  loja3d: {
+    titulo: "Loja 3D",
+    descricao: (loja: string) => `Passeie pelos corredores da ${loja} em 3D e escolha seus produtos na prateleira.`,
+    montando: "Montando a loja…",
+    corredores: "Corredores",
+    entrada: "Entrada",
+    dica: "Arraste para olhar · clique numa placa ou num produto · W/S ou a rodinha para andar",
+    dicaToque: "Arraste para olhar · toque numa placa ou num produto",
+    naPrateleira: "Você chegou na prateleira. Escolha seu produto.",
+    fechar: "Fechar",
+    verTodos: (categoria: string) => `Ver tudo de ${categoria}`,
+    verEmLista: "Ver a loja em lista",
+    semWebgl: "Seu aparelho não conseguiu abrir a loja em 3D. Use a loja normal — os produtos e preços são os mesmos.",
+    rotuloCena: "Loja em 3D: corredores com os produtos nas prateleiras",
+  },
   naoEncontrada: {
     procurando: "Procurando a página…",
     titulo: "Página não encontrada",
