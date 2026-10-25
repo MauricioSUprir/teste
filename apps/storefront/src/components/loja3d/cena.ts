@@ -6,7 +6,7 @@
  * mesa redonda, painéis lilases) e "profissional" (Be2Beauty: moldura
  * azul-marinho, balcão de atendimento com banquetas, painéis de água).
  *
- * A pessoa começa do lado de fora, no corredor do shopping, em primeira pessoa e
+ * A pessoa começa do lado de fora, na calçada da rua, em primeira pessoa e
  * com uma cesta na mão (cesta.ts). Andando para a frente, a porta de vidro abre
  * sozinha (e fecha quando ela se afasta); lá dentro anda livre com W/A/S/D ou as
  * setas, arrasta para olhar e clica no chão para ir até lá — o caminho desvia
@@ -46,6 +46,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { montarProduto3D } from "./produto3d";
 import { criarCesta, type ItemCesta } from "./cesta";
+import { criarCidade, texturaCalcadao, texturaCimento } from "./cidade";
 import { texturasMadeira, texturasPorcelanato, texturasTecido, texturaTerra } from "./texturas";
 import { ajustesSuperficie, criarReflexo, prepararSuperficie, type Receptor } from "./superficie";
 import { criarLuzAssada, type LuzAssada, type ReceptorAssado } from "./luz-assada";
@@ -182,7 +183,9 @@ const DIST_ALTO = 35;
 const DIST_ALTO_EM_PE = 44; // tela em pé: a loja de lado, mais longe para caber a largura
 const ALVO_ALTO = new THREE.Vector3(0, 0, 0.8);
 const FOV_PERTO = 62;
-const FORA = 8; // corredor do shopping na frente da loja, onde a pessoa começa
+const FORA = 8; // calçada na frente da loja, onde a pessoa começa
+// quarteirão da loja: a loja, a calçada da frente e um pátio em volta; dali para fora é a cidade
+const QUARTEIRAO = { x0: -25, x1: 25, z0: -21, z1: Z1 + PAREDE + FORA + 4 };
 const CAMADA_ASSADA = 3; // o que faz sombra de contato na luz assada
 const CAMADA_SPOT = 4; // o que tampa a luz dos spots do teto (sem paredes)
 const MAX_NITIDAS = 36; // fotos em alta resolução ao mesmo tempo (memória da placa de vídeo)
@@ -351,8 +354,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   container.appendChild(canvas);
 
   const cena = new THREE.Scene();
-  cena.background = new THREE.Color("#e7e6ea");
-  const camera = new THREE.PerspectiveCamera(FOV_PERTO, 1, 0.05, 200);
+  const camera = new THREE.PerspectiveCamera(FOV_PERTO, 1, 0.15, 800);
   camera.rotation.order = "YXZ";
 
   const descartar: { dispose: () => void }[] = [];
@@ -818,7 +820,16 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   piso.receiveShadow = true;
   cena.add(piso);
   const usarAssadaParede = prepararSuperficie(mat.parede, { receptores: receptoresParede });
-  juntar(mat.rua, geoChao, matriz(0, -0.01, 0, 0, 140, 1, 140));
+  // a cidade em volta (céu, morros, ruas e prédios) e o chão do quarteirão da loja
+  const cidade = criarCidade({ quarteirao: QUARTEIRAO, leve: celular });
+  cena.add(cidade.grupo);
+  cena.background = cidade.ceu;
+  descartar.push({ dispose: cidade.descartar });
+  const texPatio = guardar(texturaCimento());
+  texPatio.repeat.set((QUARTEIRAO.x1 - QUARTEIRAO.x0) / 4, (QUARTEIRAO.z1 - QUARTEIRAO.z0) / 4);
+  mat.rua.map = texPatio;
+  mat.rua.color.set("#ffffff");
+  juntar(mat.rua, geoChao, matriz(0, -0.01, (QUARTEIRAO.z0 + QUARTEIRAO.z1) / 2, 0, QUARTEIRAO.x1 - QUARTEIRAO.x0, 1, QUARTEIRAO.z1 - QUARTEIRAO.z0));
   juntar(mat.capacho, geoCaixa, matriz(0, 0.006, Z1 + PAREDE + 0.6, 0, 2.2, 0.012, 0.9));
 
   const paredeFundo = new Moldura(0, Z0, 0);
@@ -895,19 +906,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     0.56,
     1.4
   );
-  // corredor do shopping: porcelanato cinza em placas grandes, onde a pessoa começa
-  const texCorredor = texturasPorcelanato({ lado: 512, base: "#e6e6ea", veio: "#d0d0d6", rejunte: "#d4d4da", placa: 1.6, veios: 1.1, semente: 8 });
-  descartar.push({ dispose: texCorredor.descartar });
-  for (const t of [texCorredor.cor, texCorredor.normal, texCorredor.rugosidade]) t.repeat.set((LARGURA + 20) / texCorredor.metros, (FORA + 4) / texCorredor.metros);
-  const matCorredor = fisico("#ffffff", {
-    map: texCorredor.cor,
-    normalMap: texCorredor.normal,
-    normalScale: new THREE.Vector2(0.5, 0.5),
-    roughnessMap: texCorredor.rugosidade,
-    roughness: 1,
-    envMapIntensity: 0.3,
-  });
-  prepararSuperficie(matCorredor, { reflexo });
+  // calçada da loja: o calçadão de Copacabana, em pedra portuguesa (onde a pessoa começa)
+  const texCalcadao = guardar(texturaCalcadao(celular ? 512 : 1024));
+  texCalcadao.repeat.set((LARGURA + 20) / 4, (FORA + 4) / 4);
+  const matCorredor = fisico("#ffffff", { map: texCalcadao, roughness: 0.85, envMapIntensity: 0.2 });
   const pisoFora = new THREE.Mesh(guardar(new THREE.PlaneGeometry(LARGURA + 20, FORA + 4)), matCorredor);
   pisoFora.rotation.x = -Math.PI / 2;
   pisoFora.position.set(0, -0.002, Z1 + PAREDE + (FORA + 4) / 2);
@@ -1561,7 +1563,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   // as manchas de sombra falsas saem quando a luz assada chega (ela faz isso de verdade)
   const manchasSombra = malhaDoMaterial.get(matSombra);
   // no reflexo não entram o próprio chão nem as manchas coladas nele
-  const foraDoReflexo: THREE.Object3D[] = [piso, pisoFora, ...[matSombra, matLuzChao, matLuzRoxa].flatMap((m) => malhaDoMaterial.get(m) ?? [])];
+  const foraDoReflexo: THREE.Object3D[] = [piso, pisoFora, cidade.grupo, ...[matSombra, matLuzChao, matLuzRoxa].flatMap((m) => malhaDoMaterial.get(m) ?? [])];
 
   // ---- etiquetas de preço (uma malha para a loja toda)
   const etiquetasMalha = criarEtiquetas(op.fonte, profissional ? escura.clone() : primaria.clone());
@@ -2092,7 +2094,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     // reflexo: meia tela na alta, um terço na média (no celular, só na alta); na baixa o piso volta ao brilho simples
     escalaReflexo = celular ? (q === "alta" ? 0.34 : 0) : q === "alta" ? 0.5 : q === "media" ? 0.34 : 0;
     ajustesSuperficie.forcaReflexo.value = escalaReflexo ? 1 : 0;
-    matPiso.envMapIntensity = matCorredor.envMapIntensity = escalaReflexo ? 0.3 : 0.75;
+    matPiso.envMapIntensity = escalaReflexo ? 0.3 : 0.75;
     const lado = q === "baixa" || celular ? 2048 : 4096;
     if (sol.shadow.mapSize.x !== lado) {
       sol.shadow.mapSize.set(lado, lado);
@@ -2438,9 +2440,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       const k = suave(porta);
       for (const folha of folhas) folha.position.x = ((folha.userData.lado as number) * VAO) / 2 + (folha.userData.lado as number) * k * (VAO - 0.08);
     }
-    // de cima a câmera fica a 14–70 m: com o plano de perto a 5 cm, a profundidade não separa a
+    // de cima a câmera fica a 14–70 m: com o plano de perto a 15 cm, a profundidade não separa a
     // logo (2 mm na frente) do móvel atrás dela e as duas piscavam; lá em cima ele vai para 1 m
-    const perto = posicao.y > 3 ? 1 : 0.05;
+    const perto = posicao.y > 3 ? 1 : 0.15;
     if (camera.near !== perto) {
       camera.near = perto;
       camera.updateProjectionMatrix();
