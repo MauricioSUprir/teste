@@ -186,12 +186,14 @@ def atlas(cubos):
     return img, pos
 
 
-def geometria(ident, cubos, pos, tam_tex, ossos=None):
+def geometria(ident, cubos, pos, tam_tex, ossos=None, pais=False, limites=4):
     """JSON de geometria Bedrock (formato 1.12.0) com UV por face."""
     ossos = ossos or sorted({c.osso for c in cubos}, key=lambda o: list(PIVOS).index(o) if o in PIVOS else 99)
     lista = []
     for o in ossos:
         b = {"name": o, "pivot": PIVOS.get(o, [0, 0, 0]), "cubes": []}
+        if pais and PAIS.get(o) in ossos:
+            b["parent"] = PAIS[o]
         for i, c in enumerate(cubos):
             if c.osso != o:
                 continue
@@ -207,8 +209,19 @@ def geometria(ident, cubos, pos, tam_tex, ossos=None):
         lista.append(b)
     return {"format_version": "1.12.0", "minecraft:geometry": [{
         "description": {"identifier": ident, "texture_width": tam_tex[0], "texture_height": tam_tex[1],
-                        "visible_bounds_width": 4, "visible_bounds_height": 4, "visible_bounds_offset": [0, 1.5, 0]},
+                        "visible_bounds_width": limites, "visible_bounds_height": limites,
+                        "visible_bounds_offset": [0, limites / 2, 0]},
         "bones": lista}]}
+
+
+def icone(cubos, tamanho=64, angulo=-30, escala=16):
+    """Vista 3D dos cubos, recortada e centralizada num quadrado transparente."""
+    img = _render1(cubos, angulo, escala, (0, 0, 0, 0), None)
+    img = img.crop(img.getbbox())
+    lado = max(img.size)
+    q = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
+    q.paste(img, ((lado - img.width) // 2, (lado - img.height) // 2))
+    return q.resize((tamanho, tamanho), Image.LANCZOS) if tamanho else q
 
 
 # ------------------------------------------------------------------ prévia 3D

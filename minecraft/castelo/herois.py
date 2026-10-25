@@ -16,6 +16,11 @@ import zipfile
 import numpy as np
 from PIL import Image
 
+import modelos3d as m3
+import trajes_hd
+import viloes_hd
+import artefatos_hd
+
 AQUI = os.path.dirname(os.path.abspath(__file__))
 NS = "mv"
 UUID = {
@@ -23,7 +28,7 @@ UUID = {
     "bp_script": "c3b5a7e9-1d2f-4a6c-8b0e-2d4f6a8c0e22", "rp": "2f4a6c8e-0b1d-4e3f-9a5c-7e9b1d3f5a23",
     "rp_mod": "5d7f9b1c-3e5a-4c7e-8f1b-3d5f7a9c1e24",
 }
-VERSAO = [1, 0, 0]
+VERSAO = [2, 0, 0]
 SERVER_API, UI_API = "2.1.0", "2.0.0"
 
 
@@ -590,14 +595,17 @@ def gerar(destino=None):
     lang.append(f"item.{NS}:relogio=Relógio dos Heróis")
     # trajes
     for hid, nome, desenho, poderes, _, c_ic in HEROIS:
-        t = Traje()
-        desenho(t)
-        t.salvar(os.path.join(rp, "textures", "models", "armor"), hid)
+        hd = trajes_hd.montar(hid).pecas()
         for peca, eq, slot, geo, camada in PECAS:
             iid = f"{NS}:{hid}_{peca}"
             icone = os.path.join(rp, "textures", "items", f"{hid}_{peca}.png")
             os.makedirs(os.path.dirname(icone), exist_ok=True)
-            _icone_peca(icone, peca, c_ic)
+            cubos = hd[peca]
+            m3.icone(cubos, 64).save(icone)
+            tex, pos = m3.atlas(cubos)
+            tex.save(_caminho(rp, "textures", "models", "armor_hd", f"{hid}_{peca}.png"))
+            _w(os.path.join(rp, "models", "entity", "trajes", f"{hid}_{peca}.geo.json"),
+               m3.geometria(f"geometry.mv.{hid}.{peca}", cubos, pos, tex.size, pais=True))
             texturas_itens[iid] = {"textures": f"textures/items/{hid}_{peca}"}
             _w(os.path.join(bp, "items", "trajes", f"{hid}_{peca}.json"), {
                 "format_version": "1.21.40",
@@ -614,10 +622,10 @@ def gerar(destino=None):
                 "format_version": "1.8.0",
                 "minecraft:attachable": {"description": {
                     "identifier": iid,
-                    "materials": {"default": "armor", "enchanted": "armor_enchanted"},
-                    "textures": {"default": f"textures/models/armor/{hid}_{camada}",
+                    "materials": {"default": "entity_alphatest", "enchanted": "armor_enchanted"},
+                    "textures": {"default": f"textures/models/armor_hd/{hid}_{peca}",
                                  "enchanted": "textures/misc/enchanted_actor_glint"},
-                    "geometry": {"default": f"geometry.humanoid.armor.{geo}"},
+                    "geometry": {"default": f"geometry.mv.{hid}.{peca}"},
                     "scripts": {"parent_setup": f"variable.{visivel}_layer_visible = 0.0;"},
                     "render_controllers": ["controller.render.armor"]}}})
             lang.append(f"item.{iid}={nome}: {peca}")
@@ -920,9 +928,13 @@ def _pele_vilao(desenho):
 
 
 def gerar_viloes(bp, rp, lang, texturas_itens):
-    _w(os.path.join(rp, "models", "entity", "mv_humanoide.geo.json"), GEOMETRIA)
+    ossos = ["body", "head", "rightArm", "leftArm", "rightLeg", "leftLeg"]
     for vid, nome, desenho, vida, dano, escala, vel, chefe, _ in VILOES:
-        Image.fromarray(_pele_vilao(desenho), "RGBA").save(_caminho(rp, "textures", "entity", "viloes", f"{vid}.png"))
+        cubos = viloes_hd.cubos_entidade(vid)
+        tex, pos = m3.atlas(cubos)
+        tex.save(_caminho(rp, "textures", "entity", "viloes", f"{vid}.png"))
+        _w(os.path.join(rp, "models", "entity", "viloes", f"{vid}.geo.json"),
+           m3.geometria(f"geometry.mv.{vid}", cubos, pos, tex.size, ossos=ossos, pais=True, limites=6))
         comp = {
             "minecraft:type_family": {"family": ["monster", "vilao", "mob"]},
             "minecraft:health": {"value": vida, "max": vida},
@@ -963,7 +975,7 @@ def gerar_viloes(bp, rp, lang, texturas_itens):
                 "identifier": f"{NS}:{vid}",
                 "materials": {"default": "entity_alphatest"},
                 "textures": {"default": f"textures/entity/viloes/{vid}"},
-                "geometry": {"default": "geometry.mv.humanoide"},
+                "geometry": {"default": f"geometry.mv.{vid}"},
                 "animations": {"move": "animation.humanoid.move", "look": "animation.humanoid.look_at_target.default",
                                "pose": "animation.humanoid.base_pose"},
                 "scripts": {"animate": ["pose", "look", "move"]},
@@ -973,8 +985,7 @@ def gerar_viloes(bp, rp, lang, texturas_itens):
         lang.append(f"item.spawn_egg.entity.{NS}:{vid}.name=Ovo: {nome}")
     for aid, nome, c_ic, simbolo, recarga, _ in ARTEFATOS:
         iid = f"{NS}:artefato_{aid}"
-        _icone(_caminho(rp, "textures", "items", f"artefato_{aid}.png"), ICONES[simbolo], c_ic,
-               "#ffffff" if c_ic not in ("#d4a72c",) else "#1b1b1f")
+        artefatos_hd.imagem(aid, 64).save(_caminho(rp, "textures", "items", f"artefato_{aid}.png"))
         texturas_itens[iid] = {"textures": f"textures/items/artefato_{aid}"}
         _w(os.path.join(bp, "items", "artefatos", f"{aid}.json"), {
             "format_version": "1.21.40",
