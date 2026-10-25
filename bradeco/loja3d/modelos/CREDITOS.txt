@@ -6,5 +6,7 @@ Modelos 3D das plantas da Loja 3D — Poly Haven (https://polyhaven.com), licen�
 
 Enxugados para a web: menos triângulos (meshoptimizer), fotos de 512 px e compressão meshopt.
 
-Atendente (../atendente-roxa.webp e ../atendente-azul.webp): imagem gerada por IA para a loja
-(ElevenLabs, modelo Seedream), não é uma pessoa real. Fundo recortado e blusa azul recolorida aqui.
+Atendente 3D (atendente-roxa.glb e atendente-azul.glb) ← "Business_Female_01" do Microsoft Rocketbox
+(https://github.com/microsoft/Microsoft-Rocketbox), licença MIT — ver LICENCA-ROCKETBOX.txt.
+Animações "respirar" (f_idle_breathe_01) e "falar" (f_gestic_talk_relaxed_01, 12 s) do mesmo pacote.
+Blazer recolorido (roxo BeautyNow / azul Be2Beauty), texturas reduzidas e compressão meshopt.
