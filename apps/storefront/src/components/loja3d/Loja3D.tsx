@@ -12,7 +12,8 @@
  * que está na cesta. As etiquetas de preço da cena seguem os preços do painel.
  *
  * three.js só baixa nesta página (import dinâmico) — as outras não pesam nada.
- * Só abre no computador: no celular e no tablet aparece o convite para a loja normal.
+ * No celular e no tablet a cena começa mais leve, ganha o controle de andar na
+ * tela (ControleAndar) e os cards sobem da parte de baixo da tela.
  */
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -21,13 +22,14 @@ import { LOJA } from "@/lib/loja";
 import { NEGOCIO, linkWhatsapp } from "@/lib/negocio";
 import { comBase } from "@/lib/caminho";
 import { percentualDesconto } from "@/lib/preco";
-import { useEhComputador } from "@/lib/dispositivo";
+import { useToque } from "@/lib/dispositivo";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import { EVENTO_AJUSTES, aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import { normalizar } from "@/lib/catalogo/busca";
 import { listarBanners } from "@/lib/servidor";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
+import { ControleAndar } from "./ControleAndar";
 import type { AlvoGuia, Cena, ModoCena, PosicaoCena, PrecoCena, Qualidade } from "./cena";
 
 const t = copy.loja3d;
@@ -115,7 +117,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   const [busca, setBusca] = useState<string | null>(null); // null = fechada
   const [marcada, setMarcada] = useState(0);
   const [guia, setGuia] = useState<string | null>(null); // nome do destino
-  const computador = useEhComputador();
+  const toque = useToque();
   const carrinho = useCarrinho();
   const selecionadoAgora = useRef<string | null>(null);
   useEffect(() => {
@@ -144,7 +146,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   }, []);
 
   useEffect(() => {
-    if (!computador) return;
+    if (toque === null) return; // espera saber se é celular (a cena nasce leve ou não)
     const el = palco.current;
     if (!el) return;
     let cancelado = false;
@@ -182,6 +184,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           corCesta: profissional ? cor("--bn-roxo", "#1f5fa8") : "#6d35d8",
           fonte: getComputedStyle(document.body).fontFamily || "sans-serif",
           qualidade: qualidadeDaUrl(),
+          celular: toque,
           aoSelecionarProduto: (slug) => {
             setLarissaAberta(false);
             setSelecionado(slug);
@@ -192,7 +195,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           inicio: volta ?? undefined,
           urlModelos: comBase("/loja3d/modelos/"),
           // atendente 3D com o blazer da loja
-          larissa: { nome: t.larissa.nome, balao: t.larissa.balao, modelo: comBase(`/loja3d/modelos/atendente-${profissional ? "azul" : "roxa"}.glb`) },
+          larissa: { nome: t.larissa.nome, balao: toque ? t.larissa.balaoToque : t.larissa.balao, modelo: comBase(`/loja3d/modelos/atendente-${profissional ? "azul" : "roxa"}.glb`) },
           aoFalarComLarissa: () => {
             setSelecionado(null);
             setLarissaAberta(true);
@@ -226,7 +229,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
       cena.current?.destruir();
       cena.current = null;
     };
-  }, [setores, categorias, porSlug, computador]);
+  }, [setores, categorias, porSlug, toque]);
 
   // preço mudou no painel (chega do servidor depois de abrir): as etiquetas acompanham
   useEffect(() => {
@@ -311,21 +314,6 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
       )
     : null;
 
-  if (computador === false) {
-    return (
-      <div className="container-bn py-16 text-center">
-        <p className="text-[1.125rem] font-semibold text-tinta">{t.soComputador}</p>
-        <p className="mx-auto mt-2 max-w-[48ch] text-[0.9375rem] text-grafite">{t.soComputadorTexto}</p>
-        <Link
-          href="/"
-          className="mt-6 inline-flex h-11 items-center rounded-[40px] bg-roxo px-6 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
-        >
-          {t.irParaLoja}
-        </Link>
-      </div>
-    );
-  }
-
   if (estado === "erro") {
     return (
       <div className="container-bn py-16 text-center">
@@ -361,15 +349,15 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
       {estado === "pronta" && (mostrarDica || aviso) && (
         <p
           role="status"
-          className="pointer-events-none absolute left-1/2 top-16 max-w-[min(90%,640px)] -translate-x-1/2 rounded-[40px] bg-tinta/85 px-4 py-2 text-center text-[0.8125rem] font-medium text-white"
+          className="pointer-events-none absolute left-1/2 top-[7.25rem] w-max max-w-[min(90%,640px)] -translate-x-1/2 rounded-[20px] bg-tinta/85 px-4 py-2 text-center text-[0.8125rem] font-medium text-white sm:top-16 sm:rounded-[40px]"
         >
-          {aviso ?? (modo === "alto" ? t.dicaAlto : t.dica)}
+          {aviso ?? (modo === "alto" ? (toque ? t.dicaAltoToque : t.dicaAlto) : toque ? t.dicaToque : t.dica)}
         </p>
       )}
 
       {/* guia "onde fica?" e som, no canto de cima à esquerda */}
       {estado === "pronta" && (
-        <div className="absolute left-4 top-4 flex w-[300px] flex-col items-start gap-2">
+        <div className="absolute left-4 top-4 flex w-[calc(100%-2rem)] max-w-[300px] flex-col items-start gap-2">
           <div className="flex gap-2">
             {busca === null ? (
               <button type="button" onClick={() => setBusca("")} className={`${pilula} flex items-center gap-1.5`}>
@@ -399,7 +387,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
                 aria-expanded={sugestoes.length > 0}
                 aria-controls="sugestoes-guia"
                 aria-activedescendant={sugestoes[marcada] ? `sug-${marcada}` : undefined}
-                className="h-9 w-[230px] rounded-[40px] border-0 bg-white px-4 text-[0.8125rem] text-tinta shadow-sm outline-none ring-roxo focus-visible:ring-2"
+                className="h-9 w-[min(230px,calc(100vw-6.5rem))] rounded-[40px] border-0 bg-white px-4 text-[0.8125rem] text-tinta shadow-sm outline-none ring-roxo focus-visible:ring-2"
               />
             )}
             <button
@@ -504,19 +492,24 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
         </nav>
       )}
 
+      {/* celular: a bolinha de andar (de perto, sem card aberto por cima) */}
+      {estado === "pronta" && toque && modo === "perto" && !produto && !larissaAberta && (
+        <ControleAndar aoMover={(frente, vira) => cena.current?.mover(frente, vira)} />
+      )}
+
       {/* na seção de uma marca: atalho para a página dela */}
-      {estado === "pronta" && setor && !produto && !larissaAberta && (
+      {estado === "pronta" && setor && !produto && !larissaAberta && busca === null && !guia && (
         <Link
           href={`/marca/${setor.slug}`}
-          className="absolute right-4 top-4 rounded-[40px] bg-white px-4 py-2 text-[0.8125rem] font-semibold text-roxo shadow-sm hover:bg-roxo-claro"
+          className="absolute right-4 top-4 max-w-[44%] truncate rounded-[40px] bg-white px-4 py-2 text-[0.8125rem] font-semibold text-roxo shadow-sm hover:bg-roxo-claro sm:max-w-none"
         >
           {t.verTodos(setor.nome)} →
         </Link>
       )}
 
-      {/* card do produto no canto vazio da tela — o mesmo do site */}
+      {/* card do produto no canto vazio da tela — o mesmo do site; no celular, deitado embaixo */}
       {produto && (
-        <aside aria-label={produto.titulo} className="absolute right-5 top-5 w-[260px]">
+        <aside aria-label={produto.titulo} className="absolute inset-x-3 bottom-[4.5rem] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[260px]">
           <div className="relative rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
             <button
               type="button"
@@ -526,7 +519,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
             >
               {iconeFechar}
             </button>
-            <CardProduto key={produto.slug} produto={produto} prioridade abrirSacola={false} />
+            <CardProduto key={produto.slug} produto={produto} prioridade abrirSacola={false} deitadoNoCelular />
           </div>
         </aside>
       )}
@@ -535,7 +528,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
       {larissaAberta && !produto && (
         <aside
           aria-label={t.larissa.titulo}
-          className="absolute right-5 top-5 w-[290px] rounded-[10px] bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)]"
+          className="absolute inset-x-3 bottom-[4.5rem] rounded-[10px] bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[290px]"
         >
           <button
             type="button"

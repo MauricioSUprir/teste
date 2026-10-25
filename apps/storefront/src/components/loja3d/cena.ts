@@ -21,7 +21,12 @@
  * piso e as paredes recebem luz assada no próprio navegador (luz-assada.ts):
  * sombra suave embaixo dos móveis e as poças de luz dos spots. Texturas são
  * geradas na hora (texturas.ts) e as plantas são modelos escaneados (plantas.ts).
- * Se o computador não aguentar, a qualidade desce sozinha.
+ * Se o aparelho não aguentar, a qualidade desce sozinha.
+ *
+ * No celular e no tablet (op.celular) começa mais leve, o toque acerta o
+ * produto com mais folga, dois dedos aproximam (pinça) e o React põe um
+ * controle de andar na tela (mover). Com a tela em pé, a câmera abre mais o
+ * ângulo e a visão geral mostra a loja de lado, para caber o comprimento.
  *
  * Loja viva: etiqueta de preço embaixo de cada produto (etiquetas.ts), a
  * Larissa no caixa (larissa.ts), som ambiente (som.ts) e o guia "onde fica?"
@@ -109,8 +114,10 @@ export interface OpcoesCena {
   corEscura: string;
   corCesta: string;
   fonte: string;
-  /** fixa a qualidade (sem isso, começa na alta e desce se ficar lento) */
+  /** fixa a qualidade (sem isso, começa na alta — no celular, na média — e desce se ficar lento) */
   qualidade?: Qualidade;
+  /** celular ou tablet: menos pixels, sombra e fotos nítidas, e toque com mais folga */
+  celular?: boolean;
   aoSelecionarProduto: (slug: string) => void;
   /** índice da marca da seção onde a pessoa parou (null = em nenhuma) */
   aoMudarSetor: (indice: number | null) => void;
@@ -145,6 +152,8 @@ export interface Cena {
   irAteGuia: () => void;
   pararGuia: () => void;
   definirSom: (ligado: boolean) => void;
+  /** controle de andar na tela (celular): frente/trás e virar, de -1 a 1 (0 e 0 = parado) */
+  mover: (frente: number, vira: number) => void;
   /** preço mudou no painel: refaz as etiquetas */
   atualizarPrecos: (precos: Map<string, PrecoCena>) => void;
   /** banners do site para o painel de LED atrás do caixa */
@@ -170,12 +179,14 @@ const CELULA = 0.2; // grade do piso para achar caminho
 const RAIO = 0.35; // folga da pessoa para os móveis
 const EL_ALTO = 0.86; // inclinação da vista do alto
 const DIST_ALTO = 35;
+const DIST_ALTO_EM_PE = 44; // tela em pé: a loja de lado, mais longe para caber a largura
 const ALVO_ALTO = new THREE.Vector3(0, 0, 0.8);
 const FOV_PERTO = 62;
 const FORA = 8; // corredor do shopping na frente da loja, onde a pessoa começa
 const CAMADA_ASSADA = 3; // o que faz sombra de contato na luz assada
 const CAMADA_SPOT = 4; // o que tampa a luz dos spots do teto (sem paredes)
 const MAX_NITIDAS = 36; // fotos em alta resolução ao mesmo tempo (memória da placa de vídeo)
+const MAX_NITIDAS_CELULAR = 16;
 const ENTRADA: PosicaoCena = { modo: "perto", x: 0, z: Z1 + 5.2, yaw: 0, pitch: -0.03 };
 
 const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -767,7 +778,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   });
 
   // ---- piso (porcelanato claro e polido, com reflexo de verdade), rua, paredes e teto
-  const nivelInicial: Qualidade = op.qualidade ?? "alta";
+  const celular = !!op.celular;
+  const nivelInicial: Qualidade = op.qualidade ?? (celular ? "media" : "alta");
   const reflexo = criarReflexo(renderer, 0);
   descartar.push({ dispose: reflexo.descartar });
   const receptorPiso: Receptor = {
@@ -1848,6 +1860,14 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const ponteiro = new THREE.Vector2();
   let arrastando = false;
   let moveu = false;
+  // dedos na tela: com dois, a pinça aproxima (de cima) ou anda (de perto)
+  const dedos = new Map<number, { x: number; y: number }>();
+  let pinca = 0; // distância entre os dois dedos (0 = sem pinça)
+  const distanciaDedos = () => {
+    const [a, b] = [...dedos.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  const controle = { frente: 0, vira: 0 };
   let inicioX = 0;
   let inicioY = 0;
   let ultimoX = 0;
@@ -1914,6 +1934,15 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
 
   function aoApertar(ev: PointerEvent) {
     som.destravar();
+    if (ev.pointerType !== "mouse") {
+      dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (dedos.size === 2) {
+        pinca = distanciaDedos();
+        arrastando = false; // dois dedos não olham nem escolhem: só a pinça
+        return;
+      }
+      if (dedos.size > 2) return;
+    }
     arrastando = true;
     moveu = false;
     inicioX = ultimoX = ev.clientX;
@@ -1921,6 +1950,18 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     canvas.setPointerCapture(ev.pointerId);
   }
   function aoMover(ev: PointerEvent) {
+    if (dedos.has(ev.pointerId)) dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pinca && dedos.size === 2) {
+      const d = distanciaDedos();
+      if (!voo) {
+        if (modo === "alto") {
+          distAlto = limitar((distAlto * pinca) / Math.max(d, 1), 14, distAltoMax());
+          aplicar(poseAlto());
+        } else andar((d - pinca) * 0.012);
+      }
+      pinca = d;
+      return;
+    }
     if (arrastando) {
       if (Math.hypot(ev.clientX - inicioX, ev.clientY - inicioY) > 5) moveu = true;
       if (moveu && !voo) {
@@ -1948,15 +1989,20 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     canvas.style.cursor = alvo || vistaDoVolume(hit) || ehLarissa(hit) || hit?.object === piso || hit?.object === pisoFora ? "pointer" : "grab";
   }
   function aoSoltar(ev: PointerEvent) {
+    dedos.delete(ev.pointerId);
+    if (dedos.size < 2) pinca = 0;
     if (!arrastando) return;
     arrastando = false;
     canvas.style.cursor = "grab";
     if (moveu) return;
     const hit = alvoNoPonteiro(ev);
-    const alvo = produtoDoAcerto(hit) ?? produtoPerto(ev, 12);
+    // o dedo é mais grosso que o mouse: o toque perto do produto também vale
+    const alvo = produtoDoAcerto(hit) ?? produtoPerto(ev, ev.pointerType === "mouse" ? 12 : 30);
     if (alvo) {
       ultimaEscolha = alvo;
-      irParaVista(alvo.m.vagas[alvo.k].vista, true);
+      const v = alvo.m.vagas[alvo.k].vista;
+      // celular em pé: o card sobe da parte de baixo da tela, então o produto fica na de cima
+      irParaVista(emPe ? { ...v, pitch: v.pitch - 0.24 } : v, true);
       op.aoSelecionarProduto(alvo.m.slug);
       return;
     }
@@ -1983,7 +2029,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     ev.preventDefault();
     if (voo) return;
     if (modo === "alto") {
-      distAlto = limitar(distAlto * Math.exp(ev.deltaY * 0.0012), 14, 48);
+      distAlto = limitar(distAlto * Math.exp(ev.deltaY * 0.0012), 14, distAltoMax());
       aplicar(poseAlto());
       return;
     }
@@ -2017,27 +2063,35 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   canvas.addEventListener("pointerdown", aoApertar);
   canvas.addEventListener("pointermove", aoMover);
   canvas.addEventListener("pointerup", aoSoltar);
-  canvas.addEventListener("pointercancel", () => (arrastando = false));
+  canvas.addEventListener("pointercancel", (ev) => {
+    arrastando = false;
+    dedos.delete(ev.pointerId);
+    if (dedos.size < 2) pinca = 0;
+  });
   canvas.addEventListener("wheel", aoRolar, { passive: false });
   container.addEventListener("keydown", aoTeclar);
   container.addEventListener("keyup", aoSoltarTecla);
 
-  // ---- qualidade: começa na alta; se o computador não der conta, desce um degrau
+  // ---- qualidade: começa na alta (celular: na média); se o aparelho não der conta, desce um degrau
   const niveis: Qualidade[] = ["alta", "media", "baixa"];
-  let nivel = niveis.indexOf(op.qualidade ?? "alta");
+  let nivel = niveis.indexOf(nivelInicial);
   let escalaReflexo = 0;
   let fovAlto = 40;
+  let fovPerto = FOV_PERTO;
+  let emPe: boolean | null = null;
+  const distAltoMax = () => (emPe ? 70 : 48);
   function aplicarQualidade() {
     const q = niveis[nivel];
-    const pr = Math.min(window.devicePixelRatio, q === "alta" ? 1.5 : q === "media" ? 1.25 : 1);
+    // a tela do celular tem 2 ou 3 pontos por pixel: 1,5 já fica nítido e a placa de vídeo é bem menor
+    const pr = Math.min(window.devicePixelRatio, celular ? (q === "alta" ? 2 : q === "media" ? 1.5 : 1.15) : q === "alta" ? 1.5 : q === "media" ? 1.25 : 1);
     renderer.setPixelRatio(pr);
     composer.setPixelRatio(pr);
     brilho.enabled = q !== "baixa";
-    // reflexo: meia tela na alta, um terço na média; na baixa o piso volta ao brilho simples
-    escalaReflexo = q === "alta" ? 0.5 : q === "media" ? 0.34 : 0;
+    // reflexo: meia tela na alta, um terço na média (no celular, só na alta); na baixa o piso volta ao brilho simples
+    escalaReflexo = celular ? (q === "alta" ? 0.34 : 0) : q === "alta" ? 0.5 : q === "media" ? 0.34 : 0;
     ajustesSuperficie.forcaReflexo.value = escalaReflexo ? 1 : 0;
     matPiso.envMapIntensity = matCorredor.envMapIntensity = escalaReflexo ? 0.3 : 0.75;
-    const lado = q === "baixa" ? 2048 : 4096;
+    const lado = q === "baixa" || celular ? 2048 : 4096;
     if (sol.shadow.mapSize.x !== lado) {
       sol.shadow.mapSize.set(lado, lado);
       sol.shadow.map?.dispose();
@@ -2054,8 +2108,21 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const pr = renderer.getPixelRatio();
     reflexo.redimensionar(w * pr * Math.max(escalaReflexo, 0.1), h * pr * Math.max(escalaReflexo, 0.1));
     camera.aspect = w / h;
-    fovAlto = camera.aspect < 1.55 ? 46 : 40;
+    // tela em pé: de perto, abre o ângulo (senão os lados ficam de fora e tudo parece colado no rosto);
+    // de cima, a loja vira de lado (o comprimento de 30 m cabe na altura da tela)
+    const agoraEmPe = camera.aspect < 0.8;
+    fovAlto = agoraEmPe ? 60 : camera.aspect < 1.55 ? 46 : 40;
+    fovPerto = camera.aspect < 1 ? limitar((2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(28)) / camera.aspect) * 180) / Math.PI, FOV_PERTO, 80) : FOV_PERTO;
+    if (agoraEmPe !== emPe) {
+      const primeira = emPe === null;
+      emPe = agoraEmPe;
+      distAlto = emPe ? DIST_ALTO_EM_PE : DIST_ALTO;
+      // quem volta de um produto para a visão geral já tem o giro dela
+      if (!(primeira && op.inicio?.modo === "alto") && (!primeira || emPe)) azimute = emPe ? -Math.PI / 2 : 0;
+      if (modo === "alto" && !voo) aplicar(poseAlto());
+    }
     camera.updateProjectionMatrix();
+    cesta.enquadrar(camera.aspect);
   }
   const observador = new ResizeObserver(ajustar);
   observador.observe(container);
@@ -2140,7 +2207,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       .filter((m) => m.estado === "pronto" && m.nitida)
       .map((m) => ({ m, d: Math.min(...m.vagas.map((v) => Math.hypot(v.pos.x - posicao.x, v.pos.z - posicao.z))) + (posicao.y > 2.5 ? 99 : 0) }))
       .sort((a, b) => a.d - b.d);
-    const querem = new Set(lado ? lista.filter((x) => x.d < 3.6).slice(0, MAX_NITIDAS).map((x) => x.m) : []);
+    const querem = new Set(lado ? lista.filter((x) => x.d < 3.6).slice(0, celular ? MAX_NITIDAS_CELULAR : MAX_NITIDAS).map((x) => x.m) : []);
     for (const { m, d } of lista) {
       if (m.texNitida && !querem.has(m) && (d > 4.5 || !lado)) {
         trocarFoto(m, m.texBase);
@@ -2306,7 +2373,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       );
       yaw = alvoYaw = voo.de.yaw + difAngulo(voo.para.yaw, voo.de.yaw) * k;
       pitch = alvoPitch = voo.de.pitch + (voo.para.pitch - voo.de.pitch) * k;
-      definirFov(voo.descendo ? fovAlto + (FOV_PERTO - fovAlto) * k : FOV_PERTO + (fovAlto - FOV_PERTO) * k);
+      definirFov(voo.descendo ? fovAlto + (fovPerto - fovAlto) * k : fovPerto + (fovAlto - fovPerto) * k);
       if (voo.t >= voo.dur) {
         const { fim, descendo } = voo;
         voo = null;
@@ -2314,13 +2381,12 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         fim();
       }
     } else if (modo === "perto") {
-      definirFov(FOV_PERTO);
-      if (teclas.size) {
-        const frente = (teclas.has("w") || teclas.has("arrowup") ? 1 : 0) - (teclas.has("s") || teclas.has("arrowdown") ? 1 : 0);
-        const vira = (teclas.has("a") || teclas.has("arrowleft") ? 1 : 0) - (teclas.has("d") || teclas.has("arrowright") ? 1 : 0);
-        if (vira) yaw = alvoYaw = alvoYaw + vira * dt * 1.6;
-        if (frente) andar(frente * dt * 3.2);
-      }
+      definirFov(fovPerto);
+      // teclado ou o controle da tela (celular)
+      const frente = limitar((teclas.has("w") || teclas.has("arrowup") ? 1 : 0) - (teclas.has("s") || teclas.has("arrowdown") ? 1 : 0) + controle.frente, -1, 1);
+      const vira = limitar((teclas.has("a") || teclas.has("arrowleft") ? 1 : 0) - (teclas.has("d") || teclas.has("arrowright") ? 1 : 0) + controle.vira, -1, 1);
+      if (vira) yaw = alvoYaw = alvoYaw + vira * dt * 1.6;
+      if (frente) andar(frente * dt * 3.2);
       const alvo = rota[0];
       if (alvo) {
         const dx = alvo.x - posicao.x;
@@ -2353,7 +2419,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       pitch += (alvoPitch - pitch) * k;
     } else {
       definirFov(fovAlto);
-      const vira = (teclas.has("a") || teclas.has("arrowleft") ? 1 : 0) - (teclas.has("d") || teclas.has("arrowright") ? 1 : 0);
+      const vira = limitar((teclas.has("a") || teclas.has("arrowleft") ? 1 : 0) - (teclas.has("d") || teclas.has("arrowright") ? 1 : 0) + controle.vira, -1, 1);
       if (vira) {
         azimute += vira * dt * 0.9;
         aplicar(poseAlto());
@@ -2391,7 +2457,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
 
     // luz assada: alguns pedaços por quadro; pronta, entra devagar
     if (luzAssada && fadeAssada === 0) {
-      if (luzAssada.passo(niveis[nivel] === "baixa" ? 3 : 6)) {
+      if (luzAssada.passo(niveis[nivel] === "baixa" || celular ? 3 : 6)) {
         usarAssadaPiso(luzAssada.texturas.slice(0, 1));
         usarAssadaParede(luzAssada.texturas.slice(1));
         fadeAssada = 0.0001;
@@ -2447,6 +2513,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     irAteGuia,
     pararGuia,
     definirSom: (ligado) => som.ligar(ligado),
+    mover(frente, vira) {
+      controle.frente = limitar(frente, -1, 1);
+      controle.vira = limitar(vira, -1, 1);
+    },
     definirBanners: (urls) => painelLed.definirBanners(urls),
     atualizarPrecos(precos) {
       for (const e of etiquetas) {

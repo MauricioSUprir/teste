@@ -82,7 +82,13 @@ export const copy = {
       afiliado: "Seja afiliado",
       pedidos: "Meus pedidos",
       favoritos: "Favoritos",
-      versao: { rotulo: "Ver a loja:", normal: "Normal", tresD: "Em 3D" },
+      versao: {
+        rotulo: "Ver a loja:",
+        normal: "Normal",
+        tresD: "Em 3D",
+        menu3d: "Passear pela loja em 3D",
+        menuNormal: "Voltar para a loja normal",
+      },
     },
     destaques: {
       maisVendidos: "Mais vendidos",
@@ -664,14 +670,14 @@ export const copy = {
     destaques: "Destaques",
     dica: "Ande para a frente (W ou ↑) e a porta abre · arraste para olhar · clique no chão para ir até lá · clique num produto para ver · a Larissa está no caixa",
     dicaAlto: "Clique numa estante, num produto ou no chão para descer até lá · arraste para girar · rodinha para aproximar",
+    // no celular e no tablet
+    dicaToque: "Use a bolinha para andar · arraste para olhar · toque no chão para ir até lá · toque num produto para ver · a Larissa está no caixa",
+    dicaAltoToque: "Toque numa estante, num produto ou no chão para descer até lá · arraste para girar · dois dedos para aproximar",
     naPrateleira: "Você chegou. Escolha seu produto.",
     fechar: "Fechar",
     verTodos: (categoria: string) => `Ver tudo de ${categoria}`,
     verEmLista: "Ver a loja em lista",
     semWebgl: "Seu aparelho não conseguiu abrir a loja em 3D. Use a loja normal — os produtos e preços são os mesmos.",
-    soComputador: "A loja em 3D foi feita para computador.",
-    soComputadorTexto: "No celular e no tablet, a loja normal é mais rápida e fácil de usar. Os produtos e os preços são os mesmos.",
-    irParaLoja: "Ir para a loja",
     rotuloCena: "Loja em 3D: estantes com os produtos de cada marca",
     // logo na parede do fundo e na vitrine: a linha "destaque" é a grande
     logo:
@@ -691,6 +697,7 @@ export const copy = {
     larissa: {
       nome: "Larissa",
       balao: ["Oi! Sou a Larissa", "Clique para conversar"] as [string, string],
+      balaoToque: ["Oi! Sou a Larissa", "Toque para conversar"] as [string, string],
       titulo: "Oi! Eu sou a Larissa",
       texto: LOJA.b2b
         ? `Atendo salões e profissionais no WhatsApp da ${LOJA.nome}: tiro dúvidas, indico linhas e fecho seu pedido com você.`

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { LOJA, LOJA_ID } from "@/lib/loja";
-import { AlternarVersao } from "./AlternarVersao";
+import { AlternarVersao, LinkVersaoMenu } from "./AlternarVersao";
 import { comBase } from "@/lib/caminho";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
@@ -342,6 +342,7 @@ export function Header() {
               </svg>
               {usuario ? `${copy.conta.ola(usuario.nome)} Ver minha conta` : `${copy.conta.entrar} ou criar conta`}
             </Link>
+            <LinkVersaoMenu aoClicar={() => setMenuMobileAberto(false)} />
             <ul className="grid grid-cols-2 gap-2 text-[0.875rem]">
               {[
                 ...(LOJA.b2b ? [{ href: "/profissional", rotulo: atalhos.profissional }] : []),

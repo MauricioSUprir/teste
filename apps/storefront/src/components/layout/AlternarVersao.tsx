@@ -1,22 +1,20 @@
 "use client";
 
 /**
- * Troca entre a loja normal e a loja em 3D, na barra de atalhos do topo. Só
- * aparece no computador: no celular e no tablet a loja é sempre a normal.
+ * Troca entre a loja normal e a loja em 3D, na barra de atalhos do topo (no
+ * celular, a barra não aparece: o mesmo atalho fica no menu — LinkVersaoMenu).
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
-import { useEhComputador } from "@/lib/dispositivo";
 
 const v = copy.header.atalhos.versao;
 const opcao = "rounded-[40px] px-3 py-0.5 text-[0.75rem] font-semibold";
 
 export function AlternarVersao() {
-  const computador = useEhComputador();
   const caminho = usePathname();
-  if (!LOJA.loja3d || !computador) return null;
+  if (!LOJA.loja3d) return null;
   const em3d = caminho.replace(/\/$/, "") === "/loja-3d";
   return (
     <li className="flex items-center gap-2">
@@ -42,5 +40,24 @@ export function AlternarVersao() {
         )}
       </div>
     </li>
+  );
+}
+
+/** no menu do celular: um botão para entrar na loja 3D (ou voltar para a normal) */
+export function LinkVersaoMenu({ aoClicar }: { aoClicar: () => void }) {
+  const caminho = usePathname();
+  if (!LOJA.loja3d) return null;
+  const em3d = caminho.replace(/\/$/, "") === "/loja-3d";
+  return (
+    <Link
+      href={em3d ? "/" : "/loja-3d"}
+      onClick={aoClicar}
+      className="flex items-center gap-2.5 rounded-[8px] border border-roxo/30 px-3 py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
+    >
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+        <path d="M9 1.8 L15.5 5.4 V12.6 L9 16.2 L2.5 12.6 V5.4 Z M2.5 5.4 L9 9 L15.5 5.4 M9 9 V16.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      </svg>
+      {em3d ? v.menuNormal : v.menu3d}
+    </Link>
   );
 }

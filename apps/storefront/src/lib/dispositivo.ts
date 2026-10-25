@@ -1,22 +1,20 @@
 import { useEffect, useState } from "react";
 
 /**
- * Computador = mouse ou trackpad de verdade e tela larga. Celular e tablet
- * ficam com a loja normal (a loja 3D pede mouse e tela grande).
+ * Aparelho de toque = celular ou tablet (o dedo é o ponteiro principal). A loja
+ * 3D abre em todos, mas no de toque começa mais leve e ganha o controle de
+ * andar na tela.
+ *
+ * Fica null enquanto a página ainda não abriu no navegador (o HTML é o mesmo para todos).
  */
-export function ehComputador(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(hover: hover) and (pointer: fine)").matches && window.innerWidth >= 1024;
-}
-
-/** null enquanto a página ainda não abriu no navegador (o HTML é o mesmo para todos) */
-export function useEhComputador(): boolean | null {
-  const [computador, setComputador] = useState<boolean | null>(null);
+export function useToque(): boolean | null {
+  const [toque, setToque] = useState<boolean | null>(null);
   useEffect(() => {
-    const atualizar = () => setComputador(ehComputador());
+    const consulta = window.matchMedia("(pointer: coarse)");
+    const atualizar = () => setToque(consulta.matches);
     atualizar();
-    window.addEventListener("resize", atualizar);
-    return () => window.removeEventListener("resize", atualizar);
+    consulta.addEventListener("change", atualizar);
+    return () => consulta.removeEventListener("change", atualizar);
   }, []);
-  return computador;
+  return toque;
 }
