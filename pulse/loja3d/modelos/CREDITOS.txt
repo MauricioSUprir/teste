@@ -5,3 +5,6 @@ Modelos 3D das plantas da Loja 3D — Poly Haven (https://polyhaven.com), licen�
 - planta-pequena.glb ← "Potted Plant 04" (potted_plant_04)
 
 Enxugados para a web: menos triângulos (meshoptimizer), fotos de 512 px e compressão meshopt.
+
+Atendente (../atendente-roxa.webp e ../atendente-azul.webp): imagem gerada por IA para a loja
+(ElevenLabs, modelo Seedream), não é uma pessoa real. Fundo recortado e blusa azul recolorida aqui.
