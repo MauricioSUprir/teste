@@ -15,8 +15,9 @@
  * para ver a loja inteira de cima, como uma maquete.
  *
  * Imagem: materiais físicos com reflexo do ambiente, sombras suaves (o mapa de
- * sombra só é refeito quando algo muda), oclusão de ambiente nos cantos e brilho
- * nas fitas de LED. O porcelanato reflete a loja de verdade (superficie.ts) e o
+ * sombra só é refeito quando algo muda) e brilho só nas fitas de LED e nos spots
+ * (o que é para ver — fundo das estantes, painéis — fica abaixo do limite do
+ * brilho, senão vira névoa em cima dos produtos). O porcelanato reflete a loja de verdade (superficie.ts) e o
  * piso e as paredes recebem luz assada no próprio navegador (luz-assada.ts):
  * sombra suave embaixo dos móveis e as poças de luz dos spots. Texturas são
  * geradas na hora (texturas.ts) e as plantas são modelos escaneados (plantas.ts).
@@ -35,7 +36,6 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { GTAOPass } from "three/examples/jsm/postprocessing/GTAOPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -319,8 +319,12 @@ interface Pose {
 
 export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const profissional = op.estilo === "profissional";
+  // os ajustes do piso são do módulo: uma loja montada de novo (voltar do produto) começa sem a luz assada da anterior
+  ajustesSuperficie.assadaPronta.value = 0;
 
-  // ---- renderizador, câmera e o caminho da imagem (cena → oclusão → brilho → cesta → tela)
+  // ---- renderizador, câmera e o caminho da imagem (cena → brilho → cesta → tela)
+  // sem oclusão de ambiente em tela (GTAO): o chuvisco dela tremia em volta dos
+  // produtos ao andar; piso e paredes já recebem a sombra de contato assada
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -357,12 +361,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const alvoComMsaa = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   const composer = new EffectComposer(renderer, alvoComMsaa);
   composer.addPass(new RenderPass(cena, camera));
-  const oclusao = new GTAOPass(cena, camera, 1, 1);
-  oclusao.blendIntensity = 1.0;
-  oclusao.updateGtaoMaterial({ radius: 0.5, distanceExponent: 1.4, thickness: 1.0, scale: 1.0, samples: 12 });
-  composer.addPass(oclusao);
-  // só o que passa de 1,2 brilha (LED, spots, fundo das estantes); o resto fica nítido
-  const brilho = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.58, 0.6, 1.2);
+  // só o que passa de 1,5 brilha (LED e spots); o resto fica nítido
+  const brilho = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.45, 0.55, 1.5);
   composer.addPass(brilho);
   // a cesta por cima de tudo e fora do brilho (senão ela "acende")
   const passoCesta = new RenderPass(cesta.cena, camera);
@@ -399,7 +399,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     movel: fisico("#fbfaf7", { roughness: 0.36 }),
     tampo: fisico("#ffffff", { roughness: 0.22 }),
     marca: fisico("#f8f6f2", { roughness: 0.8 }),
-    led: basico(acesa("#ffe6bd", 4.5)),
+    led: basico(acesa("#ffe6bd", 3.2)),
     metal: fisico("#3a3a41", { roughness: 0.32, metalness: 0.7 }),
     cromado: fisico("#d9d9de", { roughness: 0.22, metalness: 0.85 }),
     vaso: fisico("#f4f1ec", { roughness: 0.32 }),
@@ -751,7 +751,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     );
   }
   // fundo das estantes: luz quente que sai de trás dos produtos
-  const matFundoEstante = basico(acesa("#ffffff", 1.55), {
+  const matFundoEstante = basico(acesa("#ffffff", 1.08), {
     map: guardar(
       textura(256, 256, (g) => {
         const gr = g.createRadialGradient(128, 110, 8, 128, 128, 200);
@@ -792,7 +792,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const matPiso = fisico("#ffffff", {
     map: texPiso.cor,
     normalMap: texPiso.normal,
-    normalScale: new THREE.Vector2(0.5, 0.5),
+    normalScale: new THREE.Vector2(0.35, 0.35),
     roughnessMap: texPiso.rugosidade,
     roughness: 1,
     envMapIntensity: 0.3,
@@ -901,7 +901,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   forro.rotation.x = Math.PI / 2;
   forro.position.y = ALTURA;
   teto.add(forro);
-  const spots = new THREE.InstancedMesh(guardar(new THREE.CircleGeometry(0.11, 20).rotateX(Math.PI / 2)), basico(acesa("#fff3dc", 6)), 300);
+  const spots = new THREE.InstancedMesh(guardar(new THREE.CircleGeometry(0.11, 20).rotateX(Math.PI / 2)), basico(acesa("#fff3dc", 4.5)), 300);
   let nSpot = 0;
   for (let x = X0 + 1.5; x < X1; x += 2.5) for (let z = Z0 + 1.5; z < Z1; z += 2.5) spots.setMatrixAt(nSpot++, matriz(x, ALTURA - 0.005, z));
   spots.count = nSpot;
@@ -1522,13 +1522,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   descartar.push({ dispose: etiquetasMalha.descartar });
   etiquetasMalha.refazer(etiquetas);
   cena.add(etiquetasMalha.malha);
-  // etiquetas e trilha do guia ficam fora da oclusão de ambiente (nela saíam pretas)
-  const foraDaOclusao: THREE.Object3D[] = [etiquetasMalha.malha];
-  const esconderNaOclusao = oclusao.overrideVisibility.bind(oclusao);
-  oclusao.overrideVisibility = () => {
-    esconderNaOclusao();
-    for (const o of foraDaOclusao) o.visible = false;
-  };
 
   // ---- plantas (modelos) e, depois delas, a luz assada
   let plantas: Plantas | null = null;
@@ -2006,7 +1999,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const pr = Math.min(window.devicePixelRatio, q === "alta" ? 1.5 : q === "media" ? 1.25 : 1);
     renderer.setPixelRatio(pr);
     composer.setPixelRatio(pr);
-    oclusao.enabled = q === "alta";
     brilho.enabled = q !== "baixa";
     // reflexo: meia tela na alta, um terço na média; na baixa o piso volta ao brilho simples
     escalaReflexo = q === "alta" ? 0.5 : q === "media" ? 0.34 : 0;
@@ -2035,20 +2027,31 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const observador = new ResizeObserver(ajustar);
   observador.observe(container);
   aplicarQualidade();
-  let quadrosNaJanela = 0;
-  let inicioJanela = performance.now() + 4000; // espera a loja assentar antes de medir
-  function medirDesempenho(agora: number) {
+  // mede a mediana do tempo de quadro (os trancos de foto chegando não contam), só com a
+  // loja já carregada, e desce um degrau depois de duas janelas lentas seguidas
+  const tempos: number[] = [];
+  let janelasLentas = 0;
+  let inicioJanela = performance.now() + 5000;
+  function medirDesempenho(agora: number, ms: number) {
     if (op.qualidade || agora < inicioJanela) return;
-    quadrosNaJanela++;
-    const passou = agora - inicioJanela;
-    if (passou < 2500) return;
-    const qps = (quadrosNaJanela * 1000) / passou;
-    quadrosNaJanela = 0;
+    const carregando = baixando > 0 || (luzAssada !== null && fadeAssada < 1) || !assando;
+    if (carregando) {
+      tempos.length = 0;
+      inicioJanela = agora + 1000;
+      return;
+    }
+    tempos.push(ms);
+    if (agora - inicioJanela < 3000) return;
+    tempos.sort((a, b) => a - b);
+    const qps = 1000 / tempos[Math.floor(tempos.length / 2)];
+    tempos.length = 0;
     inicioJanela = agora;
-    if (qps < 28 && nivel < niveis.length - 1) {
+    janelasLentas = qps < 28 ? janelasLentas + 1 : 0;
+    if (janelasLentas >= 2 && nivel < niveis.length - 1) {
+      janelasLentas = 0;
       nivel++;
       aplicarQualidade();
-      inicioJanela = agora + 1500;
+      inicioJanela = agora + 2000;
     }
   }
 
@@ -2165,7 +2168,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   const guia = criarGuia(primaria);
   descartar.push({ dispose: guia.descartar });
   cena.add(guia.grupo);
-  foraDaOclusao.push(guia.grupo);
   let destinoGuia: { vista: Vista; alvo: THREE.Vector3 | null; produto: { m: ProdutoMalha; k: number } | null } | null = null;
   let replanejar = 0;
   function desenharGuia() {
@@ -2254,7 +2256,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
   function passo(agora: number) {
     quadro = requestAnimationFrame(passo);
-    const dt = Math.min(0.05, (agora - ultimo) / 1000);
+    const bruto = agora - ultimo;
+    const dt = Math.min(0.05, bruto / 1000);
     ultimo = agora;
     const antes = posicao.clone();
 
@@ -2380,7 +2383,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       proximaSombra = agora + 900;
       renderer.shadowMap.needsUpdate = true;
     }
-    medirDesempenho(agora);
+    medirDesempenho(agora, bruto);
+    // de cima as etiquetas são pequenas demais (e tremeriam): só de perto
+    etiquetasMalha.malha.visible = posicao.y < 3;
     // o reflexo só é refeito quando a câmera mexe (ou a cada 3 quadros, pelas animações)
     if (escalaReflexo) {
       const mexeu = !ultimaVista.equals(camera.matrixWorld);
@@ -2431,7 +2436,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       luzAssada?.descartar();
       for (const d of descartar) d.dispose();
       cesta.descartar();
-      oclusao.dispose();
       brilho.dispose();
       composer.dispose();
       alvoComMsaa.dispose();

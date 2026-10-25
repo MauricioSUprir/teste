@@ -37,7 +37,7 @@ export function criarGuia(cor: THREE.Color): Guia {
   forma.closePath();
   const geoSeta = new THREE.ShapeGeometry(forma).rotateX(-Math.PI / 2);
   geoSeta.scale(1, 1, -1); // o y da forma vira -z ao deitar; desvira para a ponta olhar +z
-  const acesa = cor.clone().multiplyScalar(3.4);
+  const acesa = cor.clone().multiplyScalar(2.6);
   const matSeta = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, side: THREE.DoubleSide });
   const setas = new THREE.InstancedMesh(geoSeta, matSeta, MAX);
   setas.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
@@ -108,7 +108,7 @@ export function criarGuia(cor: THREE.Color): Guia {
     for (let k = 0; k < setas.count; k++) {
       const fase = (((distancias[k] - t * 3) % 2.4) + 2.4) % 2.4;
       const onda = Math.max(0, 1 - Math.abs(fase - 1.2) / 0.6);
-      auxC.copy(acesa).multiplyScalar(0.35 + 0.65 * onda);
+      auxC.copy(acesa).multiplyScalar(0.6 + 0.4 * onda); // onda suave: piscar forte parecia defeito
       setas.setColorAt(k, auxC);
     }
     if (setas.instanceColor) setas.instanceColor.needsUpdate = true;

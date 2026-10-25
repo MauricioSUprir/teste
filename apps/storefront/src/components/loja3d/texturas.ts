@@ -154,7 +154,8 @@ export function texturasPorcelanato(o: { lado: number; base: string; veio: strin
       let cg = (bg + (vg - bg) * k) * tom;
       let cb = (bb + (vb - bb) * k) * tom;
       let h = 1 - 0.015 * (1 - Math.min(1, borda / (meia * 0.5))); // leve "travesseiro" da placa
-      let rugo = 0.07 + 0.05 * t2 + veio * 0.05;
+      // nem tão liso: abaixo de ~0,15 o brilho do sol vira faíscas que piscam ao andar
+      let rugo = 0.16 + 0.04 * t2 + veio * 0.04;
       if (borda < larguraRejunte) {
         cr = jr;
         cg = jg;
@@ -163,7 +164,7 @@ export function texturasPorcelanato(o: { lado: number; base: string; veio: strin
         rugo = 0.9;
       } else if (borda < larguraRejunte + 1.5) {
         h *= 0.55; // quina arredondada da placa
-        rugo = 0.3;
+        rugo = 0.4;
       }
       px[i * 4] = cr;
       px[i * 4 + 1] = cg;

@@ -24,8 +24,10 @@ export interface Reflexo {
 }
 
 export function criarReflexo(renderer: THREE.WebGLRenderer, altura = 0): Reflexo {
+  // com antisserrilhado: sem ele, spot e LED refletidos no chão piscavam ao andar
   const alvo = new THREE.WebGLRenderTarget(1, 1, {
     type: THREE.HalfFloatType,
+    samples: 4,
     generateMipmaps: true,
     minFilter: THREE.LinearMipmapLinearFilter,
     magFilter: THREE.LinearFilter,
@@ -109,7 +111,7 @@ export interface OpcoesSuperficie {
 /** valores que a cena mexe a cada mudança de qualidade (os mesmos objetos em todos os materiais) */
 export const ajustesSuperficie = {
   forcaReflexo: { value: 0 },
-  lodReflexo: { value: 1.2 },
+  lodReflexo: { value: 1.6 },
   /** 0 = luz assada ainda não chegou; 1 = em uso */
   assadaPronta: { value: 0 },
   forcaSombra: { value: 0.75 },
@@ -170,11 +172,12 @@ export function prepararSuperficie(material: THREE.MeshStandardMaterial, o: Opco
         vec4 pr = uMatrizReflexo * vec4(vPosMundo, 1.0);
         vec3 nMundo = inverseTransformDirection(normal, viewMatrix);
         vec2 uvR = pr.xy / pr.w + nMundo.xz * 0.035;
-        vec3 corR = textureLod(uReflexo, uvR, uLodReflexo + roughnessFactor * 5.0).rgb;
+        // teto fica no máximo branco no reflexo: reflexo não acende o brilho (era o que cintilava)
+        vec3 corR = min(textureLod(uReflexo, uvR, uLodReflexo + roughnessFactor * 4.0).rgb, vec3(1.0));
         float ndv = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
         float fresnel = 0.05 + 0.95 * pow(1.0 - ndv, 5.0);
         // limitado: de longe o piso vira espelho e o teto claro estouraria a imagem
-        float k = uForcaReflexo * min(fresnel, 0.32) * (1.0 - smoothstep(0.2, 0.55, roughnessFactor));
+        float k = uForcaReflexo * min(fresnel, 0.32) * (1.0 - smoothstep(0.3, 0.6, roughnessFactor));
         ${n ? "k *= mix(1.0, luzAssada.r, 0.5);" : ""}
         outgoingLight = outgoingLight * (1.0 - k * 0.8) + corR * k;
       }\n`

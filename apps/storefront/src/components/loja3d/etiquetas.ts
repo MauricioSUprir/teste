@@ -8,9 +8,8 @@
  * ponto, %, -), desenhado uma vez com a fonte do site. Preço chega em centavos
  * e só vira texto aqui, na ponta.
  *
- * As letras ficam rente ao fundo (meio milímetro) e cortadas no tamanho da
- * etiqueta. A cena tira esta malha do passe de oclusão de ambiente (GTAO):
- * dentro dele a etiqueta inteira saía escura.
+ * As letras ficam a um milímetro do fundo e cortadas no tamanho da etiqueta
+ * (sem camadas soltas). De cima a cena esconde as etiquetas.
  */
 import * as THREE from "three";
 
@@ -165,7 +164,7 @@ export function criarEtiquetas(fonte: string, corPromo: THREE.Color): Etiquetas 
           const gl = atlas.glifos.get(ch);
           if (!gl) continue;
           const w = gl.prop * alturaCelula;
-          quad(e, x, x + w, y0, y0 + alturaCelula, 0.0005, gl, promo ? corBranca : corTexto);
+          quad(e, x, x + w, y0, y0 + alturaCelula, 0.001, gl, promo ? corBranca : corTexto);
           x += w;
         }
         x += espaco;
