@@ -83,6 +83,9 @@ export interface Categoria3D {
   nome: string;
 }
 
+/** sem acento e sem pontuação: "kpro" acha "K.Pro" e "k pro" também */
+const limpar = (texto: string) => normalizar(texto).replace(/[^a-z0-9\s]/g, "");
+
 interface Sugestao {
   chave: string;
   alvo: AlvoGuia;
@@ -265,10 +268,10 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
     const itens: Sugestao[] = setores.flatMap((s) =>
       s.produtos.map((p) => ({ chave: `p:${p.slug}`, alvo: { produto: p.slug }, nome: p.titulo, detalhe: s.nome }))
     );
-    return [...marcas, ...itens].map((x) => ({ ...x, texto: normalizar(`${x.nome} ${x.detalhe}`) }));
+    return [...marcas, ...itens].map((x) => ({ ...x, texto: limpar(`${x.nome} ${x.detalhe}`) }));
   }, [setores]);
   const sugestoes = useMemo(() => {
-    const palavras = normalizar(busca ?? "").split(/\s+/).filter(Boolean);
+    const palavras = limpar(busca ?? "").split(/\s+/).filter(Boolean);
     if (!palavras.length) return [];
     return indice.filter((x) => palavras.every((w) => x.texto.includes(w))).slice(0, 8);
   }, [busca, indice]);
