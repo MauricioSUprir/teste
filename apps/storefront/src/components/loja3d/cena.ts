@@ -1033,7 +1033,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   function estante(cx: number, cz: number, ang: number, larg: number, setor: number | null) {
     const f = new Moldura(cx, cz, ang);
     const P = PROF_ESTANTE;
-    const [fx, fz] = f.ponto(0, 0.02);
+    // o painel fica 1,5 cm na frente do reboco da parede (que está a 2 cm do pé da estante):
+    // no mesmo plano, parede e painel brigavam e a luz do fundo piscava ao andar
+    const [fx, fz] = f.ponto(0, 0.035);
     juntar(matFundoEstante, geoPlano, matriz(fx, 1.36, fz, ang, larg - 0.1, 1.72, 1));
     for (const lado of [-1, 1]) caixa(mat.movel, f, lado * (larg / 2 - 0.03), 1.3, P / 2, 0.06, 2.6, P);
     caixa(mat.movel, f, 0, 0.25, P / 2, larg, 0.5, P);
@@ -1432,7 +1434,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         f,
         0,
         2.9,
-        0.012,
+        0.032, // na frente do reboco (a 2 cm da parede): atrás dele a placa sumia
         3.2,
         0.8
       );
@@ -2435,6 +2437,13 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     if (porta !== antesPorta) {
       const k = suave(porta);
       for (const folha of folhas) folha.position.x = ((folha.userData.lado as number) * VAO) / 2 + (folha.userData.lado as number) * k * (VAO - 0.08);
+    }
+    // de cima a câmera fica a 14–70 m: com o plano de perto a 5 cm, a profundidade não separa a
+    // logo (2 mm na frente) do móvel atrás dela e as duas piscavam; lá em cima ele vai para 1 m
+    const perto = posicao.y > 3 ? 1 : 0.05;
+    if (camera.near !== perto) {
+      camera.near = perto;
+      camera.updateProjectionMatrix();
     }
     camera.position.copy(posicao);
     camera.rotation.set(pitch, yaw, 0);
