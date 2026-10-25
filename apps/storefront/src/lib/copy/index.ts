@@ -724,6 +724,19 @@ export const copy = {
       chegou: "É aqui!",
     },
     som: { ligar: "Ligar o som", desligar: "Tirar o som" },
+    // ficha do produto: no balão do mouse e no card
+    ficha: {
+      tipo: "Tipo",
+      para: "Público",
+      cabelo: "Cabelo",
+      pele: "Pele",
+      acao: "Ação",
+      acabamento: "Acabamento",
+      tom: "Tom",
+      tamanho: "Tamanho",
+      noPix: "no Pix",
+      clique: "Clique para ver e comprar",
+    },
     // celular: a loja 3D ocupa a tela toda, com sacola e saída dentro dela
     telaCheia: "Tela cheia",
     sairTelaCheia: "Sair da tela cheia",

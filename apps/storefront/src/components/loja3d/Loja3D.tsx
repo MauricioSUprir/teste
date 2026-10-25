@@ -19,12 +19,14 @@
  * lado com ele deitado.
  */
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
 import { NEGOCIO, linkWhatsapp } from "@/lib/negocio";
 import { comBase } from "@/lib/caminho";
-import { percentualDesconto } from "@/lib/preco";
+import { formatarPreco, percentualDesconto, precoPix } from "@/lib/preco";
+import { fichaDoProduto } from "@/lib/catalogo/ficha";
+import { obterMarca } from "@/lib/catalogo/consultas";
 import { useToque } from "@/lib/dispositivo";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import { EVENTO_AJUSTES, aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
@@ -33,6 +35,7 @@ import { listarBanners } from "@/lib/servidor";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
 import { ControleAndar } from "./ControleAndar";
+import { FichaProduto } from "./FichaProduto";
 import type { AlvoGuia, Cena, ModoCena, PosicaoCena, PrecoCena, Qualidade } from "./cena";
 
 const t = copy.loja3d;
@@ -126,6 +129,11 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   const [podeTelaCheia, setPodeTelaCheia] = useState(false);
   const [emTelaCheia, setEmTelaCheia] = useState(false);
   const pediuTelaCheia = useRef(false);
+  // balão da ficha do produto embaixo do mouse (computador)
+  const [apontado, setApontado] = useState<string | null>(null);
+  const apontadoAgora = useRef<string | null>(null);
+  const balao = useRef<HTMLDivElement>(null);
+  const posBalao = useRef({ x: 0, y: 0 });
   const carrinho = useCarrinho();
   const selecionadoAgora = useRef<string | null>(null);
   useEffect(() => {
@@ -237,6 +245,12 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
             setLarissaAberta(true);
           },
           aoChegarNoLimite: () => setAviso(t.soPaisagem),
+          aoApontarProduto: (slug, x, y) => {
+            posBalao.current = { x, y };
+            if (slug === apontadoAgora.current) return posicionarBalao();
+            apontadoAgora.current = slug;
+            setApontado(slug);
+          },
           aoChegarNoGuia: () => {
             setGuia(null);
             setAviso(t.guia.chegou);
@@ -332,6 +346,22 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
     else setAviso(t.guia.semResultado);
     palco.current?.focus();
   }
+
+  /** o balão vai ao lado do mouse; perto da borda, passa para o outro lado */
+  function posicionarBalao() {
+    const el = balao.current;
+    const caixa = moldura.current;
+    if (!el || !caixa) return;
+    const { x, y } = posBalao.current;
+    let bx = x + 18;
+    let by = y + 18;
+    if (bx + el.offsetWidth > caixa.clientWidth - 8) bx = x - el.offsetWidth - 18;
+    if (by + el.offsetHeight > caixa.clientHeight - 8) by = Math.max(8, caixa.clientHeight - el.offsetHeight - 8);
+    el.style.transform = `translate(${Math.max(8, bx)}px, ${by}px)`;
+  }
+  useLayoutEffect(posicionarBalao, [apontado]);
+  const produtoApontado = apontado ? porSlug.get(apontado) : undefined;
+  const fichaApontada = useMemo(() => (produtoApontado ? fichaDoProduto(produtoApontado) : null), [produtoApontado]);
 
   /** a tela cheia de verdade (some a barra do navegador) — Android e tablets; o iPhone não deixa */
   function alternarTelaCheia() {
@@ -633,9 +663,27 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
             </button>
             <div className={rolaDentro}>
               <CardProduto key={produto.slug} produto={produto} prioridade abrirSacola={false} deitado={deitado} />
+              <div className="px-3 pb-3">
+                <FichaProduto ficha={fichaDoProduto(produto)} compacta />
+              </div>
             </div>
           </div>
         </aside>
+      )}
+
+      {/* computador: a ficha do produto que está embaixo do mouse */}
+      {toque === false && produtoApontado && fichaApontada && (
+        <div
+          ref={balao}
+          aria-hidden="true"
+          className="pointer-events-none absolute left-0 top-0 z-10 w-[290px] rounded-[10px] bg-white p-3 shadow-[0_8px_30px_rgba(0,0,0,0.22)]"
+        >
+          <BalaoFicha produto={produtoApontado} />
+          <div className="mt-2 border-t border-linha pt-2">
+            <FichaProduto ficha={fichaApontada} />
+          </div>
+          <p className="mt-2 text-[0.6875rem] font-semibold text-roxo">{t.ficha.clique}</p>
+        </div>
       )}
 
       {/* a Larissa: conversa no WhatsApp com o que está na cesta */}
@@ -691,6 +739,30 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           </div>
         </aside>
       )}
+    </div>
+  );
+}
+
+/** topo do balão da ficha: foto, marca, nome e o preço no Pix (com o ajuste do painel) */
+function BalaoFicha({ produto }: { produto: Produto }) {
+  const ajustado = aplicarAjustesProduto(produto) ?? produto;
+  const foto = ajustado.imagens?.[0];
+  const { preco } = precoDe(ajustado);
+  return (
+    <div className="flex gap-3">
+      {foto && (
+        // eslint-disable-next-line @next/next/no-img-element -- foto do Hub, já em cache pela cena
+        <img src={foto.startsWith("http") ? foto : BASE_IMAGEM + foto} alt="" className="h-14 w-14 shrink-0 rounded-[6px] bg-white object-contain" />
+      )}
+      <div className="min-w-0">
+        <p className="text-[0.6875rem] font-bold uppercase text-tinta">{obterMarca(ajustado.marca)?.nome}</p>
+        <p className="line-clamp-2 text-[0.8125rem] leading-snug text-grafite">{ajustado.titulo}</p>
+        {preco > 0 && (
+          <p className="num mt-0.5 text-[0.875rem] font-bold text-roxo">
+            {formatarPreco(precoPix(preco))} <span className="text-[0.6875rem] font-medium">{t.ficha.noPix}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 }

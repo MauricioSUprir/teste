@@ -136,6 +136,8 @@ export interface OpcoesCena {
   aoChegarNoGuia: () => void;
   /** tentou ir para a cidade (ela é só paisagem: o passeio é na loja e na calçada da frente) */
   aoChegarNoLimite?: () => void;
+  /** mouse em cima de um produto (null = saiu); x e y em pixels dentro da cena, para o balão da ficha */
+  aoApontarProduto?: (slug: string | null, x: number, y: number) => void;
   somLigado: boolean;
 }
 
@@ -1948,6 +1950,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
 
   function aoApertar(ev: PointerEvent) {
     som.destravar();
+    op.aoApontarProduto?.(null, 0, 0); // arrastar para olhar esconde o balão da ficha
     if (ev.pointerType !== "mouse") {
       dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
       if (dedos.size === 2) {
@@ -2000,6 +2003,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const hit = alvoNoPonteiro(ev);
     const alvo = produtoDoAcerto(hit);
     destacar(alvo);
+    const r = canvas.getBoundingClientRect();
+    op.aoApontarProduto?.(alvo ? alvo.m.slug : null, ev.clientX - r.left, ev.clientY - r.top);
     canvas.style.cursor = alvo || vistaDoVolume(hit) || ehLarissa(hit) || hit?.object === piso || hit?.object === pisoFora ? "pointer" : "grab";
   }
   function aoSoltar(ev: PointerEvent) {
@@ -2101,6 +2106,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   canvas.addEventListener("pointerdown", aoApertar);
   canvas.addEventListener("pointermove", aoMover);
   canvas.addEventListener("pointerup", aoSoltar);
+  canvas.addEventListener("pointerleave", () => {
+    destacar(null);
+    op.aoApontarProduto?.(null, 0, 0);
+  });
   canvas.addEventListener("pointercancel", (ev) => {
     arrastando = false;
     dedos.delete(ev.pointerId);
