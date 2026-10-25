@@ -1,32 +1,52 @@
 /**
  * A cidade em volta da loja 3D, para o fundo não ficar branco: céu com nuvens,
- * morros no horizonte (com cara de Rio), a rua da frente com faixa de
- * pedestres, coqueiros e postes na calçada, e quarteirões de prédios com
- * janelas — de alvenaria clara em tons pastel e torres de vidro.
+ * morros de mata atlântica no horizonte (com um "Pão de Açúcar"), a rua da
+ * frente com faixa de pedestres, coqueiros e postes na calçada, e quarteirões
+ * de prédios — residenciais em tons claros e pastel, com lojinhas e toldos no
+ * térreo, e torres de vidro mais longe. É só paisagem: o passeio continua na
+ * loja e na calçada da frente.
  *
- * Tudo é desenhado na hora (nada para baixar) e sai barato até no celular:
- * cada tipo de coisa é uma malha só, com material sem cálculo de luz — o sol
- * de cada face, a sombra no pé do prédio e a névoa da distância (mais longe,
- * mais claro e azulado) já vêm pintados na cor dos vértices.
+ * Qualidade: as fachadas, o asfalto e as calçadas têm cor, relevo e brilho
+ * (texturas-cidade.ts) e são iluminados pelo mesmo sol da loja, com o céu
+ * refletido nos vidros. A névoa da distância (mais longe, mais claro e
+ * azulado) é feita no próprio material, ponto a ponto. Cada tipo de coisa é
+ * uma malha só, e no celular as texturas são menores.
  *
  * Perto da loja os prédios são baixos e vão subindo com a distância: da vista
  * de cima (de 14 a 70 m da loja, inclinada pelo menos 28°) nenhum prédio fica
  * na frente da loja nem engole a câmera.
  */
 import * as THREE from "three";
+import {
+  texturaFolha,
+  texturaMorro,
+  texturaToldo,
+  texturasAsfalto,
+  texturasCimento,
+  texturasFachada,
+  texturasTelhado,
+  texturasTerreo,
+  texturasTronco,
+  texturasVidro,
+  type TexturaPbr,
+} from "./texturas-cidade";
 
 export interface Cidade {
   grupo: THREE.Group;
   /** céu (fundo da cena) */
   ceu: THREE.Texture;
+  /** desenha as texturas de alta qualidade aos poucos (uma por quadro), depois que a loja já abriu */
+  detalhar: () => Promise<void>;
   descartar: () => void;
 }
 
-/** quarteirão da loja (a loja e a calçada dela ficam dentro) e onde começa a rua da frente */
 export interface OpcoesCidade {
+  renderer: THREE.WebGLRenderer;
+  /** quarteirão da loja (a loja, a calçada e o pátio dela são da cena) */
   quarteirao: { x0: number; x1: number; z0: number; z1: number };
   /** celular: texturas menores */
   leve: boolean;
+  fonte: string;
 }
 
 const RUA = 10; // largura das ruas
@@ -34,20 +54,8 @@ const MEIO_FIO = 0.15; // a calçada é mais alta que a rua
 const QUADRA = 42; // lado dos quarteirões da cidade
 const ALCANCE = 240; // até onde vão os prédios
 const ANDAR = 3; // altura de um andar
+const TERREO = 4.5; // pé-direito das lojinhas do térreo
 const NEVOA = new THREE.Color("#dfe6ec"); // cor do horizonte (a névoa puxa para ela)
-
-function textura(largura: number, altura: number, desenhar: (g: CanvasRenderingContext2D) => void, repetir = true) {
-  const c = document.createElement("canvas");
-  c.width = largura;
-  c.height = altura;
-  const g = c.getContext("2d");
-  if (g) desenhar(g);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
-  if (repetir) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  return t;
-}
 
 function sorteio(semente: number) {
   let s = semente;
@@ -57,236 +65,70 @@ function sorteio(semente: number) {
   };
 }
 
-/** chuvisco de tons para tirar a cara de cor chapada */
-function granulado(g: CanvasRenderingContext2D, w: number, h: number, n: number, forca: number, acaso: () => number) {
-  for (let i = 0; i < n; i++) {
-    const v = acaso() < 0.5 ? 0 : 255;
-    g.fillStyle = `rgba(${v},${v},${v},${acaso() * forca})`;
-    g.fillRect(acaso() * w, acaso() * h, 1 + acaso() * 2, 1 + acaso() * 2);
-  }
-}
-
-/**
- * Calçadão de Copacabana: ondas de pedra portuguesa preta e branca, 4 × 4 m
- * por repetição (as ondas correm ao longo da rua, em x).
- */
-export function texturaCalcadao(lado: number): THREE.CanvasTexture {
-  const acaso = sorteio(31);
-  return textura(lado, lado, (g) => {
-    const px = lado / 4; // pixels por metro
-    const img = g.createImageData(lado, lado);
-    for (let y = 0; y < lado; y++) {
-      for (let x = 0; x < lado; x++) {
-        const onda = (y / px + 0.32 * Math.sin((x / px / 4) * Math.PI * 2)) / (4 / 6);
-        const preta = Math.floor(onda) % 2 === 0;
-        const base = preta ? 46 : 236;
-        const i = (y * lado + x) * 4;
-        img.data[i] = base + (preta ? 0 : -4);
-        img.data[i + 1] = base + (preta ? 0 : -6);
-        img.data[i + 2] = base + (preta ? 2 : -10);
-        img.data[i + 3] = 255;
-      }
-    }
-    g.putImageData(img, 0, 0);
-    // as pedrinhas: rejunte escuro em volta de pedras irregulares de ~6 cm
-    const pedra = Math.max(3, px * 0.06);
-    g.strokeStyle = "rgba(0,0,0,0.22)";
-    g.lineWidth = Math.max(1, pedra * 0.18);
-    for (let y = 0; y < lado; y += pedra) {
-      for (let x = (y / pedra) % 2 ? pedra / 2 : 0; x < lado; x += pedra) {
-        g.strokeRect(x + (acaso() - 0.5) * pedra * 0.3, y + (acaso() - 0.5) * pedra * 0.3, pedra * (0.8 + acaso() * 0.3), pedra * (0.8 + acaso() * 0.3));
-      }
-    }
-    granulado(g, lado, lado, lado * 6, 0.12, acaso);
-  });
-}
-
-/** céu: azul em cima, claro no horizonte, nuvens soltas e o sol à esquerda (de onde vêm as sombras da loja) */
+/** céu: azul em cima, claro no horizonte, cúmulos com a base acinzentada e o sol na direção da luz da loja */
 function texturaCeu(w: number): THREE.CanvasTexture {
   const h = w / 2;
   const acaso = sorteio(7);
-  const t = textura(
-    w,
-    h,
-    (g) => {
-      // no mapa do céu, y = 0 é o alto e y = h/2 é o horizonte
-      const gr = g.createLinearGradient(0, 0, 0, h);
-      gr.addColorStop(0, "#4f8fd0");
-      gr.addColorStop(0.32, "#86b6e2");
-      gr.addColorStop(0.47, "#cfe0ee");
-      gr.addColorStop(0.5, "#e6ecf0");
-      gr.addColorStop(1, "#d9dcd9");
-      g.fillStyle = gr;
-      g.fillRect(0, 0, w, h);
-      // brilho do sol: na mesma direção da luz da loja (frente-esquerda, alto)
-      const sx = w * 0.88;
-      const sy = h * 0.29;
-      const sol = g.createRadialGradient(sx, sy, 0, sx, sy, h * 0.28);
-      sol.addColorStop(0, "rgba(255,250,235,0.85)");
-      sol.addColorStop(0.15, "rgba(255,246,225,0.35)");
-      sol.addColorStop(1, "rgba(255,246,225,0)");
-      g.fillStyle = sol;
-      g.fillRect(0, 0, w, h);
-      // nuvens: bolos de círculos macios, mais achatadas perto do horizonte
-      for (let n = 0; n < 34; n++) {
-        const cy = h * (0.12 + acaso() * 0.32);
-        const cx = acaso() * w;
-        const achata = 0.35 + ((cy / h - 0.12) / 0.32) * -0.15 + 0.15;
-        const tam = h * (0.03 + acaso() * 0.05);
-        for (let k = 0; k < 9; k++) {
-          const x = cx + (acaso() - 0.5) * tam * 4;
-          const y = cy + (acaso() - 0.5) * tam * 0.8 * achata;
-          const r = tam * (0.6 + acaso() * 0.8);
-          for (const desloc of [0, -w, w]) {
-            const bola = g.createRadialGradient(x + desloc, y, 0, x + desloc, y, r);
-            bola.addColorStop(0, "rgba(255,255,255,0.55)");
-            bola.addColorStop(0.6, "rgba(255,255,255,0.25)");
-            bola.addColorStop(1, "rgba(255,255,255,0)");
-            g.fillStyle = bola;
-            g.save();
-            g.translate(x + desloc, y);
-            g.scale(1, achata);
-            g.translate(-(x + desloc), -y);
-            g.beginPath();
-            g.arc(x + desloc, y, r, 0, Math.PI * 2);
-            g.fill();
-            g.restore();
-          }
-        }
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const g = c.getContext("2d");
+  if (g) {
+    // no mapa do céu, y = 0 é o alto e y = h/2 é o horizonte
+    const gr = g.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, "#4a8ad0");
+    gr.addColorStop(0.3, "#7fb1e0");
+    gr.addColorStop(0.46, "#cbdeee");
+    gr.addColorStop(0.5, "#e6ecf0");
+    gr.addColorStop(1, "#d9dcd9");
+    g.fillStyle = gr;
+    g.fillRect(0, 0, w, h);
+    // o sol: frente-esquerda e alto, como a luz que faz as sombras da loja
+    const sx = w * 0.88;
+    const sy = h * 0.29;
+    const sol = g.createRadialGradient(sx, sy, 0, sx, sy, h * 0.3);
+    sol.addColorStop(0, "rgba(255,251,238,0.95)");
+    sol.addColorStop(0.08, "rgba(255,247,228,0.45)");
+    sol.addColorStop(1, "rgba(255,246,225,0)");
+    g.fillStyle = sol;
+    g.fillRect(0, 0, w, h);
+    // cúmulos: grupos de bolas macias, brancas em cima e cinza-azuladas embaixo
+    const bola = (x: number, y: number, r: number, cor: string, alfa: number, achata: number) => {
+      for (const desloc of [0, -w, w]) {
+        g.save();
+        g.translate(x + desloc, y);
+        g.scale(1, achata);
+        const b = g.createRadialGradient(0, 0, 0, 0, 0, r);
+        b.addColorStop(0, `rgba(${cor},${alfa})`);
+        b.addColorStop(0.55, `rgba(${cor},${alfa * 0.6})`);
+        b.addColorStop(1, `rgba(${cor},0)`);
+        g.fillStyle = b;
+        g.beginPath();
+        g.arc(0, 0, r, 0, Math.PI * 2);
+        g.fill();
+        g.restore();
       }
-    },
-    false
-  );
+    };
+    for (let n = 0; n < 46; n++) {
+      const cy = h * (0.14 + acaso() * 0.3);
+      const cx = acaso() * w;
+      const perto = (cy / h - 0.14) / 0.3; // 1 = perto do horizonte (menor e mais achatada)
+      const achata = 0.6 - perto * 0.25;
+      const tam = h * (0.05 - perto * 0.025) * (0.6 + acaso() * 0.8);
+      const pedacos = 6 + Math.floor(acaso() * 8);
+      for (let k = 0; k < pedacos; k++) {
+        const x = cx + (acaso() - 0.5) * tam * 4.5;
+        const y = cy + (acaso() - 0.6) * tam * 1.1 * achata;
+        const r = tam * (0.55 + acaso() * 0.7);
+        bola(x, y + r * 0.35 * achata, r * 1.05, "176,190,206", 0.3, achata); // base na sombra
+        bola(x, y, r, "255,255,255", 0.62, achata);
+      }
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
   t.mapping = THREE.EquirectangularReflectionMapping;
   return t;
-}
-
-/** fachada de alvenaria: 4 módulos de 6 m × 4 andares; a cor do prédio vem do vértice (o fundo é branco) */
-function texturaAlvenaria(lado: number): THREE.CanvasTexture {
-  const acaso = sorteio(11);
-  return textura(lado, lado / 2, (g) => {
-    const W = lado;
-    const H = lado / 2;
-    const mx = W / 24; // pixels por metro
-    const my = H / 12;
-    g.fillStyle = "#f6f3ee";
-    g.fillRect(0, 0, W, H);
-    granulado(g, W, H, W * 3, 0.05, acaso);
-    for (let andar = 0; andar < 4; andar++) {
-      const topo = H - (andar + 1) * 3 * my;
-      // laje
-      g.fillStyle = "rgba(0,0,0,0.07)";
-      g.fillRect(0, topo + 3 * my - 0.18 * my, W, 0.18 * my);
-      for (let jan = 0; jan < 8; jan++) {
-        const x = (jan * 3 + 0.7) * mx;
-        const y = topo + 0.75 * my;
-        const jw = 1.6 * mx;
-        const jh = 1.55 * my;
-        // vidro com o céu refletido
-        const vidro = g.createLinearGradient(0, y, 0, y + jh);
-        const escuro = acaso() < 0.3;
-        vidro.addColorStop(0, escuro ? "#4b5a66" : "#7f97a8");
-        vidro.addColorStop(1, escuro ? "#2f3a43" : "#c3d1da");
-        g.fillStyle = "#d9d4cb";
-        g.fillRect(x - 0.08 * mx, y - 0.08 * my, jw + 0.16 * mx, jh + 0.16 * my);
-        g.fillStyle = vidro;
-        g.fillRect(x, y, jw, jh);
-        // cortina em parte das janelas
-        if (acaso() < 0.35) {
-          g.fillStyle = acaso() < 0.5 ? "rgba(240,232,214,0.85)" : "rgba(214,200,180,0.85)";
-          g.fillRect(x, y, jw * (0.3 + acaso() * 0.4), jh);
-        }
-        g.fillStyle = "rgba(60,60,60,0.5)";
-        g.fillRect(x + jw / 2 - 0.02 * mx, y, 0.04 * mx, jh);
-        // varanda com grade em parte delas
-        if (acaso() < 0.4) {
-          g.fillStyle = "rgba(255,255,255,0.9)";
-          g.fillRect(x - 0.3 * mx, y + jh + 0.05 * my, jw + 0.6 * mx, 0.12 * my);
-          g.fillStyle = "rgba(40,40,40,0.55)";
-          g.fillRect(x - 0.3 * mx, y + jh - 0.45 * my, jw + 0.6 * mx, 0.05 * my);
-          for (let b = 0; b <= 10; b++) g.fillRect(x - 0.3 * mx + (b * (jw + 0.6 * mx)) / 10, y + jh - 0.45 * my, 0.03 * mx, 0.5 * my);
-        }
-      }
-    }
-  });
-}
-
-/** pele de vidro das torres: painéis de 1,5 m, montantes escuros e a faixa opaca de cada laje */
-function texturaVidro(lado: number): THREE.CanvasTexture {
-  const acaso = sorteio(23);
-  return textura(lado, lado / 2, (g) => {
-    const W = lado;
-    const H = lado / 2;
-    const mx = W / 24;
-    const my = H / 12;
-    for (let andar = 0; andar < 4; andar++) {
-      const topo = H - (andar + 1) * 3 * my;
-      for (let p = 0; p < 16; p++) {
-        const x = p * 1.5 * mx;
-        const vidro = g.createLinearGradient(0, topo, 0, topo + 3 * my);
-        const tom = 0.85 + acaso() * 0.3;
-        vidro.addColorStop(0, `rgb(${Math.round(150 * tom)},${Math.round(178 * tom)},${Math.round(198 * tom)})`);
-        vidro.addColorStop(1, `rgb(${Math.round(92 * tom)},${Math.round(116 * tom)},${Math.round(136 * tom)})`);
-        g.fillStyle = vidro;
-        g.fillRect(x, topo, 1.5 * mx, 3 * my);
-      }
-      g.fillStyle = "rgba(40,48,56,0.85)";
-      g.fillRect(0, topo + 2.45 * my, W, 0.55 * my);
-    }
-    g.fillStyle = "rgba(30,36,42,0.9)";
-    for (let p = 0; p <= 16; p++) g.fillRect(p * 1.5 * mx - 0.04 * mx, 0, 0.08 * mx, H);
-  });
-}
-
-function texturaConcreto(lado: number, base: string, semente: number, juntas: number): THREE.CanvasTexture {
-  const acaso = sorteio(semente);
-  return textura(lado, lado, (g) => {
-    g.fillStyle = base;
-    g.fillRect(0, 0, lado, lado);
-    granulado(g, lado, lado, lado * 10, 0.1, acaso);
-    if (juntas) {
-      g.fillStyle = "rgba(0,0,0,0.12)";
-      for (let k = 0; k < juntas; k++) {
-        g.fillRect((k * lado) / juntas, 0, 2, lado);
-        g.fillRect(0, (k * lado) / juntas, lado, 2);
-      }
-    }
-  });
-}
-
-/** calçada de cimento em placas de 1 m (4 × 4 m por repetição) */
-export function texturaCimento(): THREE.CanvasTexture {
-  return texturaConcreto(256, "#c9c6bf", 13, 4);
-}
-
-function texturaFolha(): THREE.CanvasTexture {
-  return textura(
-    256,
-    64,
-    (g) => {
-      // folha de coqueiro: talo no meio e folíolos inclinados para os dois lados
-      g.strokeStyle = "#6f8a3c";
-      g.lineCap = "round";
-      for (let x = 6; x < 250; x += 5) {
-        const comp = 26 * Math.sin((x / 256) * Math.PI) + 4;
-        g.lineWidth = 3;
-        g.strokeStyle = x % 10 ? "#5f7f34" : "#79984a";
-        g.beginPath();
-        g.moveTo(x, 32);
-        g.lineTo(x + 10, 32 - comp);
-        g.moveTo(x, 32);
-        g.lineTo(x + 10, 32 + comp);
-        g.stroke();
-      }
-      g.strokeStyle = "#8a8a52";
-      g.lineWidth = 3;
-      g.beginPath();
-      g.moveTo(0, 32);
-      g.lineTo(256, 32);
-      g.stroke();
-    },
-    false
-  );
 }
 
 /** junta quadriláteros com uv e cor por vértice numa malha só */
@@ -299,8 +141,8 @@ class Lote {
   quad(p: number[][], uv: number[][], cor: THREE.Color[]) {
     const base = this.pos.length / 3;
     for (let k = 0; k < 4; k++) {
-      this.pos.push(...p[k]);
-      this.uv.push(...uv[k]);
+      this.pos.push(p[k][0], p[k][1], p[k][2]);
+      this.uv.push(uv[k][0], uv[k][1]);
       this.cor.push(cor[k].r, cor[k].g, cor[k].b);
     }
     this.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
@@ -311,11 +153,35 @@ class Lote {
     geo.setAttribute("uv", new THREE.Float32BufferAttribute(this.uv, 2));
     geo.setAttribute("color", new THREE.Float32BufferAttribute(this.cor, 3));
     geo.setIndex(this.idx);
+    geo.computeVertexNormals();
     geo.computeBoundingSphere();
     const malha = new THREE.Mesh(geo, m);
     malha.matrixAutoUpdate = false;
     return malha;
   }
+}
+
+/**
+ * A névoa da distância no próprio material: a cor final puxa para a do
+ * horizonte conforme a distância até a loja (nada até 50 m, o máximo a 350 m).
+ * É calculada ponto a ponto — no chão, que é um quadrado só, por vértice não daria.
+ */
+function comNevoa<T extends THREE.Material>(m: T, centro: THREE.Vector2, maximo = 0.62): T {
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uNevoa = { value: NEVOA };
+    sh.uniforms.uCentro = { value: centro };
+    sh.uniforms.uNevoaMax = { value: maximo };
+    sh.vertexShader = sh.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vChao;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvChao = (modelMatrix * vec4(transformed, 1.0)).xz;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", "#include <common>\nuniform vec3 uNevoa;\nuniform vec2 uCentro;\nuniform float uNevoaMax;\nvarying vec2 vChao;")
+      .replace(
+        "#include <fog_fragment>",
+        "#include <fog_fragment>\ngl_FragColor.rgb = mix(gl_FragColor.rgb, uNevoa, clamp((length(vChao - uCentro) - 50.0) / 300.0, 0.0, uNevoaMax));"
+      );
+  };
+  return m;
 }
 
 export function criarCidade(o: OpcoesCidade): Cidade {
@@ -325,88 +191,114 @@ export function criarCidade(o: OpcoesCidade): Cidade {
   const guardar = <T extends { dispose: () => void }>(x: T) => (descartaveis.push(x), x);
   const acaso = sorteio(97);
   const q = o.quarteirao;
-  const lado = o.leve ? 512 : 1024;
   const centro = new THREE.Vector2((q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2);
+  const aniso = Math.min(o.leve ? 4 : 16, o.renderer.capabilities.getMaxAnisotropy());
+  const lado = o.leve ? 1024 : 2048;
 
+  // ---- céu (fundo) e o reflexo dele nos vidros e nas fachadas
   const ceu = guardar(texturaCeu(o.leve ? 1024 : 2048));
-  const sem = (extra: THREE.MeshBasicMaterialParameters) => guardar(new THREE.MeshBasicMaterial({ vertexColors: true, ...extra }));
-  const texAlvenaria = guardar(texturaAlvenaria(lado));
-  const texVidro = guardar(texturaVidro(lado));
-  const texTelhado = guardar(texturaConcreto(256, "#a7a6a2", 5, 0));
-  const texAsfalto = guardar(texturaConcreto(256, "#5d5e62", 9, 0));
-  const texCalcada = guardar(texturaCimento());
-  const matAlvenaria = sem({ map: texAlvenaria });
-  const matVidro = sem({ map: texVidro });
-  const matTelhado = sem({ map: texTelhado });
-  const matAsfalto = sem({ map: texAsfalto });
-  const matCalcada = sem({ map: texCalcada });
-  const matPintura = sem({ side: THREE.DoubleSide });
-  // tinta no asfalto: 2 cm acima e puxada para a frente na profundidade (de longe não briga com o asfalto)
-  const matSinalizacao = sem({ polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  const matMorro = sem({ side: THREE.DoubleSide });
-  const matFolha = sem({ map: guardar(texturaFolha()), alphaTest: 0.35, side: THREE.DoubleSide });
+  const pmrem = new THREE.PMREMGenerator(o.renderer);
+  const reflexoCeu = guardar(pmrem.fromEquirectangular(ceu).texture);
+  pmrem.dispose();
 
-  // a luz de cada face (o sol vem da frente e da esquerda, como na loja) e a névoa da distância
-  const SOL: Record<string, number> = { frente: 1.0, esquerda: 0.93, direita: 0.8, fundo: 0.7, topo: 1.04 };
-  const aux = new THREE.Color();
-  function tom(base: THREE.Color, luz: number, x: number, z: number, pe = false) {
-    const d = Math.hypot(x - centro.x, z - centro.y);
-    const nevoa = THREE.MathUtils.clamp((d - 50) / 300, 0, 0.62);
-    return aux
-      .copy(base)
-      .multiplyScalar(luz * (pe ? 0.78 : 1))
-      .lerp(NEVOA, nevoa)
-      .clone();
-  }
-
-  // ---- chão: asfalto em tudo; os quarteirões são calçadas 15 cm mais altas
-  const asfalto = new Lote();
-  const cinza = new THREE.Color("#ffffff");
-  {
-    const R = ALCANCE + 160;
-    const c = [tom(cinza, 1, -R, -R), tom(cinza, 1, R, -R), tom(cinza, 1, R, R), tom(cinza, 1, -R, R)];
-    const y = -MEIO_FIO;
-    asfalto.quad(
-      [
-        [-R, y, R],
-        [R, y, R],
-        [R, y, -R],
-        [-R, y, -R],
-      ],
-      [
-        [-R / 6, R / 6],
-        [R / 6, R / 6],
-        [R / 6, -R / 6],
-        [-R / 6, -R / 6],
-      ],
-      [c[3], c[2], c[1], c[0]]
+  // as texturas boas levam alguns segundos para desenhar: o material nasce com a cor média
+  // (a cidade já aparece) e a textura entra depois, em detalhar()
+  const tarefas: (() => void)[] = [];
+  const pbr = (gerar: () => TexturaPbr, corMedia: string, extra: THREE.MeshStandardMaterialParameters = {}) => {
+    const m = comNevoa(
+      guardar(
+        new THREE.MeshStandardMaterial({
+          color: corMedia,
+          roughness: 0.85,
+          metalness: 0,
+          envMap: reflexoCeu,
+          envMapIntensity: 0.75,
+          vertexColors: true,
+          ...extra,
+        })
+      ),
+      centro
     );
-  }
-  const calcada = new Lote();
-  const alvenaria = new Lote();
-  const vidro = new Lote();
-  const telhado = new Lote();
-  const pintura = new Lote();
+    tarefas.push(() => {
+      const t = gerar();
+      Object.assign(m, { map: guardar(t.cor), normalMap: guardar(t.normal), roughnessMap: guardar(t.rugosidade), roughness: 1 });
+      m.color.set("#ffffff");
+      m.needsUpdate = true;
+    });
+    return m;
+  };
+  const liso = (extra: THREE.MeshStandardMaterialParameters = {}) =>
+    comNevoa(guardar(new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0, envMap: reflexoCeu, envMapIntensity: 0.6, vertexColors: true, ...extra })), centro);
 
-  /** caixa sem fundo: 4 paredes e o topo (sem topo: `topo` null); uv em metros / `tile` */
-  function caixa(x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, paredes: Lote, cor: THREE.Color, tile: number, desloc: number, topo: Lote | null, tileTopo: number) {
-    const lados: [number[], number[], string, number][] = [
-      [[x0, z1], [x1, z1], "frente", x1 - x0],
-      [[x1, z1], [x1, z0], "direita", z1 - z0],
-      [[x1, z0], [x0, z0], "fundo", x1 - x0],
-      [[x0, z0], [x0, z1], "esquerda", z1 - z0],
-    ];
-    for (const [a, b, face, comp] of lados) {
-      const u0 = desloc;
-      const u1 = desloc + comp / tile;
-      const v0 = y0 / (tile / 2);
-      const v1 = y1 / (tile / 2);
-      paredes.quad(
+  // a ordem é a do que aparece primeiro na tela: a rua e os prédios da frente
+  const matAsfalto = pbr(() => texturasAsfalto(o.leve ? 512 : 1024, aniso), "#505256");
+  const matTerreo = pbr(() => texturasTerreo(lado * 2, aniso, o.fonte), "#b9b4ab");
+  const matFachada = pbr(() => texturasFachada(lado, aniso), "#e3ded6");
+  const matCalcada = pbr(() => texturasCimento(o.leve ? 512 : 1024, aniso), "#c4c0b8");
+  const matTronco = pbr(() => texturasTronco(aniso), "#7d6e5a");
+  const matVidro = pbr(() => texturasVidro(lado, aniso), "#3c4b59", { metalness: 0.25, roughness: 0.1, envMapIntensity: 1.15 });
+  const matTelhado = pbr(() => texturasTelhado(o.leve ? 256 : 512, aniso), "#a5a39e");
+  const matPintura = liso({ side: THREE.DoubleSide });
+  const matMetal = liso({ roughness: 0.45, metalness: 0.6 });
+  // tinta no asfalto: 2 cm acima e puxada para a frente na profundidade (de longe não briga com o asfalto)
+  const matSinalizacao = liso({ roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const matToldo = liso({ map: guardar(texturaToldo()), side: THREE.DoubleSide, roughness: 0.85 });
+  const matFolha = liso({ map: guardar(texturaFolha(aniso)), alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.7 });
+  // os morros, bem longe, com menos névoa que o máximo (senão somem no horizonte)
+  const matMorro = comNevoa(guardar(new THREE.MeshBasicMaterial({ map: guardar(texturaMorro()), vertexColors: true, side: THREE.DoubleSide })), centro, 0.42);
+
+  const novo = () => new Lote();
+  const asfalto = novo();
+  const calcada = novo();
+  const fachada = novo();
+  const terreo = novo();
+  const vidro = novo();
+  const telhado = novo();
+  const pintura = novo();
+  const metal = novo();
+  const sinalizacao = novo();
+  const toldos = novo();
+  const troncos = novo();
+  const folhas = novo();
+  const morros = novo();
+
+  const branco = new THREE.Color("#ffffff");
+  /** chão ou tampa virada para cima, uv em metros / `tile` */
+  const plano = (l: Lote, x0: number, x1: number, z0: number, z1: number, y: number, tile: number, cor = branco) =>
+    l.quad(
+      [
+        [x0, y, z1],
+        [x1, y, z1],
+        [x1, y, z0],
+        [x0, y, z0],
+      ],
+      [
+        [x0 / tile, -z1 / tile],
+        [x1 / tile, -z1 / tile],
+        [x1 / tile, -z0 / tile],
+        [x0 / tile, -z0 / tile],
+      ],
+      [cor, cor, cor, cor]
+    );
+
+  type Face = { a: [number, number]; b: [number, number]; comp: number; fora: [number, number] };
+  const faces = (x0: number, x1: number, z0: number, z1: number): Face[] => [
+    { a: [x0, z1], b: [x1, z1], comp: x1 - x0, fora: [0, 1] },
+    { a: [x1, z1], b: [x1, z0], comp: z1 - z0, fora: [1, 0] },
+    { a: [x1, z0], b: [x0, z0], comp: x1 - x0, fora: [0, -1] },
+    { a: [x0, z0], b: [x0, z1], comp: z1 - z0, fora: [-1, 0] },
+  ];
+  /** faixa de parede em volta do retângulo, de y0 a y1; u em metros / tileU (a partir de u0), v de v0 a v1 */
+  function faixa(l: Lote, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, tileU: number, u0: number, v0: number, v1: number, cor: THREE.Color, sombraNoPe = 1) {
+    const pe = cor.clone().multiplyScalar(sombraNoPe);
+    for (const f of faces(x0, x1, z0, z1)) {
+      const u1 = u0 + f.comp / tileU;
+      l.quad(
         [
-          [a[0], y0, a[1]],
-          [b[0], y0, b[1]],
-          [b[0], y1, b[1]],
-          [a[0], y1, a[1]],
+          [f.a[0], y0, f.a[1]],
+          [f.b[0], y0, f.b[1]],
+          [f.b[0], y1, f.b[1]],
+          [f.a[0], y1, f.a[1]],
         ],
         [
           [u0, v0],
@@ -414,32 +306,103 @@ export function criarCidade(o: OpcoesCidade): Cidade {
           [u1, v1],
           [u0, v1],
         ],
-        [tom(cor, SOL[face], a[0], a[1], true), tom(cor, SOL[face], b[0], b[1], true), tom(cor, SOL[face], b[0], b[1]), tom(cor, SOL[face], a[0], a[1])]
+        [pe, pe, cor, cor]
       );
     }
-    if (!topo) return;
-    const ct = tom(cor.clone().lerp(cinza, 0.5), SOL.topo, (x0 + x1) / 2, (z0 + z1) / 2);
-    topo.quad(
-      [
-        [x0, y1, z1],
-        [x1, y1, z1],
-        [x1, y1, z0],
-        [x0, y1, z0],
-      ],
-      [
-        [x0 / tileTopo, z1 / tileTopo],
-        [x1 / tileTopo, z1 / tileTopo],
-        [x1 / tileTopo, z0 / tileTopo],
-        [x0 / tileTopo, z0 / tileTopo],
-      ],
-      [ct, ct, ct, ct]
-    );
+  }
+  /** caixinha simples (poste, caixa d'água, meio-fio): paredes e tampa, uv em metros */
+  function caixa(l: Lote, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, cor: THREE.Color, tampa = true) {
+    faixa(l, x0, x1, z0, z1, y0, y1, 4, 0, y0 / 4, y1 / 4, cor);
+    if (tampa) plano(l, x0, x1, z0, z1, y1, 4, cor);
   }
 
-  // cores das fachadas (Rio: muito branco e bege, alguns tons pastel) e dos vidros
-  const CORES_ALVENARIA = ["#ffffff", "#f3ead9", "#efe3cf", "#f2d9cf", "#f4e7b8", "#d9e8dc", "#e6e1da", "#e9d2c0", "#dfe5ea"].map((c) => new THREE.Color(c));
-  const CORES_VIDRO = ["#ffffff", "#dfeaf2", "#d6e6df", "#efe4d6"].map((c) => new THREE.Color(c));
-  const BRANCO_GELO = new THREE.Color("#f2f2ef");
+  // ---- chão: asfalto em tudo; os quarteirões são calçadas 15 cm mais altas
+  const R = ALCANCE + 160;
+  plano(asfalto, -R, R, -R, R, -MEIO_FIO, 8);
+  const meioFio = new THREE.Color("#c9c6bf");
+  caixa(pintura, q.x0, q.x1, q.z0, q.z1, -MEIO_FIO, -0.01, meioFio, false);
+
+  // cores das fachadas (Rio: muito branco e bege, alguns tons pastel), dos vidros e dos toldos
+  const CORES_FACHADA = ["#ffffff", "#f6eedd", "#f1e5d1", "#f5ddd2", "#f6eabf", "#dcebdf", "#ebe6df", "#eed7c5", "#e1e8ee", "#f2d7d9"].map((c) => new THREE.Color(c));
+  const CORES_VIDRO = ["#ffffff", "#dfeaf2", "#d6e8df", "#f0e6d8"].map((c) => new THREE.Color(c));
+  const CORES_TOLDO = ["#b8322e", "#2d6a4a", "#2c4f8c", "#d39a2a", "#c95a2c", "#3d3d3d"].map((c) => new THREE.Color(c));
+  const GELO = new THREE.Color("#f3f2ee");
+
+  /** um prédio: térreo com lojinhas (e toldos, se está perto), andares, marquise, cornija e cobertura */
+  function predio(x0: number, x1: number, z0: number, z1: number, andares: number, torre: boolean, perto: boolean) {
+    const h = TERREO + andares * ANDAR;
+    // começa numa loja inteira do térreo (8 de 6 m) e num vão inteiro da fachada (4 de 6 m)
+    faixa(terreo, x0, x1, z0, z1, 0, TERREO, 48, Math.floor(acaso() * 8) / 8, 0, 1, branco, 0.8);
+    const u0 = Math.floor(acaso() * 4) / 4;
+    const v0 = Math.floor(acaso() * 4) / 4;
+    if (torre) {
+      const cor = CORES_VIDRO[Math.floor(acaso() * CORES_VIDRO.length)];
+      faixa(vidro, x0, x1, z0, z1, TERREO, h, 24, u0, v0, v0 + (h - TERREO) / 12, cor);
+      // coroamento opaco e casa de máquinas
+      faixa(pintura, x0, x1, z0, z1, h, h + 1.2, 4, 0, 0, 0.3, GELO);
+      plano(telhado, x0, x1, z0, z1, h + 1.2, 10, GELO);
+      caixa(pintura, x0 + (x1 - x0) * 0.3, x0 + (x1 - x0) * 0.7, z0 + (z1 - z0) * 0.3, z0 + (z1 - z0) * 0.7, h + 1.2, h + 4, GELO);
+      return;
+    }
+    const cor = CORES_FACHADA[Math.floor(acaso() * CORES_FACHADA.length)];
+    faixa(fachada, x0, x1, z0, z1, TERREO, h, 24, u0, v0, v0 + (h - TERREO) / 12, cor);
+    // marquise do térreo e cornija no alto (saltadas da parede)
+    caixa(pintura, x0 - 0.25, x1 + 0.25, z0 - 0.25, z1 + 0.25, TERREO - 0.05, TERREO + 0.2, cor);
+    caixa(pintura, x0 - 0.18, x1 + 0.18, z0 - 0.18, z1 + 0.18, h - 0.1, h + 0.45, cor, false);
+    plano(telhado, x0, x1, z0, z1, h + 0.05, 10, branco);
+    if (andares > 2) {
+      const cx = x0 + (x1 - x0) * (0.3 + acaso() * 0.4);
+      const cz = z0 + (z1 - z0) * (0.3 + acaso() * 0.4);
+      caixa(pintura, cx - 2, cx + 2, cz - 1.5, cz + 1.5, h + 0.05, h + 2.6, cor);
+    }
+    if (!perto) return;
+    // toldos listrados em cima das vitrines: a textura do térreo tem uma loja a cada 6 m
+    // e cada face começa no começo de uma loja
+    for (const f of faces(x0, x1, z0, z1)) {
+      const dir = [(f.b[0] - f.a[0]) / f.comp, (f.b[1] - f.a[1]) / f.comp];
+      for (let s = 0; s + 6 <= f.comp; s += 6) {
+        if (acaso() < 0.35) continue;
+        const cor2 = CORES_TOLDO[Math.floor(acaso() * CORES_TOLDO.length)];
+        const pA = [f.a[0] + dir[0] * (s + 0.6), f.a[1] + dir[1] * (s + 0.6)];
+        const pB = [f.a[0] + dir[0] * (s + 5.5), f.a[1] + dir[1] * (s + 5.5)];
+        const [fx, fz] = [f.fora[0] * 1.15, f.fora[1] * 1.15];
+        const yAlto = 3.4;
+        const yBaixo = 2.85;
+        const listras = 4.9 / 2.4;
+        toldos.quad(
+          [
+            [pA[0] + fx, yBaixo, pA[1] + fz],
+            [pB[0] + fx, yBaixo, pB[1] + fz],
+            [pB[0], yAlto, pB[1]],
+            [pA[0], yAlto, pA[1]],
+          ],
+          [
+            [0, 0],
+            [listras, 0],
+            [listras, 1],
+            [0, 1],
+          ],
+          [cor2, cor2, cor2, cor2]
+        );
+        // a barra da frente do toldo
+        toldos.quad(
+          [
+            [pA[0] + fx, yBaixo - 0.25, pA[1] + fz],
+            [pB[0] + fx, yBaixo - 0.25, pB[1] + fz],
+            [pB[0] + fx, yBaixo, pB[1] + fz],
+            [pA[0] + fx, yBaixo, pA[1] + fz],
+          ],
+          [
+            [0, 0],
+            [listras, 0],
+            [listras, 0.2],
+            [0, 0.2],
+          ],
+          [cor2, cor2, cor2, cor2]
+        );
+      }
+    }
+  }
 
   // ---- quarteirões: a grade das ruas parte do quarteirão da loja
   const xs: [number, number][] = [[q.x0, q.x1]];
@@ -450,32 +413,15 @@ export function criarCidade(o: OpcoesCidade): Cidade {
   for (let z = q.z0 - RUA; z > -ALCANCE; z -= QUADRA + RUA) zs.unshift([z - QUADRA, z]);
 
   /** altura máxima para não tampar a loja vista de cima: sobe meio metro a cada metro de distância */
-  const alturaMax = (d: number) => THREE.MathUtils.clamp(0.5 * (d - 8), 6, 130);
+  const alturaMax = (d: number) => THREE.MathUtils.clamp(0.5 * (d - 8), 7.5, 130);
   const distRet = (x0: number, x1: number, z0: number, z1: number) =>
     Math.hypot(Math.max(x0 - centro.x, 0, centro.x - x1), Math.max(z0 - centro.y, 0, centro.y - z1));
 
   for (const [x0, x1] of xs) {
     for (const [z0, z1] of zs) {
       if (x0 === q.x0 && z0 === q.z0) continue; // o quarteirão da loja é da cena
-      // calçada do quarteirão (só a borda: o miolo fica coberto pelos lotes)
-      const cc = tom(cinza, 1, (x0 + x1) / 2, (z0 + z1) / 2);
-      calcada.quad(
-        [
-          [x0, 0, z1],
-          [x1, 0, z1],
-          [x1, 0, z0],
-          [x0, 0, z0],
-        ],
-        [
-          [x0 / 4, z1 / 4],
-          [x1 / 4, z1 / 4],
-          [x1 / 4, z0 / 4],
-          [x0 / 4, z0 / 4],
-        ],
-        [cc, cc, cc, cc]
-      );
-      // meio-fio (só as beiradas: em cima já é a calçada)
-      caixa(x0, x1, z0, z1, -MEIO_FIO, 0, pintura, new THREE.Color("#b9b7b1"), 4, 0, null, 4);
+      plano(calcada, x0, x1, z0, z1, 0, 4);
+      caixa(pintura, x0, x1, z0, z1, -MEIO_FIO, 0, meioFio, false);
       // lotes: 2 a 3 em cada direção, com recuo de 3 m da calçada
       const nx = 2 + Math.floor(acaso() * 2);
       const nz = 2 + Math.floor(acaso() * 2);
@@ -483,8 +429,7 @@ export function criarCidade(o: OpcoesCidade): Cidade {
       const lz = (z1 - z0 - 6) / nz;
       for (let i = 0; i < nx; i++) {
         for (let k = 0; k < nz; k++) {
-          // miolo do quarteirão às vezes vazio (pátio)
-          if (nx === 3 && nz === 3 && i === 1 && k === 1) continue;
+          if (nx === 3 && nz === 3 && i === 1 && k === 1) continue; // pátio no miolo
           const bx0 = x0 + 3 + i * lx + 0.6;
           const bx1 = bx0 + lx - 1.2 - acaso() * 2;
           const bz0 = z0 + 3 + k * lz + 0.6;
@@ -492,68 +437,30 @@ export function criarCidade(o: OpcoesCidade): Cidade {
           const d = distRet(bx0, bx1, bz0, bz1);
           const max = alturaMax(d);
           const torre = max > 34 && acaso() < 0.45;
-          const andares = Math.max(2, Math.round(((torre ? 0.6 : 0.35) + acaso() * 0.4) * Math.min(max, torre ? 130 : 42) / ANDAR));
-          const h = andares * ANDAR;
-          if (torre) {
-            const cor = CORES_VIDRO[Math.floor(acaso() * CORES_VIDRO.length)];
-            caixa(bx0, bx1, bz0, bz1, 0, h, vidro, cor, 24, Math.floor(acaso() * 4) / 4, telhado, 10);
-            // coroamento opaco no alto da torre
-            caixa(bx0 + 1, bx1 - 1, bz0 + 1, bz1 - 1, h, h + 2.4, pintura, BRANCO_GELO, 4, 0, telhado, 10);
-          } else {
-            const cor = CORES_ALVENARIA[Math.floor(acaso() * CORES_ALVENARIA.length)];
-            caixa(bx0, bx1, bz0, bz1, 0, h, alvenaria, cor, 24, Math.floor(acaso() * 4) / 4, telhado, 10);
-            // caixa d'água / casa de máquinas em cima
-            if (andares > 3) {
-              const cx = bx0 + (bx1 - bx0) * (0.3 + acaso() * 0.4);
-              const cz = bz0 + (bz1 - bz0) * (0.3 + acaso() * 0.4);
-              caixa(cx - 2, cx + 2, cz - 1.5, cz + 1.5, h, h + 2.6, pintura, cor, 4, 0, telhado, 10);
-            }
-          }
+          const teto = torre ? max : Math.min(max, 42);
+          const andares = Math.max(1, Math.floor(((torre ? 0.6 : 0.4) + acaso() * 0.4) * ((teto - TERREO) / ANDAR)));
+          predio(bx0, bx1, bz0, bz1, andares, torre, d < 95);
         }
       }
     }
   }
 
-  // meio-fio do quarteirão da loja (o chão dele é da cena)
-  caixa(q.x0, q.x1, q.z0, q.z1, -MEIO_FIO, -0.01, pintura, new THREE.Color("#b9b7b1"), 4, 0, null, 4);
-
   // ---- rua da frente: faixa amarela no meio e faixa de pedestres na porta da loja
-  const sinalizacao = new Lote();
-  const amarelo = new THREE.Color("#f2c230");
-  const branca = new THREE.Color("#f4f4f0");
-  const faixa = (x0: number, x1: number, z0: number, z1: number, cor: THREE.Color) => {
-    const c = tom(cor, 1, (x0 + x1) / 2, (z0 + z1) / 2);
-    const y = -MEIO_FIO + 0.02;
-    sinalizacao.quad(
-      [
-        [x0, y, z1],
-        [x1, y, z1],
-        [x1, y, z0],
-        [x0, y, z0],
-      ],
-      [
-        [0, 0],
-        [1, 0],
-        [1, 1],
-        [0, 1],
-      ],
-      [c, c, c, c]
-    );
-  };
+  const amarelo = new THREE.Color("#e8b62a");
+  const branca = new THREE.Color("#eeeeea");
   const meioRua = q.z1 + RUA / 2;
-  for (let x = -150; x < 150; x += 6) if (Math.abs(x) > 4) faixa(x, x + 3, meioRua - 0.06, meioRua + 0.06, amarelo);
+  const yTinta = -MEIO_FIO + 0.02;
+  for (let x = -150; x < 150; x += 6) if (Math.abs(x) > 4) plano(sinalizacao, x, x + 3, meioRua - 0.06, meioRua + 0.06, yTinta, 1, amarelo);
   for (let k = 0; k < 9; k++) {
     const z = q.z1 + 0.6 + k * ((RUA - 1.2) / 8.5);
-    faixa(-2.2, 2.2, z, z + 0.5, branca);
+    plano(sinalizacao, -2.2, 2.2, z, z + 0.5, yTinta, 1, branca);
   }
 
   // ---- morros no horizonte: um anel com picos arredondados, azulados pela distância
-  const morros = new Lote();
   {
-    const N = 160;
+    const N = 200;
     const picos = Array.from({ length: 9 }, () => ({ a: acaso() * Math.PI * 2, h: 70 + acaso() * 120, larg: 0.12 + acaso() * 0.22 }));
-    // um "pão de açúcar": cúpula alta e estreita, de frente para a loja, à direita
-    picos.push({ a: Math.PI * 0.42, h: 175, larg: 0.07 });
+    picos.push({ a: Math.PI * 0.42, h: 175, larg: 0.07 }); // o "pão de açúcar"
     const altura = (a: number) => {
       let h = 18 + 10 * Math.sin(a * 5) + 6 * Math.sin(a * 13);
       for (const p of picos) {
@@ -563,59 +470,55 @@ export function criarCidade(o: OpcoesCidade): Cidade {
       }
       return h;
     };
-    const topoCor = new THREE.Color("#6f8f7f").lerp(NEVOA, 0.45);
-    const peCor = new THREE.Color("#9fb3ad").lerp(NEVOA, 0.55);
+    const pe = new THREE.Color("#c7d1cc");
     for (let i = 0; i < N; i++) {
       const a0 = (i / N) * Math.PI * 2;
       const a1 = ((i + 1) / N) * Math.PI * 2;
       const r0 = 470 + 25 * Math.sin(a0 * 3);
       const r1 = 470 + 25 * Math.sin(a1 * 3);
       const p = (a: number, r: number, y: number) => [centro.x + Math.sin(a) * r, y, centro.y - Math.cos(a) * r];
+      const h0 = altura(a0);
+      const h1 = altura(a1);
+      // v = 1 no topo (pedra) e 0 no pé; u dá 24 voltas da textura no anel
       morros.quad(
-        [p(a0, r0, -5), p(a1, r1, -5), p(a1, r1, altura(a1)), p(a0, r0, altura(a0))],
+        [p(a0, r0, -5), p(a1, r1, -5), p(a1, r1, h1), p(a0, r0, h0)],
         [
-          [0, 0],
-          [1, 0],
-          [1, 1],
-          [0, 1],
+          [(i / N) * 24, 0],
+          [((i + 1) / N) * 24, 0],
+          [((i + 1) / N) * 24, Math.min(1, h1 / 180)],
+          [(i / N) * 24, Math.min(1, h0 / 180)],
         ],
-        [peCor, peCor, topoCor, topoCor]
+        [pe, pe, branco, branco]
       );
     }
   }
 
   // ---- calçada da loja: coqueiros e postes na beira da rua (nunca na frente da porta)
-  const troncos = new Lote();
-  const folhas = new Lote();
-  const marrom = new THREE.Color("#8c7a62");
-  const verde = new THREE.Color("#ffffff");
   const beira = q.z1 - 0.9;
+  const cinzaPoste = new THREE.Color("#55585d");
   for (let x = q.x0 + 3; x <= q.x1 - 3; x += 7) {
     if (Math.abs(x) < 5) continue;
-    const ehPoste = Math.round((x - q.x0) / 7) % 2 === 1;
-    if (ehPoste) {
-      // poste: haste fina, braço e luminária
-      caixa(x - 0.07, x + 0.07, beira - 0.07, beira + 0.07, 0, 6.2, pintura, new THREE.Color("#4a4d52"), 4, 0, pintura, 4);
-      caixa(x - 0.05, x + 0.05, beira, beira + 1.3, 6.0, 6.1, pintura, new THREE.Color("#4a4d52"), 4, 0, pintura, 4);
-      caixa(x - 0.22, x + 0.22, beira + 1.0, beira + 1.6, 5.85, 6.05, pintura, new THREE.Color("#3a3c40"), 4, 0, pintura, 4);
+    if (Math.round((x - q.x0) / 7) % 2 === 1) {
+      // poste: haste, braço sobre a rua e luminária
+      caixa(metal, x - 0.07, x + 0.07, beira - 0.07, beira + 0.07, 0, 6.2, cinzaPoste);
+      caixa(metal, x - 0.05, x + 0.05, beira, beira + 1.3, 6.0, 6.1, cinzaPoste);
+      caixa(metal, x - 0.22, x + 0.22, beira + 1.0, beira + 1.6, 5.85, 6.05, new THREE.Color("#404247"));
       continue;
     }
-    // coqueiro: tronco fino que inclina um pouco e uma coroa de folhas arqueadas
+    // coqueiro: tronco com anéis que inclina um pouco e uma coroa de folhas arqueadas
     const alt = 7 + acaso() * 2.5;
     const incl = (acaso() - 0.5) * 0.6;
-    const seg = 6;
+    const seg = 8;
     for (let s = 0; s < seg; s++) {
       const y0 = (s / seg) * alt;
       const y1 = ((s + 1) / seg) * alt;
       const dx0 = incl * Math.pow(s / seg, 2);
       const dx1 = incl * Math.pow((s + 1) / seg, 2);
-      const r0 = 0.2 - 0.06 * (s / seg);
-      const r1 = 0.2 - 0.06 * ((s + 1) / seg);
-      for (let k = 0; k < 6; k++) {
-        const a0 = (k / 6) * Math.PI * 2;
-        const a1 = ((k + 1) / 6) * Math.PI * 2;
-        const luz = 0.75 + 0.25 * Math.cos(a0 - 2.4);
-        const c = tom(marrom, luz, x, beira);
+      const r0 = 0.21 - 0.07 * (s / seg);
+      const r1 = 0.21 - 0.07 * ((s + 1) / seg);
+      for (let k = 0; k < 8; k++) {
+        const a0 = (k / 8) * Math.PI * 2;
+        const a1 = ((k + 1) / 8) * Math.PI * 2;
         troncos.quad(
           [
             [x + dx0 + Math.cos(a0) * r0, y0, beira + Math.sin(a0) * r0],
@@ -624,47 +527,52 @@ export function criarCidade(o: OpcoesCidade): Cidade {
             [x + dx1 + Math.cos(a0) * r1, y1, beira + Math.sin(a0) * r1],
           ],
           [
-            [0, 0],
-            [1, 0],
-            [1, 1],
-            [0, 1],
+            [k / 8, y0],
+            [(k + 1) / 8, y0],
+            [(k + 1) / 8, y1],
+            [k / 8, y1],
           ],
-          [c, c, c, c]
+          [branco, branco, branco, branco]
         );
       }
     }
     const tx = x + incl;
-    for (let f = 0; f < 10; f++) {
-      const ang = (f / 10) * Math.PI * 2 + acaso() * 0.3;
-      const comp = 2.6 + acaso() * 0.8;
-      const sobe = 0.5 + acaso() * 0.4;
-      const passos = 5;
+    const nFolhas = 12;
+    for (let f = 0; f < nFolhas; f++) {
+      const ang = (f / nFolhas) * Math.PI * 2 + acaso() * 0.3;
+      const comp = 2.8 + acaso() * 0.9;
+      const sobe = 0.4 + acaso() * 0.5;
+      const cai = 1.8 + acaso() * 0.9;
+      const passos = 7;
+      const tom = new THREE.Color().setHSL(0.24 + acaso() * 0.04, 0.35, 0.82 + acaso() * 0.18);
       for (let s = 0; s < passos; s++) {
         const t0 = s / passos;
         const t1 = (s + 1) / passos;
-        // arco: sobe um pouco e cai na ponta
-        const ponto = (t: number) => [tx + Math.cos(ang) * comp * t, alt + sobe * t - 2.2 * t * t, beira + Math.sin(ang) * comp * t];
+        // arco: sobe um pouco e cai na ponta; as duas metades da folha descem em V a partir do talo
+        const ponto = (t: number) => [tx + Math.cos(ang) * comp * t, alt + sobe * t - cai * t * t, beira + Math.sin(ang) * comp * t];
         const p0 = ponto(t0);
         const p1 = ponto(t1);
-        const lx = -Math.sin(ang) * 0.42;
-        const lz = Math.cos(ang) * 0.42;
-        const luz = 0.8 + 0.25 * Math.cos(ang - 2.4);
-        const c = tom(verde, luz, x, beira);
-        folhas.quad(
-          [
-            [p0[0] - lx, p0[1], p0[2] - lz],
-            [p1[0] - lx, p1[1], p1[2] - lz],
-            [p1[0] + lx, p1[1], p1[2] + lz],
-            [p0[0] + lx, p0[1], p0[2] + lz],
-          ],
-          [
-            [t0, 0],
-            [t1, 0],
-            [t1, 1],
-            [t0, 1],
-          ],
-          [c, c, c, c]
-        );
+        const lx = -Math.sin(ang) * 0.5;
+        const lz = Math.cos(ang) * 0.5;
+        const v0 = 0.12 * Math.sin(t0 * Math.PI);
+        const v1 = 0.12 * Math.sin(t1 * Math.PI);
+        for (const lado2 of [-1, 1]) {
+          folhas.quad(
+            [
+              [p0[0], p0[1], p0[2]],
+              [p1[0], p1[1], p1[2]],
+              [p1[0] + lado2 * lx, p1[1] - v1, p1[2] + lado2 * lz],
+              [p0[0] + lado2 * lx, p0[1] - v0, p0[2] + lado2 * lz],
+            ],
+            [
+              [t0, 0.5],
+              [t1, 0.5],
+              [t1, lado2 > 0 ? 1 : 0],
+              [t0, lado2 > 0 ? 1 : 0],
+            ],
+            [tom, tom, tom, tom]
+          );
+        }
       }
     }
   }
@@ -672,14 +580,17 @@ export function criarCidade(o: OpcoesCidade): Cidade {
   const malhas: [Lote, THREE.Material][] = [
     [asfalto, matAsfalto],
     [calcada, matCalcada],
-    [alvenaria, matAlvenaria],
+    [fachada, matFachada],
+    [terreo, matTerreo],
     [vidro, matVidro],
     [telhado, matTelhado],
     [pintura, matPintura],
+    [metal, matMetal],
     [sinalizacao, matSinalizacao],
-    [morros, matMorro],
-    [troncos, matPintura],
+    [toldos, matToldo],
+    [troncos, matTronco],
     [folhas, matFolha],
+    [morros, matMorro],
   ];
   for (const [lote, m] of malhas) {
     if (!lote.idx.length) continue;
@@ -688,9 +599,21 @@ export function criarCidade(o: OpcoesCidade): Cidade {
     grupo.add(malha);
   }
 
+  let descartada = false;
   return {
     grupo,
     ceu,
-    descartar: () => descartaveis.forEach((d) => d.dispose()),
+    async detalhar() {
+      for (const tarefa of tarefas) {
+        // um quadro entre uma textura e outra: a loja continua andando enquanto a cidade ganha detalhe
+        await new Promise((ok) => setTimeout(ok, 30));
+        if (descartada) return;
+        tarefa();
+      }
+    },
+    descartar: () => {
+      descartada = true;
+      descartaveis.forEach((d) => d.dispose());
+    },
   };
 }

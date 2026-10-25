@@ -236,6 +236,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
             setSelecionado(null);
             setLarissaAberta(true);
           },
+          aoChegarNoLimite: () => setAviso(t.soPaisagem),
           aoChegarNoGuia: () => {
             setGuia(null);
             setAviso(t.guia.chegou);

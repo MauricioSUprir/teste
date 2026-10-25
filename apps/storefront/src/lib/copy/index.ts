@@ -675,6 +675,7 @@ export const copy = {
     dicaToque: "Use a bolinha para andar · arraste para olhar · toque no chão para ir até lá · toque num produto para ver · a Larissa está no caixa",
     dicaAltoToque: "Toque numa estante, num produto ou no chão para descer até lá · arraste para girar · dois dedos para aproximar",
     naPrateleira: "Você chegou. Escolha seu produto.",
+    soPaisagem: "A cidade é só paisagem: o passeio é na loja e na calçada da frente.",
     fechar: "Fechar",
     verTodos: (categoria: string) => `Ver tudo de ${categoria}`,
     verEmLista: "Ver a loja em lista",

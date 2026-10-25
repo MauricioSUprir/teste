@@ -70,7 +70,7 @@ function canvas(lado: number, alto = lado) {
 }
 
 /** relevo (altura 0 a 1 por pixel, linha de cima primeiro) → mapa de normais no padrão do three */
-function normaisDe(altura: Float32Array, lado: number, alto: number, forca: number) {
+export function normaisDe(altura: Float32Array, lado: number, alto: number, forca: number) {
   const { c, g, dados } = canvas(lado, alto);
   const px = dados.data;
   const h = (x: number, y: number) => altura[((y + alto) % alto) * lado + ((x + lado) % lado)];

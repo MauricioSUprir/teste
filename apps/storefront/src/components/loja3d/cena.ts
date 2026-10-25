@@ -46,7 +46,8 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { montarProduto3D } from "./produto3d";
 import { criarCesta, type ItemCesta } from "./cesta";
-import { criarCidade, texturaCalcadao, texturaCimento } from "./cidade";
+import { criarCidade } from "./cidade";
+import { texturasCalcadao, texturasCimento } from "./texturas-cidade";
 import { texturasMadeira, texturasPorcelanato, texturasTecido, texturaTerra } from "./texturas";
 import { ajustesSuperficie, criarReflexo, prepararSuperficie, type Receptor } from "./superficie";
 import { criarLuzAssada, type LuzAssada, type ReceptorAssado } from "./luz-assada";
@@ -133,6 +134,8 @@ export interface OpcoesCena {
   aoFalarComLarissa: () => void;
   /** chegou no fim da trilha do guia "onde fica?" */
   aoChegarNoGuia: () => void;
+  /** tentou ir para a cidade (ela é só paisagem: o passeio é na loja e na calçada da frente) */
+  aoChegarNoLimite?: () => void;
   somLigado: boolean;
 }
 
@@ -821,13 +824,17 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   cena.add(piso);
   const usarAssadaParede = prepararSuperficie(mat.parede, { receptores: receptoresParede });
   // a cidade em volta (céu, morros, ruas e prédios) e o chão do quarteirão da loja
-  const cidade = criarCidade({ quarteirao: QUARTEIRAO, leve: celular });
+  const cidade = criarCidade({ renderer, quarteirao: QUARTEIRAO, leve: celular, fonte: op.fonte });
   cena.add(cidade.grupo);
   cena.background = cidade.ceu;
   descartar.push({ dispose: cidade.descartar });
-  const texPatio = guardar(texturaCimento());
-  texPatio.repeat.set((QUARTEIRAO.x1 - QUARTEIRAO.x0) / 4, (QUARTEIRAO.z1 - QUARTEIRAO.z0) / 4);
-  mat.rua.map = texPatio;
+  // pátio em volta da loja: placas de cimento com junta (cor, relevo e brilho)
+  const patio = texturasCimento(512, 8);
+  for (const t of [patio.cor, patio.normal, patio.rugosidade]) {
+    guardar(t);
+    t.repeat.set((QUARTEIRAO.x1 - QUARTEIRAO.x0) / 4, (QUARTEIRAO.z1 - QUARTEIRAO.z0) / 4);
+  }
+  Object.assign(mat.rua, { map: patio.cor, normalMap: patio.normal, roughnessMap: patio.rugosidade, roughness: 1 });
   mat.rua.color.set("#ffffff");
   juntar(mat.rua, geoChao, matriz(0, -0.01, (QUARTEIRAO.z0 + QUARTEIRAO.z1) / 2, 0, QUARTEIRAO.x1 - QUARTEIRAO.x0, 1, QUARTEIRAO.z1 - QUARTEIRAO.z0));
   juntar(mat.capacho, geoCaixa, matriz(0, 0.006, Z1 + PAREDE + 0.6, 0, 2.2, 0.012, 0.9));
@@ -907,9 +914,12 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     1.4
   );
   // calçada da loja: o calçadão de Copacabana, em pedra portuguesa (onde a pessoa começa)
-  const texCalcadao = guardar(texturaCalcadao(celular ? 512 : 1024));
-  texCalcadao.repeat.set((LARGURA + 20) / 4, (FORA + 4) / 4);
-  const matCorredor = fisico("#ffffff", { map: texCalcadao, roughness: 0.85, envMapIntensity: 0.2 });
+  const calcadao = texturasCalcadao(celular ? 512 : 1024, 8);
+  for (const t of [calcadao.cor, calcadao.normal, calcadao.rugosidade]) {
+    guardar(t);
+    t.repeat.set((LARGURA + 20) / 4, (FORA + 4) / 4);
+  }
+  const matCorredor = fisico("#ffffff", { map: calcadao.cor, normalMap: calcadao.normal, roughnessMap: calcadao.rugosidade, roughness: 1, envMapIntensity: 0.25 });
   const pisoFora = new THREE.Mesh(guardar(new THREE.PlaneGeometry(LARGURA + 20, FORA + 4)), matCorredor);
   pisoFora.rotation.x = -Math.PI / 2;
   pisoFora.position.set(0, -0.002, Z1 + PAREDE + (FORA + 4) / 2);
@@ -2010,6 +2020,12 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       op.aoSelecionarProduto(alvo.m.slug);
       return;
     }
+    // na rua ou nos prédios: não dá para ir, avisa
+    const chaoFora = !!hit && (hit.object === piso || hit.object === pisoFora) && !livreNaGrade(hit.point.x, hit.point.z);
+    if (modo === "perto" && (hit ? chaoFora && naCidade(hit.point.x, hit.point.z) : tocouCidade())) {
+      avisarLimite();
+      return;
+    }
     if (!hit) return;
     if (ehLarissa(hit)) {
       larissa.conversar();
@@ -2039,6 +2055,23 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     }
     andar(ev.deltaY < 0 ? 0.6 : -0.6);
   }
+  // ---- a cidade é só paisagem: quem tenta ir para a rua ganha um aviso (no máximo a cada 4 s)
+  let ultimoAvisoLimite = 0;
+  function avisarLimite() {
+    const agora = performance.now();
+    if (agora - ultimoAvisoLimite < 4000) return;
+    ultimoAvisoLimite = agora;
+    op.aoChegarNoLimite?.();
+  }
+  /** além da calçada da frente (na rua) ou dos lados dela */
+  const naCidade = (x: number, z: number) => z >= Z1 + FORA - RAIO || (z > Z1 + PAREDE && (x <= X0 + RAIO || x >= X1 - RAIO));
+  /** o toque (raio já apontado) caiu na cidade, e não numa parede da loja na frente dela */
+  function tocouCidade() {
+    const paredes = malhaDoMaterial.get(mat.casca);
+    const hits = raycaster.intersectObjects(paredes ? [cidade.grupo, paredes] : [cidade.grupo], true);
+    return !!hits[0] && hits[0].object.parent === cidade.grupo;
+  }
+
   /** anda para a frente (ou para trás) sem atravessar os móveis: escorrega na quina */
   function andar(metros: number) {
     rota = [];
@@ -2046,6 +2079,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     mudarSetor(null);
     const nx = posicao.x - Math.sin(yaw) * metros;
     const nz = posicao.z - Math.cos(yaw) * metros;
+    if (!pisavel(nx, nz) && naCidade(nx, nz)) avisarLimite();
     if (pisavel(nx, nz)) [posicao.x, posicao.z] = [nx, nz];
     else if (pisavel(nx, posicao.z)) posicao.x = nx;
     else if (pisavel(posicao.x, nz)) posicao.z = nz;
@@ -2514,6 +2548,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     composer.render(dt);
   }
   quadro = requestAnimationFrame(passo);
+  // a cidade ganha as texturas boas aos poucos, depois que a loja já está na tela
+  setTimeout(() => void cidade.detalhar(), 1200);
 
   return {
     irParaCategoria,
