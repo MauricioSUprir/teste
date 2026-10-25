@@ -1,10 +1,10 @@
 {
-  "geradoEm": "2026-10-13T21:14:11.927Z",
+  "geradoEm": "2026-10-25T06:15:56.518Z",
   "restauracaoOk": true,
-  "contagem": 0,
+  "contagem": 1,
   "cifrado": {
-    "iv": "ojbXAW/pVfiPi6MD",
-    "tag": "hNmKoco5XCOsVGP6EhVMKw==",
-    "dados": "OtVgropJVB1bkDtmKaKikw=="
+    "iv": "UvAOH9WCuXS9LRoP",
+    "tag": "qrqWc2aG2P5KCRSp0iKfmQ==",
+    "dados": "nIFWX8sOhnyTzJHVqL/YwtHeCMUXVWc/XbkQKkcwgUJDFuHbCFct5/iHruJC1tEbdirKrlI3zFeFvj58RgU974Gkh97yrM6Y+9PwhqJPQkcRxXwDMi4XoUtN74TpIDz2LGEkJlb6gM/FTpzH1obJsznRrphOxAqB6pfgriziAj+mYcgf8w296i9YLEqeQComBUxJ6YDA3wooJ+GhyOAY/Xg1zfpQIBu1twd6bFMRwuU0+rGurs8LtH3dzXCc61uw9kSIczflE5TnxjCECouLKeZerAHxsXvTOopQvVYcv8PEwfVXylWLw3pSqq2/EybQUJUe7hxBUmYnH/DBJGWvx6XG06ylf/tUpaD1WFZ2cgnH/Po6AxLZAPtX4LYppWrWVY9mVDRl1VCCaSvvMXyKTU7halzeu3ZjjFxtAV9H08HuB2+YevCA20wTT8l2s6OFxCsgRZUyNuj15VM9xQ6tilg1ovrW/BtNHq3idiiNWZ/2IjuvAATAn+4/QjYYIzA/sqPpdagb3UbpHUWBWhtTeC2fo7gs2ndJGmEN9QUoA3ZQARhnKgZ2iN1HMNwzX8EtjdHKGutLAI9DOueB7j6VG31r"
   }
 }
