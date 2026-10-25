@@ -49,6 +49,7 @@ import { criarEtiquetas, type DadosEtiqueta } from "./etiquetas";
 import { criarLarissa } from "./larissa";
 import { criarSom } from "./som";
 import { criarGuia, type PontoGuia } from "./guia";
+import { criarPainelLed } from "./painel-led";
 
 export interface ProdutoCena {
   slug: string;
@@ -119,8 +120,8 @@ export interface OpcoesCena {
   inicio?: PosicaoCena;
   /** pasta dos modelos 3D (plantas), com a barra no fim */
   urlModelos: string;
-  /** a atendente do caixa */
-  larissa: { nome: string; balao: [string, string] };
+  /** a atendente do caixa (foto recortada; sem ela, a atendente desenhada) */
+  larissa: { nome: string; balao: [string, string]; foto?: string };
   aoFalarComLarissa: () => void;
   /** chegou no fim da trilha do guia "onde fica?" */
   aoChegarNoGuia: () => void;
@@ -146,6 +147,8 @@ export interface Cena {
   definirSom: (ligado: boolean) => void;
   /** preço mudou no painel: refaz as etiquetas */
   atualizarPrecos: (precos: Map<string, PrecoCena>) => void;
+  /** banners do site para o painel de LED atrás do caixa */
+  definirBanners: (urls: string[]) => void;
   destruir: () => void;
 }
 
@@ -859,13 +862,17 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     cena.add(folha);
     folhas.push(folha);
   }
-  // letreiro iluminado em cima da porta, do lado de fora
+  // letreiro iluminado em cima da porta, do lado de fora (na BeautyNow, o logo roxo aceso)
   placa(
     guardar(
       textura(1024, 160, (g) => {
-        g.fillStyle = hex(profissional ? escura : new THREE.Color("#2b2b31"));
+        g.fillStyle = hex(profissional ? escura : new THREE.Color("#17141c"));
         g.fillRect(0, 0, 1024, 160);
-        desenharLogo(g, 512, 80, 96, profissional ? "#ffffff" : hex(lilasClaro), "#ffffff", 700);
+        if (!profissional) {
+          g.shadowColor = hex(primaria);
+          g.shadowBlur = 22;
+        }
+        desenharLogo(g, 512, 80, 96, profissional ? "#ffffff" : hex(lilas), profissional ? "#ffffff" : hex(primaria.clone().lerp(branco, 0.12)), 700);
       })
     ),
     new Moldura(0, Z1 + PAREDE + 0.004, 0),
@@ -1222,7 +1229,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
 
   // a atendente do caixa (fica atrás do balcão do fundo)
-  const larissa = criarLarissa({ corRoupa: profissional ? escura.clone() : primaria.clone(), fonte: op.fonte, nome: op.larissa.nome, balao: op.larissa.balao });
+  const larissa = criarLarissa({ corRoupa: profissional ? escura.clone() : primaria.clone(), fonte: op.fonte, nome: op.larissa.nome, balao: op.larissa.balao, foto: op.larissa.foto });
   descartar.push({ dispose: larissa.descartar });
   let vistaLarissa: Vista = { x: 0, z: 0, yaw: 0, pitch: 0, setor: null };
 
@@ -1280,21 +1287,45 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   caixa(mat.marca, paredeFundo, 0, ALTURA / 2, 0.13, largMarca, ALTURA, 0.24);
   caixa(mat.led, paredeFundo, 0, 0.03, 0.255, largMarca, 0.02, 0.02);
   const corLogo = profissional ? hex(escura) : hex(primaria);
+  // logo pequeno em cima e, embaixo dele, o painel de LED com os banners do site (atrás da atendente)
   placa(
     guardar(
-      textura(2048, 820, (g) => {
+      textura(1024, 236, (g) => {
         g.fillStyle = "#f8f6f2";
-        g.fillRect(0, 0, 2048, 820);
-        desenharLogo(g, 1024, 410, 460, profissional ? corLogo : hex(primaria.clone().lerp(branco, 0.25)), corLogo, 2048);
+        g.fillRect(0, 0, 1024, 236);
+        desenharLogo(g, 512, 118, 150, profissional ? corLogo : hex(primaria.clone().lerp(branco, 0.25)), corLogo, 1000);
       })
     ),
     paredeFundo,
     0,
-    2.65,
+    3.7,
     0.252,
-    5.2,
-    2.08
+    1.9,
+    0.44
   );
+  const LARG_LED = 5.2;
+  const ALT_LED = (LARG_LED * 3) / 8; // banners do site são 8:3
+  const slideLogo = guardar(
+    textura(1024, 384, (g) => {
+      const fundo = g.createLinearGradient(0, 0, 1024, 384);
+      fundo.addColorStop(0, hex(profissional ? escura : primaria));
+      fundo.addColorStop(1, hex((profissional ? escura : primaria).clone().lerp(new THREE.Color("#000000"), 0.45)));
+      g.fillStyle = fundo;
+      g.fillRect(0, 0, 1024, 384);
+      desenharLogo(g, 512, 180, 150, hex(lilasClaro), "#ffffff", 900);
+      g.fillStyle = "rgba(255,255,255,0.85)";
+      g.font = `500 30px ${op.fonte}`;
+      g.textAlign = "center";
+      if (op.fraseVitrine) g.fillText(op.fraseVitrine, 512, 330);
+    })
+  );
+  const painelLed = criarPainelLed({ largura: LARG_LED, altura: ALT_LED, primeiro: slideLogo, aspPrimeiro: 1024 / 384, moldura: mat.monitor });
+  descartar.push({ dispose: painelLed.descartar });
+  {
+    const [x, z] = paredeFundo.ponto(0, 0.25 + 0.03);
+    painelLed.grupo.position.set(x, 2.38, z);
+    cena.add(painelLed.grupo);
+  }
   if (!profissional) {
     for (const lado of [-1, 1]) painel(new Moldura(0, Z0 + 0.25, 0), lado * 3.35, 0.85, 3.2, texPainelRoxo(256, 960));
   }
@@ -1317,9 +1348,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     bloquearRet(f, -cc / 2, cc / 2, -lc / 2, lc / 2);
     const vistaCaixa: Vista = { x: 0, z: cz + 2.3, yaw: 0, pitch: Math.atan2(1.7 - OLHO, 3.2), setor: null };
     volumeCaixa(f, 0, 0.6, 0, cc, 1.2, lc, () => vistaCaixa);
-    larissa.grupo.position.set(0, 0, cz - lc / 2 - 0.36);
+    larissa.grupo.position.set(0, 0, cz - lc / 2 - 0.26);
     cena.add(larissa.grupo);
-    bloquearCirculo(0, cz - lc / 2 - 0.36, 0.25);
+    bloquearCirculo(0, cz - lc / 2 - 0.26, 0.25);
     vistaLarissa = { x: 0, z: cz + 1.9, yaw: 0, pitch: Math.atan2(1.45 - OLHO, 2.3), setor: null };
   }
 
@@ -2353,6 +2384,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     larissa.grupo.getWorldPosition(auxLarissa);
     larissa.atualizar(dt, camera.position, modo === "perto" ? Math.hypot(posicao.x - auxLarissa.x, posicao.z - auxLarissa.z) : 99);
     if (larissa.acenou()) som.balao();
+    painelLed.atualizar(dt);
     cuidarGuia(dt, agora);
 
     // luz assada: alguns pedaços por quadro; pronta, entra devagar
@@ -2413,6 +2445,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     irAteGuia,
     pararGuia,
     definirSom: (ligado) => som.ligar(ligado),
+    definirBanners: (urls) => painelLed.definirBanners(urls),
     atualizarPrecos(precos) {
       for (const e of etiquetas) {
         const p = precos.get(e.slug);

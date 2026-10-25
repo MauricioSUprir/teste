@@ -25,6 +25,7 @@ import { useEhComputador } from "@/lib/dispositivo";
 import { useCarrinho } from "@/lib/carrinho/contexto";
 import { EVENTO_AJUSTES, aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import { normalizar } from "@/lib/catalogo/busca";
+import { listarBanners } from "@/lib/servidor";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { CardProduto } from "@/components/produto/CardProduto";
 import type { AlvoGuia, Cena, ModoCena, PosicaoCena, PrecoCena, Qualidade } from "./cena";
@@ -190,7 +191,8 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           aoChegarPrateleira: () => setAviso(t.naPrateleira),
           inicio: volta ?? undefined,
           urlModelos: comBase("/loja3d/modelos/"),
-          larissa: { nome: t.larissa.nome, balao: t.larissa.balao },
+          // atendente com o uniforme da loja (foto gerada para a loja, não é uma pessoa real)
+          larissa: { nome: t.larissa.nome, balao: t.larissa.balao, foto: comBase(`/loja3d/atendente-${profissional ? "azul" : "roxa"}.webp`) },
           aoFalarComLarissa: () => {
             setSelecionado(null);
             setLarissaAberta(true);
@@ -202,6 +204,12 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           somLigado: lerSom(),
         });
         setEstado("pronta");
+        // painel de LED atrás do caixa: os mesmos banners do carrossel da home (na Be2Beauty, com a arte de abertura)
+        void listarBanners().then((lista) => {
+          if (cancelado) return;
+          const intro = LOJA.vitrineProfissional ? [comBase("/banner-b2b-intro.webp")] : [];
+          cena.current?.definirBanners([...intro, ...lista.map((b) => b.url)]);
+        });
       } catch {
         if (!cancelado) setEstado("erro");
       }

@@ -2,8 +2,11 @@
  * Som da loja 3D, todo gerado na hora pelo navegador (Web Audio) — nenhum
  * arquivo para baixar e nenhuma música de terceiros:
  *
- *  - música ambiente de loja: acordes macios (pad) com um piano elétrico leve
- *    tocando notas soltas dos acordes, num reverb de salão;
+ *  - bossa nova ambiente: violão de nylon na batida da bossa (corda dedilhada
+ *    de verdade, pelo algoritmo de Karplus-Strong), baixo no polegar, vassourinha,
+ *    aro e um Rhodes soltando notas dos acordes, num reverb de salão. A harmonia
+ *    é uma sequência de acordes de bossa (ii-V com substituto de trítono), sem
+ *    copiar nenhuma música;
  *  - o "plim-plom" da porta automática;
  *  - passos no porcelanato;
  *  - o produto caindo na cesta;
@@ -23,16 +26,23 @@ export interface Som {
   descartar: () => void;
 }
 
-// acordes (MIDI) de 4 compassos cada: Fmaj9, Em7, Dm9, Cmaj9, Am9, Bbmaj7
-const ACORDES = [
-  [53, 57, 60, 64, 67],
-  [52, 55, 59, 62],
-  [50, 53, 57, 60, 64],
-  [48, 52, 55, 59, 62],
-  [45, 48, 52, 55, 59],
-  [46, 50, 53, 57],
+// um compasso por acorde: baixo do polegar (fundamental e quinta) e as notas que os dedos puxam
+const ACORDES: { baixo: [number, number]; dedos: number[] }[] = [
+  { baixo: [48, 43], dedos: [52, 59, 62] }, // Cmaj9
+  { baixo: [45, 40], dedos: [55, 61, 65] }, // A7(b13)
+  { baixo: [50, 45], dedos: [53, 60, 64] }, // Dm9
+  { baixo: [43, 50], dedos: [53, 59, 64] }, // G13
+  { baixo: [40, 47], dedos: [55, 59, 62] }, // Em7
+  { baixo: [45, 40], dedos: [55, 58, 61] }, // A7(b9)
+  { baixo: [50, 45], dedos: [53, 60, 64] }, // Dm9
+  { baixo: [49, 44], dedos: [59, 65, 67] }, // Db7(#11)
 ];
-const COMPASSO = 4.2; // segundos por acorde
+const BPM = 128;
+const SEMI = 60 / BPM / 4; // uma semicolcheia
+// batida da bossa nos 16 tempos do compasso: dedos (a última antecipa o próximo acorde) e polegar
+const DEDOS = [0, 3, 6, 10, 13];
+const POLEGAR = [0, 8];
+const ARO = [6, 13];
 const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
 export function criarSom(): Som {
@@ -45,9 +55,9 @@ export function criarSom(): Som {
   let ruido: AudioBuffer | null = null;
   let ligado = true;
   let relogio: ReturnType<typeof setInterval> | null = null;
-  let proximoAcorde = 0;
-  let indiceAcorde = 0;
-  let proximaNota = 0;
+  let proximoPasso = 0; // hora do próximo tempo (semicolcheia)
+  let passo = 0; // contador de semicolcheias desde o começo
+  const cordas = new Map<string, AudioBuffer>();
   let semente = 7;
   const acaso = () => {
     semente = (semente * 16807) % 2147483647;
@@ -76,7 +86,7 @@ export function criarSom(): Som {
     volta.gain.value = 0.32;
     reverb.connect(volta).connect(mestre);
     musica = ctx.createGain();
-    musica.gain.value = 0.055;
+    musica.gain.value = 0.2;
     musica.connect(mestre);
     musica.connect(reverb);
     efeitos = ctx.createGain();
@@ -88,9 +98,8 @@ export function criarSom(): Som {
     ruido = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.3), ctx.sampleRate);
     const r = ruido.getChannelData(0);
     for (let i = 0; i < r.length; i++) r[i] = Math.random() * 2 - 1;
-    proximoAcorde = ctx.currentTime + 0.3;
-    proximaNota = proximoAcorde + 1;
-    relogio = setInterval(agendar, 200);
+    proximoPasso = ctx.currentTime + 0.3;
+    relogio = setInterval(agendar, 100);
     document.addEventListener("visibilitychange", aoMudarVisibilidade);
   }
   function aoMudarVisibilidade() {
@@ -99,84 +108,129 @@ export function criarSom(): Som {
     else if (ligado) void ctx.resume();
   }
 
-  /** pad: duas serras desafinadas por nota, filtro abrindo devagar */
-  function pad(notas: number[], t: number, dur: number) {
-    if (!ctx || !musica) return;
-    const filtro = ctx.createBiquadFilter();
-    filtro.type = "lowpass";
-    filtro.Q.value = 0.4;
-    filtro.frequency.setValueAtTime(520, t);
-    filtro.frequency.linearRampToValueAtTime(1150, t + dur * 0.5);
-    filtro.frequency.linearRampToValueAtTime(600, t + dur + 1.5);
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(0.16, t + 1.6);
-    env.gain.setValueAtTime(0.16, t + dur - 0.4);
-    env.gain.linearRampToValueAtTime(0, t + dur + 1.8);
-    filtro.connect(env).connect(musica);
-    for (const n of notas) {
-      for (const desafino of [-6, 7]) {
-        const o = ctx.createOscillator();
-        o.type = "sawtooth";
-        o.frequency.value = hz(n);
-        o.detune.value = desafino;
-        const g = ctx.createGain();
-        g.gain.value = 0.12 / notas.length;
-        o.connect(g).connect(filtro);
-        o.start(t);
-        o.stop(t + dur + 2);
-      }
+  /**
+   * Corda dedilhada (Karplus-Strong): um ruído curto e abafado circula numa
+   * linha de atraso do tamanho do período da nota, perdendo os agudos a cada
+   * volta — é o que dá o som de nylon. Fica guardada por nota.
+   */
+  function corda(midi: number, grave: boolean): AudioBuffer | null {
+    if (!ctx) return null;
+    const chave = `${midi}-${grave}`;
+    const pronta = cordas.get(chave);
+    if (pronta) return pronta;
+    const sr = ctx.sampleRate;
+    const dur = grave ? 2.2 : 1.7;
+    const buf = ctx.createBuffer(1, Math.floor(sr * dur), sr);
+    const d = buf.getChannelData(0);
+    const N = Math.max(2, Math.round(sr / hz(midi)));
+    const linha = new Float32Array(N);
+    const abafado = grave ? 0.25 : 0.45; // o polegar é mais macio que os dedos
+    let ant = 0;
+    for (let i = 0; i < N; i++) {
+      ant += abafado * (Math.random() * 2 - 1 - ant);
+      linha[i] = ant;
     }
-    // baixo: a nota de baixo uma oitava abaixo, senoide
-    const b = ctx.createOscillator();
-    b.frequency.value = hz(notas[0] - 12);
-    const gb = ctx.createGain();
-    gb.gain.setValueAtTime(0, t);
-    gb.gain.linearRampToValueAtTime(0.22, t + 0.8);
-    gb.gain.linearRampToValueAtTime(0, t + dur + 0.6);
-    b.connect(gb).connect(musica);
-    b.start(t);
-    b.stop(t + dur + 1);
+    const perda = grave ? 0.9975 : 0.996;
+    let k = 0;
+    for (let i = 0; i < d.length; i++) {
+      const v = linha[k];
+      const prox = linha[(k + 1) % N];
+      linha[k] = perda * 0.5 * (v + prox);
+      d[i] = v * (i > d.length - 2000 ? (d.length - i) / 2000 : 1);
+      k = (k + 1) % N;
+    }
+    cordas.set(chave, buf);
+    return buf;
   }
 
-  /** piano elétrico: senoide com um harmônico e ataque rápido */
-  function tecla(n: number, t: number, forca: number) {
+  function tocarCorda(midi: number, t: number, vol: number, grave: boolean, pan = 0) {
     if (!ctx || !musica) return;
-    const pan = ctx.createStereoPanner();
-    pan.pan.value = acaso() * 1.2 - 0.6;
+    const buf = corda(midi, grave);
+    if (!buf) return;
+    const s = ctx.createBufferSource();
+    s.buffer = buf;
+    // o atraso é inteiro: corrige a afinação pela velocidade
+    s.playbackRate.value = Math.round(ctx.sampleRate / hz(midi)) / (ctx.sampleRate / hz(midi));
+    const corpo = ctx.createBiquadFilter(); // caixa do violão: tira o chiado agudo
+    corpo.type = "lowpass";
+    corpo.frequency.value = grave ? 1400 : 3200;
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    const p = ctx.createStereoPanner();
+    p.pan.value = pan;
+    s.connect(corpo).connect(g).connect(p).connect(musica);
+    s.start(t);
+  }
+
+  /** Rhodes: senoide com um pouco de sino e tremolo, bem baixinho */
+  function rhodes(midi: number, t: number, vol: number) {
+    if (!ctx || !musica) return;
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(0.5 * forca, t + 0.01);
-    env.gain.exponentialRampToValueAtTime(0.001, t + 2.2);
+    env.gain.linearRampToValueAtTime(vol, t + 0.015);
+    env.gain.exponentialRampToValueAtTime(0.0008, t + 2.4);
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = acaso() * 0.8 - 0.4;
     env.connect(pan).connect(musica);
-    for (const [mult, vol] of [
+    for (const [mult, v] of [
       [1, 1],
-      [2, 0.25],
-      [3.01, 0.08],
+      [2, 0.12],
+      [4.02, 0.05],
     ]) {
       const o = ctx.createOscillator();
-      o.type = mult === 1 ? "triangle" : "sine";
-      o.frequency.value = hz(n) * mult;
+      o.frequency.value = hz(midi) * mult;
       const g = ctx.createGain();
-      g.gain.value = vol;
+      g.gain.value = v;
       o.connect(g).connect(env);
       o.start(t);
-      o.stop(t + 2.3);
+      o.stop(t + 2.5);
     }
+  }
+
+  /** vassourinha (ruído agudo curto) e aro (clique de madeira) */
+  function percussao(t: number, aro: boolean, forca: number) {
+    if (!ctx || !musica || !ruido) return;
+    const s = ctx.createBufferSource();
+    s.buffer = ruido;
+    const f = ctx.createBiquadFilter();
+    f.type = aro ? "bandpass" : "highpass";
+    f.frequency.value = aro ? 1700 : 5200;
+    f.Q.value = aro ? 6 : 0.7;
+    const g = ctx.createGain();
+    const dur = aro ? 0.05 : 0.07;
+    g.gain.setValueAtTime((aro ? 0.5 : 0.09) * forca, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+    s.connect(f).connect(g).connect(musica);
+    s.start(t, acaso() * 0.2);
+    s.stop(t + dur + 0.02);
+  }
+
+  /** uma semicolcheia da bossa */
+  function tocarPasso(n: number, t: number) {
+    const noCompasso = n % 16;
+    const compasso = Math.floor(n / 16);
+    const acorde = ACORDES[compasso % ACORDES.length];
+    const proximo = ACORDES[(compasso + 1) % ACORDES.length];
+    // um leve "balanço": as semicolcheias pares ficam um tiquinho atrás
+    const tt = t + (noCompasso % 2 ? 0.012 : 0);
+    if (POLEGAR.includes(noCompasso)) tocarCorda(acorde.baixo[noCompasso === 0 ? 0 : 1], tt, 0.55, true, -0.1);
+    if (DEDOS.includes(noCompasso)) {
+      const notas = noCompasso === 13 ? proximo.dedos : acorde.dedos; // antecipa o acorde que vem
+      notas.forEach((m, i) => tocarCorda(m, tt + i * 0.006, 0.24, false, 0.15));
+    }
+    percussao(tt, false, noCompasso % 4 === 2 ? 1 : noCompasso % 2 ? 0.45 : 0.7);
+    if (ARO.includes(noCompasso)) percussao(tt, true, 0.6);
+    // Rhodes: de vez em quando, uma nota dos acordes (nunca em cima da batida)
+    if (noCompasso % 4 === 2 && acaso() < 0.3) rhodes(acorde.dedos[Math.floor(acaso() * acorde.dedos.length)] + 12, tt, 0.13);
   }
 
   function agendar() {
     if (!ctx || ctx.state !== "running") return;
-    const ate = ctx.currentTime + 0.6;
-    while (proximoAcorde < ate) {
-      pad(ACORDES[indiceAcorde % ACORDES.length], proximoAcorde, COMPASSO);
-      proximoAcorde += COMPASSO;
-      indiceAcorde++;
-    }
-    while (proximaNota < ate) {
-      const acorde = ACORDES[(indiceAcorde - 1 + ACORDES.length) % ACORDES.length];
-      if (acaso() < 0.55) tecla(acorde[Math.floor(acaso() * acorde.length)] + 12 + (acaso() < 0.3 ? 12 : 0), proximaNota, 0.5 + acaso() * 0.5);
-      proximaNota += [0.35, 0.7, 0.7, 1.05][Math.floor(acaso() * 4)];
+    const ate = ctx.currentTime + 0.35;
+    while (proximoPasso < ate) {
+      tocarPasso(passo, proximoPasso);
+      passo++;
+      proximoPasso += SEMI;
     }
   }
 

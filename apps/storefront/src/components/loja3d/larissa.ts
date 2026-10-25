@@ -1,9 +1,11 @@
 /**
- * A Larissa no caixa: atendente em estilo de ilustração (formas lisas, rosto
- * desenhado), com o uniforme na cor da loja e crachá. Respira, vira a cabeça
- * para quem chega e acena quando a pessoa se aproxima; em cima dela um balão
- * chama para conversar. Clicar nela (ou no balão) abre o card do WhatsApp —
- * quem decide isso é a cena; aqui é só o boneco.
+ * A Larissa no caixa. Com `foto`, é a foto recortada de uma atendente (imagem
+ * gerada para a loja, não é uma pessoa real) de pé atrás do balcão, sempre
+ * virada para quem olha — o balcão esconde onde a foto termina, e a borda de
+ * baixo some num degradê. Sem foto (ou se ela não baixar), fica a atendente em
+ * estilo de ilustração, com o uniforme na cor da loja, que respira, vira a
+ * cabeça e acena. Em cima, um balão chama para conversar. Clicar nela (ou no
+ * balão) abre o card do WhatsApp — quem decide isso é a cena.
  *
  * Origem nos pés, de frente para +z.
  */
@@ -15,6 +17,8 @@ export interface OpcoesLarissa {
   nome: string;
   /** duas linhas do balão */
   balao: [string, string];
+  /** foto recortada (fundo transparente), da cabeça até o quadril */
+  foto?: string;
 }
 
 export interface Larissa {
@@ -96,9 +100,11 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
   const calca = fisico("#2b2b31", { roughness: 0.8 });
 
   const grupo = new THREE.Group();
+  const boneco = new THREE.Group(); // a atendente desenhada (some quando a foto chega)
+  grupo.add(boneco);
   const corpo = new THREE.Group(); // tudo acima da cintura (respira)
   corpo.position.y = 0.95;
-  grupo.add(corpo);
+  boneco.add(corpo);
   const sombrear = (m: THREE.Mesh) => {
     m.castShadow = true;
     m.receiveShadow = true;
@@ -110,7 +116,7 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
   for (const lado of [-1, 1]) {
     const perna = sombrear(new THREE.Mesh(geoPerna, calca));
     perna.position.set(lado * 0.085, 0.46, 0);
-    grupo.add(perna);
+    boneco.add(perna);
   }
   // tronco: perfil girado (cintura fina, peito, ombros), achatado na frente
   const perfil = [
@@ -248,6 +254,41 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
   alvoCorpo.visible = false;
   grupo.add(alvoCorpo);
 
+  // a foto: um plano com a base no quadril, que gira para a câmera
+  let retrato: THREE.Mesh | null = null;
+  const ALTO_FOTO = 0.9; // do alto da cabeça até a borda de baixo da foto (m)
+  if (o.foto) {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext("2d");
+      if (!g) return;
+      g.drawImage(img, 0, 0);
+      // a borda de baixo some aos poucos (de perto dá para ver por cima do balcão)
+      g.globalCompositeOperation = "destination-in";
+      const gr = g.createLinearGradient(0, 0, 0, c.height);
+      gr.addColorStop(0.86, "rgba(0,0,0,1)");
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr;
+      g.fillRect(0, 0, c.width, c.height);
+      const tex = guardar(new THREE.CanvasTexture(c));
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      const largura = (ALTO_FOTO * img.width) / img.height;
+      const geo = guardar(new THREE.PlaneGeometry(largura, ALTO_FOTO).translate(0, ALTO_FOTO / 2, 0));
+      // a foto já tem a luz dela: sem sombra da loja, só um pouco mais clara para compensar a curva de tom
+      const mat = guardar(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.04, color: new THREE.Color(1.22, 1.22, 1.22) }));
+      retrato = new THREE.Mesh(geo, mat);
+      retrato.position.y = 1.72 - ALTO_FOTO;
+      grupo.add(retrato);
+      boneco.visible = false;
+    };
+    img.src = o.foto;
+  }
+
   let t = 0;
   let aceno = 0; // > 0 enquanto acena
   let estavaPerto = false;
@@ -265,6 +306,11 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
     const alvoYaw = perto < 9 ? THREE.MathUtils.clamp(Math.atan2(auxV.x, auxV.z), -0.7, 0.7) : 0;
     const alvoPitch = perto < 9 ? THREE.MathUtils.clamp(-Math.atan2(auxV.y - 1.6, Math.hypot(auxV.x, auxV.z)) * 0.5, -0.25, 0.25) : 0;
     const k = 1 - Math.exp(-dt * 4);
+    if (retrato) {
+      // a foto sempre de frente para quem olha, respirando de leve
+      retrato.rotation.y = THREE.MathUtils.clamp(Math.atan2(auxV.x, auxV.z), -0.9, 0.9);
+      retrato.scale.y = 1 + Math.sin(t * 1.6) * 0.004;
+    }
     cabeca.rotation.y += (alvoYaw - cabeca.rotation.y) * k;
     cabeca.rotation.x += (alvoPitch - cabeca.rotation.x) * k;
     corpo.rotation.y += (alvoYaw * 0.25 - corpo.rotation.y) * k;
@@ -288,6 +334,9 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
     // balão: só para quem está a menos de 10 m, boiando de leve
     balao.visible = perto < 10;
     balao.position.y = 2.12 + Math.sin(t * 2) * 0.025;
+    // chegou perto: o balão "pula" (na foto ela não acena)
+    const pulo = aceno > 1.9 ? Math.sin(((2.4 - aceno) / 0.5) * Math.PI) * 0.15 : 0;
+    balao.scale.setScalar(1 + pulo);
     balao.rotation.y = Math.atan2(auxV.x, auxV.z);
   }
 
