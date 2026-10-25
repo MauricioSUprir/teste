@@ -191,8 +191,8 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           aoChegarPrateleira: () => setAviso(t.naPrateleira),
           inicio: volta ?? undefined,
           urlModelos: comBase("/loja3d/modelos/"),
-          // atendente com o uniforme da loja (foto gerada para a loja, não é uma pessoa real)
-          larissa: { nome: t.larissa.nome, balao: t.larissa.balao, foto: comBase(`/loja3d/atendente-${profissional ? "azul" : "roxa"}.webp`) },
+          // atendente 3D com o blazer da loja
+          larissa: { nome: t.larissa.nome, balao: t.larissa.balao, modelo: comBase(`/loja3d/modelos/atendente-${profissional ? "azul" : "roxa"}.glb`) },
           aoFalarComLarissa: () => {
             setSelecionado(null);
             setLarissaAberta(true);

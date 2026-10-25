@@ -120,8 +120,8 @@ export interface OpcoesCena {
   inicio?: PosicaoCena;
   /** pasta dos modelos 3D (plantas), com a barra no fim */
   urlModelos: string;
-  /** a atendente do caixa (foto recortada; sem ela, a atendente desenhada) */
-  larissa: { nome: string; balao: [string, string]; foto?: string };
+  /** a atendente do caixa (modelo 3D; sem ele, a atendente desenhada) */
+  larissa: { nome: string; balao: [string, string]; modelo?: string };
   aoFalarComLarissa: () => void;
   /** chegou no fim da trilha do guia "onde fica?" */
   aoChegarNoGuia: () => void;
@@ -1229,7 +1229,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   }
 
   // a atendente do caixa (fica atrás do balcão do fundo)
-  const larissa = criarLarissa({ corRoupa: profissional ? escura.clone() : primaria.clone(), fonte: op.fonte, nome: op.larissa.nome, balao: op.larissa.balao, foto: op.larissa.foto });
+  const larissa = criarLarissa({ corRoupa: profissional ? escura.clone() : primaria.clone(), fonte: op.fonte, nome: op.larissa.nome, balao: op.larissa.balao, modelo: op.larissa.modelo });
   descartar.push({ dispose: larissa.descartar });
   let vistaLarissa: Vista = { x: 0, z: 0, yaw: 0, pitch: 0, setor: null };
 
@@ -1348,9 +1348,10 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     bloquearRet(f, -cc / 2, cc / 2, -lc / 2, lc / 2);
     const vistaCaixa: Vista = { x: 0, z: cz + 2.3, yaw: 0, pitch: Math.atan2(1.7 - OLHO, 3.2), setor: null };
     volumeCaixa(f, 0, 0.6, 0, cc, 1.2, lc, () => vistaCaixa);
-    larissa.grupo.position.set(0, 0, cz - lc / 2 - 0.26);
+    // um passo atrás do balcão: ao gesticular, as mãos não entram no tampo
+    larissa.grupo.position.set(0, 0, cz - lc / 2 - 0.42);
     cena.add(larissa.grupo);
-    bloquearCirculo(0, cz - lc / 2 - 0.26, 0.25);
+    bloquearCirculo(0, cz - lc / 2 - 0.42, 0.25);
     vistaLarissa = { x: 0, z: cz + 1.9, yaw: 0, pitch: Math.atan2(1.45 - OLHO, 2.3), setor: null };
   }
 
@@ -1961,6 +1962,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     }
     if (!hit) return;
     if (ehLarissa(hit)) {
+      larissa.conversar();
       op.aoFalarComLarissa();
       irParaVista(vistaLarissa);
       return;

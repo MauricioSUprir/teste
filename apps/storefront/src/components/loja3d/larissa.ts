@@ -1,15 +1,17 @@
 /**
- * A Larissa no caixa. Com `foto`, é a foto recortada de uma atendente (imagem
- * gerada para a loja, não é uma pessoa real) de pé atrás do balcão, sempre
- * virada para quem olha — o balcão esconde onde a foto termina, e a borda de
- * baixo some num degradê. Sem foto (ou se ela não baixar), fica a atendente em
- * estilo de ilustração, com o uniforme na cor da loja, que respira, vira a
- * cabeça e acena. Em cima, um balão chama para conversar. Clicar nela (ou no
- * balão) abre o card do WhatsApp — quem decide isso é a cena.
+ * A Larissa no caixa: uma atendente 3D de verdade (modelo com esqueleto do
+ * Microsoft Rocketbox, licença MIT), de blazer na cor da loja. Respira parada
+ * e, quando a pessoa chega perto, conversa gesticulando (animações de captura
+ * de movimento do mesmo pacote); o corpo e a cabeça viram para quem chega.
+ * Se o modelo não baixar, fica a atendente em estilo de ilustração, que
+ * respira, vira a cabeça e acena. Em cima, um balão chama para conversar.
+ * Clicar nela (ou no balão) abre o card do WhatsApp — quem decide isso é a cena.
  *
  * Origem nos pés, de frente para +z.
  */
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
 export interface OpcoesLarissa {
   corRoupa: THREE.Color;
@@ -17,8 +19,8 @@ export interface OpcoesLarissa {
   nome: string;
   /** duas linhas do balão */
   balao: [string, string];
-  /** foto recortada (fundo transparente), da cabeça até o quadril */
-  foto?: string;
+  /** modelo 3D (.glb) com as animações "respirar" e "falar" */
+  modelo?: string;
 }
 
 export interface Larissa {
@@ -29,6 +31,8 @@ export interface Larissa {
   atualizar: (dt: number, olhar: THREE.Vector3, perto: number) => void;
   /** acabou de começar a acenar (para o som do balão) */
   acenou: () => boolean;
+  /** clicaram nela: começa a conversar */
+  conversar: () => void;
   descartar: () => void;
 }
 
@@ -100,7 +104,7 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
   const calca = fisico("#2b2b31", { roughness: 0.8 });
 
   const grupo = new THREE.Group();
-  const boneco = new THREE.Group(); // a atendente desenhada (some quando a foto chega)
+  const boneco = new THREE.Group(); // a atendente desenhada (some quando a 3D chega)
   grupo.add(boneco);
   const corpo = new THREE.Group(); // tudo acima da cintura (respira)
   corpo.position.y = 0.95;
@@ -254,40 +258,62 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
   alvoCorpo.visible = false;
   grupo.add(alvoCorpo);
 
-  // a foto: um plano com a base no quadril, que gira para a câmera
-  let retrato: THREE.Mesh | null = null;
-  const ALTO_FOTO = 0.9; // do alto da cabeça até a borda de baixo da foto (m)
-  if (o.foto) {
-    const img = new Image();
-    img.decoding = "async";
-    img.onload = () => {
-      const c = document.createElement("canvas");
-      c.width = img.width;
-      c.height = img.height;
-      const g = c.getContext("2d");
-      if (!g) return;
-      g.drawImage(img, 0, 0);
-      // a borda de baixo some aos poucos (de perto dá para ver por cima do balcão)
-      g.globalCompositeOperation = "destination-in";
-      const gr = g.createLinearGradient(0, 0, 0, c.height);
-      gr.addColorStop(0.86, "rgba(0,0,0,1)");
-      gr.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = gr;
-      g.fillRect(0, 0, c.width, c.height);
-      const tex = guardar(new THREE.CanvasTexture(c));
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = 4;
-      const largura = (ALTO_FOTO * img.width) / img.height;
-      const geo = guardar(new THREE.PlaneGeometry(largura, ALTO_FOTO).translate(0, ALTO_FOTO / 2, 0));
-      // a foto já tem a luz dela: sem sombra da loja, só um pouco mais clara para compensar a curva de tom
-      const mat = guardar(new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.04, color: new THREE.Color(1.22, 1.22, 1.22) }));
-      retrato = new THREE.Mesh(geo, mat);
-      retrato.position.y = 1.72 - ALTO_FOTO;
-      grupo.add(retrato);
-      boneco.visible = false;
-    };
-    img.src = o.foto;
+  // a atendente 3D: esqueleto animado; a desenhada fica até ela chegar
+  let mixer: THREE.AnimationMixer | null = null;
+  let respirar: THREE.AnimationAction | null = null;
+  let falar: THREE.AnimationAction | null = null;
+  let avatar: THREE.Object3D | null = null;
+  let ossoCabeca: THREE.Object3D | null = null;
+  let falando = 0; // segundos de conversa que faltam
+  if (o.modelo) {
+    new GLTFLoader()
+      .setMeshoptDecoder(MeshoptDecoder)
+      .loadAsync(o.modelo)
+      .then((g) => {
+        const av = g.scene;
+        av.traverse((x) => {
+          if (!(x instanceof THREE.Mesh)) return;
+          x.castShadow = true;
+          x.receiveShadow = true;
+          x.frustumCulled = false; // a caixa de uma malha com esqueleto não acompanha a animação
+          guardar(x.geometry);
+          for (const m of ([] as THREE.Material[]).concat(x.material)) {
+            guardar(m);
+            if (m instanceof THREE.MeshStandardMaterial) {
+              // atrás do balcão ela fica na sombra: reflexo do ambiente e um fio de luz própria, como nos produtos
+              m.envMapIntensity = 1.8;
+              if (m.map && m.name !== "cabelo") {
+                m.emissive = new THREE.Color("#ffffff");
+                m.emissiveMap = m.map;
+                m.emissiveIntensity = 0.1;
+              }
+              for (const tex of [m.map, m.normalMap]) if (tex) guardar(tex);
+            }
+          }
+        });
+        grupo.add(av);
+        avatar = av;
+        boneco.visible = false;
+        mixer = new THREE.AnimationMixer(av);
+        const clipe = (nome: string) => g.animations.find((c) => c.name === nome);
+        const cr = clipe("respirar");
+        const cf = clipe("falar");
+        if (cr) respirar = mixer.clipAction(cr).play();
+        if (cf) {
+          falar = mixer.clipAction(cf);
+          falar.setEffectiveWeight(0).play();
+        }
+        ossoCabeca = av.getObjectByName("Bip01_Head") ?? null;
+      })
+      .catch(() => {
+        // sem o modelo: fica a desenhada
+      });
   }
+  const auxQ = new THREE.Quaternion();
+  const auxQPai = new THREE.Quaternion();
+  const eixoY = new THREE.Vector3(0, 1, 0);
+  let yawCorpo = 0;
+  let yawCabeca = 0;
 
   let t = 0;
   let aceno = 0; // > 0 enquanto acena
@@ -306,11 +332,6 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
     const alvoYaw = perto < 9 ? THREE.MathUtils.clamp(Math.atan2(auxV.x, auxV.z), -0.7, 0.7) : 0;
     const alvoPitch = perto < 9 ? THREE.MathUtils.clamp(-Math.atan2(auxV.y - 1.6, Math.hypot(auxV.x, auxV.z)) * 0.5, -0.25, 0.25) : 0;
     const k = 1 - Math.exp(-dt * 4);
-    if (retrato) {
-      // a foto sempre de frente para quem olha, respirando de leve
-      retrato.rotation.y = THREE.MathUtils.clamp(Math.atan2(auxV.x, auxV.z), -0.9, 0.9);
-      retrato.scale.y = 1 + Math.sin(t * 1.6) * 0.004;
-    }
     cabeca.rotation.y += (alvoYaw - cabeca.rotation.y) * k;
     cabeca.rotation.x += (alvoPitch - cabeca.rotation.x) * k;
     corpo.rotation.y += (alvoYaw * 0.25 - corpo.rotation.y) * k;
@@ -323,6 +344,29 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
     }
     estavaPerto = pertoAgora;
     aceno = Math.max(0, aceno - dt);
+    if (mixer && avatar) {
+      // conversa: entra devagar quando a pessoa chega, sai devagar quando acaba
+      if (comecouAgora && falar && falando <= 0) {
+        falar.reset().play();
+        falando = falar.getClip().duration;
+      }
+      falando = Math.max(0, falando - dt);
+      const peso = THREE.MathUtils.smoothstep(falando, 0, 0.8) * THREE.MathUtils.smoothstep(falar ? falar.getClip().duration - falando : 0, 0, 0.6);
+      falar?.setEffectiveWeight(peso);
+      respirar?.setEffectiveWeight(1 - peso);
+      mixer.update(dt);
+      // o corpo vira um pouco e a cabeça completa o olhar (depois da animação, que reescreve os ossos)
+      const olharYaw = perto < 9 ? Math.atan2(auxV.x, auxV.z) : 0;
+      yawCorpo += (THREE.MathUtils.clamp(olharYaw * 0.4, -0.35, 0.35) - yawCorpo) * k;
+      yawCabeca += (THREE.MathUtils.clamp(olharYaw - yawCorpo, -0.55, 0.55) * (1 - peso * 0.6) - yawCabeca) * k;
+      avatar.rotation.y = yawCorpo;
+      if (ossoCabeca?.parent) {
+        avatar.updateMatrixWorld(true);
+        ossoCabeca.parent.getWorldQuaternion(auxQPai);
+        auxQ.setFromAxisAngle(eixoY, yawCabeca);
+        ossoCabeca.quaternion.premultiply(auxQPai.clone().invert().multiply(auxQ).multiply(auxQPai));
+      }
+    }
     const forca = THREE.MathUtils.smoothstep(aceno, 0, 0.4) * THREE.MathUtils.smoothstep(2.4 - aceno, 0, 0.4);
     // braços em repouso: mãos apoiadas no balcão, à frente
     for (const [i, b] of bracos.entries()) {
@@ -334,7 +378,7 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
     // balão: só para quem está a menos de 10 m, boiando de leve
     balao.visible = perto < 10;
     balao.position.y = 2.12 + Math.sin(t * 2) * 0.025;
-    // chegou perto: o balão "pula" (na foto ela não acena)
+    // chegou perto: o balão "pula"
     const pulo = aceno > 1.9 ? Math.sin(((2.4 - aceno) / 0.5) * Math.PI) * 0.15 : 0;
     balao.scale.setScalar(1 + pulo);
     balao.rotation.y = Math.atan2(auxV.x, auxV.z);
@@ -345,6 +389,12 @@ export function criarLarissa(o: OpcoesLarissa): Larissa {
     alvos: [alvoCorpo, balao],
     atualizar,
     acenou: () => comecouAgora,
+    conversar: () => {
+      if (falar && falando <= 0) {
+        falar.reset().play();
+        falando = falar.getClip().duration;
+      }
+    },
     descartar: () => lixo.forEach((x) => x.dispose()),
   };
 }
