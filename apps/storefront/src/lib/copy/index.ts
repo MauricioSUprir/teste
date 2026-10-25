@@ -662,7 +662,7 @@ export const copy = {
     setores: "Setores da loja",
     visaoGeral: "Visão geral",
     destaques: "Destaques",
-    dica: "Ande para a frente (W ou ↑) e a porta abre · arraste para olhar · clique no chão para ir até lá · clique num produto para ver",
+    dica: "Ande para a frente (W ou ↑) e a porta abre · arraste para olhar · clique no chão para ir até lá · clique num produto para ver · a Larissa está no caixa",
     dicaAlto: "Clique numa estante, num produto ou no chão para descer até lá · arraste para girar · rodinha para aproximar",
     naPrateleira: "Você chegou. Escolha seu produto.",
     fechar: "Fechar",
@@ -687,6 +687,34 @@ export const copy = {
             ]
           : [{ texto: LOJA.nome.toUpperCase(), destaque: true }],
     fraseVitrine: LOJA.id === "beautynow" ? "Beleza que acontece agora." : LOJA.id === "be2beauty" ? "Only professional." : null,
+    // a atendente do caixa (agente de vendas no WhatsApp)
+    larissa: {
+      nome: "Larissa",
+      balao: ["Oi! Sou a Larissa", "Clique para conversar"] as [string, string],
+      titulo: "Oi! Eu sou a Larissa",
+      texto: LOJA.b2b
+        ? `Atendo salões e profissionais no WhatsApp da ${LOJA.nome}: tiro dúvidas, indico linhas e fecho seu pedido com você.`
+        : `Atendo no WhatsApp da ${LOJA.nome}: tiro dúvidas, indico produtos para o seu cabelo e a sua pele e fecho o pedido com você.`,
+      botao: "Falar com a Larissa no WhatsApp",
+      continuar: "Continuar passeando",
+      fechar: "Fechar a conversa com a Larissa",
+      mensagem: (itens: string[]) =>
+        itens.length
+          ? `Oi, Larissa! Estou na loja 3D do site e coloquei na cesta: ${itens.join(", ")}. Pode me ajudar a fechar?`
+          : "Oi, Larissa! Estou na loja 3D do site e queria uma ajuda para escolher.",
+    },
+    guia: {
+      botao: "Onde fica?",
+      rotulo: "Procurar um produto ou marca na loja",
+      placeholder: "Produto ou marca",
+      semResultado: "Não achei isso na loja 3D.",
+      marca: "Marca",
+      seguindo: (nome: string) => `Siga as setas até ${nome}`,
+      meLeva: "Me leva até lá",
+      parar: "Parar o guia",
+      chegou: "É aqui!",
+    },
+    som: { ligar: "Ligar o som", desligar: "Tirar o som" },
   },
   naoEncontrada: {
     procurando: "Procurando a página…",

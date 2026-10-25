@@ -8,12 +8,14 @@
  *    espessura, em vez de um recorte malfeito.
  *
  * Roda no navegador, num canvas de 256 px: poucos milissegundos por produto.
+ * Quem chega perto ganha a mesma foto em resolução maior (`nitida`).
  * Origem da geometria: no meio da base do produto (fica em pé na prateleira),
  * com a frente virada para +z.
  */
 import * as THREE from "three";
 
-const LADO = 256; // resolução da foto tratada
+const LADO_BASE = 256; // resolução da foto tratada
+const LADO = LADO_BASE;
 const GRADE = 128; // resolução do contorno (2×2 px por célula)
 
 export interface Produto3D {
@@ -21,6 +23,8 @@ export interface Produto3D {
   material: THREE.Material;
   /** altura final em metros (para mirar a câmera e o toque) */
   altura: number;
+  /** a mesma foto em resolução maior, no mesmo lugar da textura (para quem chega perto) */
+  nitida: (lado: number) => Promise<THREE.Texture>;
   descartar: () => void;
 }
 
@@ -38,7 +42,7 @@ function baixarImagem(url: string): Promise<HTMLImageElement> {
 }
 
 /** Marca o fundo (1) por inundação a partir das bordas; null = a foto não tem fundo liso. */
-function acharFundo(px: Uint8ClampedArray, ret: { x0: number; y0: number; x1: number; y1: number }) {
+function acharFundo(px: Uint8ClampedArray, ret: { x0: number; y0: number; x1: number; y1: number }, LADO = LADO_BASE) {
   const n = LADO * LADO;
   const pareceFundo = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
@@ -258,18 +262,54 @@ function umMaterialSo(
   geo.clearGroups();
 }
 
-export async function montarProduto3D(url: string, larguraMax: number, alturaMax: number): Promise<Produto3D> {
-  const img = await baixarImagem(url);
+/** foto centrada no quadrado, com margem (a mesma conta em qualquer resolução) */
+function desenhar(img: HTMLImageElement, lado: number) {
   const c = document.createElement("canvas");
-  c.width = c.height = LADO;
+  c.width = c.height = lado;
   const g = c.getContext("2d", { willReadFrequently: true });
   if (!g) throw new Error("canvas");
-  const r = Math.min((LADO - 8) / img.width, (LADO - 8) / img.height);
+  const margem = (8 * lado) / LADO_BASE;
+  const r = Math.min((lado - margem) / img.width, (lado - margem) / img.height);
   const w = Math.round(img.width * r);
   const h = Math.round(img.height * r);
-  const x0 = Math.round((LADO - w) / 2);
-  const y0 = Math.round((LADO - h) / 2);
+  const x0 = Math.round((lado - w) / 2);
+  const y0 = Math.round((lado - h) / 2);
   g.drawImage(img, x0, y0, w, h);
+  return { c, g, ret: { x0, y0, x1: x0 + w, y1: y0 + h } };
+}
+
+/** fundo transparente; o pixel claro colado no fundo também sai (sem halo branco) */
+function recortar(px: Uint8ClampedArray, fundo: Uint8Array, lado: number) {
+  for (let y = 0; y < lado; y++) {
+    for (let x = 0; x < lado; x++) {
+      const i = y * lado + x;
+      if (fundo[i]) {
+        px[i * 4 + 3] = 0;
+        continue;
+      }
+      const vizinhoFundo =
+        (x > 0 && fundo[i - 1]) || (x < lado - 1 && fundo[i + 1]) || (y > 0 && fundo[i - lado]) || (y < lado - 1 && fundo[i + lado]);
+      if (vizinhoFundo && Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]) > 205) px[i * 4 + 3] = 0;
+    }
+  }
+}
+
+/** pedaço branco e opaco (16 px na base de 256) para as laterais, no mesmo canto em qualquer resolução */
+function pintarCanto(px: Uint8ClampedArray, lado: number, bx: number, by: number) {
+  const e = lado / LADO_BASE;
+  for (let y = Math.floor(by * e); y < Math.ceil((by + 16) * e); y++) px.fill(255, (y * lado + Math.floor(bx * e)) * 4, (y * lado + Math.ceil((bx + 16) * e)) * 4);
+}
+
+function texturaDe(c: HTMLCanvasElement) {
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+
+export async function montarProduto3D(url: string, larguraMax: number, alturaMax: number): Promise<Produto3D> {
+  const img = await baixarImagem(url);
+  const { c, g, ret } = desenhar(img, LADO);
   const dados = g.getImageData(0, 0, LADO, LADO);
   const px = dados.data;
 
@@ -277,19 +317,20 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
   const guardar = <T extends { dispose: () => void }>(x: T) => (lixo.push(x), x);
   const descartar = () => lixo.forEach((x) => x.dispose());
 
-  const fundo = acharFundo(px, { x0, y0, x1: x0 + w, y1: y0 + h });
+  const fundo = acharFundo(px, ret);
   const pedacos = fundo ? contornos(fundo) : [];
 
   // contorno complicado demais (foto com muita coisa) pesaria a loja inteira: vira cartaz
   const pontosContorno = pedacos.reduce((n, p) => n + p.length, 0);
   if (!fundo || !pedacos.length || pontosContorno > 700) {
     // cartaz: a foto inteira numa placa fina, em pé na prateleira
-    g.globalCompositeOperation = "destination-over";
-    g.fillStyle = "#ffffff";
-    g.fillRect(0, 0, LADO, LADO);
-    const tex = guardar(new THREE.CanvasTexture(c));
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
+    const comFundoBranco = (gg: CanvasRenderingContext2D, lado: number) => {
+      gg.globalCompositeOperation = "destination-over";
+      gg.fillStyle = "#ffffff";
+      gg.fillRect(0, 0, lado, lado);
+    };
+    comFundoBranco(g, LADO);
+    const tex = guardar(texturaDe(c));
     const lado = Math.min(larguraMax, alturaMax) * 0.95;
     const geo = guardar(new THREE.BoxGeometry(lado, lado, 0.014));
     geo.translate(0, lado / 2, 0);
@@ -299,10 +340,16 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
     const material = guardar(
       new THREE.MeshStandardMaterial({ map: tex, vertexColors: true, roughness: 0.55, metalness: 0, envMapIntensity: 2.2, emissive: "#ffffff", emissiveMap: tex, emissiveIntensity: 0.12 })
     );
-    return { geometria: geo, material, altura: lado, descartar };
+    const nitida = async (ladoN: number) => {
+      const foto = await baixarImagem(url);
+      const d = desenhar(foto, ladoN);
+      comFundoBranco(d.g, ladoN);
+      return texturaDe(d.c);
+    };
+    return { geometria: geo, material, altura: lado, nitida, descartar };
   }
 
-  // recorte: fundo transparente; o pixel claro colado no fundo também sai (sem halo branco)
+  recortar(px, fundo, LADO);
   let somaR = 0;
   let somaG = 0;
   let somaB = 0;
@@ -314,17 +361,7 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
   for (let y = 0; y < LADO; y++) {
     for (let x = 0; x < LADO; x++) {
       const i = y * LADO + x;
-      if (fundo[i]) {
-        px[i * 4 + 3] = 0;
-        continue;
-      }
-      const vizinhoFundo =
-        (x > 0 && fundo[i - 1]) || (x < LADO - 1 && fundo[i + 1]) || (y > 0 && fundo[i - LADO]) || (y < LADO - 1 && fundo[i + LADO]);
-      const claro = Math.min(px[i * 4], px[i * 4 + 1], px[i * 4 + 2]) > 205;
-      if (vizinhoFundo && claro) {
-        px[i * 4 + 3] = 0;
-        continue;
-      }
+      if (!px[i * 4 + 3]) continue;
       somaR += px[i * 4];
       somaG += px[i * 4 + 1];
       somaB += px[i * 4 + 2];
@@ -342,12 +379,9 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
     return true;
   };
   const [bx, by] = cantos.find(vazio) ?? cantos[0];
-  for (let y = by; y < by + 16; y++) px.fill(255, (y * LADO + bx) * 4, (y * LADO + bx + 16) * 4);
+  pintarCanto(px, LADO, bx, by);
   g.putImageData(dados, 0, 0);
-  const tex = guardar(new THREE.CanvasTexture(c));
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 8;
-
+  const tex = guardar(texturaDe(c));
   const escala = Math.min(larguraMax / Math.max(uMax - uMin, 0.01), alturaMax / Math.max(vMax - vMin, 0.01));
   const largura = (uMax - uMin) * escala;
   const altura = (vMax - vMin) * escala;
@@ -392,5 +426,16 @@ export async function montarProduto3D(url: string, larguraMax: number, alturaMax
       emissiveIntensity: 0.12,
     })
   );
-  return { geometria: geo, material, altura, descartar };
+  // de perto: a mesma foto maior, com o fundo tirado de novo nessa resolução
+  const nitida = async (ladoN: number) => {
+    const foto = await baixarImagem(url);
+    const d = desenhar(foto, ladoN);
+    const dd = d.g.getImageData(0, 0, ladoN, ladoN);
+    const f = acharFundo(dd.data, d.ret, ladoN);
+    if (f) recortar(dd.data, f, ladoN);
+    pintarCanto(dd.data, ladoN, bx, by);
+    d.g.putImageData(dd, 0, 0);
+    return texturaDe(d.c);
+  };
+  return { geometria: geo, material, altura, nitida, descartar };
 }

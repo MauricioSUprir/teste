@@ -1,0 +1,7 @@
+Modelos 3D das plantas da Loja 3D — Poly Haven (https://polyhaven.com), licença CC0 (domínio público):
+
+- planta-grande.glb  ← folhas do "Potted Plant 02" (potted_plant_02)
+- planta-media.glb   ← "Anthurium Botany 01", variação b (anthurium_botany_01)
+- planta-pequena.glb ← "Potted Plant 04" (potted_plant_04)
+
+Enxugados para a web: menos triângulos (meshoptimizer), fotos de 512 px e compressão meshopt.

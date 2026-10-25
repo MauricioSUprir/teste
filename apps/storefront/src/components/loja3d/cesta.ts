@@ -67,41 +67,62 @@ function texturaGrade() {
   return t;
 }
 
-/** quatro paredes inclinadas (mais largas em cima), abertas no topo */
+/** contorno de retângulo de cantos redondos (mesmo número de pontos em qualquer tamanho) */
+function contorno(larg: number, fundo: number, raio: number, porCanto = 6): [number, number][] {
+  const pts: [number, number][] = [];
+  const cx = larg / 2 - raio;
+  const cz = fundo / 2 - raio;
+  const centros: [number, number, number][] = [
+    [cx, cz, 0],
+    [-cx, cz, Math.PI / 2],
+    [-cx, -cz, Math.PI],
+    [cx, -cz, Math.PI * 1.5],
+  ];
+  for (const [x, z, a0] of centros) {
+    for (let k = 0; k <= porCanto; k++) {
+      const a = a0 + (k / porCanto) * (Math.PI / 2);
+      pts.push([x + Math.cos(a) * raio, z + Math.sin(a) * raio]);
+    }
+  }
+  return pts;
+}
+
+/** paredes inclinadas (mais largas em cima) de cantos redondos, abertas no topo; a grade se repete a cada 22 cm */
 function geometriaParedes() {
-  const b = [LARG_BASE / 2, FUNDO_BASE / 2];
-  const t = [LARG_TOPO / 2, FUNDO_TOPO / 2];
-  const cantosBase: [number, number][] = [
-    [-b[0], -b[1]],
-    [b[0], -b[1]],
-    [b[0], b[1]],
-    [-b[0], b[1]],
-  ];
-  const cantosTopo: [number, number][] = [
-    [-t[0], -t[1]],
-    [t[0], -t[1]],
-    [t[0], t[1]],
-    [-t[0], t[1]],
-  ];
+  const base = contorno(LARG_BASE, FUNDO_BASE, 0.035);
+  const topo = contorno(LARG_TOPO, FUNDO_TOPO, 0.05);
   const pos: number[] = [];
   const uv: number[] = [];
-  for (let k = 0; k < 4; k++) {
-    const a = cantosBase[k];
-    const bb = cantosBase[(k + 1) % 4];
-    const c = cantosTopo[(k + 1) % 4];
-    const d = cantosTopo[k];
-    const largura = k % 2 ? 0.5 : 1; // lado curto usa metade da grade
-    pos.push(a[0], 0, a[1], bb[0], 0, bb[1], c[0], ALTURA, c[1], a[0], 0, a[1], c[0], ALTURA, c[1], d[0], ALTURA, d[1]);
-    uv.push(0, 0, largura, 0, largura, 1, 0, 0, largura, 1, 0, 1);
+  const idx: number[] = [];
+  let s = 0;
+  for (let k = 0; k <= base.length; k++) {
+    const i = k % base.length;
+    if (k > 0) {
+      const j = (k - 1) % base.length;
+      s += Math.hypot(topo[i][0] - topo[j][0], topo[i][1] - topo[j][1]);
+    }
+    pos.push(base[i][0], 0, base[i][1], topo[i][0], ALTURA, topo[i][1]);
+    uv.push(s / 0.22, 0, s / 0.22, 1);
+    if (k > 0) {
+      const a = (k - 1) * 2;
+      idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+    }
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
   geo.computeVertexNormals();
   return geo;
 }
 
-export function criarCesta(cor: THREE.ColorRepresentation): Cesta {
+/** tubo fechado seguindo o contorno de cima (a borda grossa da cesta) */
+function geometriaBorda() {
+  const pts = contorno(LARG_TOPO + 0.006, FUNDO_TOPO + 0.006, 0.052, 8).map(([x, z]) => new THREE.Vector3(x, ALTURA, z));
+  return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 96, 0.011, 8, true);
+}
+
+export function criarCesta(cor: THREE.ColorRepresentation, aoCair?: () => void): Cesta {
   const cena = new THREE.Scene();
   cena.add(new THREE.HemisphereLight(0xffffff, 0xd9d2cb, 0.9));
   const luz = new THREE.DirectionalLight(0xffffff, 1.3);
@@ -112,35 +133,36 @@ export function criarCesta(cor: THREE.ColorRepresentation): Cesta {
   const guardar = <T extends { dispose: () => void }>(x: T) => (descartaveis.push(x), x);
 
   const grade = guardar(texturaGrade());
-  const plastico = guardar(new THREE.MeshStandardMaterial({ color: cor, roughness: 0.5, metalness: 0, map: grade, alphaTest: 0.5, side: THREE.DoubleSide }));
-  const liso = guardar(new THREE.MeshStandardMaterial({ color: cor, roughness: 0.45, metalness: 0 }));
+  grade.wrapS = THREE.RepeatWrapping;
+  const plastico = guardar(new THREE.MeshPhysicalMaterial({ color: cor, roughness: 0.38, metalness: 0, map: grade, alphaTest: 0.5, side: THREE.DoubleSide, clearcoat: 0.4, clearcoatRoughness: 0.35 }));
+  const liso = guardar(new THREE.MeshPhysicalMaterial({ color: cor, roughness: 0.32, metalness: 0, clearcoat: 0.5, clearcoatRoughness: 0.3 }));
   const escuro = guardar(new THREE.MeshStandardMaterial({ color: new THREE.Color(cor).multiplyScalar(0.7), roughness: 0.35 }));
 
   // a cesta fica de frente para a câmera, embaixo, inclinada para mostrar o que tem dentro
   const cesta = new THREE.Group();
   cesta.add(new THREE.Mesh(guardar(geometriaParedes()), plastico));
-  const fundo = new THREE.Mesh(guardar(new THREE.BoxGeometry(LARG_BASE, 0.012, FUNDO_BASE)), liso);
-  fundo.position.y = 0.006;
+  // fundo de cantos redondos com nervuras, e a borda grossa em cima
+  const formaFundo = new THREE.Shape(contorno(LARG_BASE, FUNDO_BASE, 0.035).map(([x, z]) => new THREE.Vector2(x, z)));
+  const fundo = new THREE.Mesh(guardar(new THREE.ExtrudeGeometry(formaFundo, { depth: 0.012, bevelEnabled: false }).rotateX(Math.PI / 2).translate(0, 0.012, 0)), liso);
   cesta.add(fundo);
-  // borda grossa em cima e reforços nos cantos
-  const geoBorda = guardar(new THREE.BoxGeometry(1, 1, 1));
-  const borda = (x: number, z: number, sx: number, sz: number) => {
-    const m = new THREE.Mesh(geoBorda, liso);
-    m.position.set(x, ALTURA, z);
-    m.scale.set(sx, 0.022, sz);
-    cesta.add(m);
-  };
-  borda(0, -FUNDO_TOPO / 2, LARG_TOPO + 0.02, 0.022);
-  borda(0, FUNDO_TOPO / 2, LARG_TOPO + 0.02, 0.022);
-  borda(-LARG_TOPO / 2, 0, 0.022, FUNDO_TOPO + 0.02);
-  borda(LARG_TOPO / 2, 0, 0.022, FUNDO_TOPO + 0.02);
-  // alças: dois arcos que sobem dos lados compridos e se encontram em cima
-  const geoAlca = guardar(new THREE.TorusGeometry(FUNDO_TOPO / 2 - 0.02, 0.008, 8, 32, Math.PI));
+  const geoNervura = guardar(new THREE.BoxGeometry(LARG_BASE - 0.06, 0.006, 0.008));
+  for (const z of [-0.06, -0.02, 0.02, 0.06]) {
+    const n = new THREE.Mesh(geoNervura, liso);
+    n.position.set(0, 0.015, z);
+    cesta.add(n);
+  }
+  cesta.add(new THREE.Mesh(guardar(geometriaBorda()), liso));
+  // alças: dois arcos que sobem dos lados compridos e se encontram em cima, com a pega mais grossa
+  const geoAlca = guardar(new THREE.TorusGeometry(FUNDO_TOPO / 2 - 0.02, 0.009, 10, 40, Math.PI));
+  const geoPega = guardar(new THREE.CylinderGeometry(0.014, 0.014, 0.09, 16).rotateZ(Math.PI / 2));
   for (const x of [-0.11, 0.11]) {
-    const alca = new THREE.Mesh(geoAlca, escuro);
+    const alca = new THREE.Group();
+    alca.add(new THREE.Mesh(geoAlca, escuro));
+    const pega = new THREE.Mesh(geoPega, escuro);
+    pega.position.y = FUNDO_TOPO / 2 - 0.02;
+    alca.add(pega);
     alca.position.set(x, ALTURA, 0);
     alca.rotation.y = Math.PI / 2;
-    alca.rotation.z = 0;
     // inclinada para trás (para o lado da pessoa), como quando se segura a cesta
     alca.rotateX(-1.05);
     cesta.add(alca);
@@ -223,6 +245,7 @@ export function criarCesta(cor: THREE.ColorRepresentation): Cesta {
         conteudo.add(v.malha);
         itens.push(v.malha);
         voando.splice(k, 1);
+        aoCair?.();
       }
     }
   }
