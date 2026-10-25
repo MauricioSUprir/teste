@@ -12,6 +12,8 @@ import type { Produto } from "./tipos";
 
 export interface Ficha {
   tipo: string | null;
+  /** do que o produto cuida: decide se a ficha fala de tipo de cabelo ou de pele */
+  area: "cabelo" | "pele" | "outro";
   /** público: masculino, feminino, infantil */
   para: string[];
   cabelo: string[];
@@ -189,6 +191,9 @@ const SELOS: Regra[] = [
   [/\bcruelty free\b/, "Cruelty free"],
 ];
 
+// tipos que cuidam da pele do rosto (para eles a ficha fala do tipo de pele)
+const DA_PELE = new Set(["Base", "Base cushion", "Base e corretivo", "Corretivo", "Pó facial", "Primer", "Protetor solar", "Hidratante facial", "Limpeza facial", "Água micelar", "Tônico facial", "Máscara facial", "Esfoliante"]);
+
 const ROTULO_CABELO: Record<string, string> = {
   liso: "Lisos",
   ondulado: "Ondulados",
@@ -248,8 +253,11 @@ export function fichaDoProduto(p: Produto): Ficha {
 
   const ehCor = tipo === "Coloração" || tipo === "Tonalizante";
   const resumo = (p.descricao ?? "").trim();
+  const ehMaquina = naCategoria("maquinas-e-aparadores");
+  const area = ehMaquina ? "outro" : ehCabelo ? "cabelo" : naCategoria("skincare") || (tipo !== null && DA_PELE.has(tipo)) ? "pele" : "outro";
   return {
     tipo,
+    area,
     para: casar(texto, PARA),
     cabelo: [...new Set(cabelo)],
     pele: [...new Set(pele)],

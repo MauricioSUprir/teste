@@ -676,7 +676,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
         <div
           ref={balao}
           aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-0 z-10 w-[290px] rounded-[10px] bg-white p-3 shadow-[0_8px_30px_rgba(0,0,0,0.22)]"
+          className="pointer-events-none absolute left-0 top-0 z-10 w-[330px] rounded-[10px] bg-white p-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.22)]"
         >
           <BalaoFicha produto={produtoApontado} />
           <div className="mt-2 border-t border-linha pt-2">
