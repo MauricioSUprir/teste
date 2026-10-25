@@ -43,6 +43,28 @@ export function AlternarVersao() {
   );
 }
 
+const cubo = (
+  <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
+    <path d="M9 1.8 L15.5 5.4 V12.6 L9 16.2 L2.5 12.6 V5.4 Z M2.5 5.4 L9 9 L15.5 5.4 M9 9 V16.2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+  </svg>
+);
+
+/** no topo do celular, em todas as páginas: o atalho curto para a loja 3D (no computador, a barra de cima já tem) */
+export function Atalho3D() {
+  const caminho = usePathname();
+  if (!LOJA.loja3d || caminho.replace(/\/$/, "") === "/loja-3d") return null;
+  return (
+    <Link
+      href="/loja-3d"
+      aria-label={v.menu3d}
+      className="flex h-9 shrink-0 items-center gap-1.5 rounded-[40px] bg-roxo-claro px-3 text-[0.8125rem] font-bold text-roxo hover:bg-roxo hover:text-white lg:hidden"
+    >
+      {cubo}
+      {v.curto}
+    </Link>
+  );
+}
+
 /** no menu do celular: um botão para entrar na loja 3D (ou voltar para a normal) */
 export function LinkVersaoMenu({ aoClicar }: { aoClicar: () => void }) {
   const caminho = usePathname();
@@ -54,9 +76,7 @@ export function LinkVersaoMenu({ aoClicar }: { aoClicar: () => void }) {
       onClick={aoClicar}
       className="flex items-center gap-2.5 rounded-[8px] border border-roxo/30 px-3 py-3 text-[0.9375rem] font-semibold text-roxo hover:bg-roxo-claro"
     >
-      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-        <path d="M9 1.8 L15.5 5.4 V12.6 L9 16.2 L2.5 12.6 V5.4 Z M2.5 5.4 L9 9 L15.5 5.4 M9 9 V16.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-      </svg>
+      {cubo}
       {em3d ? v.menuNormal : v.menu3d}
     </Link>
   );

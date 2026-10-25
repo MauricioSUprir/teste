@@ -23,8 +23,8 @@ export interface Cesta {
   adicionar: (item: ItemCesta, origem: THREE.Vector3, escalaOrigem: number) => void;
   /** segue a câmera e balança no passo */
   atualizar: (dt: number, andando: boolean, camera: THREE.Camera) => void;
-  /** formato da tela (largura / altura): em pé, a cesta fica menor e mais embaixo */
-  enquadrar: (aspecto: number) => void;
+  /** formato da tela (largura / altura): em pé, a cesta fica menor e mais embaixo; `baixa` = celular deitado */
+  enquadrar: (aspecto: number, baixa: boolean) => void;
   mostrar: (sim: boolean) => void;
   descartar: () => void;
 }
@@ -260,11 +260,12 @@ export function criarCesta(cor: THREE.ColorRepresentation, aoCair?: () => void):
     mostrar: (sim) => {
       cena.visible = sim;
     },
-    enquadrar(aspecto) {
+    enquadrar(aspecto, baixa) {
       // 0 com o celular em pé, 1 da tela de computador para cima
       const k = Math.min(1, Math.max(0, (aspecto - 0.5) / 0.9));
-      mao.scale.setScalar(0.62 + 0.16 * k);
-      mao.position.y = -0.46 + 0.06 * k;
+      // celular deitado: a tela é baixa e as categorias comem a parte de baixo — cesta menor e mais embaixo
+      mao.scale.setScalar(baixa ? 0.56 : 0.62 + 0.16 * k);
+      mao.position.y = baixa ? -0.33 : -0.46 + 0.06 * k;
     },
     descartar: () => descartaveis.forEach((d) => d.dispose()),
   };

@@ -88,6 +88,7 @@ export const copy = {
         tresD: "Em 3D",
         menu3d: "Passear pela loja em 3D",
         menuNormal: "Voltar para a loja normal",
+        curto: "3D",
       },
     },
     destaques: {
@@ -722,6 +723,11 @@ export const copy = {
       chegou: "É aqui!",
     },
     som: { ligar: "Ligar o som", desligar: "Tirar o som" },
+    // celular: a loja 3D ocupa a tela toda, com sacola e saída dentro dela
+    telaCheia: "Tela cheia",
+    sairTelaCheia: "Sair da tela cheia",
+    sair: "Sair da loja 3D",
+    sacola: (itens: number) => (itens ? `Sacola, ${itens} ${itens === 1 ? "item" : "itens"}` : "Sacola"),
   },
   naoEncontrada: {
     procurando: "Procurando a página…",

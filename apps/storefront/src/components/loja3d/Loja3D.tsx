@@ -12,8 +12,11 @@
  * que está na cesta. As etiquetas de preço da cena seguem os preços do painel.
  *
  * three.js só baixa nesta página (import dinâmico) — as outras não pesam nada.
- * No celular e no tablet a cena começa mais leve, ganha o controle de andar na
- * tela (ControleAndar) e os cards sobem da parte de baixo da tela.
+ * No celular e no tablet a loja ocupa a tela toda (por cima do topo do site,
+ * com sacola e saída dentro dela; no Android, toque na loja e ela entra em tela
+ * cheia de verdade), a cena começa mais leve, ganha o controle de andar
+ * (ControleAndar) e os cards ficam deitados: embaixo com o celular em pé, do
+ * lado com ele deitado.
  */
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -118,6 +121,11 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   const [marcada, setMarcada] = useState(0);
   const [guia, setGuia] = useState<string | null>(null); // nome do destino
   const toque = useToque();
+  // celular em pé (estreita) ou deitado (baixa): onde os cards cabem sem tampar a loja
+  const [tela, setTela] = useState({ estreita: false, baixa: false });
+  const [podeTelaCheia, setPodeTelaCheia] = useState(false);
+  const [emTelaCheia, setEmTelaCheia] = useState(false);
+  const pediuTelaCheia = useRef(false);
   const carrinho = useCarrinho();
   const selecionadoAgora = useRef<string | null>(null);
   useEffect(() => {
@@ -132,18 +140,46 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   }, [setores]);
   const produto = selecionado ? porSlug.get(selecionado) : undefined;
 
-  // a moldura ocupa o resto da tela abaixo do cabeçalho
+  useEffect(() => {
+    const medir = () => setTela({ estreita: window.innerWidth < 640, baixa: window.innerHeight < 520 });
+    medir();
+    window.addEventListener("resize", medir);
+    const mudouTelaCheia = () => setEmTelaCheia(!!document.fullscreenElement);
+    setPodeTelaCheia(!!document.fullscreenEnabled);
+    document.addEventListener("fullscreenchange", mudouTelaCheia);
+    return () => {
+      window.removeEventListener("resize", medir);
+      document.removeEventListener("fullscreenchange", mudouTelaCheia);
+    };
+  }, []);
+
+  // celular: a loja cobre a página inteira; a página de trás não rola
+  useEffect(() => {
+    if (!toque) return;
+    const raiz = document.documentElement;
+    const antes = raiz.style.overflow;
+    raiz.style.overflow = "hidden";
+    return () => {
+      raiz.style.overflow = antes;
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    };
+  }, [toque]);
+
+  // computador: a moldura ocupa o resto da tela abaixo do cabeçalho
   useEffect(() => {
     const el = moldura.current;
-    if (!el) return;
+    if (!el || toque !== false) return;
     const ajustar = () => {
       const topo = el.getBoundingClientRect().top + window.scrollY;
       el.style.height = `${Math.max(480, window.innerHeight - Math.min(topo, window.innerHeight * 0.4))}px`;
     };
     ajustar();
     window.addEventListener("resize", ajustar);
-    return () => window.removeEventListener("resize", ajustar);
-  }, []);
+    return () => {
+      window.removeEventListener("resize", ajustar);
+      el.style.height = "";
+    };
+  }, [toque]);
 
   useEffect(() => {
     if (toque === null) return; // espera saber se é celular (a cena nasce leve ou não)
@@ -296,6 +332,18 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
     palco.current?.focus();
   }
 
+  /** a tela cheia de verdade (some a barra do navegador) — Android e tablets; o iPhone não deixa */
+  function alternarTelaCheia() {
+    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+    else void document.documentElement.requestFullscreen().catch(() => undefined);
+  }
+  /** no primeiro toque na loja, o Android já entra em tela cheia (uma vez; quem sair, fica fora) */
+  function primeiroToque() {
+    if (!toque || !podeTelaCheia || pediuTelaCheia.current) return;
+    pediuTelaCheia.current = true;
+    if (!document.fullscreenElement) void document.documentElement.requestFullscreen().catch(() => undefined);
+  }
+
   function alternarSom() {
     const novo = !som;
     setSom(novo);
@@ -328,15 +376,30 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   const setor = setorAtual !== null ? setores[setorAtual] : null;
   const categoriaAtual = setor?.categoria ?? null;
   const pilula = "rounded-[40px] bg-white px-3.5 py-2 text-[0.8125rem] font-semibold text-tinta shadow-sm hover:text-roxo";
+  const redondo = "relative flex h-9 w-9 items-center justify-center rounded-full bg-white text-tinta shadow-sm hover:text-roxo";
+  // celular deitado: card do lado, embaixo dos botões de cima; em pé: embaixo, por cima das categorias
+  const deitado = !!toque && (tela.estreita || tela.baixa);
+  const lugarCard = tela.estreita
+    ? "inset-x-3 bottom-[4.5rem]"
+    : toque
+      ? `right-3 top-[3.75rem] ${tela.baixa ? "w-[min(380px,55%)]" : "w-[260px]"}`
+      : "right-5 top-5 w-[260px]";
+  const lugarLarissa = tela.estreita ? "inset-x-3 bottom-[4.5rem]" : toque ? "right-3 top-[3.75rem] w-[300px]" : "right-5 top-5 w-[290px]";
+  // tela baixa: o conteúdo rola por dentro (o X de fechar fica de fora, sem cortar)
+  const rolaDentro = toque && tela.baixa ? "max-h-[calc(100dvh-8.5rem)] overflow-y-auto rounded-[10px]" : "";
 
   return (
-    <div ref={moldura} className="relative w-full overflow-hidden bg-[#ecebee]">
+    <div
+      ref={moldura}
+      className={`w-full overflow-hidden bg-[#ecebee] ${toque ? "fixed inset-0 z-40 h-dvh" : "relative"}`}
+    >
       <div
         ref={palco}
         className="absolute inset-0 outline-none"
         tabIndex={0}
         role="application"
         aria-label={t.rotuloCena}
+        onPointerUp={primeiroToque}
       />
 
       {estado === "montando" && (
@@ -413,7 +476,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
               id="sugestoes-guia"
               role="listbox"
               aria-label={t.guia.rotulo}
-              className="w-full overflow-hidden rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]"
+              className="max-h-[min(60vh,420px)] w-full overflow-y-auto rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]"
             >
               {sugestoes.length ? (
                 sugestoes.map((s, i) => (
@@ -492,6 +555,54 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
         </nav>
       )}
 
+      {/* celular: tela cheia, sacola e saída, no canto de cima à direita */}
+      {toque && !(busca !== null && tela.estreita) && (
+        <div className="absolute right-4 top-4 flex gap-2">
+          {podeTelaCheia && (
+            <button
+              type="button"
+              onClick={alternarTelaCheia}
+              aria-label={emTelaCheia ? t.sairTelaCheia : t.telaCheia}
+              title={emTelaCheia ? t.sairTelaCheia : t.telaCheia}
+              className={redondo}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d={emTelaCheia ? "M6 2 V6 H2 M10 2 V6 H14 M6 14 V10 H2 M10 14 V10 H14" : "M2 6 V2 H6 M14 6 V2 H10 M2 10 V14 H6 M14 10 V14 H10"}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+              carrinho.abrir();
+            }}
+            aria-label={t.sacola(carrinho.totalItens)}
+            className={redondo}
+          >
+            <svg width="17" height="17" viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M3.5 6 H14.5 L13.6 15.2 a1.5 1.5 0 0 1 -1.5 1.3 H5.9 a1.5 1.5 0 0 1 -1.5 -1.3 Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M6.2 6 V5 a2.8 2.8 0 0 1 5.6 0 V6" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            {carrinho.totalItens > 0 && (
+              <span className="num absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-[40px] bg-roxo px-1 text-[0.6875rem] font-semibold text-white">
+                {carrinho.totalItens}
+              </span>
+            )}
+          </button>
+          <Link href="/" aria-label={t.sair} title={t.sair} className={redondo}>
+            {iconeFechar}
+          </Link>
+        </div>
+      )}
+
       {/* celular: a bolinha de andar (de perto, sem card aberto por cima) */}
       {estado === "pronta" && toque && modo === "perto" && !produto && !larissaAberta && (
         <ControleAndar aoMover={(frente, vira) => cena.current?.mover(frente, vira)} />
@@ -501,7 +612,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
       {estado === "pronta" && setor && !produto && !larissaAberta && busca === null && !guia && (
         <Link
           href={`/marca/${setor.slug}`}
-          className="absolute right-4 top-4 max-w-[44%] truncate rounded-[40px] bg-white px-4 py-2 text-[0.8125rem] font-semibold text-roxo shadow-sm hover:bg-roxo-claro sm:max-w-none"
+          className={`absolute right-4 max-w-[44%] truncate rounded-[40px] bg-white px-4 py-2 text-[0.8125rem] font-semibold text-roxo shadow-sm hover:bg-roxo-claro sm:max-w-none ${toque ? "top-[3.75rem]" : "top-4"}`}
         >
           {t.verTodos(setor.nome)} →
         </Link>
@@ -509,7 +620,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
 
       {/* card do produto no canto vazio da tela — o mesmo do site; no celular, deitado embaixo */}
       {produto && (
-        <aside aria-label={produto.titulo} className="absolute inset-x-3 bottom-[4.5rem] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[260px]">
+        <aside aria-label={produto.titulo} className={`absolute ${lugarCard}`}>
           <div className="relative rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)]">
             <button
               type="button"
@@ -519,7 +630,9 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
             >
               {iconeFechar}
             </button>
-            <CardProduto key={produto.slug} produto={produto} prioridade abrirSacola={false} deitadoNoCelular />
+            <div className={rolaDentro}>
+              <CardProduto key={produto.slug} produto={produto} prioridade abrirSacola={false} deitado={deitado} />
+            </div>
           </div>
         </aside>
       )}
@@ -528,7 +641,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
       {larissaAberta && !produto && (
         <aside
           aria-label={t.larissa.titulo}
-          className="absolute inset-x-3 bottom-[4.5rem] rounded-[10px] bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.18)] sm:inset-x-auto sm:bottom-auto sm:right-5 sm:top-5 sm:w-[290px]"
+          className={`absolute rounded-[10px] bg-white shadow-[0_8px_30px_rgba(0,0,0,0.18)] ${lugarLarissa}`}
         >
           <button
             type="button"
@@ -538,41 +651,43 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           >
             {iconeFechar}
           </button>
-          <div className="flex items-center gap-3">
-            <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" className="shrink-0">
-              <circle cx="24" cy="24" r="24" className="fill-roxo" />
-              <path d="M10 42 Q12 31 24 31 Q36 31 38 42 Z" fill="#ffffff" opacity="0.9" />
-              <circle cx="24" cy="21" r="10" fill="#c98f6c" />
-              <path d="M13 21 Q13 9 24 9 Q35 9 35 21 Q31 13 24 13 Q17 13 13 21 Z" fill="#3a2a21" />
-              <path d="M20 22 Q21 23.5 22 22 M26 22 Q27 23.5 28 22" stroke="#2a1c16" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-              <path d="M21.5 25.5 Q24 27.5 26.5 25.5" stroke="#9b3f45" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-            </svg>
-            <p className="text-[1rem] font-bold text-tinta">{t.larissa.titulo}</p>
-          </div>
-          <p className="mt-3 text-[0.875rem] leading-snug text-grafite">{t.larissa.texto}</p>
-          {linkLarissa && (
-            <a
-              href={linkLarissa}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[40px] bg-[#1f7a46] px-4 text-[0.875rem] font-semibold text-white hover:bg-[#176238]"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-                <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z" />
+          <div className={`p-5 ${rolaDentro}`}>
+            <div className="flex items-center gap-3">
+              <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" className="shrink-0">
+                <circle cx="24" cy="24" r="24" className="fill-roxo" />
+                <path d="M10 42 Q12 31 24 31 Q36 31 38 42 Z" fill="#ffffff" opacity="0.9" />
+                <circle cx="24" cy="21" r="10" fill="#c98f6c" />
+                <path d="M13 21 Q13 9 24 9 Q35 9 35 21 Q31 13 24 13 Q17 13 13 21 Z" fill="#3a2a21" />
+                <path d="M20 22 Q21 23.5 22 22 M26 22 Q27 23.5 28 22" stroke="#2a1c16" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                <path d="M21.5 25.5 Q24 27.5 26.5 25.5" stroke="#9b3f45" strokeWidth="1.2" fill="none" strokeLinecap="round" />
               </svg>
-              {t.larissa.botao}
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setLarissaAberta(false);
-              palco.current?.focus();
-            }}
-            className="mt-2 h-10 w-full rounded-[40px] text-[0.8125rem] font-semibold text-roxo hover:bg-roxo-claro"
-          >
-            {t.larissa.continuar}
-          </button>
+              <p className="text-[1rem] font-bold text-tinta">{t.larissa.titulo}</p>
+            </div>
+            <p className="mt-3 text-[0.875rem] leading-snug text-grafite">{t.larissa.texto}</p>
+            {linkLarissa && (
+              <a
+                href={linkLarissa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[40px] bg-[#1f7a46] px-4 text-[0.875rem] font-semibold text-white hover:bg-[#176238]"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+                  <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z" />
+                </svg>
+                {t.larissa.botao}
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setLarissaAberta(false);
+                palco.current?.focus();
+              }}
+              className="mt-2 h-10 w-full rounded-[40px] text-[0.8125rem] font-semibold text-roxo hover:bg-roxo-claro"
+            >
+              {t.larissa.continuar}
+            </button>
+          </div>
         </aside>
       )}
     </div>

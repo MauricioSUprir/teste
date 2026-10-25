@@ -2112,7 +2112,9 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     // de cima, a loja vira de lado (o comprimento de 30 m cabe na altura da tela)
     const agoraEmPe = camera.aspect < 0.8;
     fovAlto = agoraEmPe ? 60 : camera.aspect < 1.55 ? 46 : 40;
-    fovPerto = camera.aspect < 1 ? limitar((2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(28)) / camera.aspect) * 180) / Math.PI, FOV_PERTO, 80) : FOV_PERTO;
+    // e com o celular deitado (tela bem larga e baixa), fecha um pouco, senão os lados entortam
+    const fovPara = (graus: number) => (2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(graus)) / camera.aspect) * 180) / Math.PI;
+    fovPerto = camera.aspect < 1 ? limitar(fovPara(28), FOV_PERTO, 80) : Math.min(FOV_PERTO, fovPara(52));
     if (agoraEmPe !== emPe) {
       const primeira = emPe === null;
       emPe = agoraEmPe;
@@ -2122,7 +2124,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
       if (modo === "alto" && !voo) aplicar(poseAlto());
     }
     camera.updateProjectionMatrix();
-    cesta.enquadrar(camera.aspect);
+    cesta.enquadrar(camera.aspect, celular && h < 520);
   }
   const observador = new ResizeObserver(ajustar);
   observador.observe(container);

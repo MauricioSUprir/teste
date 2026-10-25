@@ -30,22 +30,22 @@ export function urlProduto(produto: Produto): string {
  * fechado (LOJA.precoFechado) preço e botão só aparecem com o CNPJ aprovado (PrecoProtegido).
  * Após a hidratação aplica os ajustes manuais do admin (editar/excluir).
  *
- * `deitadoNoCelular` (loja 3D): em tela estreita a foto vai para o lado do
- * texto, para o card caber embaixo da tela sem tampar a loja.
+ * `deitado` (loja 3D no celular): a foto vai para o lado do texto, para o
+ * card caber embaixo (ou do lado) da tela sem tampar a loja.
  */
 export function CardProduto({
   produto: produtoBase,
   prioridade = false,
   abrirSacola = true,
-  deitadoNoCelular = false,
+  deitado = false,
 }: {
   produto: Produto;
   /** cards da primeira dobra: a foto carrega na frente, sem esperar o scroll */
   prioridade?: boolean;
   /** false: o Adicionar não abre a gaveta da sacola (na loja 3D o produto vai para a cesta) */
   abrirSacola?: boolean;
-  /** em tela estreita, a foto ao lado do texto (card embaixo da loja 3D) */
-  deitadoNoCelular?: boolean;
+  /** a foto ao lado do texto (card da loja 3D no celular) */
+  deitado?: boolean;
 }) {
   const ajustado = useProdutoAjustado(produtoBase);
   const carrinho = useCarrinho();
@@ -64,19 +64,18 @@ export function CardProduto({
   const parcela = parcelamento(variante.precoPor);
   const alt = `${marca?.nome ?? ""} ${produto.titulo} ${variante.tituloVariacao}`.trim();
   const url = urlProduto(produto);
-  const deitado = (classes: string) => (deitadoNoCelular ? ` ${classes}` : "");
 
 
   return (
     <article
-      className={`group relative flex flex-col rounded-[8px] border border-roxo/25 bg-white p-4 transition-colors hover:border-roxo/60${deitado("max-sm:p-3")}`}
+      className={`group relative flex flex-col rounded-[8px] border border-roxo/25 bg-white transition-colors hover:border-roxo/60 ${deitado ? "p-3" : "p-4"}`}
     >
       <div className="absolute right-3 top-3 z-10">
         <BotaoFavorito slug={produto.slug} />
       </div>
 
-      <Link href={url} className={`flex grow flex-col rounded-[4px]${deitado("max-sm:flex-row max-sm:gap-3")}`}>
-        <div className={`relative${deitado("max-sm:w-[92px] max-sm:shrink-0")}`}>
+      <Link href={url} className={`flex grow rounded-[4px] ${deitado ? "flex-row gap-3" : "flex-col"}`}>
+        <div className={deitado ? "relative w-[92px] shrink-0" : "relative"}>
           <div className="absolute left-0 top-0 z-10 flex flex-col items-start gap-1">
             {desconto !== null && disponivel && (
               <span className="rounded-[4px] bg-selo px-1 py-0.5 text-[0.6875rem] font-medium leading-none text-tinta num">
@@ -99,7 +98,7 @@ export function CardProduto({
           )}
         </div>
 
-        <div className={`mt-3 flex grow flex-col${deitado("max-sm:mt-0 max-sm:min-w-0 max-sm:pr-7")}`}>
+        <div className={`flex grow flex-col ${deitado ? "min-w-0 pr-7" : "mt-3"}`}>
           {produto.lancamento && (
             <span className="mb-1.5 self-start rounded-[40px] border border-violeta px-2 py-0.5 text-[0.6875rem] font-medium text-violeta">
               {copy.card.lancamento}

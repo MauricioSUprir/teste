@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { LOJA, LOJA_ID } from "@/lib/loja";
-import { AlternarVersao, LinkVersaoMenu } from "./AlternarVersao";
+import { AlternarVersao, Atalho3D, LinkVersaoMenu } from "./AlternarVersao";
 import { comBase } from "@/lib/caminho";
 import { categorias, marcas, necessidades } from "@/lib/catalogo/consultas";
 import { useCarrinho } from "@/lib/carrinho/contexto";
@@ -132,6 +132,7 @@ export function Header() {
         </div>
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <Atalho3D />
           <Link
             href="/conta#favoritos"
             className="relative hidden h-11 w-11 items-center justify-center rounded-[4px] text-grafite hover:bg-superficie sm:flex"
