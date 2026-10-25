@@ -2,11 +2,14 @@
  * Som da loja 3D, todo gerado na hora pelo navegador (Web Audio) — nenhum
  * arquivo para baixar e nenhuma música de terceiros:
  *
- *  - bossa nova ambiente: violão de nylon na batida da bossa (corda dedilhada
- *    de verdade, pelo algoritmo de Karplus-Strong), baixo no polegar, vassourinha,
- *    aro e um Rhodes soltando notas dos acordes, num reverb de salão. A harmonia
- *    é uma sequência de acordes de bossa (ii-V com substituto de trítono), sem
- *    copiar nenhuma música;
+ *  - bossa nova ambiente no estilo do Tom Jobim, mas de composição própria
+ *    (nenhuma música dele é copiada — elas têm direito autoral): violão de nylon
+ *    na batida da bossa (corda dedilhada de verdade, pelo algoritmo de
+ *    Karplus-Strong) com o baixo no polegar, vassourinha e aro; a melodia na
+ *    flauta, a ponte no piano em oitavas e, da segunda parte em diante, cordas
+ *    bem suaves por baixo, como nos discos dele com arranjo de orquestra. A
+ *    harmonia é a linguagem dele: sétimas maiores, nonas e décimas terceiras, o
+ *    quarto grau menor, substitutos de trítono e a ponte que sai do tom;
  *  - o "plim-plom" da porta automática;
  *  - passos no porcelanato;
  *  - o produto caindo na cesta;
@@ -26,18 +29,71 @@ export interface Som {
   descartar: () => void;
 }
 
-// um compasso por acorde: baixo do polegar (fundamental e quinta) e as notas que os dedos puxam
-const ACORDES: { baixo: [number, number]; dedos: number[] }[] = [
-  { baixo: [48, 43], dedos: [52, 59, 62] }, // Cmaj9
-  { baixo: [45, 40], dedos: [55, 61, 65] }, // A7(b13)
-  { baixo: [50, 45], dedos: [53, 60, 64] }, // Dm9
-  { baixo: [43, 50], dedos: [53, 59, 64] }, // G13
-  { baixo: [40, 47], dedos: [55, 59, 62] }, // Em7
-  { baixo: [45, 40], dedos: [55, 58, 61] }, // A7(b9)
-  { baixo: [50, 45], dedos: [53, 60, 64] }, // Dm9
-  { baixo: [49, 44], dedos: [59, 65, 67] }, // Db7(#11)
+// acordes em ré maior: baixo do polegar (fundamental e quinta) e as notas que os dedos puxam
+type Acorde = { baixo: [number, number]; dedos: number[] };
+const AC: Record<string, Acorde> = {
+  Dmaj9: { baixo: [50, 45], dedos: [54, 61, 64] },
+  Bm9: { baixo: [47, 42], dedos: [57, 61, 62] },
+  Em9: { baixo: [40, 47], dedos: [55, 62, 66] },
+  A13: { baixo: [45, 40], dedos: [55, 61, 66] },
+  A7b9: { baixo: [45, 40], dedos: [55, 58, 61] },
+  Fsm7: { baixo: [42, 49], dedos: [52, 57, 61] },
+  B7b13: { baixo: [47, 42], dedos: [57, 63, 67] },
+  Eb7s11: { baixo: [51, 46], dedos: [55, 57, 61] },
+  Gmaj9: { baixo: [43, 50], dedos: [54, 57, 59] },
+  Gm6: { baixo: [43, 50], dedos: [52, 58, 62] },
+  F7s11: { baixo: [41, 48], dedos: [57, 59, 63] },
+  Gm9: { baixo: [43, 50], dedos: [53, 57, 58] },
+  C13: { baixo: [48, 43], dedos: [52, 57, 58] },
+  Fmaj9: { baixo: [41, 48], dedos: [52, 55, 57] },
+  Bbmaj9: { baixo: [46, 41], dedos: [57, 60, 62] },
+};
+// forma AABA de 32 compassos ("X|Y" = dois acordes no compasso, o segundo no meio)
+const FORMA = [
+  ...["Dmaj9", "Bm9", "Em9", "A13|A7b9", "Fsm7", "B7b13", "Em9", "Eb7s11"], // A
+  ...["Dmaj9", "Gmaj9", "Gm6", "Fsm7", "F7s11", "Em9", "A7b9", "Dmaj9"], // A
+  ...["Gm9", "C13", "Fmaj9", "Bbmaj9", "Em9", "A13", "Em9", "Eb7s11"], // B: a ponte sai do tom
+  ...["Dmaj9", "Gmaj9", "Gm6", "Fsm7", "F7s11", "Em9", "A13|A7b9", "Dmaj9|Eb7s11"], // A (o Eb7 volta para o começo)
+].map((c) => c.split("|").map((n) => AC[n]));
+// melodia própria, por compasso: [semicolcheia em que entra, nota, duração em semicolcheias]
+type Nota = [number, number, number];
+// os 6 primeiros compassos da segunda e da última parte A (iguais)
+const VOLTA_A: Nota[][] = [
+  [[0, 69, 4], [4, 73, 4], [8, 76, 8]],
+  [[0, 78, 12], [12, 76, 4]],
+  [[0, 76, 8], [8, 74, 4], [12, 70, 4]],
+  [[0, 69, 12], [12, 73, 4]],
+  [[0, 71, 10], [12, 69, 4]],
+  [[0, 67, 4], [4, 71, 4], [8, 74, 4], [12, 78, 4]],
 ];
-const BPM = 128;
+const MELODIA: Nota[][] = [
+  // A: flauta
+  [[2, 76, 4], [6, 78, 4], [10, 76, 4], [14, 73, 12]],
+  [[12, 74, 4]],
+  [[0, 78, 8], [10, 79, 2], [12, 78, 4]],
+  [[0, 76, 6], [8, 70, 6]],
+  [[2, 69, 4], [6, 73, 4], [10, 76, 6]],
+  [[0, 75, 8], [10, 79, 6]],
+  [[0, 78, 12], [12, 76, 4]],
+  [[0, 69, 12]],
+  ...VOLTA_A,
+  [[0, 76, 6], [6, 73, 4], [10, 70, 6]],
+  [[0, 69, 14]],
+  // B: piano em oitavas
+  [[0, 74, 4], [4, 77, 4], [8, 81, 8]],
+  [[0, 81, 8], [8, 79, 4], [12, 76, 4]],
+  [[0, 79, 12], [12, 76, 4]],
+  [[0, 74, 4], [4, 77, 4], [8, 81, 8]],
+  [[0, 78, 8], [8, 76, 4], [12, 74, 4]],
+  [[0, 78, 12], [12, 76, 4]],
+  [[0, 79, 6], [6, 78, 4], [10, 74, 6]],
+  [[0, 73, 8], [8, 69, 8]],
+  // A: flauta de novo
+  ...VOLTA_A,
+  [[0, 76, 6], [6, 73, 2], [8, 70, 6]],
+  [[0, 69, 14]],
+];
+const BPM = 120;
 const SEMI = 60 / BPM / 4; // uma semicolcheia
 // batida da bossa nos 16 tempos do compasso: dedos (a última antecipa o próximo acorde) e polegar
 const DEDOS = [0, 3, 6, 10, 13];
@@ -162,20 +218,75 @@ export function criarSom(): Som {
     s.start(t);
   }
 
-  /** Rhodes: senoide com um pouco de sino e tremolo, bem baixinho */
-  function rhodes(midi: number, t: number, vol: number) {
-    if (!ctx || !musica) return;
+  /** flauta: senoide com um tiquinho de segunda harmônica, sopro no ataque e vibrato que chega devagar */
+  function flauta(midi: number, t: number, dur: number, vol: number) {
+    if (!ctx || !musica || !ruido) return;
+    const f = hz(midi);
+    const fim = t + dur;
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(vol, t + 0.015);
-    env.gain.exponentialRampToValueAtTime(0.0008, t + 2.4);
+    env.gain.linearRampToValueAtTime(vol, t + 0.07);
+    env.gain.setValueAtTime(vol, Math.max(t + 0.08, fim - 0.08));
+    env.gain.linearRampToValueAtTime(0, fim + 0.12);
     const pan = ctx.createStereoPanner();
-    pan.pan.value = acaso() * 0.8 - 0.4;
+    pan.pan.value = -0.2;
+    env.connect(pan).connect(musica);
+    const vib = ctx.createOscillator();
+    vib.frequency.value = 5.2;
+    const prof = ctx.createGain();
+    prof.gain.setValueAtTime(0, t);
+    prof.gain.linearRampToValueAtTime(f * 0.005, t + 0.4);
+    vib.connect(prof);
+    for (const [mult, v] of [
+      [1, 1],
+      [2, 0.1],
+      [3, 0.03],
+    ]) {
+      const o = ctx.createOscillator();
+      o.frequency.value = f * mult;
+      const deMult = ctx.createGain();
+      deMult.gain.value = mult;
+      prof.connect(deMult).connect(o.frequency);
+      const g = ctx.createGain();
+      g.gain.value = v;
+      o.connect(g).connect(env);
+      o.start(t);
+      o.stop(fim + 0.15);
+    }
+    vib.start(t);
+    vib.stop(fim + 0.15);
+    // o sopro: um chiado curto na altura da nota
+    const s = ctx.createBufferSource();
+    s.buffer = ruido;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = f * 2;
+    bp.Q.value = 2;
+    const gs = ctx.createGain();
+    gs.gain.setValueAtTime(vol * 0.5, t);
+    gs.gain.exponentialRampToValueAtTime(0.0005, t + 0.12);
+    s.connect(bp).connect(gs).connect(pan);
+    s.start(t, acaso() * 0.15);
+    s.stop(t + 0.14);
+  }
+
+  /** piano: parciais que somem mais rápido nos agudos, com o martelinho no começo */
+  function piano(midi: number, t: number, dur: number, vol: number) {
+    if (!ctx || !musica) return;
+    const queda = Math.min(2.6, 1.2 + dur);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(vol, t + 0.006);
+    env.gain.exponentialRampToValueAtTime(vol * 0.35, t + 0.25);
+    env.gain.exponentialRampToValueAtTime(0.0006, t + queda);
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = 0.15;
     env.connect(pan).connect(musica);
     for (const [mult, v] of [
       [1, 1],
-      [2, 0.12],
-      [4.02, 0.05],
+      [2.001, 0.4],
+      [3.003, 0.14],
+      [4.008, 0.07],
     ]) {
       const o = ctx.createOscillator();
       o.frequency.value = hz(midi) * mult;
@@ -183,8 +294,37 @@ export function criarSom(): Som {
       g.gain.value = v;
       o.connect(g).connect(env);
       o.start(t);
-      o.stop(t + 2.5);
+      o.stop(t + queda + 0.05);
     }
+  }
+
+  /** cordas: dois "serrotes" levemente desafinados por nota, abafados, entrando e saindo devagar */
+  function cordasPad(notas: number[], t: number, dur: number) {
+    const c = ctx;
+    if (!c || !musica) return;
+    const filtro = c.createBiquadFilter();
+    filtro.type = "lowpass";
+    filtro.frequency.value = 1500;
+    filtro.Q.value = 0.4;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(0.022, t + 0.7);
+    env.gain.setValueAtTime(0.022, t + dur);
+    env.gain.linearRampToValueAtTime(0, t + dur + 0.7);
+    filtro.connect(env).connect(musica);
+    notas.forEach((m, i) => {
+      for (const desvio of [-7, 7]) {
+        const o = c.createOscillator();
+        o.type = "sawtooth";
+        o.frequency.value = hz(m + 12);
+        o.detune.value = desvio;
+        const p = c.createStereoPanner();
+        p.pan.value = (i / Math.max(1, notas.length - 1)) * 1.2 - 0.6 + desvio / 70;
+        o.connect(p).connect(filtro);
+        o.start(t);
+        o.stop(t + dur + 0.75);
+      }
+    });
   }
 
   /** vassourinha (ruído agudo curto) e aro (clique de madeira) */
@@ -208,20 +348,36 @@ export function criarSom(): Som {
   /** uma semicolcheia da bossa */
   function tocarPasso(n: number, t: number) {
     const noCompasso = n % 16;
-    const compasso = Math.floor(n / 16);
-    const acorde = ACORDES[compasso % ACORDES.length];
-    const proximo = ACORDES[(compasso + 1) % ACORDES.length];
+    const compasso = Math.floor(n / 16) % FORMA.length;
+    const acordes = FORMA[compasso];
+    const acorde = noCompasso >= 8 && acordes[1] ? acordes[1] : acordes[0];
+    const proximo = FORMA[(compasso + 1) % FORMA.length][0];
+    const ponte = compasso >= 16 && compasso < 24;
     // um leve "balanço": as semicolcheias pares ficam um tiquinho atrás
     const tt = t + (noCompasso % 2 ? 0.012 : 0);
-    if (POLEGAR.includes(noCompasso)) tocarCorda(acorde.baixo[noCompasso === 0 ? 0 : 1], tt, 0.55, true, -0.1);
+    // polegar: fundamental no 1; no 3, a quinta (ou a fundamental do acorde que entra no meio)
+    if (POLEGAR.includes(noCompasso)) {
+      const nota = noCompasso === 0 || (noCompasso === 8 && acordes[1]) ? acorde.baixo[0] : acorde.baixo[1];
+      tocarCorda(nota, tt, 0.55, true, -0.1);
+    }
     if (DEDOS.includes(noCompasso)) {
       const notas = noCompasso === 13 ? proximo.dedos : acorde.dedos; // antecipa o acorde que vem
-      notas.forEach((m, i) => tocarCorda(m, tt + i * 0.006, 0.24, false, 0.15));
+      notas.forEach((m, i) => tocarCorda(m, tt + i * 0.006, 0.2, false, 0.15));
     }
-    percussao(tt, false, noCompasso % 4 === 2 ? 1 : noCompasso % 2 ? 0.45 : 0.7);
-    if (ARO.includes(noCompasso)) percussao(tt, true, 0.6);
-    // Rhodes: de vez em quando, uma nota dos acordes (nunca em cima da batida)
-    if (noCompasso % 4 === 2 && acaso() < 0.3) rhodes(acorde.dedos[Math.floor(acaso() * acorde.dedos.length)] + 12, tt, 0.13);
+    percussao(tt, false, noCompasso % 4 === 2 ? 0.8 : noCompasso % 2 ? 0.35 : 0.55);
+    if (ARO.includes(noCompasso)) percussao(tt, true, 0.5);
+    // cordas da segunda parte em diante, a cada troca de acorde
+    if (compasso >= 8 && (noCompasso === 0 || (noCompasso === 8 && acordes[1]))) {
+      cordasPad(acorde.dedos, t, (acordes[1] ? 8 : 16) * SEMI);
+    }
+    // melodia: flauta nas partes A, piano em oitavas na ponte
+    for (const [inicio, nota, dur] of MELODIA[compasso]) {
+      if (inicio !== noCompasso) continue;
+      if (ponte) {
+        piano(nota, tt, dur * SEMI, 0.16);
+        piano(nota - 12, tt + 0.004, dur * SEMI, 0.11);
+      } else flauta(nota, tt, dur * SEMI, 0.17);
+    }
   }
 
   function agendar() {
