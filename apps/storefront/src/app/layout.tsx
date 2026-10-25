@@ -61,6 +61,9 @@ const michroma = Michroma({
 // pasta da página aberta (/categoria/cabelos/icone-192.png → 404), então todos
 // levam o prefixo na frente.
 const prefixo = process.env.BASE_PATH ?? "";
+// o celular guarda o ícone da tela de início pelo endereço: quando a arte
+// muda, o número muda junto e ele busca a nova
+const versaoArte = "?v=2";
 
 const tituloLoja =
   LOJA_ID === "be2beauty"
@@ -106,10 +109,10 @@ export const metadata: Metadata = {
     LOJA_ID === "be2beauty"
       ? {
           icon: [
-            { url: `${prefixo}/icone-b2b-192.png`, sizes: "192x192", type: "image/png" },
-            { url: `${prefixo}/icone-b2b-512.png`, sizes: "512x512", type: "image/png" },
+            { url: `${prefixo}/icone-b2b-192.png${versaoArte}`, sizes: "192x192", type: "image/png" },
+            { url: `${prefixo}/icone-b2b-512.png${versaoArte}`, sizes: "512x512", type: "image/png" },
           ],
-          apple: `${prefixo}/apple-touch-icon-b2b.png`,
+          apple: `${prefixo}/apple-touch-icon-b2b.png${versaoArte}`,
         }
       : LOJA_ID === "pulse"
         ? {
@@ -129,19 +132,19 @@ export const metadata: Metadata = {
             }
           : {
               icon: [
-                { url: `${prefixo}/icone-192.png`, sizes: "192x192", type: "image/png" },
-                { url: `${prefixo}/icone-512.png`, sizes: "512x512", type: "image/png" },
+                { url: `${prefixo}/icone-192.png${versaoArte}`, sizes: "192x192", type: "image/png" },
+                { url: `${prefixo}/icone-512.png${versaoArte}`, sizes: "512x512", type: "image/png" },
               ],
-              apple: `${prefixo}/apple-touch-icon.png`,
+              apple: `${prefixo}/apple-touch-icon.png${versaoArte}`,
             },
   manifest:
     LOJA_ID === "be2beauty"
-      ? `${prefixo}/manifest-b2b.webmanifest`
+      ? `${prefixo}/manifest-b2b.webmanifest${versaoArte}`
       : LOJA_ID === "pulse"
         ? `${prefixo}/manifest-pulse.webmanifest`
         : LOJA_ID === "bradeco"
           ? `${prefixo}/manifest-bradeco.webmanifest`
-          : `${prefixo}/manifest.webmanifest`,
+          : `${prefixo}/manifest.webmanifest${versaoArte}`,
   // prévia com imagem ao compartilhar o link (WhatsApp, Instagram, etc.)
   openGraph: {
     type: "website",
@@ -166,7 +169,7 @@ export const metadata: Metadata = {
               ? "og-imagem-pulse.png"
               : LOJA_ID === "bradeco"
                 ? "og-imagem-bradeco.png"
-                : "og-imagem.png",
+                : "og-imagem.jpg",
         width: 1200,
         height: 630,
         alt: LOJA.nome,
