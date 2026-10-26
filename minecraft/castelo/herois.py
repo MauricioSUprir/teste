@@ -28,7 +28,7 @@ UUID = {
     "bp_script": "c3b5a7e9-1d2f-4a6c-8b0e-2d4f6a8c0e22", "rp": "2f4a6c8e-0b1d-4e3f-9a5c-7e9b1d3f5a23",
     "rp_mod": "5d7f9b1c-3e5a-4c7e-8f1b-3d5f7a9c1e24",
 }
-VERSAO = [2, 0, 0]
+VERSAO = [2, 1, 0]
 SERVER_API, UI_API = "2.1.0", "2.0.0"
 
 
@@ -657,6 +657,7 @@ def gerar(destino=None):
     js = open(os.path.join(AQUI, "herois_main.js"), encoding="utf-8").read()
     js = js.replace("/*HEROIS*/[]", json.dumps(dados, ensure_ascii=False))
     js = js.replace("/*NOMES_PODERES*/{}", json.dumps(nomes_poderes, ensure_ascii=False))
+    js = js.replace("/*RECARGA_PODERES*/{}", json.dumps({k: v[3] for k, v in PODERES.items()}))
     js = js.replace("/*VILOES*/[]", json.dumps([{"id": v[0], "nome": v[1], "covil": v[8], "chefe": v[7]}
                                                 for v in VILOES], ensure_ascii=False))
     js = js.replace("/*ARTEFATOS*/[]", json.dumps([{"id": a[0], "nome": a[1], "recarga": a[4], "local": a[5]}

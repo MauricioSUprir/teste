@@ -6,6 +6,7 @@ import { ActionFormData } from "@minecraft/server-ui";
 const NS = "mv";
 const HEROIS = /*HEROIS*/[];
 const NOMES_PODERES = /*NOMES_PODERES*/{};
+const RECARGA_PODERES = /*RECARGA_PODERES*/{};
 const PECAS = [["capacete", EquipmentSlot.Head], ["peitoral", EquipmentSlot.Chest],
                ["calca", EquipmentSlot.Legs], ["botas", EquipmentSlot.Feet]];
 const IGNORAR = { excludeTypes: ["minecraft:item", "minecraft:xp_orb", "minecraft:arrow", "minecraft:lightning_bolt",
@@ -241,14 +242,57 @@ function vestir(p, h) {
     if (velho) { const sobra = inv.addItem(velho); if (sobra) p.dimension.spawnItem(sobra, p.location); }  // guarda a armadura antiga
     eq.setEquipment(slot, new ItemStack(`${NS}:${h.id}_${peca}`));
   }
-  for (const pid of h.poderes) inv.addItem(new ItemStack(`${NS}:poder_${pid}`));
   p.setDynamicProperty("heroi", h.id);
+  p.setDynamicProperty("poder", 0);
   p.sendMessage(`§eAgora você é o(a) §l${h.nome}§r§e! Poderes: §b${h.poderes.map(x => NOMES_PODERES[x]).join(", ")}`);
+  p.sendMessage("§7Os poderes vêm com o traje: segure o §6Relógio§7 e toque para usar o poder. Agachado + toque abre o menu para trocar de poder ou de herói.");
   particula(p.dimension, "minecraft:totem_particle", p.location);
   som(p.dimension, "random.levelup", p.location);
 }
 
+// ------------------------------------------------------------------ poderes do traje (sem itens)
+const prontoEm = new Map();
+
+function poderAtual(p, h) {
+  const i = Math.min(Math.max(0, p.getDynamicProperty("poder") || 0), h.poderes.length - 1);
+  return h.poderes[i];
+}
+
+function usarPoder(p, h) {
+  const pid = poderAtual(p, h);
+  const chave = `${p.id}:${pid}`, agora = system.currentTick;
+  const falta = (prontoEm.get(chave) || 0) - agora;
+  if (falta > 0) {
+    p.onScreenDisplay.setActionBar(`§c${NOMES_PODERES[pid]}: recarregando ${Math.ceil(falta / 20)}s`);
+    return;
+  }
+  prontoEm.set(chave, agora + Math.max(4, Math.round((RECARGA_PODERES[pid] || 1) * 20)));
+  try { PODERES[pid] && PODERES[pid](p); } catch (err) { console.warn(`poder ${pid}: ${err}`); }
+}
+
+function menuTraje(p, h) {
+  const atual = poderAtual(p, h);
+  const f = new ActionFormData().title(`§6${h.nome}`).body("Escolha o poder que o Relógio vai usar:");
+  for (const pid of h.poderes) f.button((pid === atual ? "§2» " : "") + NOMES_PODERES[pid]);
+  f.button("§9Trocar de herói");
+  f.button("§cTirar o traje");
+  f.show(p).then(r => {
+    if (r.canceled || r.selection === undefined) return;
+    if (r.selection < h.poderes.length) {
+      p.setDynamicProperty("poder", r.selection);
+      p.onScreenDisplay.setActionBar(`§bPoder escolhido: ${NOMES_PODERES[h.poderes[r.selection]]}`);
+    } else if (r.selection === h.poderes.length) abrirMenuHerois(p);
+    else { tirarTraje(p); p.sendMessage("§7Você voltou a ser você mesmo."); }
+  }).catch(() => { });
+}
+
 function abrirMenu(p) {
+  const h = heroiDe(p);
+  if (h) return menuTraje(p, h);
+  abrirMenuHerois(p);
+}
+
+function abrirMenuHerois(p) {
   const f = new ActionFormData().title("§6Relógio dos Heróis").body("Escolha o seu herói:");
   for (const h of HEROIS) f.button(h.nome, `textures/items/${h.id}_capacete`);
   f.button("§cTirar o traje");
@@ -270,7 +314,11 @@ const recarga = new Map();
 world.afterEvents.itemUse.subscribe(({ source: p, itemStack }) => {
   if (!itemStack) return;
   const id = itemStack.typeId;
-  if (id === `${NS}:relogio`) return abrirMenu(p);
+  if (id === `${NS}:relogio`) {
+    const h = heroiDe(p);
+    if (!h || p.isSneaking) return abrirMenu(p);
+    return usarPoder(p, h);
+  }
   if (!id.startsWith(`${NS}:poder_`)) return;
   const pid = id.slice(`${NS}:poder_`.length);
   const chave = `${p.id}:${pid}`, agora = system.currentTick;
@@ -287,6 +335,21 @@ system.afterEvents.scriptEventReceive.subscribe(ev => {
   if (ev.id === `${NS}:relogio` && ev.sourceEntity) darRelogio(ev.sourceEntity);
   if (ev.id === `${NS}:teste`) testar(ev.message);
 });
+
+// mostra o poder escolhido enquanto segura o relógio
+system.runInterval(() => {
+  for (const p of world.getAllPlayers()) {
+    const h = heroiDe(p);
+    if (!h) continue;
+    let mao;
+    try { mao = p.getComponent("minecraft:inventory").container.getItem(p.selectedSlotIndex); } catch (err) { continue; }
+    if (!mao || mao.typeId !== `${NS}:relogio`) continue;
+    const pid = poderAtual(p, h);
+    const falta = (prontoEm.get(`${p.id}:${pid}`) || 0) - system.currentTick;
+    p.onScreenDisplay.setActionBar(`§e${h.nome} §7| §b${NOMES_PODERES[pid]} ` +
+      (falta > 0 ? `§c(${Math.ceil(falta / 20)}s)` : "§a(pronto)") + " §7| agache + toque: trocar");
+  }
+}, 10);
 
 // efeitos passivos e escalada do Homem-Aranha
 system.runInterval(() => {
