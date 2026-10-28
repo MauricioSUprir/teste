@@ -4,6 +4,7 @@
  */
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { soltarGeometria } from "./memoria";
 
 export interface OpcoesLote {
   sombra?: boolean;
@@ -51,6 +52,8 @@ export class Lotes {
       geos.forEach((g) => g.dispose());
       if (!geo) continue;
       geo.computeBoundingSphere();
+      // peça fixa: no celular a geometria só fica na placa de vídeo
+      soltarGeometria(geo);
       const m = new THREE.Mesh(geo, material);
       m.castShadow = !!op.sombra;
       m.receiveShadow = op.recebe ?? true;

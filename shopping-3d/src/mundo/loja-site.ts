@@ -15,6 +15,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { montarProduto3D } from "./produto3d";
+import { soltarDepoisDeEnviar } from "./memoria";
 import { texturasMadeira, texturasPorcelanato, texturasTecido, texturaTerra } from "./texturas";
 import { prepararSuperficie, type Reflexo } from "./superficie";
 import { carregarPlantas, TERRA_DO_MODELO, type LugarPlanta, type Plantas, type TipoPlanta } from "./plantas";
@@ -124,7 +125,8 @@ const eixoY = new THREE.Vector3(0, 1, 0);
 /** no celular os letreiros largos (1024 px ou mais) saem com metade da resolução: 1/4 da memória de vídeo */
 let escalaCanvas = 1;
 
-function textura(largura: number, altura: number, desenhar: (g: CanvasRenderingContext2D) => void) {
+/** `redesenha`: o canvas muda depois (logo que chega por último) e não pode soltar a cópia */
+function textura(largura: number, altura: number, desenhar: (g: CanvasRenderingContext2D) => void, redesenha = false) {
   const e = largura >= 1024 ? escalaCanvas : 1;
   const c = document.createElement("canvas");
   c.width = Math.round(largura * e);
@@ -138,6 +140,7 @@ function textura(largura: number, altura: number, desenhar: (g: CanvasRenderingC
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
+  if (!redesenha) soltarDepoisDeEnviar(t);
   return t;
 }
 
@@ -529,7 +532,7 @@ export function montarLojaDoSite(op: OpcoesLojaSite): LojaSite {
         }
         g.textBaseline = "middle";
         escreverEspacado(g, texto, 512, 136, tam * 0.16);
-      })
+      }, true)
     );
   }
   /** logo da marca num fundo branco (1024 × 256): começa com o nome e troca pela logo quando ela chega */
@@ -552,6 +555,8 @@ export function montarLojaDoSite(op: OpcoesLojaSite): LojaSite {
           g.fillRect(0, 0, c.width, c.height);
           const e = Math.min((c.width * 0.84) / img.width, (c.height * 0.766) / img.height);
           g.drawImage(img, (c.width - img.width * e) / 2, (c.height - img.height * e) / 2, img.width * e, img.height * e);
+          // com a logo pronta, não muda mais: no celular solta a cópia depois de enviar
+          soltarDepoisDeEnviar(tex);
           tex.needsUpdate = true;
         })
         .catch(() => {

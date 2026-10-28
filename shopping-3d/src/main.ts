@@ -39,6 +39,8 @@ async function fontesProntas() {
 const CHAVE_LEVE = "shopping3d.leve";
 const CHAVE_VOLTA = "shopping3d.voltar";
 const CHAVE_QUEDAS = "shopping3d.quedas";
+/** marcado ao entrar e apagado quando o shopping roda bem: se ficar, a página caiu na entrada */
+const CHAVE_ENTRANDO = "shopping3d.entrando";
 
 function lerGuardado<T>(onde: Storage, chave: string): T | null {
   try {
@@ -60,6 +62,10 @@ function guardar(onde: Storage, chave: string, valor: unknown) {
 function iniciar() {
   let motor: Motor;
   // caiu nos últimos 3 dias: começa sem sombra e com menos gente
+  // a página caiu na entrada (o Safari fecha a aba quando falta memória): conta como queda
+  const entrando = lerGuardado<number>(localStorage, CHAVE_ENTRANDO);
+  if (entrando && Date.now() - entrando < 10 * 60 * 1000) guardar(localStorage, CHAVE_LEVE, Date.now());
+  guardar(localStorage, CHAVE_ENTRANDO, null);
   const caiu = lerGuardado<number>(localStorage, CHAVE_LEVE);
   const economia = !!caiu && Date.now() - caiu < 3 * 24 * 3600 * 1000;
   const retomar = lerGuardado<{ x: number; z: number; r: number }>(sessionStorage, CHAVE_VOLTA);
@@ -275,7 +281,7 @@ function iniciar() {
 
   function construirShopping() {
     if (shopping) return shopping;
-    shopping = new Shopping(motor.renderer, motor.ambiente, motor.qualidade, celular);
+    shopping = new Shopping(motor.renderer, motor.ambiente, motor.qualidade, celular, motor.economia);
     const s = shopping;
     camera3 = new CameraTerceira(motor.camera, s.colisao, (x, z) => s.tetoEm(x, z));
     motor.aoMudarQualidade = (q) => shopping?.ajustarReflexo(q);
@@ -302,6 +308,8 @@ function iniciar() {
 
   async function entrarNoShopping() {
     ui.definirCarregando(textos.carregando.shopping);
+    // se a página cair daqui até o shopping rodar uns segundos, a próxima vez entra leve
+    if (!jogador) guardar(localStorage, CHAVE_ENTRANDO, Date.now());
     // deixa o aviso aparecer antes do trabalho pesado
     await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30)));
     const s = construirShopping();
@@ -349,6 +357,7 @@ function iniciar() {
       ui.avisar(textos.avisos.bemVindo(escolha.nome));
       // mede o desempenho só depois que tudo montou (lojas âncora e as texturas da cidade)
       void s.pronto.then(() => setTimeout(() => (motor.medindo = true), 4000));
+      setTimeout(() => guardar(localStorage, CHAVE_ENTRANDO, null), 25000);
       for (const q of s.ocupadas.values()) void criarAtendente(q);
       visitantes = new Visitantes(s);
       s.cena.add(visitantes.grupo);

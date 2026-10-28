@@ -10,6 +10,7 @@
  * (tecido, madeira) não mostram emenda.
  */
 import * as THREE from "three";
+import { soltarDepoisDeEnviar } from "./memoria";
 
 /** ruído de valor 2D que se repete a cada `px` unidades em x e `py` em y (0 a 1) */
 export function criarRuido(semente: number) {
@@ -58,7 +59,7 @@ export function paraTextura(c: HTMLCanvasElement, cor: boolean, repetir = true) 
   t.colorSpace = cor ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   if (repetir) t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 8;
-  return t;
+  return soltarDepoisDeEnviar(t);
 }
 
 export function canvas(lado: number, alto = lado) {

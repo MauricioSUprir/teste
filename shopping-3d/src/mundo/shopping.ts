@@ -21,6 +21,7 @@ import { criarMateriais, type Qualidade } from "./materiais";
 import { carregarPlantas } from "./plantas";
 import { ajustesSuperficie, criarReflexo, prepararSuperficie, type Reflexo } from "./superficie";
 import { FONTE, usarTexturasLeves } from "./letreiros";
+import { aliviarMemoria } from "./memoria";
 
 export interface No {
   x: number;
@@ -92,9 +93,13 @@ export class Shopping {
     private renderer: THREE.WebGLRenderer,
     ambiente: THREE.Texture,
     private qualidade: Qualidade,
-    private celular: boolean
+    private celular: boolean,
+    /** o aparelho já ficou sem memória antes (começa mais leve) */
+    economia = false
   ) {
     usarTexturasLeves(celular);
+    // no celular, o que vai para a placa de vídeo sai da memória do navegador
+    aliviarMemoria(celular);
     this.cena.environment = ambiente;
     this.cena.environmentIntensity = 0.42;
     // névoa morna de fim de tarde: só a cidade lá longe sente
@@ -142,7 +147,11 @@ export class Shopping {
       this.cena.add(p.grupo);
     });
     // a cidade ganha as texturas boas depois que as lojas âncora estão de pé
-    this.pronto = this.montarAncoras().then(() => this.exterior.cidade.detalhar());
+    // no celular a cidade fica com as cores lisas (as texturas boas pesam na memória)
+    // no celular (e depois de uma queda) as lojas âncora só montam quando a pessoa entra no prédio:
+    // a entrada pela praça da frente fica leve
+    const entrou = celular || economia ? new Promise<void>((ok) => (this.aoEntrar = ok)) : Promise.resolve();
+    this.pronto = entrou.then(() => this.montarAncoras()).then(() => (celular ? undefined : this.exterior.cidade.detalhar()));
   }
 
   private montarEstrutura() {
@@ -328,7 +337,12 @@ export class Shopping {
 
   private aux = new THREE.Vector3();
   /** `pessoas`: onde estão os outros (visitantes e gente online), para abrir a porta */
+  private aoEntrar: (() => void) | null = null;
   atualizar(t: number, dt: number, pos: THREE.Vector3, pessoas: { x: number; z: number }[] = []) {
+    if (this.aoEntrar && pos.z < PLANTA.zLojasSul + 6) {
+      this.aoEntrar();
+      this.aoEntrar = null;
+    }
     this.estrutura.atualizar(t, dt);
     this.atrio.atualizar(t, dt);
     this.exterior.atualizar(t, dt);

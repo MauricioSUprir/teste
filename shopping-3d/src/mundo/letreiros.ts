@@ -7,6 +7,7 @@
 import * as THREE from "three";
 import type { Inquilino, Unidade } from "../dados/lojas";
 import { textos } from "../copy/textos";
+import { soltarDepoisDeEnviar } from "./memoria";
 
 export const FONTE = "Poppins, system-ui, sans-serif";
 export const FONTE_TITULO = "'Playfair Display', Georgia, serif";
@@ -26,9 +27,13 @@ export function canvasTextura(c: HTMLCanvasElement, anisotropia = 8, redesenha =
     m.width = Math.round(c.width / 2);
     m.height = Math.round(c.height / 2);
     m.getContext("2d")?.drawImage(c, 0, 0, m.width, m.height);
+    // o grande devolve a memória já (o Safari demora a recolher canvas)
+    c.width = 1;
+    c.height = 1;
     c = m;
   }
   const t = new THREE.CanvasTexture(c);
+  if (!redesenha) soltarDepoisDeEnviar(t);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = anisotropia;
   return t;

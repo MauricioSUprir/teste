@@ -30,6 +30,7 @@ import {
   texturasVidro,
   type TexturaPbr,
 } from "./texturas-cidade";
+import { soltarGeometria } from "./memoria";
 
 export interface Cidade {
   grupo: THREE.Group;
@@ -168,6 +169,7 @@ class Lote {
     geo.setIndex(this.idx);
     geo.computeVertexNormals();
     geo.computeBoundingSphere();
+    soltarGeometria(geo);
     const malha = new THREE.Mesh(geo, m);
     malha.matrixAutoUpdate = false;
     return malha;

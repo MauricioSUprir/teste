@@ -252,8 +252,39 @@ export async function criarModelo(visual: Visual, op: OpcoesModelo = {}): Promis
     cabelo.map = t;
     lixo.push(t);
   }
+  // textura menor (visitantes no celular): o resto das fotos do modelo também vai em `lado` px
+  if (lado < 1024) {
+    for (const x of mats) {
+      for (const k of ["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap", "alphaMap"] as const) {
+        const t = x[k];
+        if (t && !lixo.includes(t)) x[k] = reduzida(t, lado);
+      }
+    }
+  }
   const clipes = Object.fromEntries(clipesBase.map((c) => [c.name, c])) as Modelo["clipes"];
   return { info, raiz, clipes, descartar: () => lixo.forEach((x) => x.dispose()) };
+}
+
+/** cópia menor de uma foto do modelo, uma só para todos que usam (fica guardada) */
+const reduzidas = new Map<THREE.Texture, Map<number, THREE.Texture>>();
+function reduzida(original: THREE.Texture, lado: number): THREE.Texture {
+  const img = original.image as (CanvasImageSource & { width: number; height: number }) | undefined;
+  if (!img || img.width <= lado) return original;
+  let porLado = reduzidas.get(original);
+  if (!porLado) reduzidas.set(original, (porLado = new Map()));
+  const pronta = porLado.get(lado);
+  if (pronta) return pronta;
+  const c = document.createElement("canvas");
+  c.width = c.height = lado;
+  c.getContext("2d")!.drawImage(img, 0, 0, lado, lado);
+  const t = new THREE.CanvasTexture(c);
+  t.flipY = original.flipY;
+  t.colorSpace = original.colorSpace;
+  t.wrapS = original.wrapS;
+  t.wrapT = original.wrapT;
+  t.anisotropy = 4;
+  porLado.set(lado, t);
+  return t;
 }
 
 /** paletas do provador */
