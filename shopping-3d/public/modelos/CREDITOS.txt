@@ -1,0 +1,13 @@
+Créditos dos modelos 3D do Shopping da Beleza 3D
+
+Plantas (public/modelos) — Poly Haven (https://polyhaven.com), licença CC0 (domínio público):
+- planta-grande.glb  ← folhas do "Potted Plant 02" (potted_plant_02)
+- planta-media.glb   ← "Anthurium Botany 01", variação b (anthurium_botany_01)
+- planta-pequena.glb ← "Potted Plant 04" (potted_plant_04)
+Enxugados para a web: menos triângulos (meshoptimizer), fotos de 512 px e compressão meshopt.
+
+Avatares (public/avatares) ← 16 pessoas da pasta Assets/Avatars/Adults do Microsoft Rocketbox
+(https://github.com/microsoft/Microsoft-Rocketbox), licença MIT — ver LICENCA-ROCKETBOX.txt:
+Female_Adult_01, 03, 05, 11, 12, 13, 17, Female_Party_02, Male_Adult_01, 04, 06, 09, 10, 12, 16, 17.
+Animações f/m_walk_neutral_01, f/m_idle_breathe_01 e f/m_idle_neutral_01 do mesmo pacote.
+Texturas reduzidas (WebP), compressão meshopt e máscara da roupa (para trocar a cor) feita pelo nosso conversor.

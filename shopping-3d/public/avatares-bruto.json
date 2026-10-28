@@ -1,0 +1,322 @@
+[
+ {
+  "id": "Female_Adult_01",
+  "prefixo": "f001",
+  "altura": 1.743,
+  "temCabelo": true,
+  "corCima": "#b86470",
+  "corBaixo": "#394f5b",
+  "pele": [
+   212,
+   161,
+   137
+  ],
+  "ilhas": {
+   "cima": 9,
+   "pele": 2,
+   "baixo": 2,
+   "sapato": 4
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Adult_03",
+  "prefixo": "f003",
+  "altura": 1.739,
+  "temCabelo": true,
+  "corCima": "#7c3a73",
+  "corBaixo": "#1d1a19",
+  "pele": [
+   204,
+   152,
+   129
+  ],
+  "ilhas": {
+   "cima": 25,
+   "pele": 2,
+   "baixo": 5,
+   "sapato": 10
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Adult_05",
+  "prefixo": "f005",
+  "altura": 1.736,
+  "temCabelo": true,
+  "corCima": "#c69f99",
+  "corBaixo": "#314a55",
+  "pele": [
+   205,
+   146,
+   118
+  ],
+  "ilhas": {
+   "cima": 15,
+   "pele": 2,
+   "baixo": 2,
+   "sapato": 8
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Adult_11",
+  "prefixo": "f011",
+  "altura": 1.736,
+  "temCabelo": true,
+  "corCima": "#2a1a14",
+  "corBaixo": null,
+  "pele": [
+   199,
+   145,
+   111
+  ],
+  "ilhas": {
+   "cima": 38,
+   "baixo": 4,
+   "sapato": 8,
+   "pele": 2
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Adult_12",
+  "prefixo": "f012",
+  "altura": 1.727,
+  "temCabelo": true,
+  "corCima": "#1d1f1a",
+  "corBaixo": "#2e3233",
+  "pele": [
+   192,
+   136,
+   112
+  ],
+  "ilhas": {
+   "cima": 6,
+   "baixo": 11,
+   "sapato": 6,
+   "pele": 2
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Adult_13",
+  "prefixo": "f019",
+  "altura": 1.752,
+  "temCabelo": true,
+  "corCima": "#3e3c39",
+  "corBaixo": "#2f3b47",
+  "pele": [
+   212,
+   161,
+   137
+  ],
+  "ilhas": {
+   "baixo": 2,
+   "sapato": 6,
+   "cima": 21,
+   "pele": 6
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Adult_17",
+  "prefixo": "f006",
+  "altura": 1.751,
+  "temCabelo": true,
+  "corCima": "#629775",
+  "corBaixo": "#7795a1",
+  "pele": [
+   212,
+   161,
+   137
+  ],
+  "ilhas": {
+   "cima": 11,
+   "pele": 2,
+   "sapato": 6,
+   "baixo": 2
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Female_Party_02",
+  "prefixo": "f022",
+  "altura": 1.79,
+  "temCabelo": true,
+  "corCima": "#3e312d",
+  "corBaixo": null,
+  "pele": [
+   205,
+   143,
+   102
+  ],
+  "ilhas": {
+   "baixo": 8,
+   "sapato": 34,
+   "cima": 5,
+   "pele": 2
+  },
+  "quadrilY": 92.33
+ },
+ {
+  "id": "Male_Adult_01",
+  "prefixo": "m002",
+  "altura": 1.824,
+  "temCabelo": true,
+  "corCima": "#aaa096",
+  "corBaixo": "#94825e",
+  "pele": [
+   182,
+   128,
+   107
+  ],
+  "ilhas": {
+   "baixo": 5,
+   "cima": 6,
+   "pele": 2,
+   "sapato": 5
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_04",
+  "prefixo": "m006",
+  "altura": 1.869,
+  "temCabelo": true,
+  "corCima": "#282a26",
+  "corBaixo": "#353127",
+  "pele": [
+   151,
+   102,
+   72
+  ],
+  "ilhas": {
+   "cima": 13,
+   "baixo": 6,
+   "sapato": 10,
+   "pele": 2
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_06",
+  "prefixo": "m011",
+  "altura": 1.831,
+  "temCabelo": true,
+  "corCima": "#9e2b29",
+  "corBaixo": "#22292a",
+  "pele": [
+   186,
+   133,
+   106
+  ],
+  "ilhas": {
+   "baixo": 2,
+   "cima": 10,
+   "sapato": 4,
+   "pele": 2
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_09",
+  "prefixo": "m017",
+  "altura": 1.822,
+  "temCabelo": true,
+  "corCima": "#222127",
+  "corBaixo": "#5b676a",
+  "pele": [
+   207,
+   157,
+   125
+  ],
+  "ilhas": {
+   "baixo": 2,
+   "cima": 3,
+   "pele": 2,
+   "sapato": 4
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_10",
+  "prefixo": "m024",
+  "altura": 1.831,
+  "temCabelo": true,
+  "corCima": "#6c2725",
+  "corBaixo": "#252525",
+  "pele": [
+   214,
+   149,
+   99
+  ],
+  "ilhas": {
+   "cima": 7,
+   "baixo": 2,
+   "pele": 2,
+   "sapato": 4
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_12",
+  "prefixo": "m007",
+  "altura": 1.807,
+  "temCabelo": false,
+  "corCima": "#3b4249",
+  "corBaixo": "#5b676e",
+  "pele": [
+   113,
+   71,
+   54
+  ],
+  "ilhas": {
+   "baixo": 2,
+   "cima": 7,
+   "sapato": 4,
+   "pele": 2
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_16",
+  "prefixo": "m019",
+  "altura": 1.809,
+  "temCabelo": false,
+  "corCima": "#3f556f",
+  "corBaixo": "#505e67",
+  "pele": [
+   207,
+   157,
+   125
+  ],
+  "ilhas": {
+   "baixo": 2,
+   "sapato": 4,
+   "cima": 7,
+   "pele": 2
+  },
+  "quadrilY": 89.52
+ },
+ {
+  "id": "Male_Adult_17",
+  "prefixo": "m022",
+  "altura": 1.812,
+  "temCabelo": false,
+  "corCima": "#364f70",
+  "corBaixo": "#283234",
+  "pele": [
+   159,
+   107,
+   77
+  ],
+  "ilhas": {
+   "baixo": 2,
+   "sapato": 4,
+   "cima": 13,
+   "pele": 2
+  },
+  "quadrilY": 89.52
+ }
+]

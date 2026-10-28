@@ -1,0 +1,21 @@
+{
+  "name": "shopping-da-beleza-3d",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shopping da Beleza 3D — shopping virtual em que marcas alugam lojas e visitantes compram com o próprio avatar",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "catalogo": "node scripts/gerar-catalogo.mjs"
+  },
+  "dependencies": {
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.169.0",
+    "typescript": "5.6.3",
+    "vite": "6.0.7"
+  }
+}
