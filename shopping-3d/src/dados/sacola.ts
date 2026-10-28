@@ -13,6 +13,14 @@ export interface ItemSacola {
 }
 
 const CHAVE = "shopping3d.sacola";
+
+/** só itens com produto, preço e loja (o que vem da conta passa por aqui) */
+export function itensValidos(v: unknown): ItemSacola[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((i) => typeof i?.produto?.id === "string" && typeof i.produto.titulo === "string" && Number.isInteger(i.produto.preco) && typeof i.lojaId === "string" && Number.isInteger(i.qtd) && i.qtd > 0)
+    .map((i) => ({ produto: i.produto, lojaId: i.lojaId, lojaNome: String(i.lojaNome ?? ""), unidade: String(i.unidade ?? ""), qtd: Math.min(99, i.qtd) }));
+}
 type Ouvinte = (itens: ItemSacola[]) => void;
 
 class Sacola {
@@ -21,11 +29,16 @@ class Sacola {
 
   constructor() {
     try {
-      const salvo = JSON.parse(localStorage.getItem(CHAVE) ?? "[]");
-      if (Array.isArray(salvo)) this.itens = salvo.filter((i) => i?.produto?.id && i.qtd > 0);
+      this.itens = itensValidos(JSON.parse(localStorage.getItem(CHAVE) ?? "[]"));
     } catch {
       this.itens = [];
     }
+  }
+
+  /** troca a sacola inteira (ao trazer da conta) */
+  substituir(itens: ItemSacola[]) {
+    this.itens = itens;
+    this.mudou();
   }
 
   private mudou() {

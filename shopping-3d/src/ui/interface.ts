@@ -14,6 +14,7 @@ export interface AcoesHud {
   conversa: () => void;
   sacola: () => void;
   visual: () => void;
+  conta: () => void;
   musica: (ligar: boolean) => void;
   telaCheia: () => void;
   ajuda: () => void;
@@ -28,6 +29,7 @@ export class Interface {
   private naoLidas: HTMLElement;
   private online: HTMLElement;
   private botaoSom: HTMLButtonElement;
+  private botaoConta: HTMLButtonElement;
   private dica: HTMLElement;
   private dicaTexto: HTMLElement;
   private aviso: HTMLElement;
@@ -53,12 +55,11 @@ export class Interface {
     this.naoLidas = h("span", { class: "contagem", hidden: true }, "0");
     this.online = h("span", { class: "hud-online" }, textos.social.conectando);
     this.botaoSom = botao(textos.hud.som, "som", () => {
-      this.musicaLigada = !this.musicaLigada;
-      this.botaoSom.replaceChildren(icone(this.musicaLigada ? "som" : "mudo"), h("span", { class: "rotulo" }, this.musicaLigada ? textos.hud.som : textos.hud.semSom));
-      this.botaoSom.setAttribute("aria-pressed", String(this.musicaLigada));
+      this.definirMusica(!this.musicaLigada);
       acoes.musica(this.musicaLigada);
     });
     this.botaoSom.setAttribute("aria-pressed", "true");
+    this.botaoConta = botao(textos.hud.entrar, "conta", acoes.conta);
     this.local = h("strong", {}, textos.hud.entrada);
     this.hud = h(
       "header",
@@ -72,6 +73,8 @@ export class Interface {
         botao(textos.social.conversa, "conversa", acoes.conversa, this.naoLidas),
         botao(textos.hud.sacola, "sacola", acoes.sacola, this.contagem),
         botao(textos.hud.visual, "pessoa", acoes.visual),
+        // no celular a conta fica no provador (Trocar visual): a barra não tem espaço
+        h("span", { class: "so-largo" }, this.botaoConta),
         this.botaoSom,
         document.fullscreenEnabled ? h("span", { class: "so-largo" }, botao(textos.hud.telaCheia, "tela", acoes.telaCheia)) : null,
         botao(textos.hud.ajuda, "ajuda", acoes.ajuda)
@@ -182,6 +185,24 @@ export class Interface {
       this.definirDica(null);
       this.esconderBalao();
     }
+  }
+
+  /** música ligada ou não (o botão muda; quem liga o som é quem chamou) */
+  definirMusica(sim: boolean) {
+    this.musicaLigada = sim;
+    this.botaoSom.replaceChildren(icone(sim ? "som" : "mudo"), h("span", { class: "rotulo" }, sim ? textos.hud.som : textos.hud.semSom));
+    this.botaoSom.setAttribute("aria-pressed", String(sim));
+  }
+
+  get musica() {
+    return this.musicaLigada;
+  }
+
+  definirConta(logada: boolean) {
+    const rotulo = logada ? textos.hud.conta : textos.hud.entrar;
+    this.botaoConta.replaceChildren(icone("conta"), h("span", { class: "rotulo" }, rotulo));
+    this.botaoConta.setAttribute("aria-label", rotulo);
+    this.botaoConta.title = rotulo;
   }
 
   definirLocal(texto: string) {

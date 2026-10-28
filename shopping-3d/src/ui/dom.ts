@@ -36,6 +36,7 @@ const ICONES: Record<string, string> = {
   loja: '<path d="M4 9 5.5 4h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
   conversa: '<path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 9.5h8M8 12.5h5"/>',
   convidar: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M18 8v6M15 11h6"/>',
+  conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 11-7.4"/><path d="m15.5 18.5 2 2 4-4"/>',
   correr: '<circle cx="15" cy="4.5" r="2"/><path d="M6 11.5 9 8.5l4 .5 2.5 3 3 1M10.5 9 8.5 14l4 2.5V21M8.5 14 5 20"/>',
 };
 

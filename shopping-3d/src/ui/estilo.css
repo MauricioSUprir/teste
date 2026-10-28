@@ -352,6 +352,8 @@ input:focus-visible,
 /* ---- painel lateral */
 .painel {
   position: absolute;
+  /* por cima do provador (a conta abre de lá) */
+  z-index: 4;
   top: 76px;
   right: 12px;
   bottom: 12px;
@@ -912,6 +914,98 @@ input:focus-visible,
   font-size: 12px;
   color: var(--cinza);
 }
+/* ---- conta (faixa no provador e o painel) */
+.provador-conta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 12px 0 2px;
+  padding: 10px 14px;
+  border: 1.5px dashed rgba(122, 45, 156, 0.4);
+  border-radius: 14px;
+  background: #faf5fd;
+  color: var(--ameixa);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+.provador-conta span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.provador-conta strong {
+  font-weight: 600;
+  color: #7a2d9c;
+}
+.provador-conta.dentro {
+  border-style: solid;
+  border-color: rgba(47, 125, 79, 0.35);
+  background: #f1f8f3;
+}
+.provador-conta .icone {
+  flex: none;
+}
+.erro-conta {
+  margin: 8px 0;
+  color: #a3123a;
+  font-size: 13px;
+}
+.conta-email {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f7f1fb;
+}
+.conta-email span {
+  color: var(--cinza);
+  font-size: 12px;
+}
+.conta-email strong {
+  color: var(--ameixa);
+  word-break: break-all;
+}
+.conta-estado {
+  margin: 10px 0;
+  color: #2f7d4f;
+  font-size: 13px;
+}
+.conta-estado.semRede {
+  color: #9a5b00;
+}
+.conta-estado.salvando,
+.conta-estado.carregando {
+  color: var(--cinza);
+}
+.secundario.perigo {
+  margin-top: 14px;
+  color: #a3123a;
+  border-color: rgba(163, 18, 58, 0.35);
+}
+.principal.perigo {
+  background: #a3123a;
+  box-shadow: none;
+}
+.campo input.codigo {
+  font-size: 22px;
+  letter-spacing: 0.4em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.nota-curta a {
+  color: var(--ameixa);
+}
+.principal:disabled,
+.secundario:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .provador-rodape {
   padding: 14px 24px 18px;
   border-top: 1px solid var(--linha);
@@ -919,6 +1013,27 @@ input:focus-visible,
 }
 .provador-rodape .nota-curta {
   text-align: center;
+}
+
+/* ---- telas médias: sem o logo na barra e, mais estreito, só os ícones */
+@media (max-width: 1300px) {
+  .hud > .hud-marca {
+    display: none;
+  }
+}
+@media (max-width: 1100px) {
+  .botao-hud .rotulo {
+    display: none;
+  }
+  .botao-hud {
+    padding: 9px 11px;
+  }
+  .contagem {
+    left: 22px;
+  }
+}
+.painel[data-tipo="conta"] {
+  background: #fffdfb;
 }
 
 /* ---- barra compacta: tela estreita ou celular deitado */

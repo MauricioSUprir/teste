@@ -196,9 +196,40 @@ const CHAVE = "shopping3d.lojas";
 
 export function lerPrevias(): Record<string, LojaPrevia> {
   try {
-    return JSON.parse(localStorage.getItem(CHAVE) ?? "{}");
+    return previasValidas(JSON.parse(localStorage.getItem(CHAVE) ?? "{}"));
   } catch {
     return {};
+  }
+}
+
+/** só as lojas com todos os campos e numa unidade que existe (o que vem da conta passa por aqui) */
+export function previasValidas(v: unknown): Record<string, LojaPrevia> {
+  const r: Record<string, LojaPrevia> = {};
+  if (!v || typeof v !== "object") return r;
+  const texto = (x: unknown, max: number) => (typeof x === "string" ? x.slice(0, max) : null);
+  const cor = (x: unknown) => (typeof x === "string" && /^#[0-9a-fA-F]{6}$/.test(x) ? x : null);
+  for (const [u, p] of Object.entries(v as Record<string, Partial<LojaPrevia>>)) {
+    if (!UNIDADES.some((x) => x.numero === u) || !p || typeof p !== "object") continue;
+    // campo que falta (loja montada numa versão antiga) fica com o padrão do editor
+    r[u] = {
+      nome: texto(p.nome, 22) ?? textos.editor.nomePadrao,
+      slogan: texto(p.slogan, 36) ?? "",
+      primaria: cor(p.primaria) ?? "#C2185B",
+      parede: cor(p.parede) ?? "#FFF7F2",
+      piso: (["madeira", "porcelanato", "cimento"] as const).find((x) => x === p.piso) ?? "madeira",
+      letra: (["moderna", "classica", "forte"] as const).find((x) => x === p.letra) ?? "moderna",
+      categoria: (Object.keys(textos.editor.categorias) as CategoriaPrevia[]).find((x) => x === p.categoria) ?? "maquiagem",
+    };
+  }
+  return r;
+}
+
+/** troca todas as lojas montadas de uma vez (ao trazer da conta) */
+export function gravarPrevias(todas: Record<string, LojaPrevia>) {
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify(todas));
+  } catch {
+    /* sem armazenamento */
   }
 }
 

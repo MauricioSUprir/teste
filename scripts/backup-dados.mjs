@@ -45,6 +45,8 @@ const CONJUNTOS = [
     contar: (d) => Object.values(d?.precos ?? {}).reduce((s, v) => s + Object.keys(v ?? {}).length, 0),
   },
   { rota: "/enviar-banners/exportar", arquivo: "banners-enviados.json", contar: (d) => Object.keys(d?.banners ?? {}).length },
+  // contas do Beauty Shopping (e-mail): só sai cifrado
+  { rota: "/shopping/contas/exportar", arquivo: "contas-shopping-backup.json", contar: (d) => d?.contas?.length ?? 0 },
 ];
 
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));

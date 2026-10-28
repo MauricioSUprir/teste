@@ -5,8 +5,9 @@
  */
 import { textos } from "../copy/textos";
 import { AVATARES, infoAvatar } from "../dados/avatares";
+import { conta } from "../dados/conta";
 import { CORES_CABELO, CORES_CALCA, CORES_ROUPA, type Visual } from "../avatar/avatares";
-import { h } from "./dom";
+import { h, icone } from "./dom";
 
 export interface Escolha extends Visual {
   nome: string;
@@ -14,10 +15,19 @@ export interface Escolha extends Visual {
 
 const CHAVE = "shopping3d.visual";
 
+const corOuNada = (c: unknown) => (typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c) ? c : null);
+
+/** a escolha guardada (aqui ou na conta), conferida campo a campo; null se não serve */
+export function escolhaValida(e: unknown): Escolha | null {
+  const o = e as Partial<Escolha> | null;
+  if (!o || typeof o !== "object" || !AVATARES.some((a) => a.id === o.avatar)) return null;
+  return { avatar: o.avatar!, cabelo: corOuNada(o.cabelo), cima: corOuNada(o.cima), baixo: corOuNada(o.baixo), nome: typeof o.nome === "string" ? o.nome.slice(0, 18) : "" };
+}
+
 export function lerEscolha(): Escolha {
   try {
-    const e = JSON.parse(localStorage.getItem(CHAVE) ?? "null");
-    if (e && AVATARES.some((a) => a.id === e.avatar)) return { avatar: e.avatar, cabelo: e.cabelo ?? null, cima: e.cima ?? null, baixo: e.baixo ?? null, nome: typeof e.nome === "string" ? e.nome : "" };
+    const e = escolhaValida(JSON.parse(localStorage.getItem(CHAVE) ?? "null"));
+    if (e) return e;
   } catch {
     /* primeira visita */
   }
@@ -36,6 +46,8 @@ export interface OpcoesProvadorUi {
   emShopping: boolean;
   aoMudar: (e: Escolha) => void;
   aoEntrar: (e: Escolha) => void;
+  /** abre o painel da conta */
+  aoConta: () => void;
 }
 
 export function montarProvadorUi(pai: HTMLElement, inicial: Escolha, op: OpcoesProvadorUi) {
@@ -119,6 +131,17 @@ export function montarProvadorUi(pai: HTMLElement, inicial: Escolha, op: OpcoesP
     op.aoEntrar({ ...e });
   };
 
+  // faixa da conta: convida a entrar ou mostra quem está conectado
+  const faixa = h("button", { class: "provador-conta", type: "button", onclick: () => op.aoConta() });
+  const notaSalvo = h("span", {});
+  const atualizarConta = () => {
+    const tc = textos.conta;
+    faixa.classList.toggle("dentro", conta.logada);
+    faixa.replaceChildren(icone("conta"), h("span", {}, conta.logada ? tc.faixaDentro(conta.email ?? "") : tc.faixaFora), h("strong", {}, conta.logada ? tc.abrir : textos.hud.entrar));
+    notaSalvo.textContent = conta.logada ? t.salvoConta : t.salvo;
+  };
+  atualizarConta();
+
   desenharRetratos();
   desenharCores();
   const painel = h(
@@ -129,7 +152,8 @@ export function montarProvadorUi(pai: HTMLElement, inicial: Escolha, op: OpcoesP
       { class: "provador-topo" },
       h("div", { class: "hud-marca" }, h("img", { class: "hud-logo", src: "./marca/logo-roxo.png", alt: textos.shopping.nome, width: 1600, height: 432 })),
       h("h1", {}, t.titulo),
-      h("p", { class: "subtitulo" }, t.subtitulo)
+      h("p", { class: "subtitulo" }, t.subtitulo),
+      faixa
     ),
     h(
       "div",
@@ -144,9 +168,9 @@ export function montarProvadorUi(pai: HTMLElement, inicial: Escolha, op: OpcoesP
       "div",
       { class: "provador-rodape" },
       h("button", { class: "principal grande", type: "button", onclick: entrar }, op.emShopping ? t.voltar : t.entrar),
-      h("p", { class: "nota-curta" }, `${t.girar} · ${t.salvo}`)
+      h("p", { class: "nota-curta" }, `${t.girar} · `, notaSalvo)
     )
   );
   pai.appendChild(painel);
-  return { painel, remover: () => painel.remove() };
+  return { painel, remover: () => painel.remove(), atualizarConta };
 }

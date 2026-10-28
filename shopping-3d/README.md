@@ -22,6 +22,9 @@ npm run catalogo   # refaz os dados das lojas a partir do catálogo do Hub
 
 # servidor dos visitantes online (WebSocket), em outro terminal
 cd servidor && npm ci && node index.mjs   # ws://localhost:8787/ws
+
+# contas (o servidor BeautyNow, com o código saindo no log), em outro terminal
+cd ../apps/servidor && npm ci && EMAIL_MODO=console ORIGENS_SHOPPING=http://localhost:5173 node index.mjs   # http://localhost:4000
 ```
 
 ## O que já tem (prévia)
@@ -48,6 +51,10 @@ cd servidor && npm ci && node index.mjs   # ws://localhost:8787/ws
   a própria loja na prévia** (nome, frase, cores, piso, letreiro, produtos).
 - **Online**: outras pessoas aparecem com o avatar e o nome, conversa (balão em
   cima da cabeça), gestos (acenar, aplaudir, dançar, rir, comemorar), "ir até".
+- **Conta**: entra com o e-mail e um código de 6 números (o mesmo login da
+  loja BeautyNow, sem senha). Fica salvo o visual com o nome, a sacola, as
+  lojas montadas e a música; em outro aparelho, tudo volta. Dá para sair e
+  apagar a conta. O servidor é o da BeautyNow (`apps/servidor/contas-shopping.mjs`).
 - Computador (teclado, mouse, clique no chão para ir) e celular (joystick,
   arrastar para olhar, tocar para ir), com a qualidade ajustada sozinha.
 
@@ -64,6 +71,7 @@ contrato de aluguel.
 | `src/avatar/` | carregar/pintar avatares, animação, provador, visitantes (térreo e varandas), gente online |
 | `src/motor/` | renderizador e tratamento de cor, câmera em 3ª pessoa (com a abertura), teclado/mouse/toque, som |
 | `src/rede/` | conexão com o servidor dos visitantes online |
+| `src/dados/conta.ts`, `sincronia.ts` | conta (login por código) e o que ela guarda |
 | `src/ui/` | barra, painéis (produto, sacola, caixa, mapa, aluguel, editor), provador, conversa e gestos |
 | `src/copy/` | todos os textos em pt-BR |
 | `servidor/` | servidor WebSocket (Node + ws): posições, conversa e gestos |

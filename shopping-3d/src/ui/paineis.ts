@@ -313,6 +313,6 @@ export function painelMapa(ui: Interface, ocupadas: Map<string, Inquilino>, pos:
 
 export function painelAjuda(ui: Interface) {
   const a = textos.ajuda;
-  const linhas = ui.celular ? [a.toque, a.acao] : [a.teclado, a.mouse, a.clique, a.acao];
+  const linhas = ui.celular ? [a.toque, a.acao, a.contaCelular] : [a.teclado, a.mouse, a.clique, a.acao, a.conta];
   ui.abrirPainel("ajuda", a.titulo, [h("ul", { class: "lista" }, linhas.map((l) => h("li", {}, l)))], [h("button", { class: "principal", type: "button", onclick: () => ui.fecharPainel() }, a.fechar)]);
 }

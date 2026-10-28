@@ -26,6 +26,9 @@ import type { PontoInteracao } from "./mundo/estrutura";
 import { Interface } from "./ui/interface";
 import { painelAjuda, painelAluguel, painelCaixa, painelEditor, painelMapa, painelProduto, painelSacola } from "./ui/paineis";
 import { lerEscolha, montarProvadorUi, type Escolha } from "./ui/provador-ui";
+import { conta } from "./dados/conta";
+import { gravarMusica, lerMusica, ligarSincronia } from "./dados/sincronia";
+import { painelConta } from "./ui/painel-conta";
 import type { Produto } from "./dados/catalogo";
 
 const app = document.getElementById("app")!;
@@ -112,12 +115,19 @@ function iniciar() {
     conversa: () => abrirConversa(),
     sacola: () => painelSacola(ui, (u) => (ui.fecharPainel(), levarAte(u, true))),
     visual: () => abrirProvador(),
-    musica: (sim) => som.ligar(sim),
+    conta: () => painelConta(ui),
+    musica: (sim) => {
+      som.ligar(sim);
+      gravarMusica(sim);
+      conta.mudou();
+    },
     telaCheia: () => (document.fullscreenElement ? void document.exitFullscreen() : void document.documentElement.requestFullscreen?.().catch(() => undefined)),
     ajuda: () => painelAjuda(ui),
     acao: () => agir(),
   });
   sacola.ouvir(() => ui.definirSacola(sacola.quantidade()));
+  ui.definirMusica(lerMusica());
+  ui.definirConta(conta.logada);
   entrada.aoAcao = () => agir();
   ui.aoFecharPainel = () => (conversa = null);
   const barraGestos = montarBarraGestos(ui.raiz, (g) => fazerGesto(g));
@@ -260,10 +270,15 @@ function iniciar() {
     barraGestos.hidden = true;
     motor.usar(provador.cena);
     provador.enquadrar(motor.camera, innerWidth, innerHeight, painelDoLado());
+    montarProvador();
+  }
+
+  function montarProvador() {
     void provador.vestir(escolha, 1024);
     provadorUi?.remover();
     provadorUi = montarProvadorUi(ui.raiz, escolha, {
       emShopping: !!jogador,
+      aoConta: () => painelConta(ui),
       aoMudar: (e) => {
         escolha = e;
         preCarregar(e.avatar);
@@ -271,6 +286,7 @@ function iniciar() {
       },
       aoEntrar: (e) => {
         escolha = e;
+        conta.mudou();
         // tela cheia precisa ser pedida aqui, no clique
         if (celular && document.fullscreenEnabled && !document.fullscreenElement) void document.documentElement.requestFullscreen?.().catch(() => undefined);
         som.destravar();
@@ -349,7 +365,7 @@ function iniciar() {
     ui.definirCarregando(null);
     ui.mostrarHud(true);
     barraGestos.hidden = false;
-    som.ligar(true);
+    som.ligar(ui.musica);
     if (!outros.grupo.parent) s.cena.add(outros.grupo);
     if (novo) rede.conectar(escolha.nome || textos.social.visitante, escolha);
     else rede.mudarVisual(escolha.nome || textos.social.visitante, escolha);
@@ -418,6 +434,7 @@ function iniciar() {
       atual,
       (l) => {
         gravarPrevia(numero, l);
+        conta.mudou();
         s.refazerLoja(numero);
         const q = s.ocupadas.get(numero);
         if (q) void criarAtendente(q);
@@ -427,6 +444,7 @@ function iniciar() {
       atual
         ? () => {
             gravarPrevia(numero, null);
+            conta.mudou();
             s.refazerLoja(numero);
             atendentes.get(numero)?.descartar();
             atendentes.delete(numero);
@@ -796,6 +814,38 @@ function iniciar() {
       setTimeout(() => location.reload(), 500);
     } else ui.definirCarregando(textos.carregando.semMemoria, { rotulo: textos.carregando.tentarDeNovo, fazer: () => (guardar(sessionStorage, CHAVE_QUEDAS, 0), location.reload()) });
   });
+
+  // ---- conta: o que vem dela entra no shopping na hora
+  ligarSincronia({
+    visual: (e) => {
+      escolha = e;
+      if (modo === "provador") {
+        if (provadorUi) montarProvador();
+      } else if (jogador) void entrarNoShopping();
+    },
+    lojas: (unidades) => {
+      const s = shopping;
+      if (!s) return;
+      for (const numero of unidades) {
+        s.refazerLoja(numero);
+        const q = s.ocupadas.get(numero);
+        if (q && jogador) void criarAtendente(q);
+        else if (!q) {
+          atendentes.get(numero)?.descartar();
+          atendentes.delete(numero);
+        }
+      }
+    },
+    musica: (sim) => {
+      ui.definirMusica(sim);
+      if (modo === "shopping") som.ligar(sim);
+    },
+  });
+  conta.ouvir(() => {
+    ui.definirConta(conta.logada);
+    provadorUi?.atualizarConta();
+  });
+  void conta.carregar();
 
   // ---- começo: fontes → provador → shopping montado por trás
   void (async () => {

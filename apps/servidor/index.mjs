@@ -20,6 +20,7 @@ import express from "express";
 import cors from "cors";
 import { createTransport } from "nodemailer";
 import crypto, { randomInt } from "node:crypto";
+import { montarContasShopping } from "./contas-shopping.mjs";
 
 // Render/Heroku definem PORT; localmente usamos PORTA (padrão 4000)
 const PORTA = Number(process.env.PORTA ?? process.env.PORT ?? 4000);
@@ -99,6 +100,15 @@ function doBanco(chave) {
   return v === undefined || v?.__apagado ? undefined : v;
 }
 
+/** [chave, valor] de todas as chaves lidas no boot que começam com o prefixo */
+function doBancoComPrefixo(prefixo, comApagadas = false) {
+  const lista = [];
+  for (const [chave, valor] of bancoInicial ?? []) {
+    if (chave.startsWith(prefixo) && (comApagadas ? valor?.__apagado : !valor?.__apagado)) lista.push([chave, valor]);
+  }
+  return lista;
+}
+
 /** e-mails de administrador que recebem a notificação de cada venda */
 const EMAILS_NOTIFICACAO = (process.env.ADMIN_NOTIFICACAO_EMAILS ?? "lojabeautynow@gmail.com")
   .split(",")
@@ -157,6 +167,12 @@ aplicacao.use(express.json({ limit: "100kb" }));
 // API do painel externo (/api/v1): aceita qualquer origem — quem protege é o
 // token, não o domínio. Precisa vir antes do CORS geral, que só libera as lojas.
 aplicacao.use("/api/v1", cors({ origin: true, allowedHeaders: ["Authorization", "X-API-Key", "Content-Type"] }));
+// contas do Beauty Shopping (shopping 3D): endereço próprio, fora das lojas
+const ORIGENS_SHOPPING = (process.env.ORIGENS_SHOPPING ?? "https://shopping-da-beleza.onrender.com")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+aplicacao.use("/shopping", cors({ origin: ORIGENS_SHOPPING, methods: ["GET", "PUT", "POST"], allowedHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 aplicacao.use(cors({ origin: ORIGENS }));
 
 // transporte de e-mail — timeouts explícitos: sem eles, uma conexão
@@ -183,7 +199,7 @@ const brevoAtivo = EMAIL_MODO === "brevo" && BREVO_API_KEY.length > 0;
 /** o site pergunta em /saude se o e-mail real está ligado */
 const emailRealLigado = () => brevoAtivo || transporte !== null;
 
-async function enviarViaBrevo({ para, assunto, texto, html }) {
+async function enviarViaBrevo({ para, assunto, texto, html, remetente = "BeautyNow" }) {
   const resposta = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
@@ -192,7 +208,7 @@ async function enviarViaBrevo({ para, assunto, texto, html }) {
       accept: "application/json",
     },
     body: JSON.stringify({
-      sender: { name: "BeautyNow", email: EMAIL_USUARIO },
+      sender: { name: remetente, email: EMAIL_USUARIO },
       to: [{ email: para }],
       subject: assunto,
       textContent: texto,
@@ -207,11 +223,11 @@ async function enviarViaBrevo({ para, assunto, texto, html }) {
 }
 
 /** envia por qualquer modo ativo (brevo → gmail → console) */
-async function enviarEmail({ para, assunto, texto, html }) {
-  if (brevoAtivo) return enviarViaBrevo({ para, assunto, texto, html });
+async function enviarEmail({ para, assunto, texto, html, remetente = "BeautyNow" }) {
+  if (brevoAtivo) return enviarViaBrevo({ para, assunto, texto, html, remetente });
   if (transporte) {
     return transporte.sendMail({
-      from: `"BeautyNow" <${EMAIL_USUARIO}>`,
+      from: `"${remetente}" <${EMAIL_USUARIO}>`,
       to: para,
       subject: assunto,
       text: texto,
@@ -234,22 +250,28 @@ if (transporte) {
 }
 if (brevoAtivo) console.log("[email] modo Brevo ativo — envio via HTTPS");
 
-async function enviarEmailCodigo(email, codigo) {
-  const texto = `Seu código de verificação BeautyNow é: ${codigo}\n\nEle vale por 10 minutos. Se você não tentou entrar, ignore este e-mail.`;
+async function enviarEmailCodigo(email, codigo, marca = "beautynow") {
+  const shopping = marca === "shopping";
+  const nome = shopping ? "Beauty Shopping" : "BeautyNow";
+  const texto = `Seu código de verificação ${nome} é: ${codigo}\n\nEle vale por 10 minutos. Se você não tentou entrar, ignore este e-mail.`;
   if (!emailRealLigado()) {
     // modo console (teste): o código sai no log do servidor
     console.log(`[email-teste] para=${email} codigo=${codigo}`);
     return;
   }
+  const topo = shopping
+    ? `<span style="color:#7A2D9C;font-size:14px;font-weight:bold;letter-spacing:4px">BEAUTY SHOPPING</span>`
+    : `<span style="color:#4A2882">BN</span>
+          <span style="color:#6847C8;font-size:12px;letter-spacing:4px">BEAUTY NOW</span>`;
   await enviarEmail({
     para: email,
-    assunto: `Seu código BeautyNow: ${codigo}`,
+    assunto: `Seu código ${nome}: ${codigo}`,
     texto,
+    remetente: nome,
     html: `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px">
         <p style="font-size:22px;font-weight:bold;margin:0">
-          <span style="color:#4A2882">BN</span>
-          <span style="color:#6847C8;font-size:12px;letter-spacing:4px">BEAUTY NOW</span>
+          ${topo}
         </p>
         <h2 style="color:#14161A">Confirme que é você</h2>
         <p style="color:#4A4F57">Use o código abaixo para concluir seu login. Ele vale por 10 minutos.</p>
@@ -842,15 +864,15 @@ aplicacao.get("/exportar-catalogo/baixar", (req, res) => {
   res.send(exportacao.json);
 });
 
-aplicacao.post("/codigo", async (req, res) => {
-  const email = String(req.body?.email ?? "").trim().toLowerCase();
-  if (!emailValido(email)) return res.status(400).json({ erro: "E-mail inválido." });
+/** gera o código de 6 dígitos e manda por e-mail; { ok } ou { status, erro } */
+async function pedirCodigo(email, marca = "beautynow") {
+  if (!emailValido(email)) return { status: 400, erro: "E-mail inválido." };
 
   const agora = Date.now();
   const registro = pendentes.get(email);
   const enviosRecentes = (registro?.envios ?? []).filter((t) => agora - t < VALIDADE_MS);
   if (enviosRecentes.length >= MAX_ENVIOS_POR_JANELA) {
-    return res.status(429).json({ erro: "Muitos envios. Aguarde alguns minutos e tente de novo." });
+    return { status: 429, erro: "Muitos envios. Aguarde alguns minutos e tente de novo." };
   }
 
   const codigo = String(randomInt(0, 1000000)).padStart(6, "0");
@@ -862,33 +884,46 @@ aplicacao.post("/codigo", async (req, res) => {
   });
 
   try {
-    await enviarEmailCodigo(email, codigo);
-    res.json({ ok: true });
+    await enviarEmailCodigo(email, codigo, marca);
+    return { ok: true };
   } catch (erro) {
     console.error("falha no envio de e-mail:", erro.message);
-    res.status(502).json({ erro: "Não foi possível enviar o e-mail agora. Tente novamente." });
+    return { status: 502, erro: "Não foi possível enviar o e-mail agora. Tente novamente." };
   }
-});
+}
 
-aplicacao.post("/codigo/verificar", (req, res) => {
-  const email = String(req.body?.email ?? "").trim().toLowerCase();
-  const codigo = String(req.body?.codigo ?? "").trim();
+/** confere o código digitado; { ok } ou { status, erro } */
+function conferirCodigo(email, codigo) {
   const registro = pendentes.get(email);
 
-  if (!registro) return res.status(400).json({ erro: "Nenhuma verificação em andamento. Faça login de novo." });
+  if (!registro) return { status: 400, erro: "Nenhuma verificação em andamento. Faça login de novo." };
   if (Date.now() > registro.expiraEm) {
     pendentes.delete(email);
-    return res.status(400).json({ erro: "O código expirou. Faça login novamente." });
+    return { status: 400, erro: "O código expirou. Faça login novamente." };
   }
   registro.tentativas += 1;
   if (registro.tentativas > MAX_TENTATIVAS) {
     pendentes.delete(email);
-    return res.status(429).json({ erro: "Muitas tentativas. Faça login novamente." });
+    return { status: 429, erro: "Muitas tentativas. Faça login novamente." };
   }
   if (codigo !== registro.codigo) {
-    return res.status(400).json({ erro: "Código incorreto. Confira os 6 dígitos." });
+    return { status: 400, erro: "Código incorreto. Confira os 6 dígitos." };
   }
   pendentes.delete(email);
+  return { ok: true };
+}
+
+aplicacao.post("/codigo", async (req, res) => {
+  const email = String(req.body?.email ?? "").trim().toLowerCase();
+  const r = await pedirCodigo(email);
+  if (r.erro) return res.status(r.status).json({ erro: r.erro });
+  res.json({ ok: true });
+});
+
+aplicacao.post("/codigo/verificar", (req, res) => {
+  const email = String(req.body?.email ?? "").trim().toLowerCase();
+  const r = conferirCodigo(email, String(req.body?.codigo ?? "").trim());
+  if (r.erro) return res.status(r.status).json({ erro: r.erro });
   res.json({ ok: true });
 });
 
@@ -3397,6 +3432,22 @@ aplicacao.get("/bling/refresh-token", (req, res) => {
     return res.status(404).json({ erro: "Bling não conectado. Abra /bling/conectar primeiro." });
   }
   res.json({ refreshToken: blingTokens.refresh });
+});
+
+// ===== Contas do Beauty Shopping (shopping 3D) =====
+await montarContasShopping(aplicacao, {
+  doBancoComPrefixo,
+  gravarNoBanco,
+  APAGADO,
+  cifrarBackup,
+  decifrarBackup,
+  marcarFalhaRestauracao,
+  restauracaoOk: () => !restauracaoFalhou,
+  ehAdmin,
+  tokenDoCabecalho,
+  emailValido,
+  pedirCodigo,
+  conferirCodigo,
 });
 
 aplicacao.listen(PORTA, () => {
