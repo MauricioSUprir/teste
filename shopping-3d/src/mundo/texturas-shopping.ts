@@ -119,3 +119,111 @@ export function texturaNuvens(semente: number) {
   t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
+
+// ---- escada rolante e elevador
+
+/** inox escovado: riscos finos na horizontal (o brilho do metal varia risco a risco); 1 m por repetição */
+export function texturasEscovado(semente: number) {
+  const L = 512;
+  const r = criarRuido(semente);
+  const rug = canvas(L);
+  const pr = rug.dados.data;
+  const alt = new Float32Array(L * L);
+  for (let y = 0; y < L; y++) {
+    for (let x = 0; x < L; x++) {
+      const i = y * L + x;
+      // esticado no x: risco comprido e fino
+      const n = fbm(r, (x / L) * 4, (y / L) * 256, 3, 4, 256);
+      const m = fbm(r, (x / L) * 2 + 17, (y / L) * 2, 2, 2);
+      alt[i] = n;
+      const v = 92 + n * 36 + (m - 0.5) * 18;
+      pr[i * 4] = pr[i * 4 + 1] = pr[i * 4 + 2] = Math.max(70, Math.min(150, v));
+      pr[i * 4 + 3] = 255;
+    }
+  }
+  rug.g.putImageData(rug.dados, 0, 0);
+  return { rugosidade: paraTextura(rug.c, false), normal: normaisDe(alt, L, L, 0.6) };
+}
+
+/**
+ * Pisada do degrau da escada rolante (256 × 512 = 0,385 × 1 m): alumínio com
+ * os frisos no sentido do movimento e a faixa amarela de segurança nas bordas.
+ */
+export function texturasDegrau() {
+  const A = 256; // profundidade (sentido do movimento)
+  const B = 512; // largura do degrau
+  const { c, g } = canvas(A, B);
+  g.fillStyle = "#9da2a8";
+  g.fillRect(0, 0, A, B);
+  const alt = new Float32Array(A * B).fill(0.8);
+  // frisos: um a cada 8 px (~1,6 cm), fundo mais escuro
+  for (let y = 0; y < B; y += 8) {
+    g.fillStyle = "#4b4f55";
+    g.fillRect(0, y, A, 3);
+    for (let yy = y; yy < Math.min(B, y + 3); yy++) for (let x = 0; x < A; x++) alt[yy * A + x] = 0.2;
+  }
+  // faixa amarela: na borda de trás e nos dois lados
+  g.fillStyle = "#e5b22a";
+  g.fillRect(A - 22, 0, 22, B);
+  g.fillRect(0, 0, A, 18);
+  g.fillRect(0, B - 18, A, 18);
+  return { cor: paraTextura(c, true, false), normal: normaisDe(alt, A, B, 2.2) };
+}
+
+/** espelho (frente) do degrau: frisos verticais, alumínio mais escuro */
+export function texturaEspelhoDegrau() {
+  const { c, g } = canvas(512, 64);
+  g.fillStyle = "#6b7077";
+  g.fillRect(0, 0, 512, 64);
+  g.fillStyle = "#3d4046";
+  for (let x = 0; x < 512; x += 8) g.fillRect(x, 0, 3, 64);
+  return paraTextura(c, true, false);
+}
+
+/** pente e chapa de piso das pontas: chapa xadrez de alumínio com os dentes amarelos do lado do degrau */
+export function texturasChapa() {
+  const L = 256;
+  const { c, g } = canvas(L);
+  g.fillStyle = "#a9adb3";
+  g.fillRect(0, 0, L, L);
+  const alt = new Float32Array(L * L).fill(0.3);
+  // xadrez em diagonal (gomos de 2,5 cm)
+  for (let y = 0; y < L; y += 16) {
+    for (let x = (y / 16) % 2 ? 8 : 0; x < L; x += 16) {
+      g.fillStyle = "#c9ccd1";
+      g.beginPath();
+      g.ellipse(x + 4, y + 4, 6, 2, Math.PI / 4, 0, Math.PI * 2);
+      g.fill();
+      for (let yy = -3; yy <= 3; yy++) for (let xx = -6; xx <= 6; xx++) {
+        const px = Math.round(x + 4 + (xx - yy) * 0.7);
+        const py = Math.round(y + 4 + (xx + yy) * 0.7);
+        if (px >= 0 && py >= 0 && px < L && py < L) alt[py * L + px] = 0.9;
+      }
+    }
+  }
+  return { cor: paraTextura(c, true), normal: normaisDe(alt, L, L, 1.6) };
+}
+
+/** granito escuro polido (piso da cabine do elevador e base da torre); 1 m por repetição */
+export function texturaGranito(semente: number) {
+  const L = 512;
+  const r = criarRuido(semente);
+  const { c, g, dados } = canvas(L);
+  const px = dados.data;
+  for (let y = 0; y < L; y++) {
+    for (let x = 0; x < L; x++) {
+      const i = (y * L + x) * 4;
+      const n = fbm(r, (x / L) * 16, (y / L) * 16, 3, 16);
+      const grao = fbm(r, (x / L) * 128 + 5, (y / L) * 128, 1, 128);
+      let v = 34 + n * 22;
+      if (grao > 0.78) v = 150 + (grao - 0.78) * 400;
+      else if (grao < 0.2) v = 18;
+      px[i] = v;
+      px[i + 1] = v * 0.98;
+      px[i + 2] = v * 1.02;
+      px[i + 3] = 255;
+    }
+  }
+  g.putImageData(dados, 0, 0);
+  return paraTextura(c, true);
+}

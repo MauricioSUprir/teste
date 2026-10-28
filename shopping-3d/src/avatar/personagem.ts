@@ -3,7 +3,8 @@
  *
  * A animação de andar é "no lugar" (o conversor tirou o avanço do quadril);
  * quem anda é o jogo, e o passo acelera junto com a velocidade para o pé não
- * escorregar no piso. Parado e andando se misturam pelo quanto a pessoa anda.
+ * escorregar no piso. Parado e andando se misturam pelo quanto a pessoa anda;
+ * acima do passo rápido entra a corrida (outra animação, no mesmo ritmo).
  */
 import * as THREE from "three";
 import { ANIMACAO } from "../dados/avatares";
@@ -16,6 +17,10 @@ export class Personagem {
   private andar: THREE.AnimationAction;
   private parado: THREE.AnimationAction;
   private parado2: THREE.AnimationAction | null;
+  private correr: THREE.AnimationAction | null;
+  private pesoCorrida = 0;
+  /** velocidade da animação de correr (m/s) */
+  readonly passoCorrida: number;
   /** direção para onde olha (radianos; 0 = +z) */
   rumo = 0;
   private rumoAlvo = 0;
@@ -38,8 +43,11 @@ export class Personagem {
     this.andar = this.mixer.clipAction(modelo.clipes.andar);
     this.parado = this.mixer.clipAction(modelo.clipes.parado);
     this.parado2 = op.variarParado && modelo.clipes.parado2 ? this.mixer.clipAction(modelo.clipes.parado2) : null;
-    for (const a of [this.andar, this.parado, this.parado2]) if (a) a.play();
+    this.correr = modelo.clipes.correr ? this.mixer.clipAction(modelo.clipes.correr) : null;
+    this.passoCorrida = ANIMACAO[modelo.info.genero].corrida;
+    for (const a of [this.andar, this.parado, this.parado2, this.correr]) if (a) a.play();
     this.andar.setEffectiveWeight(0);
+    this.correr?.setEffectiveWeight(0);
     this.parado2?.setEffectiveWeight(0);
     // cada pessoa começa num ponto diferente do ciclo (ninguém respira junto)
     this.mixer.setTime(Math.random() * 10);
@@ -99,7 +107,17 @@ export class Personagem {
       } else this.gestoAcao.setEffectiveWeight(this.pesoGesto);
     }
     const resto = 1 - this.pesoGesto;
-    this.andar.setEffectiveWeight(peso * resto);
+    // correndo: a partir de ~1,5× o passo de andar a corrida assume (e começa no mesmo ponto do ciclo)
+    let corre = 0;
+    if (this.correr) {
+      const alvoC = THREE.MathUtils.clamp((velocidade - this.passo * 1.5) / (this.passoCorrida * 0.85 - this.passo * 1.5), 0, 1);
+      if (this.pesoCorrida < 0.01 && alvoC > 0) this.correr.time = (this.andar.time / this.modelo.clipes.andar.duration) * this.correr.getClip().duration;
+      this.pesoCorrida += (alvoC - this.pesoCorrida) * Math.min(1, dt * 7);
+      corre = this.pesoCorrida;
+      this.correr.setEffectiveWeight(peso * resto * corre);
+      this.correr.setEffectiveTimeScale(THREE.MathUtils.clamp(velocidade / this.passoCorrida, 0.75, 1.35));
+    }
+    this.andar.setEffectiveWeight(peso * resto * (1 - corre));
     this.andar.setEffectiveTimeScale(THREE.MathUtils.clamp(velocidade / this.passo, 0.55, 1.9));
     // parado: de vez em quando a pessoa troca de pé, olha em volta (só quem tem a variação)
     if (peso < 0.05) this.tempoParado += dt;

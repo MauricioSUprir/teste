@@ -1,7 +1,7 @@
 /**
  * Teclado, mouse e toque.
  *
- *  - teclado: WASD/setas, Shift para andar rápido, E para a ação do lugar;
+ *  - teclado: WASD/setas, Shift para correr, E para a ação do lugar;
  *  - arrastar a tela (mouse ou um dedo fora do joystick): gira a câmera;
  *  - clique/toque sem arrastar: "apertou" naquele ponto (ir até lá, produto);
  *  - roda do mouse ou pinça com dois dedos: aproxima e afasta;
@@ -24,6 +24,8 @@ export class Entrada {
   mouse: { x: number; y: number } | null = null;
   mouseMexeu = false;
   joystick = { x: 0, y: 0 };
+  /** botão "Correr" do celular ligado */
+  correndo = false;
   aoApertar: ((a: Apertou) => void) | null = null;
   aoAcao: (() => void) | null = null;
   aoTecla: ((tecla: string) => void) | null = null;
@@ -119,7 +121,7 @@ export class Entrada {
       x /= l;
       y /= l;
     }
-    return { x, y, rapido: t.has("shift") || Math.hypot(this.joystick.x, this.joystick.y) > 0.92 };
+    return { x, y, rapido: t.has("shift") || this.correndo || Math.hypot(this.joystick.x, this.joystick.y) > 0.92 };
   }
 
   consumirGiro() {

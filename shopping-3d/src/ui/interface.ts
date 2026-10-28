@@ -40,6 +40,7 @@ export class Interface {
   private carregandoTexto: HTMLElement;
   private carregandoBotao: HTMLButtonElement;
   private joystick: HTMLElement;
+  private botaoCorrer: HTMLButtonElement;
   private musicaLigada = true;
   private timerAviso = 0;
   painelAberto: string | null = null;
@@ -104,7 +105,24 @@ export class Interface {
     const pino = h("div", { class: "pino" });
     this.joystick = h("div", { class: "joystick", hidden: true, "aria-hidden": "true" }, pino);
     this.montarJoystick(pino);
-    this.raiz = h("div", { class: "ui" }, this.hud, this.dica, this.aviso, this.balao, this.painel, this.joystick, this.carregando);
+    // celular: liga e desliga a corrida (no computador é o Shift)
+    this.botaoCorrer = h(
+      "button",
+      {
+        class: "correr",
+        type: "button",
+        hidden: true,
+        "aria-pressed": "false",
+        "aria-label": textos.hud.correr,
+        onclick: () => {
+          this.entrada.correndo = !this.entrada.correndo;
+          this.botaoCorrer.setAttribute("aria-pressed", String(this.entrada.correndo));
+        },
+      },
+      icone("correr"),
+      h("span", {}, textos.hud.correr)
+    );
+    this.raiz = h("div", { class: "ui" }, this.hud, this.dica, this.aviso, this.balao, this.painel, this.joystick, this.botaoCorrer, this.carregando);
     pai.appendChild(this.raiz);
     addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.painelAberto) this.fecharPainel();
@@ -151,9 +169,15 @@ export class Interface {
     this.joystick.addEventListener("pointercancel", soltar);
   }
 
+  /** joystick e o botão de correr aparecem e somem juntos */
+  private mostrarControles(sim: boolean) {
+    this.joystick.hidden = !sim;
+    this.botaoCorrer.hidden = !sim;
+  }
+
   mostrarHud(sim: boolean) {
     this.hud.hidden = !sim;
-    this.joystick.hidden = !(sim && this.celular);
+    this.mostrarControles(sim && this.celular);
     if (!sim) {
       this.definirDica(null);
       this.esconderBalao();
@@ -261,7 +285,7 @@ export class Interface {
     this.painel.hidden = false;
     this.painel.dataset.tipo = id;
     // no celular o painel ocupa a parte de baixo: o joystick sai da frente
-    if (this.celular) this.joystick.hidden = true;
+    if (this.celular) this.mostrarControles(false);
     this.painelCorpo.scrollTop = 0;
     this.esconderBalao();
     // foco no painel para quem usa teclado (sem rolar a tela)
@@ -272,7 +296,7 @@ export class Interface {
     if (!this.painelAberto) return;
     this.painelAberto = null;
     this.painel.hidden = true;
-    this.joystick.hidden = !(this.celular && !this.hud.hidden);
+    this.mostrarControles(this.celular && !this.hud.hidden);
     this.aoFecharPainel?.();
   }
 

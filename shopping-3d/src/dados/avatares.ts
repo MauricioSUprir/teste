@@ -35,10 +35,10 @@ export const AVATARES: InfoAvatar[] = [
   { id: "Male_Adult_16", genero: "m", altura: 1.809, temCabelo: false, corCima: "#3f556f", corBaixo: "#505e67" },
 ];
 
-/** velocidade da animação de andar (m/s) e do esqueleto de cada gênero */
+/** velocidade (m/s) das animações de andar e de correr do esqueleto de cada gênero */
 export const ANIMACAO = {
-  f: { velocidade: 1.214 },
-  m: { velocidade: 1.012 },
+  f: { velocidade: 1.214, corrida: 2.765 },
+  m: { velocidade: 1.012, corrida: 2.88 },
 };
 
 export const infoAvatar = (id: string) => AVATARES.find((a) => a.id === id) ?? AVATARES[0];

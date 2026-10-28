@@ -16,6 +16,7 @@ import * as THREE from "three";
 import { PLANTA, zFachadaEm } from "../dados/lojas";
 import type { Colisao } from "./colisao";
 import { Lotes } from "./construtor";
+import { Movimento } from "./escadas";
 import type { Materiais } from "./materiais";
 import { atlasVitrines, bandeira, canvasTextura, CELULAS_ATLAS, desenharLed } from "./letreiros";
 import type { LugarPlanta } from "./plantas";
@@ -324,16 +325,7 @@ export function criarAtrio(op: OpcoesAtrio): Atrio {
 
   // ---- escadas rolantes e elevador primeiro: eles dizem onde o guarda-corpo abre
   const aberturas: Abertura[] = [];
-  const degraus = texturaDegraus();
-  const degrausDesce = degraus.clone();
-  const matSobe = new THREE.MeshStandardMaterial({ map: degraus, roughness: 0.45, metalness: 0.6 });
-  const matDesce = new THREE.MeshStandardMaterial({ map: degrausDesce, roughness: 0.45, metalness: 0.6 });
-  lixo.push(degraus, degrausDesce, matSobe, matDesce);
-  animar.push((t) => {
-    // 0,5 m/s, um degrau a cada 0,4 m
-    degraus.offset.y = -(t * 0.5) / 0.4;
-    degrausDesce.offset.y = (t * 0.5) / 0.4;
-  });
+  const movimento = new Movimento(lotes, mat, grupo, lixo);
   const escadas = [
     // térreo → piso 2, do lado da Be2Beauty, subindo para o fundo
     { x: 15.5, z: -27, dz: -1, y0: 0, y1: P2 },
@@ -341,7 +333,7 @@ export function criarAtrio(op: OpcoesAtrio): Atrio {
     { x: -15.5, z: -27, dz: -1, y0: P2, y1: P3 },
   ];
   for (const e of escadas) {
-    const comp = escadaRolante(lotes, mat, matSobe, matDesce, e.x, e.z, e.dz, e.y0, e.y1);
+    const comp = movimento.escada(e.x, e.z, e.dz, e.y0, e.y1);
     // ponte do fim de cima até a borda do vazio (e, se começa num piso de cima, do começo também)
     const pontas: { z: number; dz: number; y: number; nivel: number }[] = [{ z: e.z + e.dz * comp, dz: e.dz, y: e.y1, nivel: e.y1 === P2 ? 2 : 3 }];
     if (e.y0 > 0) pontas.push({ z: e.z, dz: -e.dz, y: e.y0, nivel: 2 });
@@ -354,7 +346,9 @@ export function criarAtrio(op: OpcoesAtrio): Atrio {
     if (e.y0 === 0) {
       // a parte baixa da escada (até ~2,3 m de altura) é parede para quem anda no térreo
       const ate = 1.5 + 1.73 + 2.3 / Math.tan(Math.PI / 6);
-      colisao.caixa(e.x - 1.5, Math.min(e.z, e.z + e.dz * ate), e.x + 1.5, Math.max(e.z, e.z + e.dz * ate), 3);
+      // (a balaustrada passa 0,6 m do começo dos degraus)
+      const z0 = e.z - e.dz * 0.6;
+      colisao.caixa(e.x - 1.5, Math.min(z0, e.z + e.dz * ate), e.x + 1.5, Math.max(z0, e.z + e.dz * ate), 3);
     }
   }
   // elevador panorâmico no fundo da praça, entre as duas âncoras
@@ -367,7 +361,8 @@ export function criarAtrio(op: OpcoesAtrio): Atrio {
     ponte(lotes, mat, ELEV.x, ELEV.z - ELEV.meio, -1, (Number.isFinite(ate) ? ate : 0.3) + 0.7, 1.1, y);
     aberturas.push({ nivel, x: ELEV.x, z: ELEV.z - ELEV.meio - (Number.isFinite(ate) ? ate : 0.3), r: 1.3 });
   }
-  elevador(grupo, lotes, mat, animar, lixo, ELEV.x, ELEV.z, ELEV.meio);
+  movimento.elevador(ELEV.x, ELEV.z, ELEV.meio, Y_CLARABOIA - 0.15, [0, P2, P3]);
+  animar.push(movimento.fechar());
   colisao.caixa(ELEV.x - ELEV.meio - 0.15, ELEV.z - ELEV.meio - 0.15, ELEV.x + ELEV.meio + 0.15, ELEV.z + ELEV.meio + 0.15, COB);
 
   // ---- lajes dos pisos 2 e 3: piso, teto, testeira com LED, guarda-corpo
@@ -606,104 +601,6 @@ function cortes(c: number, emX: boolean): [number, number][] {
   return r;
 }
 
-/** degraus de alumínio com o friso amarelo (repete a cada 0,4 m; desliza com o tempo) */
-function texturaDegraus() {
-  const c = document.createElement("canvas");
-  c.width = 128;
-  c.height = 64;
-  const g = c.getContext("2d")!;
-  g.fillStyle = "#6d6c72";
-  g.fillRect(0, 0, 128, 64);
-  g.fillStyle = "#4a494f";
-  for (let x = 0; x < 128; x += 6) g.fillRect(x, 0, 3, 64);
-  g.fillStyle = "#d9b23a";
-  g.fillRect(0, 0, 6, 64);
-  g.fillRect(122, 0, 6, 64);
-  g.fillStyle = "#2c2b30";
-  g.fillRect(0, 58, 128, 6);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 8;
-  return t;
-}
-
-/**
- * Um par de escadas rolantes (uma sobe, a outra desce) ao longo do eixo z,
- * a partir de (x, z) na altura y0 até y1, com patamares de 1,5 m, 30° de
- * inclinação, vidro dos lados, corrimão preto e LED embaixo do vidro.
- * Devolve o comprimento no chão (do começo ao fim do patamar de cima).
- */
-function escadaRolante(lotes: Lotes, mat: Materiais, matSobe: THREE.Material, matDesce: THREE.Material, x: number, z: number, dz: number, y0: number, y1: number) {
-  const PAT = 1.5;
-  const H = (y1 - y0) / Math.tan(Math.PI / 6);
-  const T = PAT * 2 + H;
-  const W = 1.3;
-  // perfil em (s, y): s ao longo da escada; y absoluto
-  const topo = (s: number) => (s <= PAT ? y0 : s >= PAT + H ? y1 : y0 + ((s - PAT) / H) * (y1 - y0));
-  // de (s, y, lateral) local para o mundo: s vai no sentido dz
-  const mundo = (g: THREE.BufferGeometry) => {
-    g.rotateY(dz < 0 ? Math.PI / 2 : -Math.PI / 2);
-    g.translate(x, 0, z);
-    return g;
-  };
-  for (const [lat, sobe] of [
-    [-0.7, true],
-    [0.7, false],
-  ] as const) {
-    // corpo (treliça revestida de branco)
-    const forma = new THREE.Shape([v2(0, y0), v2(0, y0 + 0.02), v2(PAT, y0 + 0.02), v2(PAT + H, y1 + 0.02), v2(T, y1 + 0.02), v2(T, y1 - 0.45), v2(PAT + H, y1 - 1.0), v2(PAT + 1.73, y0)]);
-    const corpo = new THREE.ExtrudeGeometry(forma, { depth: W, bevelEnabled: false });
-    corpo.translate(0, 0, lat - W / 2);
-    lotes.adicionar(mat.fachadaBranca, mundo(corpo), { sombra: true });
-    // degraus: faixa ao longo do perfil, uv em degraus de 0,4 m
-    const pos: number[] = [];
-    const uv: number[] = [];
-    const idx: number[] = [];
-    const ss = [0, PAT, PAT + H, T];
-    ss.forEach((s, i) => {
-      const y = topo(s) + 0.045;
-      pos.push(s, y, lat - 0.5, s, y, lat + 0.5);
-      // comprimento ao longo do perfil (na rampa, a hipotenusa)
-      const ao = i === 0 ? 0 : i === 1 ? PAT : i === 2 ? PAT + H / Math.cos(Math.PI / 6) : PAT * 2 + H / Math.cos(Math.PI / 6);
-      uv.push(0, ao / 0.4, 1, ao / 0.4);
-    });
-    for (let i = 0; i < 3; i++) idx.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
-    g.setIndex(idx);
-    g.computeVertexNormals();
-    lotes.adicionar(sobe ? matSobe : matDesce, mundo(g));
-    // vidro dos dois lados, corrimão e LED no rodapé do vidro
-    for (const l of [lat - 0.56, lat + 0.56]) {
-      const vp: number[] = [];
-      const vi: number[] = [];
-      ss.forEach((s) => vp.push(s, topo(s) + 0.12, l, s, topo(s) + 1.0, l));
-      for (let i = 0; i < 3; i++) vi.push(i * 2, i * 2 + 2, i * 2 + 1, i * 2 + 1, i * 2 + 2, i * 2 + 3);
-      const gv = new THREE.BufferGeometry();
-      gv.setAttribute("position", new THREE.Float32BufferAttribute(vp, 3));
-      gv.setIndex(vi);
-      gv.computeVertexNormals();
-      lotes.adicionar(mat.vidro, mundo(gv));
-      // fio de luz no rodapé do vidro: de 0,08 a 0,14 acima do degrau
-      const led = gv.clone();
-      const lp = led.attributes.position;
-      for (let i = 0; i < lp.count; i++) {
-        const s = lp.getX(i);
-        lp.setY(i, topo(s) + (i % 2 ? 0.14 : 0.08));
-      }
-      led.computeVertexNormals();
-      lotes.adicionar(mat.led, mundo(led));
-      const caminho = new THREE.CurvePath<THREE.Vector3>();
-      const pts = [new THREE.Vector3(-0.3, y0 + 0.92, l), ...ss.map((s) => new THREE.Vector3(s, topo(s) + 1.02, l)), new THREE.Vector3(T + 0.3, y1 + 0.92, l)];
-      for (let i = 0; i + 1 < pts.length; i++) caminho.add(new THREE.LineCurve3(pts[i], pts[i + 1]));
-      lotes.adicionar(mat.corrimao, mundo(new THREE.TubeGeometry(caminho, 40, 0.045, 6, false)));
-    }
-  }
-  return T;
-}
-
 /** ponte (laje com guarda-corpo dos lados) da ponta de uma escada ou do elevador até a borda do vazio */
 function ponte(lotes: Lotes, mat: Materiais, x: number, z: number, dz: number, comp: number, meia: number, y: number) {
   const z0 = Math.min(z, z + dz * comp);
@@ -715,56 +612,4 @@ function ponte(lotes: Lotes, mat: Materiais, x: number, z: number, dz: number, c
     lotes.bloco(mat.aco, x + s * (meia - 0.09), y + VIDRO_GUARDA, z0, x + s * (meia - 0.02), y + VIDRO_GUARDA + 0.06, z1);
     lotes.bloco(mat.led, x + s * (meia + 0.025), y - TESTEIRA + 0.05, z0, x + s * (meia + 0.03), y - TESTEIRA + 0.1, z1);
   }
-}
-
-/** elevador panorâmico: torre de vidro do térreo até a claraboia e a cabine que sobe e desce entre os pisos */
-function elevador(grupo: THREE.Group, lotes: Lotes, mat: Materiais, animar: ((t: number, dt: number) => void)[], lixo: { dispose: () => void }[], x: number, z: number, meia: number) {
-  const alto = Y_CLARABOIA - 0.15;
-  for (const sx of [-1, 1])
-    for (const sz of [-1, 1]) lotes.bloco(mat.aco, x + sx * meia - 0.07, 0, z + sz * meia - 0.07, x + sx * meia + 0.07, alto, z + sz * meia + 0.07, { sombra: true });
-  for (let y = 0; y <= alto; y += 2.65) {
-    lotes.bloco(mat.aco, x - meia, y, z - meia - 0.04, x + meia, y + 0.08, z - meia + 0.04);
-    lotes.bloco(mat.aco, x - meia, y, z + meia - 0.04, x + meia, y + 0.08, z + meia + 0.04);
-    lotes.bloco(mat.aco, x - meia - 0.04, y, z - meia, x - meia + 0.04, y + 0.08, z + meia);
-    lotes.bloco(mat.aco, x + meia - 0.04, y, z - meia, x + meia + 0.04, y + 0.08, z + meia);
-  }
-  lotes.bloco(mat.vidro, x - meia, 0, z + meia - 0.01, x + meia, alto, z + meia + 0.01);
-  lotes.bloco(mat.vidro, x - meia - 0.01, 0, z - meia, x - meia + 0.01, alto, z + meia);
-  lotes.bloco(mat.vidro, x + meia - 0.01, 0, z - meia, x + meia + 0.01, alto, z + meia);
-  lotes.bloco(mat.vidro, x - meia, 0, z - meia - 0.01, x + meia, alto, z - meia + 0.01);
-  lotes.bloco(mat.fachadaBranca, x - meia - 0.2, 0, z - meia - 0.2, x + meia + 0.2, 0.12, z + meia + 0.2);
-  // cabine
-  const cabine = new THREE.Group();
-  const c = meia - 0.18;
-  const peca = (g: THREE.BufferGeometry, m: THREE.Material) => {
-    const malha = new THREE.Mesh(g, m);
-    cabine.add(malha);
-    lixo.push(g);
-    return malha;
-  };
-  peca(new THREE.BoxGeometry(c * 2, 0.14, c * 2).translate(0, 0.07, 0), mat.fachadaBranca);
-  peca(new THREE.BoxGeometry(c * 2, 0.18, c * 2).translate(0, 2.5, 0), mat.fachadaBranca);
-  peca(new THREE.PlaneGeometry(c * 1.6, c * 1.6).rotateX(Math.PI / 2).translate(0, 2.405, 0), mat.luz);
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) peca(new THREE.BoxGeometry(0.06, 2.4, 0.06).translate(sx * c, 1.25, sz * c), mat.aco);
-  for (const r of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
-    const v = peca(new THREE.PlaneGeometry(c * 2, 2.3).translate(0, 1.29, c), mat.vidro);
-    v.rotation.y = r;
-  }
-  peca(new THREE.BoxGeometry(c * 2, 0.05, 0.05).translate(0, 1.0, c - 0.06), mat.aco);
-  cabine.position.set(x, 0, z);
-  grupo.add(cabine);
-  // térreo → 2 → 3 → 2 → térreo, parando 6 s em cada andar e levando ~4 s entre eles
-  const paradas = [0, P2, P3, P2];
-  const PARADO = 6;
-  const VIAGEM = 4;
-  animar.push((t) => {
-    const ciclo = paradas.length * (PARADO + VIAGEM);
-    const k = t % ciclo;
-    const i = Math.floor(k / (PARADO + VIAGEM));
-    const r = k - i * (PARADO + VIAGEM);
-    const de = paradas[i];
-    const para = paradas[(i + 1) % paradas.length];
-    const f = r < PARADO ? 0 : THREE.MathUtils.smootherstep(r - PARADO, 0, VIAGEM);
-    cabine.position.y = de + (para - de) * f + 0.12;
-  });
 }

@@ -1241,3 +1241,35 @@ input:focus-visible,
   padding: 0 20px;
   text-align: center;
 }
+/* botão de correr (celular), em cima do joystick */
+.correr {
+  position: absolute;
+  left: 34px;
+  bottom: calc(158px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px 9px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--vidro);
+  backdrop-filter: blur(14px);
+  color: var(--ameixa);
+  font: 600 13px Poppins, sans-serif;
+  box-shadow: var(--sombra);
+  pointer-events: auto;
+}
+.correr[aria-pressed="true"] {
+  background: var(--ameixa);
+  color: #fff;
+}
+.correr .icone {
+  width: 20px;
+  height: 20px;
+}
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  .correr {
+    left: calc(34px + env(safe-area-inset-left));
+    bottom: calc(150px + env(safe-area-inset-bottom));
+  }
+}

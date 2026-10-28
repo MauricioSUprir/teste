@@ -25,7 +25,7 @@ export interface Visual {
 export interface Modelo {
   info: InfoAvatar;
   raiz: THREE.Group;
-  clipes: Record<"andar" | "parado" | "parado2", THREE.AnimationClip>;
+  clipes: Record<"andar" | "parado" | "parado2", THREE.AnimationClip> & { correr?: THREE.AnimationClip };
   descartar: () => void;
 }
 
@@ -147,7 +147,74 @@ function carregarMascara(id: string, lado: number) {
   return p;
 }
 
+/** onde fica o cabelo na textura da cabeça (a maior parte do cabelo está pintada nela, não só nas mechas) */
+const mascarasCabelo = new Map<string, Promise<ImageData | null>>();
+function carregarMascaraCabelo(id: string, lado: number) {
+  const chave = `${id}:${lado}`;
+  let p = mascarasCabelo.get(chave);
+  if (!p) {
+    p = new Promise<ImageData | null>((ok) => {
+      const img = new Image();
+      img.onload = () => ok(imagemParaDados(img, lado));
+      img.onerror = () => ok(null);
+      img.src = `${BASE}${id}-cabelo.webp`;
+    });
+    mascarasCabelo.set(chave, p);
+  }
+  return p;
+}
+
 const lum = (d: Uint8ClampedArray, i: number) => (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+
+/** claro-escuro das mechas originais: média e desvio do brilho onde há fio */
+function brilhoDosFios(px: ImageData) {
+  const d = px.data;
+  let n = 0;
+  let soma = 0;
+  let soma2 = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] < 128) continue;
+    const l = lum(d, i);
+    soma += l;
+    soma2 += l * l;
+    n++;
+  }
+  const media = n ? soma / n : 0.3;
+  // cabelo bem escuro tem desvio pequeno: sem piso, o reflexo dele viraria mancha branca no loiro
+  return { media, desvio: Math.max(0.07, Math.sqrt(Math.max(0, soma2 / (n || 1) - media * media))) };
+}
+
+/**
+ * Tinge o cabelo como uma tinta de verdade: a cor escolhida no lugar da
+ * original, mas cada fio guarda o seu claro-escuro (mechas, sombra embaixo,
+ * reflexo em cima). O contraste acompanha a cor — cabelo preto tem pouco
+ * reflexo, loiro tem muito — e o reflexo puxa para menos saturado, como luz
+ * batendo no fio. `peso(i)` diz quanto daquele pixel é cabelo (0 a 1).
+ */
+function tingirCabelo(px: ImageData, peso: (i: number) => number, cor: string, ref: { media: number; desvio: number }) {
+  const d = px.data;
+  const hsl = { h: 0, s: 0, l: 0 };
+  new THREE.Color(cor).getHSL(hsl, THREE.SRGBColorSpace);
+  const contraste = 0.05 + 0.15 * hsl.l;
+  const tmp = new THREE.Color();
+  const rgb = { r: 0, g: 0, b: 0 };
+  for (let i = 0; i < d.length; i += 4) {
+    const a = peso(i);
+    if (a <= 0.01) continue;
+    // claro-escuro com teto macio: o reflexo sobe menos que a sombra desce (não estoura em branco)
+    let z = 1.5 * Math.tanh((lum(d, i) - ref.media) / ref.desvio / 1.5);
+    if (z > 0) z *= 0.65;
+    const l = Math.max(0.025, Math.min(0.9, hsl.l + z * contraste));
+    // reflexo: menos saturado e um tiquinho mais quente; sombra: um pouco mais saturada
+    const reflexo = Math.max(0, Math.min(1, (l - hsl.l) / 0.22));
+    const s = Math.max(0, Math.min(1, hsl.s * (1 - 0.35 * reflexo) * (1 + 0.12 * Math.max(0, -z / 1.5))));
+    // HSL e o canvas falam sRGB
+    tmp.setHSL(hsl.h + 0.008 * z, s, l, THREE.SRGBColorSpace).getRGB(rgb, THREE.SRGBColorSpace);
+    d[i] = d[i] * (1 - a) + rgb.r * 255 * a;
+    d[i + 1] = d[i + 1] * (1 - a) + rgb.g * 255 * a;
+    d[i + 2] = d[i + 2] * (1 - a) + rgb.b * 255 * a;
+  }
+}
 
 /** pinta o canal `canal` da máscara (0 = cima, 1 = baixo; -1 = alfa do cabelo) com a cor */
 function pintar(px: ImageData, mascara: ImageData | null, canal: number, cor: string) {
@@ -246,11 +313,22 @@ export async function criarModelo(visual: Visual, op: OpcoesModelo = {}): Promis
     lixo.push(t);
   }
   if (cabelo?.map && visual.cabelo && info.temCabelo) {
+    // as mechas (cortadas por alfa) e o cabelo pintado na cabeça, com a mesma régua de claro-escuro
     const px = imagemParaDados(cabelo.map.image as ImageBitmap, lado);
-    pintar(px, null, -1, visual.cabelo);
+    const ref = brilhoDosFios(px);
+    tingirCabelo(px, (i) => Math.min(1, px.data[i + 3] / 160), visual.cabelo, ref);
     const t = texturaDe(px, cabelo.map);
     cabelo.map = t;
     lixo.push(t);
+    const cabeca = mats.find((x) => x.name === "cabeca");
+    const mascara = cabeca?.map ? await carregarMascaraCabelo(info.id, lado) : null;
+    if (cabeca?.map && mascara) {
+      const pc = imagemParaDados(cabeca.map.image as ImageBitmap, lado);
+      tingirCabelo(pc, (i) => mascara.data[i] / 255, visual.cabelo, ref);
+      const tc = texturaDe(pc, cabeca.map);
+      cabeca.map = tc;
+      lixo.push(tc);
+    }
   }
   // textura menor (visitantes no celular): o resto das fotos do modelo também vai em `lado` px
   if (lado < 1024) {

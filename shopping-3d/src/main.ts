@@ -557,7 +557,8 @@ function iniciar() {
     if (Math.hypot(mx, mz) > 0.05) {
       rota = [];
       destinoRota = null;
-      vel = jogador.passo * (dir.rapido ? 1.9 : 1.3) * Math.min(1, Math.hypot(mx, mz));
+      // correndo: a velocidade da animação de correr (≈ 2,9 m/s); andando, um passo de passeio
+      vel = (dir.rapido ? jogador.passoCorrida * 1.05 : jogador.passo * 1.3) * Math.min(1, Math.hypot(mx, mz));
     } else if (rota.length) {
       const [tx, tz] = rota[0];
       const dx = tx - p.x;
@@ -595,7 +596,8 @@ function iniciar() {
       p.z = nz;
       jogador.olharPara(Math.atan2(mx, mz));
       distanciaPassos += andou;
-      if (distanciaPassos > 0.78) {
+      // passada de quem corre é maior (o som dos passos acompanha)
+      if (distanciaPassos > (vel > jogador.passo * 1.6 ? 1.05 : 0.78)) {
         distanciaPassos = 0;
         som.passo();
       }
