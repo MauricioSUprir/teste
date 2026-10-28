@@ -20,7 +20,7 @@ import { AtendenteSite } from "./atendente-site";
 import { criarMateriais, type Qualidade } from "./materiais";
 import { carregarPlantas } from "./plantas";
 import { ajustesSuperficie, criarReflexo, prepararSuperficie, type Reflexo } from "./superficie";
-import { FONTE } from "./letreiros";
+import { FONTE, usarTexturasLeves } from "./letreiros";
 
 export interface No {
   x: number;
@@ -94,6 +94,7 @@ export class Shopping {
     private qualidade: Qualidade,
     private celular: boolean
   ) {
+    usarTexturasLeves(celular);
     this.cena.environment = ambiente;
     this.cena.environmentIntensity = 0.42;
     // névoa morna de fim de tarde: só a cidade lá longe sente
@@ -110,7 +111,8 @@ export class Shopping {
     this.cena.add(preenche);
     // sol dourado do fim de tarde; a sombra acompanha quem está olhando (um quadrado em volta)
     this.sol = new THREE.DirectionalLight("#ffd6aa", 2.7);
-    this.sol.castShadow = true;
+    // aparelho lento (ou que já ficou sem memória): sem a sombra do sol desde o começo
+    this.sol.castShadow = qualidade === "alta" || qualidade === "media";
     this.alcanceSombra = celular ? 40 : 55;
     const sc = this.sol.shadow.camera;
     sc.left = -this.alcanceSombra;

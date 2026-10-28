@@ -206,7 +206,8 @@ export function criarCidade(o: OpcoesCidade): Cidade {
   const q = o.quarteirao;
   const centro = new THREE.Vector2((q.x0 + q.x1) / 2, (q.z0 + q.z1) / 2);
   const aniso = Math.min(o.leve ? 4 : 16, o.renderer.capabilities.getMaxAnisotropy());
-  const lado = o.leve ? 1024 : 2048;
+  // no celular, metade: a cidade é paisagem lá longe (e cada textura é memória de vídeo)
+  const lado = o.leve ? 512 : 2048;
 
   // ---- céu (fundo) e o reflexo dele nos vidros e nas fachadas
   const ceu = guardar(texturaCeu(o.leve ? 1024 : 2048));

@@ -35,10 +35,37 @@ async function fontesProntas() {
   await Promise.race([Promise.all(pedidos), new Promise((r) => setTimeout(r, 3000))]);
 }
 
+// ---- quando o aparelho desliga o 3D (falta de memória de vídeo): recarrega mais leve e volta ao mesmo lugar
+const CHAVE_LEVE = "shopping3d.leve";
+const CHAVE_VOLTA = "shopping3d.voltar";
+const CHAVE_QUEDAS = "shopping3d.quedas";
+
+function lerGuardado<T>(onde: Storage, chave: string): T | null {
+  try {
+    return JSON.parse(onde.getItem(chave) ?? "null") as T | null;
+  } catch {
+    return null;
+  }
+}
+
+function guardar(onde: Storage, chave: string, valor: unknown) {
+  try {
+    if (valor === null) onde.removeItem(chave);
+    else onde.setItem(chave, JSON.stringify(valor));
+  } catch {
+    /* navegador sem armazenamento */
+  }
+}
+
 function iniciar() {
   let motor: Motor;
+  // caiu nos últimos 3 dias: começa sem sombra e com menos gente
+  const caiu = lerGuardado<number>(localStorage, CHAVE_LEVE);
+  const economia = !!caiu && Date.now() - caiu < 3 * 24 * 3600 * 1000;
+  const retomar = lerGuardado<{ x: number; z: number; r: number }>(sessionStorage, CHAVE_VOLTA);
+  guardar(sessionStorage, CHAVE_VOLTA, null);
   try {
-    motor = new Motor(app);
+    motor = new Motor(app, { economia });
   } catch {
     app.innerHTML = `<p style="color:#fff;padding:32px;font-family:sans-serif;max-width:520px">${textos.carregando.erro3d}</p>`;
     return;
@@ -282,8 +309,8 @@ function iniciar() {
     // o próprio avatar é o que mais aparece na tela: textura cheia até no celular
     const modelo = await criarModelo(escolha, { lado: 1024 });
     // a primeira vez começa na praça da frente, de frente para a fachada
-    const pos = jogador ? jogador.posicao.clone() : new THREE.Vector3(0, 0, 60);
-    const rumo = jogador ? jogador.rumo : Math.PI;
+    const pos = jogador ? jogador.posicao.clone() : retomar ? new THREE.Vector3(retomar.x, 0, retomar.z) : new THREE.Vector3(0, 0, 60);
+    const rumo = jogador ? jogador.rumo : retomar ? retomar.r : Math.PI;
     jogador?.descartar();
     jogador = new Personagem(modelo);
     jogador.posicao.copy(pos);
@@ -307,7 +334,7 @@ function iniciar() {
     camera3!.giro = rumo + Math.PI;
     camera3!.reiniciar();
     // abertura: de longe, por cima do estacionamento, vendo a fachada com o logo
-    if (novo) camera3!.abertura(new THREE.Vector3(-14, 17, 104), new THREE.Vector3(0, 12, 40), 5);
+    if (novo && !retomar) camera3!.abertura(new THREE.Vector3(-14, 17, 104), new THREE.Vector3(0, 12, 40), 5);
     motor.usar(s.cena);
     modo = "shopping";
     tempoNoShopping = 0;
@@ -325,10 +352,11 @@ function iniciar() {
       for (const q of s.ocupadas.values()) void criarAtendente(q);
       visitantes = new Visitantes(s);
       s.cena.add(visitantes.grupo);
-      void visitantes.criar(celular ? 5 : 10, escolha.avatar, 512);
+      // no celular, poucos tipos de avatar (cada um é mais memória de vídeo)
+      void visitantes.criar(celular ? (motor.economia ? 3 : 5) : 10, escolha.avatar, 512, celular ? 3 : undefined);
       varanda = new VisitantesVaranda(s.varandas);
       s.cena.add(varanda.grupo);
-      void varanda.criar(celular ? 2 : 6, escolha.avatar, 512);
+      void varanda.criar(celular ? (motor.economia ? 0 : 2) : 6, escolha.avatar, 512, celular ? 3 : undefined);
       let viu = false;
       try {
         viu = localStorage.getItem("shopping3d.ajuda") === "1";
@@ -674,6 +702,42 @@ function iniciar() {
           camera3.distancia = distancia;
           camera3.reiniciar();
         },
+        /** memória de textura (MB) por parte da cena, contando cada textura uma vez */
+        memoria: () => {
+          const vistas = new Set<THREE.Texture>();
+          const r: Record<string, number> = {};
+          const chaves = ["map", "normalMap", "roughnessMap", "emissiveMap", "alphaMap", "aoMap", "metalnessMap", "bumpMap"] as const;
+          shopping?.cena.children.forEach((g, i) => {
+            let bytes = 0;
+            g.traverse((o) => {
+              const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+              if (!m) return;
+              for (const mat of Array.isArray(m) ? m : [m]) {
+                for (const k of chaves) {
+                  const t = (mat as unknown as Record<string, THREE.Texture | null>)[k];
+                  if (!t || vistas.has(t)) continue;
+                  vistas.add(t);
+                  const img = t.image as { width?: number; height?: number } | undefined;
+                  bytes += (img?.width ?? 0) * (img?.height ?? 0) * 4 * (t.generateMipmaps ? 1.33 : 1);
+                }
+              }
+            });
+            r[`${i}:${g.name || g.type}`] = Math.round(bytes / 1e5) / 10;
+          });
+          r.total = Math.round(Object.values(r).reduce((a, b) => a + b, 0));
+          r.texturasNaGpu = motor.renderer.info.memory.textures;
+          // as maiores, para saber o que cortar
+          const tam = new Map<string, { n: number; mb: number }>();
+          for (const t of vistas) {
+            const img = t.image as { width?: number; height?: number; constructor?: { name: string } } | undefined;
+            const k = `${img?.width}x${img?.height} ${img?.constructor?.name ?? "?"}`;
+            const e = tam.get(k) ?? { n: 0, mb: 0 };
+            e.n++;
+            e.mb += ((img?.width ?? 0) * (img?.height ?? 0) * 4 * 1.33) / 1e6;
+            tam.set(k, e);
+          }
+          return { ...r, porTamanho: [...tam.entries()].sort((a, b) => b[1].mb - a[1].mb).slice(0, 25).map(([k, v]) => `${k}: ${v.n}× ${v.mb.toFixed(1)} MB`) };
+        },
         /** triângulos de cada parte da cena (para achar o que pesa) */
         pesos: () => {
           const r: Record<string, number> = {};
@@ -706,10 +770,33 @@ function iniciar() {
   });
   document.addEventListener("visibilitychange", () => relogio.getDelta());
 
+  // o 3D foi desligado pelo aparelho: guarda onde a pessoa estava e recarrega (até 3 vezes por sessão)
+  motor.renderer.domElement.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault();
+    // para de desenhar já (desenhar sem o 3D só gera erro)
+    motor.renderer.setAnimationLoop(null);
+    guardar(localStorage, CHAVE_LEVE, Date.now());
+    if (jogador && modo === "shopping") guardar(sessionStorage, CHAVE_VOLTA, { x: jogador.posicao.x, z: jogador.posicao.z, r: jogador.rumo });
+    const quedas = (lerGuardado<number>(sessionStorage, CHAVE_QUEDAS) ?? 0) + 1;
+    guardar(sessionStorage, CHAVE_QUEDAS, quedas);
+    rede.desligar();
+    if (quedas <= 3) {
+      ui.definirCarregando(textos.carregando.recuperando);
+      setTimeout(() => location.reload(), 500);
+    } else ui.definirCarregando(textos.carregando.semMemoria, { rotulo: textos.carregando.tentarDeNovo, fazer: () => (guardar(sessionStorage, CHAVE_QUEDAS, 0), location.reload()) });
+  });
+
   // ---- começo: fontes → provador → shopping montado por trás
   void (async () => {
     // fontes e o logo antes de desenhar os letreiros
     await Promise.all([fontesProntas(), carregarMarca()]);
+    if (retomar) {
+      // voltando depois que o aparelho desligou o 3D: direto para onde estava
+      ui.definirCarregando(textos.carregando.recuperando);
+      construirShopping();
+      await entrarNoShopping();
+      return;
+    }
     ui.definirCarregando(textos.carregando.avatares);
     abrirProvador();
     // o shopping é montado enquanto a pessoa escolhe o visual

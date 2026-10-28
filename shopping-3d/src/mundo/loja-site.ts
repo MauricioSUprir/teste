@@ -121,12 +121,20 @@ const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(
 const suave = (t: number) => t * t * (3 - 2 * t);
 const eixoY = new THREE.Vector3(0, 1, 0);
 
+/** no celular os letreiros largos (1024 px ou mais) saem com metade da resolução: 1/4 da memória de vídeo */
+let escalaCanvas = 1;
+
 function textura(largura: number, altura: number, desenhar: (g: CanvasRenderingContext2D) => void) {
+  const e = largura >= 1024 ? escalaCanvas : 1;
   const c = document.createElement("canvas");
-  c.width = largura;
-  c.height = altura;
+  c.width = Math.round(largura * e);
+  c.height = Math.round(altura * e);
   const g = c.getContext("2d");
-  if (g) desenhar(g);
+  if (g) {
+    // desenha nas medidas de sempre; a escala diminui
+    g.scale(e, e);
+    desenhar(g);
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
@@ -538,9 +546,11 @@ export function montarLojaDoSite(op: OpcoesLojaSite): LojaSite {
           const c = tex.image as HTMLCanvasElement;
           const g = c.getContext("2d");
           if (!g || destruida) return;
+          // o canvas pode estar em meia resolução (celular): desenha em pixels dele
+          g.setTransform(1, 0, 0, 1, 0, 0);
           g.fillStyle = "#fbfaf7";
           g.fillRect(0, 0, c.width, c.height);
-          const e = Math.min(860 / img.width, 196 / img.height);
+          const e = Math.min((c.width * 0.84) / img.width, (c.height * 0.766) / img.height);
           g.drawImage(img, (c.width - img.width * e) / 2, (c.height - img.height * e) / 2, img.width * e, img.height * e);
           tex.needsUpdate = true;
         })
@@ -654,6 +664,7 @@ export function montarLojaDoSite(op: OpcoesLojaSite): LojaSite {
 
   // ---- piso (porcelanato claro e polido, com o reflexo do shopping), paredes e teto
   const celular = op.celular;
+  escalaCanvas = celular ? 0.5 : 1;
 
   const texPiso = texturasPorcelanato({
     lado: celular ? 512 : 1024,

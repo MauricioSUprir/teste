@@ -49,9 +49,13 @@ export class Motor {
   private readonly inicial: Qualidade;
   aoMudarQualidade: ((q: Qualidade) => void) | null = null;
 
-  constructor(readonly pai: HTMLElement) {
+  /** depois que o aparelho desligou o 3D por falta de memória: começa mais leve */
+  readonly economia: boolean;
+
+  constructor(readonly pai: HTMLElement, op: { economia?: boolean } = {}) {
     this.celular = ehToque() || Math.min(innerWidth, innerHeight) < 600;
-    this.qualidade = this.celular ? "media" : "alta";
+    this.economia = !!op.economia;
+    this.qualidade = this.economia ? "baixa" : this.celular ? "media" : "alta";
     this.inicial = this.qualidade;
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", stencil: false });
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -89,7 +93,7 @@ export class Motor {
    */
   get pixelRatio() {
     const dpr = devicePixelRatio || 1;
-    const teto: Record<Qualidade, number> = this.celular ? { alta: 2, media: 2, baixa: 1.75, minima: 1.35 } : { alta: 1.75, media: 1.5, baixa: 1.3, minima: 1.15 };
+    const teto: Record<Qualidade, number> = this.celular ? { alta: 1.75, media: 1.75, baixa: 1.5, minima: 1.3 } : { alta: 1.75, media: 1.5, baixa: 1.3, minima: 1.15 };
     return Math.min(dpr, teto[this.qualidade]);
   }
 

@@ -38,6 +38,7 @@ export class Interface {
   private painelRodape: HTMLElement;
   private carregando: HTMLElement;
   private carregandoTexto: HTMLElement;
+  private carregandoBotao: HTMLButtonElement;
   private joystick: HTMLElement;
   private musicaLigada = true;
   private timerAviso = 0;
@@ -90,13 +91,15 @@ export class Interface {
       this.painelRodape
     );
     this.painelTitulo.id = "painel-titulo";
+    this.carregandoBotao = h("button", { class: "principal", type: "button", hidden: true });
     this.carregandoTexto = h("p", {}, textos.carregando.titulo);
     this.carregando = h(
       "div",
       { class: "carregando" },
       h("div", { class: "carregando-marca" }, h("img", { class: "carregando-logo", src: "./marca/logo-branco.png", alt: textos.shopping.nome, width: 1600, height: 432 })),
       h("div", { class: "carregando-anel", "aria-hidden": "true" }),
-      this.carregandoTexto
+      this.carregandoTexto,
+      this.carregandoBotao
     );
     const pino = h("div", { class: "pino" });
     this.joystick = h("div", { class: "joystick", hidden: true, "aria-hidden": "true" }, pino);
@@ -188,9 +191,16 @@ export class Interface {
     this.timerAviso = window.setTimeout(() => (this.aviso.hidden = true), ms);
   }
 
-  definirCarregando(texto: string | null) {
+  /** tela de carregando; com `acao`, mostra um botão em vez do anel girando */
+  definirCarregando(texto: string | null, acao?: { rotulo: string; fazer: () => void }) {
     this.carregando.hidden = !texto;
     if (texto) this.carregandoTexto.textContent = texto;
+    this.carregando.classList.toggle("com-botao", !!acao);
+    this.carregandoBotao.hidden = !acao;
+    if (acao) {
+      this.carregandoBotao.textContent = acao.rotulo;
+      this.carregandoBotao.onclick = acao.fazer;
+    }
   }
 
   // ---- balão da ficha (cursor em cima do produto)

@@ -24,14 +24,26 @@ const acaso = () => {
 };
 const sorteio = <T,>(lista: T[]) => lista[Math.floor(acaso() * lista.length)];
 
+/**
+ * Os avatares que os visitantes podem usar. No celular, poucos (cada pessoa
+ * diferente é mais um modelo com fotos de 1024 px na placa de vídeo); a roupa
+ * sorteada continua diferenciando um do outro.
+ */
+function poucosAvatares(evitar: string, variedade?: number) {
+  const ids = AVATARES.map((a) => a.id).filter((id) => id !== evitar);
+  if (!variedade || variedade >= ids.length) return ids;
+  const passo = ids.length / variedade;
+  return Array.from({ length: variedade }, (_, k) => ids[Math.floor(k * passo + passo / 2)]);
+}
+
 export class Visitantes {
   private lista: Visitante[] = [];
   readonly grupo = new THREE.Group();
 
   constructor(private shopping: Shopping) {}
 
-  async criar(quantos: number, evitar: string, lado: number) {
-    const ids = AVATARES.map((a) => a.id).filter((id) => id !== evitar);
+  async criar(quantos: number, evitar: string, lado: number, variedade?: number) {
+    const ids = poucosAvatares(evitar, variedade);
     for (let i = 0; i < quantos; i++) {
       const id = ids[(i * 5 + 3) % ids.length];
       try {
@@ -148,8 +160,8 @@ export class VisitantesVaranda {
     });
   }
 
-  async criar(quantos: number, evitar: string, lado: number) {
-    const ids = AVATARES.map((a) => a.id).filter((id) => id !== evitar);
+  async criar(quantos: number, evitar: string, lado: number, variedade?: number) {
+    const ids = poucosAvatares(evitar, variedade);
     for (let i = 0; i < quantos; i++) {
       const id = ids[(i * 7 + 5) % ids.length];
       try {

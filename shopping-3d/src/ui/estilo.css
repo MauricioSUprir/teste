@@ -1228,3 +1228,16 @@ input:focus-visible,
     left: calc(22px + env(safe-area-inset-left));
   }
 }
+/* tela de carregando com botão (o 3D parou): sem o anel girando */
+.carregando.com-botao .carregando-anel {
+  display: none;
+}
+.carregando .principal {
+  pointer-events: auto;
+  max-width: 280px;
+}
+.carregando p {
+  max-width: 340px;
+  padding: 0 20px;
+  text-align: center;
+}

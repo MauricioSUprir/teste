@@ -13,7 +13,21 @@ export const FONTE_TITULO = "'Playfair Display', Georgia, serif";
 
 export const COR_SHOPPING = { ameixa: "#3B1E54", rose: "#E8B4A0", creme: "#FBF6F1", dourado: "#C9A26B", roxo: "#7A2D9C", lilas: "#B89BD6", lilasClaro: "#EDE3F6" };
 
-export function canvasTextura(c: HTMLCanvasElement, anisotropia = 8) {
+/** no celular, letreiros largos (1024 px ou mais) vão para a placa de vídeo em meia resolução */
+let texturasLeves = false;
+export function usarTexturasLeves(sim: boolean) {
+  texturasLeves = sim;
+}
+
+/** `redesenha`: o canvas muda depois (telão) e precisa ir inteiro */
+export function canvasTextura(c: HTMLCanvasElement, anisotropia = 8, redesenha = false) {
+  if (texturasLeves && !redesenha && c.width >= 1024) {
+    const m = document.createElement("canvas");
+    m.width = Math.round(c.width / 2);
+    m.height = Math.round(c.height / 2);
+    m.getContext("2d")?.drawImage(c, 0, 0, m.width, m.height);
+    c = m;
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = anisotropia;

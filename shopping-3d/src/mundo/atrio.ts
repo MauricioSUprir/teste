@@ -475,7 +475,7 @@ export function criarAtrio(op: OpcoesAtrio): Atrio {
         const c = document.createElement("canvas");
         c.width = l;
         c.height = a;
-        const tex = canvasTextura(c);
+        const tex = canvasTextura(c, 8, true);
         const m = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.35, 1.35, 1.35), side: THREE.DoubleSide });
         lixo.push(tex, m);
         telaLed = { tex, g: c.getContext("2d")!, l, a };

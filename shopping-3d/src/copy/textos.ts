@@ -11,6 +11,9 @@ export const textos = {
     avatares: "Preparando o provador",
     shopping: "Acendendo as vitrines",
     erro3d: "Seu aparelho não conseguiu abrir o 3D. Tente pelo Chrome, Edge ou Safari atualizados.",
+    recuperando: "Ajeitando a imagem… você volta para onde estava",
+    semMemoria: "O 3D parou porque o aparelho ficou sem memória. Feche outros apps e abas e tente de novo.",
+    tentarDeNovo: "Tentar de novo",
   },
   provador: {
     titulo: "Provador",
