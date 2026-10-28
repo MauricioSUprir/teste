@@ -7,7 +7,8 @@ import * as THREE from "three";
 import { texturasMadeira, texturasPorcelanato } from "./texturas";
 import { corParaTexturas, normalAgua, normalGesso, texturasCimento } from "./texturas-shopping";
 
-export type Qualidade = "alta" | "media" | "baixa";
+/** alta: computador (reflexo no piso); media: celular; baixa: sem sombra do sol; minima: sem brilho também */
+export type Qualidade = "alta" | "media" | "baixa" | "minima";
 
 function repetir(t: THREE.Texture, metros: number) {
   t.wrapS = t.wrapT = THREE.RepeatWrapping;

@@ -3,7 +3,7 @@
  *
  * Caminho da imagem: cena (HDR, com antisserrilhado) → brilho (bloom só no
  * que passa de branco: luzes, LED, letreiros) → tela (ACES + sRGB).
- * Qualidade "alta" no computador (sombra 2048, reflexo no piso), "media" no
+ * Qualidade "alta" no computador (sombra 4096, reflexo no piso), "media" no
  * celular. Se a média de quadros cair, desce um degrau sozinha.
  */
 import * as THREE from "three";
@@ -41,12 +41,18 @@ export class Motor {
   readonly celular: boolean;
   qualidade: Qualidade;
   readonly ambiente: THREE.Texture;
-  private medias: number[] = [];
+  private amostras: number[] = [];
+  /** só mede depois que o shopping terminou de montar (os primeiros segundos têm engasgos de carga) */
+  medindo = false;
+  private ultimaTroca = 0;
+  private bons = 0;
+  private readonly inicial: Qualidade;
   aoMudarQualidade: ((q: Qualidade) => void) | null = null;
 
   constructor(readonly pai: HTMLElement) {
     this.celular = ehToque() || Math.min(innerWidth, innerHeight) < 600;
     this.qualidade = this.celular ? "media" : "alta";
+    this.inicial = this.qualidade;
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", stencil: false });
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 0.8;
@@ -76,16 +82,21 @@ export class Motor {
     addEventListener("resize", () => this.redimensionar());
   }
 
+  /**
+   * Nitidez primeiro: a tela de celular (3×) desenhada a 1× fica borrada e
+   * serrilhada. Quando o aparelho não aguenta, sai antes a sombra do sol e o
+   * brilho; a resolução é a última a descer, e nunca abaixo de 1,3.
+   */
   get pixelRatio() {
     const dpr = devicePixelRatio || 1;
-    // no "baixa" ainda fica acima de 1 (tela de celular a 1× fica borrada); o que sai é sombra e brilho
-    return this.qualidade === "alta" ? Math.min(dpr, 1.75) : this.qualidade === "media" ? Math.min(dpr, 1.5) : Math.min(dpr, 1.25);
+    const teto: Record<Qualidade, number> = this.celular ? { alta: 2, media: 2, baixa: 1.75, minima: 1.35 } : { alta: 1.75, media: 1.5, baixa: 1.3, minima: 1.15 };
+    return Math.min(dpr, teto[this.qualidade]);
   }
 
   aplicarQualidade() {
     this.renderer.setPixelRatio(this.pixelRatio);
     this.composer.setPixelRatio(this.pixelRatio);
-    this.bloom.enabled = this.qualidade !== "baixa";
+    this.bloom.enabled = this.qualidade !== "minima";
     this.redimensionar();
     this.aoMudarQualidade?.(this.qualidade);
   }
@@ -109,15 +120,36 @@ export class Motor {
     this.composer.render();
   }
 
-  /** chamado a cada quadro com o tempo dele; desce a qualidade se ficar lento por uns segundos */
+  /**
+   * Chamado a cada quadro com o tempo dele. Pela mediana de ~150 quadros (um
+   * engasgo de carga não conta): lento (menos de 27 quadros/s) desce um
+   * degrau; folgado (mais de 50/s) por duas janelas seguidas volta a subir,
+   * até a qualidade com que começou. Entre uma troca e outra, 15 s.
+   */
   medir(dt: number) {
-    this.medias.push(dt);
-    if (this.medias.length < 120) return;
-    const media = this.medias.reduce((a, b) => a + b, 0) / this.medias.length;
-    this.medias = [];
-    if (media > 1 / 26 && this.qualidade !== "baixa") {
-      this.qualidade = this.qualidade === "alta" ? "media" : "baixa";
-      this.aplicarQualidade();
-    }
+    if (!this.medindo) return;
+    this.amostras.push(dt);
+    if (this.amostras.length < 150) return;
+    const mediana = [...this.amostras].sort((a, b) => a - b)[75];
+    this.amostras = [];
+    const agora = performance.now();
+    if (agora - this.ultimaTroca < 15000) return;
+    const degraus: Qualidade[] = ["alta", "media", "baixa", "minima"];
+    const i = degraus.indexOf(this.qualidade);
+    if (mediana > 1 / 27 && i < degraus.length - 1) {
+      this.bons = 0;
+      this.trocar(degraus[i + 1], agora);
+    } else if (mediana < 1 / 50 && i > degraus.indexOf(this.inicial)) {
+      if (++this.bons >= 2) {
+        this.bons = 0;
+        this.trocar(degraus[i - 1], agora);
+      }
+    } else this.bons = 0;
+  }
+
+  private trocar(q: Qualidade, agora: number) {
+    this.qualidade = q;
+    this.ultimaTroca = agora;
+    this.aplicarQualidade();
   }
 }

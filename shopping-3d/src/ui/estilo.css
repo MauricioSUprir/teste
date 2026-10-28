@@ -1212,3 +1212,19 @@ input:focus-visible,
     white-space: nowrap;
   }
 }
+/* celular deitado: a barra de gestos vai para baixo, em linha (não encosta na barra de cima),
+   e tudo foge do entalhe da tela */
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  .gestos {
+    flex-direction: row;
+    right: calc(14px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+  .hud {
+    left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right));
+  }
+  .joystick {
+    left: calc(22px + env(safe-area-inset-left));
+  }
+}

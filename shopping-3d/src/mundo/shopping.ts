@@ -299,7 +299,7 @@ export class Shopping {
   ajustarReflexo(q: Qualidade) {
     this.qualidade = q;
     // aparelho lento: sem a sombra do sol (é o que mais pesa depois do reflexo)
-    this.sol.castShadow = q !== "baixa";
+    this.sol.castShadow = q === "alta" || q === "media";
     ajustesSuperficie.forcaReflexo.value = q === "alta" && this.reflexo ? 0.85 : 0;
     ajustesSuperficie.lodReflexo.value = 1.4;
     const l = this.renderer.domElement.width;

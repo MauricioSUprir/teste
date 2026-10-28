@@ -46,7 +46,6 @@ function iniciar() {
   const entrada = new Entrada(motor.renderer.domElement);
   const som = criarSom();
   const celular = motor.celular;
-  const ladoTextura = celular ? 512 : 1024;
 
   let modo: "provador" | "shopping" = "provador";
   let escolha: Escolha = lerEscolha();
@@ -228,14 +227,14 @@ function iniciar() {
     barraGestos.hidden = true;
     motor.usar(provador.cena);
     provador.enquadrar(motor.camera, innerWidth, innerHeight, painelDoLado());
-    void provador.vestir(escolha, ladoTextura);
+    void provador.vestir(escolha, 1024);
     provadorUi?.remover();
     provadorUi = montarProvadorUi(ui.raiz, escolha, {
       emShopping: !!jogador,
       aoMudar: (e) => {
         escolha = e;
         preCarregar(e.avatar);
-        void provador.vestir(e, ladoTextura);
+        void provador.vestir(e, 1024);
       },
       aoEntrar: (e) => {
         escolha = e;
@@ -280,7 +279,8 @@ function iniciar() {
     await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30)));
     const s = construirShopping();
     const novo = !jogador;
-    const modelo = await criarModelo(escolha, { lado: ladoTextura });
+    // o próprio avatar é o que mais aparece na tela: textura cheia até no celular
+    const modelo = await criarModelo(escolha, { lado: 1024 });
     // a primeira vez começa na praça da frente, de frente para a fachada
     const pos = jogador ? jogador.posicao.clone() : new THREE.Vector3(0, 0, 60);
     const rumo = jogador ? jogador.rumo : Math.PI;
@@ -320,6 +320,8 @@ function iniciar() {
     else rede.mudarVisual(escolha.nome || textos.social.visitante, escolha);
     if (novo) {
       ui.avisar(textos.avisos.bemVindo(escolha.nome));
+      // mede o desempenho só depois que tudo montou (lojas âncora e as texturas da cidade)
+      void s.pronto.then(() => setTimeout(() => (motor.medindo = true), 4000));
       for (const q of s.ocupadas.values()) void criarAtendente(q);
       visitantes = new Visitantes(s);
       s.cena.add(visitantes.grupo);
@@ -501,7 +503,7 @@ function iniciar() {
     }
     if (!shopping || !jogador || !camera3) return;
     tempoNoShopping += dt;
-    if (tempoNoShopping > 6) motor.medir(dt);
+    motor.medir(dt);
     const s = shopping;
     if (giro.x || giro.y || giro.zoom) {
       camera3.girar(giro.x, giro.y, giro.zoom);
@@ -651,6 +653,7 @@ function iniciar() {
         estado: () => ({
           modo,
           qualidade: motor.qualidade,
+          nitidez: motor.renderer.getPixelRatio(),
           lojasProntas: shopping?.lojas.filter((l) => l.produtosProntos).length ?? 0,
           produtos: shopping?.lojas.reduce((n, l) => n + l.alvos.length, 0) ?? 0,
           visitantes: visitantes ? visitantes.grupo.children.length : 0,
