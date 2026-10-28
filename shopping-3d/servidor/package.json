@@ -1,0 +1,17 @@
+{
+  "name": "shopping-da-beleza-servidor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Servidor do Shopping da Beleza 3D: quem está no shopping, onde está, chat e gestos (WebSocket)",
+  "type": "module",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "8.18.0"
+  }
+}

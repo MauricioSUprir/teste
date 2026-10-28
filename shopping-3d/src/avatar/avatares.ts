@@ -107,6 +107,17 @@ function carregarAnimacoes(genero: "f" | "m") {
   return p;
 }
 
+const gestos = new Map<string, Promise<Record<string, THREE.AnimationClip>>>();
+/** acenar, aplaudir, dançar, rir, comemorar e falar (baixa só na primeira vez que alguém faz um gesto) */
+export function carregarGestos(genero: "f" | "m") {
+  let p = gestos.get(genero);
+  if (!p) {
+    p = loader.loadAsync(`${BASE}gestos-${genero}.glb`).then((g) => Object.fromEntries(g.animations.map((a) => [a.name, a])));
+    gestos.set(genero, p);
+  }
+  return p;
+}
+
 /** já começa a baixar (o provador chama para os retratos que a pessoa vê primeiro) */
 export function preCarregar(id: string) {
   void carregarGltf(id);

@@ -34,6 +34,8 @@ const ICONES: Record<string, string> = {
   mais: '<path d="M12 5v14M5 12h14"/>',
   menos: '<path d="M5 12h14"/>',
   loja: '<path d="M4 9 5.5 4h13L20 9M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
+  conversa: '<path d="M4 5h16v11H9l-5 4V5Z"/><path d="M8 9.5h8M8 12.5h5"/>',
+  convidar: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M18 8v6M15 11h6"/>',
 };
 
 export function icone(nome: keyof typeof ICONES | string) {

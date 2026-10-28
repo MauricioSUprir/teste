@@ -4,7 +4,6 @@
  * distância quando a parede fica no meio) nem sobe acima do teto da loja.
  */
 import * as THREE from "three";
-import { PLANTA } from "../dados/lojas";
 import type { Colisao } from "../mundo/colisao";
 
 export class CameraTerceira {
@@ -17,7 +16,12 @@ export class CameraTerceira {
   private alvo = new THREE.Vector3();
   private iniciou = false;
 
-  constructor(private camera: THREE.PerspectiveCamera, private colisao: Colisao) {}
+  constructor(
+    private camera: THREE.PerspectiveCamera,
+    private colisao: Colisao,
+    /** altura máxima da câmera em (x, z): teto da loja, da varanda ou da galeria */
+    private tetoEm: (x: number, z: number) => number
+  ) {}
 
   /** a direção "para a frente" da câmera no chão (para andar com WASD) */
   frente(): [number, number] {
@@ -52,10 +56,7 @@ export class CameraTerceira {
     const livre = Math.max(0.6, this.distancia * t - 0.25);
     this.distAtual = livre < this.distAtual ? livre : this.distAtual + (livre - this.distAtual) * Math.min(1, dt * 2.5);
     const p = this.alvo.clone().addScaledVector(dir, this.distAtual);
-    // teto: dentro da loja 4,6 m; embaixo da varanda 5,6 m; na galeria, bem mais alto
-    const ax = Math.abs(p.x);
-    const teto = ax > PLANTA.meioCorredor && p.z < PLANTA.zLojasSul && p.z > PLANTA.zLojasNorte ? PLANTA.tetoLoja - 0.3 : ax > PLANTA.varanda - 0.2 && p.z > PLANTA.zLojasNorte ? PLANTA.piso2 - 0.3 : PLANTA.tetoGaleria - 0.6;
-    p.y = Math.min(p.y, teto);
+    p.y = Math.min(p.y, this.tetoEm(p.x, p.z));
     p.y = Math.max(p.y, 0.4);
     this.camera.position.copy(p);
     this.camera.lookAt(this.alvo);

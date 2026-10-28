@@ -66,5 +66,48 @@ for (const [loja, cfg] of Object.entries(LOJAS)) {
 }
 for (const m of hub.marcas) if (Object.values(saida.lojas).some((l) => l.some((p) => p.marca === m.slug))) saida.marcas[m.slug] = { nome: m.nome, cor: m.cor };
 fs.writeFileSync(destino, JSON.stringify(saida));
+// ---- a mesma vitrine da Loja 3D dos sites (apps/storefront/src/app/(loja)/loja-3d/page.tsx):
+// uma seção por marca (no máximo 48 produtos cada, com foto e estoque), da maior para a menor,
+// e as categorias na ordem do tamanho. Usada pelas lojas âncora BeautyNow e Be2Beauty.
+{
+  const POR_SECAO = 48;
+  const vitrinavel = (p) => (p.imagens?.length ?? 0) > 0 && p.variantes.some((v) => v.estoque > 0);
+  const paraLoja = (p) => {
+    const v = p.variantes.find((x) => x.estoque > 0) ?? p.variantes[0];
+    return {
+      id: p.slug,
+      titulo: p.titulo,
+      marca: p.marca,
+      categorias: p.categorias,
+      descricao: p.descricao || "",
+      preco: Math.round(v.precoPor * MULTIPLICADOR),
+      precoDe: v.precoDe ? Math.round(v.precoDe * MULTIPLICADOR) : null,
+      foto: p.imagens[0],
+      atributos: p.atributos ?? {},
+      especificacoes: Object.fromEntries(Object.entries(p.especificacoes ?? {}).filter(([k]) => k === "Volume" || k === "Peso")),
+    };
+  };
+  const porMarca = new Map();
+  for (const p of hub.produtos) {
+    if (!vitrinavel(p)) continue;
+    porMarca.set(p.marca, [...(porMarca.get(p.marca) ?? []), p]);
+  }
+  const setores = [...porMarca.entries()]
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([slug, lista]) => {
+      const marca = hub.marcas.find((m) => m.slug === slug);
+      const contagem = new Map();
+      for (const p of lista) contagem.set(p.categorias[0], (contagem.get(p.categorias[0]) ?? 0) + 1);
+      const categoria = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      return { slug, nome: marca?.nome ?? slug, logo: marca?.logo ? `.${marca.logo}` : null, categoria, produtos: lista.slice(0, POR_SECAO).map(paraLoja) };
+    });
+  const peso = new Map();
+  for (const s of setores) peso.set(s.categoria, (peso.get(s.categoria) ?? 0) + s.produtos.length);
+  const categorias = hub.categorias.filter((c) => peso.has(c.slug)).sort((a, b) => peso.get(b.slug) - peso.get(a.slug)).map((c) => c.slug);
+  const destinoVitrine = path.resolve(aqui, "../public/dados/vitrine-site.json");
+  fs.mkdirSync(path.dirname(destinoVitrine), { recursive: true });
+  fs.writeFileSync(destinoVitrine, JSON.stringify({ atualizadoEm: hub.atualizadoEm, baseImagem: hub.baseImagem, setores, categorias }));
+  console.log("vitrine dos sites:", setores.length, "marcas,", setores.reduce((n, s) => n + s.produtos.length, 0), "produtos →", path.relative(process.cwd(), destinoVitrine), (fs.statSync(destinoVitrine).size / 1024).toFixed(0), "KB");
+}
 for (const [loja, lista] of Object.entries(saida.lojas)) console.log(loja, lista.length, "produtos", [...new Set(lista.map((p) => p.marca))].join(", "));
 console.log("→", path.relative(process.cwd(), destino), (fs.statSync(destino).size / 1024).toFixed(0), "KB");

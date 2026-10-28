@@ -4,7 +4,7 @@
  */
 import { textos } from "../copy/textos";
 import { fichaDe, formatarPreco, fotoDe, nomeMarca, precoPix, type Produto } from "../dados/catalogo";
-import { PLANTA, UNIDADES, type Inquilino, type LojaPrevia, type Unidade } from "../dados/lojas";
+import { ANCORAS, PLANTA, UNIDADES, type Inquilino, type LojaPrevia, type Unidade } from "../dados/lojas";
 import { sacola, totalDe } from "../dados/sacola";
 import { h, icone } from "./dom";
 import { fichaEmHtml } from "./ficha";
@@ -229,12 +229,13 @@ export function painelEditor(ui: Interface, u: Unidade, inicial: LojaPrevia | nu
 /** mapa visto de cima: corredor, lojas, praça e onde a pessoa está */
 export function painelMapa(ui: Interface, ocupadas: Map<string, Inquilino>, pos: () => { x: number; z: number }, aoIr: (unidade: string) => void) {
   const m = textos.mapa;
-  // escala: 1 m = k px; o desenho cabe em 300 × 560
-  const k = 6.6;
+  // escala: 1 m = k px; o desenho (galeria, praça e âncoras) cabe em 300 px de largura
+  const k = 4.4;
   const X = (x: number) => 150 + x * k;
-  const Z = (z: number) => 20 + (PLANTA.zEntrada - z) * k;
+  const Z = (z: number) => 14 + (PLANTA.zEntrada - z) * k;
+  const fundoAncoras = Math.min(...ANCORAS.map((a) => a.cz - 10.5));
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", `0 0 300 ${Z(PLANTA.zPraca) + 20}`);
+  svg.setAttribute("viewBox", `0 0 300 ${Z(fundoAncoras) + 14}`);
   svg.setAttribute("class", "mapa");
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", m.titulo);
@@ -246,10 +247,26 @@ export function painelMapa(ui: Interface, ocupadas: Map<string, Inquilino>, pos:
   };
   ns("rect", { x: X(-PLANTA.meioCorredor), y: Z(PLANTA.zEntrada), width: PLANTA.meioCorredor * 2 * k, height: (PLANTA.zEntrada - PLANTA.zLojasNorte) * k, fill: "#f4efe9" });
   ns("rect", { x: X(-PLANTA.meiaPraca), y: Z(PLANTA.zLojasNorte), width: PLANTA.meiaPraca * 2 * k, height: (PLANTA.zLojasNorte - PLANTA.zPraca) * k, fill: "#efe6f3" });
-  ns("circle", { cx: X(0), cy: Z(-32), r: 3.5 * k, fill: "#9cc8dc" });
-  const tx = ns("text", { x: X(0), y: Z(-38.5), "text-anchor": "middle", class: "mapa-rotulo" });
+  ns("circle", { cx: X(0), cy: Z(-33), r: 3.5 * k, fill: "#9cc8dc" });
+  const tx = ns("text", { x: X(0), y: Z(-39.5), "text-anchor": "middle", class: "mapa-rotulo" });
   tx.textContent = textos.hud.praca;
   const lista = h("ul", { class: "mapa-lista" });
+  for (const a of ANCORAS) {
+    const q = a.inquilino;
+    const r = ns("rect", { x: X(a.cx - 15.4) + 1, y: Z(a.cz + 10.5) + 1, width: 30.8 * k - 2, height: 21 * k - 2, rx: 5, fill: q.estilo.primaria, class: "mapa-loja" });
+    r.addEventListener("click", () => aoIr(q.unidade));
+    const t = ns("text", { x: X(a.cx), y: Z(a.cz) + 4, "text-anchor": "middle", class: "mapa-nome" });
+    t.textContent = q.nome;
+    lista.appendChild(
+      h(
+        "li",
+        {},
+        h("span", { class: "ponto", style: `--cor:${q.estilo.primaria}` }),
+        h("span", { class: "nome" }, `${q.nome} · ${textos.ancora.loja}`),
+        h("button", { type: "button", class: "secundario pequeno", onclick: () => aoIr(q.unidade) }, m.ir)
+      )
+    );
+  }
   for (const u of UNIDADES) {
     const q = ocupadas.get(u.numero);
     const x0 = u.lado > 0 ? X(PLANTA.meioCorredor) : X(-PLANTA.fundoLoja);

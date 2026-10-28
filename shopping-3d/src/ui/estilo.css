@@ -1051,3 +1051,142 @@ input:focus-visible,
     animation: none !important;
   }
 }
+
+/* ---- gente: online, gestos, conversa, cartão da pessoa */
+.hud-online {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--cinza);
+}
+.hud-online::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: #c9c2cc;
+  vertical-align: 1px;
+}
+.hud-online.ligado::before {
+  background: #2fbf71;
+  box-shadow: 0 0 0 3px rgba(47, 191, 113, 0.2);
+}
+.gestos {
+  position: absolute;
+  left: 14px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--vidro);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 24px rgba(30, 12, 44, 0.18);
+}
+.gesto {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+}
+.gesto:hover {
+  background: rgba(59, 30, 84, 0.08);
+}
+.gesto:active {
+  transform: scale(0.92);
+}
+.conversa {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.conversa li {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: #f4eef8;
+  font-size: 13.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.conversa li.minha {
+  align-self: flex-end;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--ameixa);
+  color: #fff;
+}
+.conversa li.vazia {
+  max-width: none;
+  background: none;
+  color: var(--cinza);
+  text-align: center;
+}
+.conversa .quem {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.conversa time {
+  font-weight: 400;
+}
+.conversa .texto {
+  display: block;
+}
+.painel[data-tipo="conversa"] .painel-rodape input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(59, 30, 84, 0.2);
+  font: inherit;
+  font-size: 14px;
+}
+.painel[data-tipo="conversa"] .painel-rodape > .principal {
+  flex: none;
+}
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.pessoa img {
+  width: 84px;
+  height: 84px;
+  border-radius: 20px;
+  object-fit: cover;
+  background: #efe6fb;
+}
+.secundario.largo {
+  width: 100%;
+  margin-top: 10px;
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .gestos {
+    left: auto;
+    right: 10px;
+    bottom: calc(30px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    border-radius: 28px;
+  }
+  .gesto {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  .hud-online {
+    white-space: nowrap;
+  }
+}

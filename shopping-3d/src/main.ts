@@ -9,7 +9,10 @@ import { textos } from "./copy/textos";
 import { gravarPrevia, lerPrevias, unidade as acharUnidade, type Inquilino } from "./dados/lojas";
 import { sacola } from "./dados/sacola";
 import { infoAvatar } from "./dados/avatares";
-import { criarModelo, preCarregar } from "./avatar/avatares";
+import { carregarGestos, criarModelo, preCarregar } from "./avatar/avatares";
+import { balaoDeFala, DURACAO_GESTO, OutrosVisitantes } from "./avatar/outros";
+import { enderecoServidor, Rede, type MensagemChat } from "./rede/rede";
+import { montarBarraGestos, painelConversa, painelPessoa } from "./ui/social";
 import { Personagem, placaDeNome } from "./avatar/personagem";
 import { Provador } from "./avatar/provador";
 import { Visitantes } from "./avatar/visitantes";
@@ -60,9 +63,19 @@ function iniciar() {
   let pontoAtual: PontoInteracao | null = null;
   let distanciaPassos = 0;
   let tempoNoShopping = 0;
+  // ---- gente de verdade (servidor)
+  const outros = new OutrosVisitantes(512);
+  const mensagens: MensagemChat[] = [];
+  let naoLidas = 0;
+  let totalOnline = 1;
+  let estadoRede: "conectando" | "online" | "offline" = "conectando";
+  let conversa: { atualizar: () => void } | null = null;
+  let meuBalao: THREE.Sprite | null = null;
+  let meuBalaoAte = 0;
 
-  const ui = new Interface(app, entrada, celular, {
+  const ui: Interface = new Interface(app, entrada, celular, {
     mapa: () => abrirMapa(),
+    conversa: () => abrirConversa(),
     sacola: () => painelSacola(ui, (u) => (ui.fecharPainel(), levarAte(u, true))),
     visual: () => abrirProvador(),
     musica: (sim) => som.ligar(sim),
@@ -72,6 +85,131 @@ function iniciar() {
   });
   sacola.ouvir(() => ui.definirSacola(sacola.quantidade()));
   entrada.aoAcao = () => agir();
+  ui.aoFecharPainel = () => (conversa = null);
+  const barraGestos = montarBarraGestos(ui.raiz, (g) => fazerGesto(g));
+
+  function atualizarOnline() {
+    const texto = estadoRede === "online" ? textos.social.online(totalOnline) : estadoRede === "conectando" ? textos.social.conectando : textos.social.offline;
+    ui.definirOnline(texto, estadoRede === "online");
+  }
+
+  const rede = new Rede(enderecoServidor(), {
+    bemVindo: (_id, lista, chat) => {
+      outros.limpar();
+      lista.forEach((p) => outros.adicionar(p));
+      mensagens.splice(0, mensagens.length, ...chat);
+      totalOnline = lista.length + 1;
+      atualizarOnline();
+      conversa?.atualizar();
+    },
+    entrou: (p) => outros.adicionar(p),
+    saiu: (id) => outros.remover(id),
+    mudouVisual: (p) => outros.mudarVisual(p),
+    estados: (l) => outros.estados(l),
+    chat: (m) => {
+      mensagens.push(m);
+      if (mensagens.length > 60) mensagens.shift();
+      if (m.id === rede.meuId) mostrarMeuBalao(m.texto);
+      else {
+        outros.falou(m.id, m.texto);
+        void outros.gesto(m.id, "falar");
+        if (ui.painelAberto !== "conversa") {
+          naoLidas++;
+          ui.definirNaoLidas(naoLidas);
+          ui.avisar(`${m.nome}: ${m.texto}`, 4200);
+        }
+      }
+      conversa?.atualizar();
+    },
+    gesto: (id, g, alvo) => {
+      void outros.gesto(id, g);
+      if (alvo && alvo === rede.meuId) ui.avisar(`${textos.social.emojis.acenar} ${textos.social.acenouParaVoce(outros.dados(id)?.nome ?? textos.social.visitante)}`, 4000);
+    },
+    total: (n) => {
+      totalOnline = n;
+      atualizarOnline();
+    },
+    estado: (e) => {
+      estadoRede = e;
+      atualizarOnline();
+    },
+  });
+
+  function mostrarMeuBalao(texto: string) {
+    if (!jogador) return;
+    if (meuBalao) {
+      meuBalao.material.map?.dispose();
+      meuBalao.material.dispose();
+      meuBalao.removeFromParent();
+    }
+    meuBalao = balaoDeFala(texto);
+    meuBalao.position.y = infoAvatar(escolha.avatar).altura + 0.42;
+    jogador.objeto.add(meuBalao);
+    meuBalaoAte = tempo + 7;
+  }
+
+  async function fazerGesto(g: string, alvo?: string) {
+    if (!jogador) return;
+    rede.gesto(g, alvo);
+    const clipes = await carregarGestos(infoAvatar(escolha.avatar).genero).catch(() => null);
+    const clipe = clipes?.[g];
+    if (clipe && jogador) jogador.fazerGesto(g, clipe, DURACAO_GESTO[g] ?? 4);
+  }
+
+  function abrirConversa(inicial = "") {
+    naoLidas = 0;
+    ui.definirNaoLidas(0);
+    conversa = painelConversa(
+      ui,
+      mensagens,
+      rede.meuId,
+      rede.online,
+      (texto) => {
+        rede.falar(texto);
+        void fazerGesto("falar");
+      },
+      () => void convidar(),
+      inicial
+    );
+  }
+
+  async function convidar() {
+    const url = location.href.split("#")[0];
+    try {
+      if (navigator.share) await navigator.share({ title: textos.shopping.nome, text: textos.social.convite, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        ui.avisar(textos.social.copiado);
+      }
+    } catch {
+      /* a pessoa cancelou */
+    }
+  }
+
+  function abrirPessoa(id: string) {
+    const d = outros.dados(id);
+    if (!d) return;
+    painelPessoa(ui, d.nome, d.visual, {
+      acenar: () => {
+        ui.fecharPainel();
+        void fazerGesto("acenar", id);
+      },
+      ir: () => {
+        ui.fecharPainel();
+        const q = outros.dados(id);
+        if (!q || !jogador || !shopping) return;
+        // para do lado da pessoa, não em cima dela
+        const p = jogador.posicao;
+        const dx = q.posicao.x - p.x;
+        const dz = q.posicao.z - p.z;
+        const dist = Math.hypot(dx, dz) || 1;
+        rota = shopping.rotaAte(p.x, p.z, q.posicao.x - (dx / dist) * 1.1, q.posicao.z - (dz / dist) * 1.1);
+        destinoRota = q.nome;
+        ui.avisar(textos.avisos.levando(q.nome));
+      },
+      mensagem: () => abrirConversa(`@${d.nome} `),
+    });
+  }
 
   // ---- provador
   const provador = new Provador(motor.ambiente);
@@ -85,6 +223,7 @@ function iniciar() {
     modo = "provador";
     ui.fecharPainel();
     ui.mostrarHud(false);
+    barraGestos.hidden = true;
     motor.usar(provador.cena);
     provador.enquadrar(motor.camera, innerWidth, innerHeight, painelDoLado());
     void provador.vestir(escolha, ladoTextura);
@@ -109,7 +248,8 @@ function iniciar() {
   function construirShopping() {
     if (shopping) return shopping;
     shopping = new Shopping(motor.renderer, motor.ambiente, motor.qualidade, celular);
-    camera3 = new CameraTerceira(motor.camera, shopping.colisao);
+    const s = shopping;
+    camera3 = new CameraTerceira(motor.camera, s.colisao, (x, z) => s.tetoEm(x, z));
     motor.aoMudarQualidade = (q) => shopping?.ajustarReflexo(q);
     return shopping;
   }
@@ -168,7 +308,11 @@ function iniciar() {
     tempoNoShopping = 0;
     ui.definirCarregando(null);
     ui.mostrarHud(true);
+    barraGestos.hidden = false;
     som.ligar(true);
+    if (!outros.grupo.parent) s.cena.add(outros.grupo);
+    if (novo) rede.conectar(escolha.nome || textos.social.visitante, escolha);
+    else rede.mudarVisual(escolha.nome || textos.social.visitante, escolha);
     if (novo) {
       ui.avisar(textos.avisos.bemVindo(escolha.nome));
       for (const q of s.ocupadas.values()) void criarAtendente(q);
@@ -189,29 +333,23 @@ function iniciar() {
   // ---- ações
 
   function caminhoAte(x: number, z: number): [number, number][] {
-    const s = shopping!;
     const p = jogador!.posicao;
-    if (s.colisao.raio(p.x, p.z, x, z, 1) >= 1) return [[x, z]];
-    const de = s.noMaisPerto(p.x, p.z);
-    const para = s.noMaisPerto(x, z);
-    const c = s.caminho(de, para);
-    return c.length ? [...c, [x, z]] : [];
+    return shopping!.rotaAte(p.x, p.z, x, z);
   }
 
+  /** anda sozinho até a loja (a entrada; ou o caixa / o totem de aluguel) */
   function levarAte(numero: string, aoCaixa = false) {
     const s = shopping!;
-    const loja = s.lojas.find((l) => l.unidade.numero === numero);
-    const portas = s.nosDaLoja(numero);
-    if (!loja || !portas) return;
+    const q = s.ocupadas.get(numero);
+    const alvo = aoCaixa || !q ? s.caixaDa(numero) : s.entradaDa(numero);
     const p = jogador!.posicao;
-    const fim = aoCaixa ? loja.pontos.find((x) => x.tipo === "caixa") : loja.pontos.find((x) => x.tipo === "aluguel");
-    const c = s.caminho(s.noMaisPerto(p.x, p.z), portas.dentro);
+    const c = alvo ? s.rotaAte(p.x, p.z, alvo.x, alvo.z) : [];
     if (!c.length) {
       ui.avisar(textos.avisos.semCaminho);
       return;
     }
-    rota = fim ? [...c, [fim.x, fim.z]] : c;
-    destinoRota = loja.inquilino?.nome ?? textos.aluguel.unidade(numero);
+    rota = c;
+    destinoRota = q?.nome ?? textos.aluguel.unidade(numero);
     ui.avisar(textos.avisos.levando(destinoRota));
   }
 
@@ -318,6 +456,13 @@ function iniciar() {
     }
     ndc.set((a.x / innerWidth) * 2 - 1, -(a.y / innerHeight) * 2 + 1);
     raycaster.setFromCamera(ndc, motor.camera);
+    // outra pessoa: abre o cartão dela (acenar, ir até, mandar mensagem)
+    raycaster.far = 30;
+    const pessoa = raycaster.intersectObjects(outros.alvos(), false)[0];
+    if (pessoa) {
+      abrirPessoa(pessoa.object.userData.pessoa as string);
+      return;
+    }
     raycaster.far = 60;
     const p = new THREE.Vector3();
     if (!raycaster.ray.intersectPlane(chao, p) || p.distanceTo(jogador.posicao) > 45) return;
@@ -386,7 +531,16 @@ function iniciar() {
     if (vel > 0) {
       const l = Math.hypot(mx, mz) || 1;
       const passo = vel * dt;
-      const [nx, nz] = s.colisao.resolver(p.x + (mx / l) * passo, p.z + (mz / l) * passo, 0.32);
+      let [nx, nz] = s.colisao.resolver(p.x + (mx / l) * passo, p.z + (mz / l) * passo, 0.32);
+      // nas âncoras, a grade do piso da loja: escorrega pelo eixo que dá
+      if (s.bloqueado(nx, nz)) {
+        if (!s.bloqueado(nx, p.z)) nz = p.z;
+        else if (!s.bloqueado(p.x, nz)) nx = p.x;
+        else {
+          nx = p.x;
+          nz = p.z;
+        }
+      }
       const andou = Math.hypot(nx - p.x, nz - p.z);
       // bateu e não anda: desiste da rota
       if (rota.length && andou < passo * 0.15) rota.shift();
@@ -407,12 +561,11 @@ function iniciar() {
 
     // onde está
     const onde = s.ondeEsta(p.x, p.z);
-    const lugar =
-      onde.tipo === "loja" ? (onde.loja?.inquilino?.nome ?? textos.aluguel.unidade(onde.loja?.unidade.numero ?? "")) : onde.tipo === "praca" ? textos.hud.praca : onde.tipo === "entrada" ? textos.hud.entrada : textos.hud.corredor;
+    const lugar = onde.tipo === "loja" ? (onde.nome ?? "") : onde.tipo === "praca" ? textos.hud.praca : onde.tipo === "entrada" ? textos.hud.entrada : textos.hud.corredor;
     ui.definirLocal(lugar);
     if (lugar !== lugarAnterior) {
-      if (onde.tipo === "loja" && onde.loja?.inquilino) {
-        ui.avisar(textos.dicas.entrou(onde.loja.inquilino.nome));
+      if (onde.tipo === "loja" && onde.inquilino) {
+        ui.avisar(textos.dicas.entrou(onde.inquilino.nome));
         som.porta();
       }
       lugarAnterior = lugar;
@@ -433,7 +586,7 @@ function iniciar() {
 
     // cursor em cima de produto (computador)
     if (!celular && entrada.mouse && !ui.painelAberto) {
-      if (entrada.mouseMexeu || vel > 0) {
+      if (entrada.mouseMexeu || vel > 0 || Math.floor(tempo * 3) !== Math.floor((tempo - dt) * 3)) {
         entrada.mouseMexeu = false;
         const m = produtoEm(entrada.mouse.x, entrada.mouse.y);
         motor.renderer.domElement.classList.toggle("apontando", !!m);
@@ -450,6 +603,16 @@ function iniciar() {
     }
 
     visitantes?.atualizar(dt, p);
+    outros.atualizar(dt, p);
+    rede.posicao(p.x, p.z, Math.atan2(Math.sin(jogador.rumo), Math.cos(jogador.rumo)), vel);
+    if (meuBalao && tempo > meuBalaoAte) {
+      meuBalao.material.map?.dispose();
+      meuBalao.material.dispose();
+      meuBalao.removeFromParent();
+      meuBalao = null;
+    }
+    // no celular, painel aberto cobre a barra de gestos
+    barraGestos.hidden = celular && !!ui.painelAberto;
     for (const a of atendentes.values()) {
       // olha para o cliente que chega no balcão
       const d = Math.hypot(a.posicao.x - p.x, a.posicao.z - p.z);
@@ -485,11 +648,16 @@ function iniciar() {
           pos: jogador ? [jogador.posicao.x, jogador.posicao.z] : null,
           painel: ui.painelAberto,
           rota: rota.map(([x, z]) => [Math.round(x * 10) / 10, Math.round(z * 10) / 10]),
+          online: rede.online,
+          outros: outros.lista(),
+          mensagens: mensagens.length,
           chamadas: motor.renderer.info.render.calls,
           triangulos: motor.renderer.info.render.triangles,
         }),
         agir,
         levarAte,
+        falar: (texto: string) => rede.falar(texto),
+        gesto: (g: string) => fazerGesto(g),
       },
     });
   }

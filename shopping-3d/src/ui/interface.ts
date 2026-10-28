@@ -11,6 +11,7 @@ import { fichaEmHtml } from "./ficha";
 
 export interface AcoesHud {
   mapa: () => void;
+  conversa: () => void;
   sacola: () => void;
   visual: () => void;
   musica: (ligar: boolean) => void;
@@ -24,6 +25,8 @@ export class Interface {
   private hud: HTMLElement;
   private local: HTMLElement;
   private contagem: HTMLElement;
+  private naoLidas: HTMLElement;
+  private online: HTMLElement;
   private botaoSom: HTMLButtonElement;
   private dica: HTMLElement;
   private dicaTexto: HTMLElement;
@@ -45,6 +48,8 @@ export class Interface {
     const botao = (rotulo: string, nome: string, f: () => void, extra?: HTMLElement) =>
       h("button", { class: "botao-hud", type: "button", "aria-label": rotulo, title: rotulo, onclick: () => f() }, icone(nome), h("span", { class: "rotulo" }, rotulo), extra ?? null);
     this.contagem = h("span", { class: "contagem", hidden: true }, "0");
+    this.naoLidas = h("span", { class: "contagem", hidden: true }, "0");
+    this.online = h("span", { class: "hud-online" }, textos.social.conectando);
     this.botaoSom = botao(textos.hud.som, "som", () => {
       this.musicaLigada = !this.musicaLigada;
       this.botaoSom.replaceChildren(icone(this.musicaLigada ? "som" : "mudo"), h("span", { class: "rotulo" }, this.musicaLigada ? textos.hud.som : textos.hud.semSom));
@@ -57,11 +62,12 @@ export class Interface {
       "header",
       { class: "hud", hidden: true },
       h("div", { class: "hud-marca" }, h("span", { class: "hud-shopping" }, "Shopping da"), h("span", { class: "hud-beleza" }, "Beleza")),
-      h("div", { class: "hud-local" }, h("span", {}, textos.hud.voceEsta), this.local),
+      h("div", { class: "hud-local" }, h("span", {}, textos.hud.voceEsta), this.local, this.online),
       h(
         "nav",
         { class: "hud-botoes", "aria-label": textos.shopping.nome },
         botao(textos.hud.mapa, "mapa", acoes.mapa),
+        botao(textos.social.conversa, "conversa", acoes.conversa, this.naoLidas),
         botao(textos.hud.sacola, "sacola", acoes.sacola, this.contagem),
         botao(textos.hud.visual, "pessoa", acoes.visual),
         this.botaoSom,
@@ -158,6 +164,16 @@ export class Interface {
   definirSacola(n: number) {
     this.contagem.hidden = n === 0;
     this.contagem.textContent = String(n);
+  }
+
+  definirOnline(texto: string, ligado: boolean) {
+    if (this.online.textContent !== texto) this.online.textContent = texto;
+    this.online.classList.toggle("ligado", ligado);
+  }
+
+  definirNaoLidas(n: number) {
+    this.naoLidas.hidden = n === 0;
+    this.naoLidas.textContent = n > 9 ? "9+" : String(n);
   }
 
   definirDica(texto: string | null) {

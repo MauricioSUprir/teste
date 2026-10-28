@@ -48,8 +48,14 @@ export function todosProdutos(): Produto[] {
     .filter((p) => (vistos.has(p.id) ? false : (vistos.add(p.id), true)));
 }
 
+const outrasMarcas = new Map<string, string>();
+/** nomes das marcas da vitrine dos sites (lojas âncora), que chega depois */
+export function registrarMarcas(lista: [string, string][]) {
+  for (const [slug, nome] of lista) outrasMarcas.set(slug, nome);
+}
+
 export function nomeMarca(slug: string): string {
-  return catalogo.marcas[slug]?.nome ?? slug;
+  return catalogo.marcas[slug]?.nome ?? outrasMarcas.get(slug) ?? slug;
 }
 
 /** número = foto do Hub; "/fotos-produtos/…" = foto guardada junto com o shopping (public/) */

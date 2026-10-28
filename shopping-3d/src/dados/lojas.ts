@@ -3,11 +3,13 @@
  *
  * Galeria principal ao longo do eixo z: a entrada fica no sul (z = +36), as
  * 8 lojas (4 de cada lado, 12 m de frente × 12 m de fundo = 144 m²) entre
- * z = +24 e z = −24, e a Praça da Beleza com a fonte no norte (até z = −42).
+ * z = +24 e z = −24, e a Praça da Beleza com a fonte no norte (até z = −44).
  * Corredor de 16 m (x de −8 a 8); as lojas vão de |x| = 8 a |x| = 20.
  *
- * Lojas com inquilino: as três marcas do grupo. As outras ficam para alugar —
- * e quem quiser pode montar a própria loja numa delas (prévia guardada no aparelho).
+ * No fundo da praça ficam as duas lojas âncora — BeautyNow e Be2Beauty —, que
+ * são a mesma loja 3D dos sites (30 × 20 m, mundo/loja-site.ts). Nas lojas da
+ * galeria fica a Pulse; as outras estão para alugar, e quem quiser pode montar
+ * a própria loja numa delas (prévia guardada no aparelho).
  */
 import { produtosDaLoja, todosProdutos, type Produto } from "./catalogo";
 import { textos } from "../copy/textos";
@@ -19,8 +21,8 @@ export const PLANTA = {
   zLojasSul: 24,
   zLojasNorte: -24,
   frente: 12,
-  zPraca: -42,
-  meiaPraca: 16,
+  zPraca: -44,
+  meiaPraca: 32,
   tetoGaleria: 10.5,
   tetoLoja: 4.6,
   piso2: 5.6,
@@ -75,34 +77,84 @@ export interface Inquilino {
 
 const MARCAS_DO_GRUPO: Inquilino[] = [
   {
-    id: "beautynow",
-    nome: "BeautyNow",
-    slogan: "Beleza profissional para você",
-    unidade: "101",
-    estilo: { primaria: "#6B2BD9", secundaria: "#EFE6FF", parede: "#FBF8FF", piso: "porcelanato", letreiro: "beautynow", faixa: "#ffffff" },
-    produtos: produtosDaLoja("beautynow"),
-    atendente: { avatar: "Female_Adult_05", nome: "Larissa", cor: "#6B2BD9" },
-    previa: false,
-  },
-  {
-    id: "be2beauty",
-    nome: "Be2Beauty",
-    slogan: "Only professional",
-    unidade: "102",
-    estilo: { primaria: "#13315C", secundaria: "#DCE7F5", parede: "#F1F5FA", piso: "madeira", letreiro: "be2beauty", faixa: "#13315C" },
-    produtos: produtosDaLoja("be2beauty"),
-    atendente: { avatar: "Male_Adult_06", nome: "Rafael", cor: "#13315C" },
-    previa: false,
-  },
-  {
     id: "pulse",
     nome: "Pulse",
     slogan: "Beauty store",
-    unidade: "103",
+    unidade: "101",
     estilo: { primaria: "#1C1714", secundaria: "#D99A4E", parede: "#F4EEE7", piso: "cimento", letreiro: "pulse", faixa: "#1C1714" },
     produtos: produtosDaLoja("pulse"),
     atendente: { avatar: "Female_Party_02", nome: "Júlia", cor: "#1C1714" },
     previa: false,
+  },
+];
+
+/** loja âncora: a loja 3D do site, inteira, no fundo da praça (entrada virada para a praça, +z) */
+export interface Ancora {
+  inquilino: Inquilino;
+  /** centro da loja no shopping */
+  cx: number;
+  cz: number;
+  site: {
+    estilo: "conceito" | "profissional";
+    logo: { texto: string; destaque: boolean; sufixo?: string }[];
+    fraseVitrine: string | null;
+    corPrimaria: string;
+    corEscura: string;
+    /** a atendente do site (Rocketbox com o blazer da loja) */
+    modeloAtendente: string;
+  };
+}
+
+export const ANCORAS: Ancora[] = [
+  {
+    inquilino: {
+      id: "beautynow",
+      nome: "BeautyNow",
+      slogan: "Beleza que acontece agora.",
+      unidade: "A1",
+      estilo: { primaria: "#6B2BD9", secundaria: "#EFE6FF", parede: "#FBF8FF", piso: "porcelanato", letreiro: "beautynow", faixa: "#ffffff" },
+      produtos: [],
+      atendente: { avatar: "Female_Adult_05", nome: "Larissa", cor: "#6B2BD9" },
+      previa: false,
+    },
+    cx: -15.8,
+    cz: -54.5,
+    site: {
+      estilo: "conceito",
+      logo: [
+        { texto: "BEAUTY", destaque: false },
+        { texto: "NOW!", destaque: true },
+      ],
+      fraseVitrine: "Beleza que acontece agora.",
+      corPrimaria: "#6B2BD9",
+      corEscura: "#3E1A8C",
+      modeloAtendente: "atendente-roxa.glb",
+    },
+  },
+  {
+    inquilino: {
+      id: "be2beauty",
+      nome: "Be2Beauty",
+      slogan: "Only professional.",
+      unidade: "A2",
+      estilo: { primaria: "#13315C", secundaria: "#DCE7F5", parede: "#F1F5FA", piso: "madeira", letreiro: "be2beauty", faixa: "#13315C" },
+      produtos: [],
+      atendente: { avatar: "Male_Adult_06", nome: "Larissa", cor: "#13315C" },
+      previa: false,
+    },
+    cx: 15.8,
+    cz: -54.5,
+    site: {
+      estilo: "profissional",
+      logo: [
+        { texto: "BE2", sufixo: "BEAUTY", destaque: true },
+        { texto: "ONLY PROFESSIONAL", destaque: false },
+      ],
+      fraseVitrine: "Only professional.",
+      corPrimaria: "#1F5FA8",
+      corEscura: "#13315C",
+      modeloAtendente: "atendente-azul.glb",
+    },
   },
 ];
 
@@ -178,6 +230,7 @@ export function inquilinoDaPrevia(unidade: string, p: LojaPrevia, i: number): In
 export function ocupacao(): Map<string, Inquilino> {
   const mapa = new Map<string, Inquilino>();
   for (const q of MARCAS_DO_GRUPO) mapa.set(q.unidade, q);
+  for (const a of ANCORAS) mapa.set(a.inquilino.unidade, a.inquilino);
   Object.entries(lerPrevias()).forEach(([u, p], i) => {
     if (!mapa.has(u) && UNIDADES.some((x) => x.numero === u)) mapa.set(u, inquilinoDaPrevia(u, p, i));
   });

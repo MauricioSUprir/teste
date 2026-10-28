@@ -4,11 +4,11 @@
  * Beleza com fonte e telão de LED, bancos, vasos, totens e o provador.
  */
 import * as THREE from "three";
-import { PLANTA } from "../dados/lojas";
+import { PLANTA, type Inquilino } from "../dados/lojas";
 import { textos } from "../copy/textos";
 import type { Colisao } from "./colisao";
 import { Lotes, planoChao, planoTeto, placa } from "./construtor";
-import { canvasTextura, COR_SHOPPING, desenharLed, desenharLogoShopping, FONTE, letreiroEntrada, telaTotem } from "./letreiros";
+import { canvasTextura, COR_SHOPPING, desenharLed, desenharLogoShopping, desenharMarca, FONTE, letreiroEntrada, telaTotem } from "./letreiros";
 import type { Materiais } from "./materiais";
 import { texturaCeu, texturaNuvens } from "./texturas-shopping";
 import type { LugarPlanta } from "./plantas";
@@ -27,6 +27,8 @@ export interface OpcoesEstrutura {
   colisao: Colisao;
   ocupadas: { numero: string; nome: string; cor: string; slogan: string }[];
   vagas: string[];
+  /** lojas âncora no fundo da praça: centro em x e largura total da fachada */
+  ancoras: { cx: number; largura: number; altura: number; inquilino: Inquilino }[];
 }
 
 const { meioCorredor: MC, zEntrada: ZE, zLojasNorte: ZN, zPraca: ZP, meiaPraca: MP, tetoGaleria: TG, piso2: P2, varanda: VA } = PLANTA;
@@ -193,11 +195,42 @@ export function criarEstrutura(op: OpcoesEstrutura) {
     // ripado de madeira nas laterais da praça
     for (let z = ZP + 1; z < ZN - 1; z += 0.24) lotes.bloco(mat.madeira, s * (MP - 0.06), 0.3, z, s * MP, 4.4, z + 0.12);
   }
-  lotes.bloco(mat.gesso, -MP, 0, ZP - 0.3, MP, TG, ZP);
-  colisao.parede(-MP, ZP, MP, ZP, TG);
+  // fundo da praça: as fachadas das âncoras até o teto delas; daí para cima, parede com os letreiros e o telão
+  {
+    const alt = Math.max(...op.ancoras.map((a) => a.altura));
+    lotes.bloco(mat.gesso, -MP, alt, ZP - 0.3, MP, TG, ZP);
+    // vãos entre as âncoras e nas pontas, do chão até a altura delas
+    const faixas = op.ancoras.map((a) => [a.cx - a.largura / 2, a.cx + a.largura / 2]).sort((a, b) => a[0] - b[0]);
+    let x = -MP;
+    for (const [a, b] of [...faixas, [MP, MP]]) {
+      if (a - x > 0.01) {
+        lotes.bloco(mat.pedra, x, 0, ZP - 0.3, a, alt, ZP + 0.05);
+        colisao.parede(x, ZP + 0.05, a, ZP + 0.05, TG);
+      }
+      x = Math.max(x, b);
+    }
+    // letreiro grande de cada âncora, aceso, na parede acima da fachada
+    for (const a of op.ancoras) {
+      const q = a.inquilino;
+      const c = document.createElement("canvas");
+      c.width = 2048;
+      c.height = 200;
+      const g = c.getContext("2d")!;
+      g.fillStyle = q.estilo.faixa;
+      g.fillRect(0, 0, 2048, 200);
+      g.fillStyle = q.estilo.primaria;
+      g.fillRect(0, 190, 2048, 10);
+      desenharMarca(g, q, 1024, 98, 160);
+      const tex = canvasTextura(c);
+      const m = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.3, 1.3, 1.3) });
+      lixo.push(tex, m);
+      lotes.bloco(mat.metal, a.cx - 7.15, alt + 0.3, ZP + 0.0, a.cx + 7.15, alt + 1.85, ZP + 0.12);
+      grupo.add(placa(m, 14, 1.37, a.cx, alt + 1.075, ZP + 0.125, 0));
+    }
+  }
   {
     // teto com abertura de 20 × 10 m e grelha de vigas
-    const ax = 10;
+    const ax = 14;
     const az0 = ZP + 4;
     const az1 = ZN - 4;
     lotes.adicionar(mat.teto, planoTeto(-MP, ZP, MP, az0, TG));
@@ -211,13 +244,14 @@ export function criarEstrutura(op: OpcoesEstrutura) {
   // telão de LED na parede do fundo
   {
     const L = 1024;
-    const A = 366;
+    const A = 330;
     const { c, g } = canvasSimples(L, A);
     const tex = canvasTextura(c);
     const m = new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.35, 1.35, 1.35), toneMapped: true });
     lixo.push(tex, m);
-    lotes.bloco(mat.metal, -7.3, 2.1, ZP + 0.0, 7.3, 7.5, ZP + 0.25);
-    grupo.add(placa(m, 14, 5, 0, 4.8, ZP + 0.27, 0));
+    // em cima, entre os letreiros das âncoras
+    lotes.bloco(mat.metal, -6.6, 6.55, ZP + 0.0, 6.6, 10.2, ZP + 0.25);
+    grupo.add(placa(m, 13, 13 * (A / L), 0, 8.375, ZP + 0.27, 0));
     let ultimo = -1;
     animar.push((t) => {
       if (t - ultimo < 0.2) return;
@@ -287,10 +321,10 @@ export function criarEstrutura(op: OpcoesEstrutura) {
   const vasos: [number, number, number][] = [
     [-6.4, 33.2, 0.8],
     [6.4, 33.2, 0.8],
-    [-13.6, ZN - 2.2, 0.9],
-    [13.6, ZN - 2.2, 0.9],
-    [-13.6, ZP + 2.4, 0.9],
-    [13.6, ZP + 2.4, 0.9],
+    [-29.4, ZN - 2.2, 0.9],
+    [29.4, ZN - 2.2, 0.9],
+    [-20.5, ZN - 2.2, 0.9],
+    [20.5, ZN - 2.2, 0.9],
   ];
   for (const [x, z, r] of vasos) vaso(lotes, mat, colisao, plantas, x, z, r);
   // ilhas no meio do corredor: vaso + dois bancos

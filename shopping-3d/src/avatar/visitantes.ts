@@ -53,21 +53,16 @@ export class Visitantes {
 
   private novaRota(v: Visitante) {
     const s = this.shopping;
-    const de = s.noMaisPerto(v.p.posicao.x, v.p.posicao.z);
-    // metade das vezes vai para uma loja aberta; senão, um ponto qualquer
-    let para = Math.floor(acaso() * s.nos.length);
-    const abertas = s.lojas.filter((l) => l.inquilino);
-    if (acaso() < 0.55 && abertas.length) {
-      const l = sorteio(abertas);
-      const portas = s.nosDaLoja(l.unidade.numero);
-      if (portas) {
-        const dentro = s.nos[portas.dentro];
-        // um dos pontos de passeio ligados à porta de dentro
-        const opcoes = dentro.viz.filter((n) => n !== portas.fora);
-        para = opcoes.length ? sorteio(opcoes) : portas.dentro;
-      }
+    const pos = v.p.posicao;
+    // pouco mais da metade das vezes entra numa loja aberta; senão, passeia pela galeria e pela praça
+    const lojas = s.destinosPasseio();
+    let alvo: [number, number];
+    if (acaso() < 0.55 && lojas.length) alvo = sorteio(lojas);
+    else {
+      const n = s.nos[Math.floor(acaso() * s.nos.length)];
+      alvo = [n.x, n.z];
     }
-    v.rota = s.caminho(de, para);
+    v.rota = s.rotaAte(pos.x, pos.z, alvo[0], alvo[1]);
   }
 
   atualizar(dt: number, jogador: THREE.Vector3 | null) {

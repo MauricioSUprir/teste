@@ -24,6 +24,11 @@ export class Personagem {
   readonly passo: number;
   private tempoParado = 0;
   private usandoParado2 = false;
+  /** gesto em andamento (acenar, dançar…): mistura por cima do parado e some quando a pessoa anda */
+  private gestoAcao: THREE.AnimationAction | null = null;
+  private pesoGesto = 0;
+  private gestoRestante = 0;
+  gestoNome: string | null = null;
 
   constructor(modelo: Modelo, op: { variarParado?: boolean } = {}) {
     this.modelo = modelo;
@@ -54,6 +59,21 @@ export class Personagem {
     this.objeto.rotation.y = rumo;
   }
 
+  fazerGesto(nome: string, clipe: THREE.AnimationClip, segundos: number) {
+    if (this.gestoAcao && this.gestoAcao.getClip() !== clipe) this.gestoAcao.stop();
+    this.gestoAcao = this.mixer.clipAction(clipe);
+    this.gestoAcao.reset();
+    this.gestoAcao.setLoop(THREE.LoopRepeat, Infinity);
+    this.gestoAcao.play();
+    this.gestoAcao.setEffectiveWeight(this.pesoGesto);
+    this.gestoRestante = segundos;
+    this.gestoNome = nome;
+  }
+
+  pararGesto() {
+    this.gestoRestante = 0;
+  }
+
   /** dt em segundos; velocidade em m/s (0 = parado) */
   atualizar(dt: number, velocidade: number) {
     this.velocidade = velocidade;
@@ -66,7 +86,20 @@ export class Personagem {
     const atual = this.andar.getEffectiveWeight();
     const alvo = k;
     const peso = atual + (alvo - atual) * Math.min(1, dt * (alvo > atual ? 9 : 6));
-    this.andar.setEffectiveWeight(peso);
+    if (this.gestoAcao) {
+      if (velocidade > 0.3) this.gestoRestante = 0;
+      this.gestoRestante -= dt;
+      const alvoG = this.gestoRestante > 0 ? 1 : 0;
+      this.pesoGesto += (alvoG - this.pesoGesto) * Math.min(1, dt * 5);
+      if (!alvoG && this.pesoGesto < 0.02) {
+        this.gestoAcao.stop();
+        this.gestoAcao = null;
+        this.gestoNome = null;
+        this.pesoGesto = 0;
+      } else this.gestoAcao.setEffectiveWeight(this.pesoGesto);
+    }
+    const resto = 1 - this.pesoGesto;
+    this.andar.setEffectiveWeight(peso * resto);
     this.andar.setEffectiveTimeScale(THREE.MathUtils.clamp(velocidade / this.passo, 0.55, 1.9));
     // parado: de vez em quando a pessoa troca de pé, olha em volta (só quem tem a variação)
     if (peso < 0.05) this.tempoParado += dt;
@@ -80,11 +113,11 @@ export class Personagem {
       const p2 = this.parado2.getEffectiveWeight();
       const alvo2 = quer2 ? 1 - peso : 0;
       const novo2 = p2 + (alvo2 - p2) * Math.min(1, dt * 2);
-      this.parado2.setEffectiveWeight(novo2);
-      this.parado.setEffectiveWeight(Math.max(0, 1 - peso - novo2));
+      this.parado2.setEffectiveWeight(novo2 * resto);
+      this.parado.setEffectiveWeight(Math.max(0, 1 - peso - novo2) * resto);
       if (quer2 && this.tempoParado > 6 + this.modelo.clipes.parado2.duration) this.tempoParado = 0;
     } else {
-      this.parado.setEffectiveWeight(1 - peso);
+      this.parado.setEffectiveWeight((1 - peso) * resto);
     }
     this.mixer.update(dt);
   }
