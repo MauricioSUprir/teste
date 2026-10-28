@@ -127,7 +127,7 @@ export function montarProvadorUi(pai: HTMLElement, inicial: Escolha, op: OpcoesP
     h(
       "div",
       { class: "provador-topo" },
-      h("div", { class: "hud-marca" }, h("span", { class: "hud-shopping" }, "Shopping da"), h("span", { class: "hud-beleza" }, "Beleza")),
+      h("div", { class: "hud-marca" }, h("img", { class: "hud-logo", src: "./marca/logo-roxo.png", alt: textos.shopping.nome, width: 1600, height: 432 })),
       h("h1", {}, t.titulo),
       h("p", { class: "subtitulo" }, t.subtitulo)
     ),

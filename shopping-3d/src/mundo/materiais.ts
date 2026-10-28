@@ -73,6 +73,17 @@ export function criarMateriais(qualidade: Qualidade) {
     tecidoCortina: new THREE.MeshStandardMaterial({ color: "#5b2b7a", roughness: 0.85, side: THREE.DoubleSide }),
     espelho: new THREE.MeshStandardMaterial({ color: "#e9eef2", metalness: 1, roughness: 0.06, envMapIntensity: 2.4 }),
     branco: new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.5 }),
+    // ---- átrio e fachada (Beauty Shopping)
+    /** piso das varandas: o mesmo porcelanato, sem o reflexo (que é só do térreo) */
+    pisoVaranda: pisoGaleria.clone(),
+    /** testeiras, pilares e escadas: branco laqueado, as duas faces (fitas curvas) */
+    fachadaBranca: new THREE.MeshStandardMaterial({ color: "#f7f5f8", roughness: 0.3, envMapIntensity: 1, side: THREE.DoubleSide }),
+    led: new THREE.MeshBasicMaterial({ color: new THREE.Color(5, 3.9, 2.7), side: THREE.DoubleSide }),
+    ledLilas: new THREE.MeshBasicMaterial({ color: new THREE.Color(3.4, 2.2, 5), side: THREE.DoubleSide }),
+    lilas: new THREE.MeshStandardMaterial({ color: "#b48fd8", roughness: 0.4, emissive: "#5b2f78", emissiveIntensity: 0.18 }),
+    roxo: new THREE.MeshStandardMaterial({ color: "#6f2a93", roughness: 0.3, metalness: 0.1, envMapIntensity: 1.2 }),
+    tecidoLilas: new THREE.MeshStandardMaterial({ color: "#bba0dc", roughness: 0.92, side: THREE.DoubleSide }),
+    corrimao: new THREE.MeshStandardMaterial({ color: "#1d1b20", roughness: 0.45 }),
   };
   return m;
 }

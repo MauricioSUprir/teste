@@ -1,15 +1,19 @@
 /**
- * Junta tudo: o prédio, as 8 lojas da galeria, as duas lojas âncora (a loja
- * 3D dos sites, no fundo da praça), as plantas, a luz do sol pela claraboia,
- * o reflexo no piso e os caminhos (para os visitantes andarem sozinhos e para
- * o "me levar até lá": mapa de nós na galeria e A* na grade das âncoras).
+ * Junta tudo: o lado de fora (fachada, praça da frente, estacionamento e a
+ * cidade), o térreo, o átrio de três andares, as 8 lojas da galeria, as duas
+ * lojas âncora (a loja 3D dos sites, no fundo da praça), as plantas, a luz de
+ * fim de tarde (o sol entra pela fachada de vidro e pela claraboia), o
+ * reflexo no piso e os caminhos (para os visitantes andarem sozinhos e para o
+ * "me levar até lá": mapa de nós e A* na grade das âncoras).
  */
 import * as THREE from "three";
-import { ANCORAS, ocupacao, PLANTA, UNIDADES, type Ancora, type Inquilino } from "../dados/lojas";
+import { ANCORAS, ocupacao, PLANTA, UNIDADES, zFachadaEm, type Ancora, type Inquilino } from "../dados/lojas";
 import { registrarMarcas, type Produto } from "../dados/catalogo";
 import { textos } from "../copy/textos";
 import { Colisao } from "./colisao";
 import { criarEstrutura, type PontoInteracao } from "./estrutura";
+import { caminhoVaranda, criarAtrio, noVazio, type Atrio } from "./atrio";
+import { criarExterior, type Exterior } from "./exterior";
 import { criarLoja, type LojaMontada } from "./loja";
 import { ALTURA as ALTURA_ANCORA, FUNDO as FUNDO_ANCORA, LARGURA as LARGURA_ANCORA, PAREDE as PAREDE_ANCORA, montarLojaDoSite, type LojaSite, type SetorCena } from "./loja-site";
 import { AtendenteSite } from "./atendente-site";
@@ -25,7 +29,7 @@ export interface No {
 }
 
 export interface Lugar {
-  tipo: "loja" | "praca" | "entrada" | "corredor";
+  tipo: "loja" | "praca" | "entrada" | "corredor" | "fora";
   nome?: string;
   inquilino?: Inquilino;
 }
@@ -49,6 +53,10 @@ interface VitrineSite {
 
 const MEIA_ANCORA = LARGURA_ANCORA / 2 + PAREDE_ANCORA;
 const FRENTE_ANCORA = FUNDO_ANCORA / 2 + PAREDE_ANCORA + 0.06;
+/** de onde vem o sol (fim de tarde, da frente e da esquerda de quem olha a fachada) */
+const DIRECAO_SOL = new THREE.Vector3(-0.42, 0.66, 0.62).normalize();
+/** as portas abrem quando alguém chega a esta distância delas */
+const PERTO_DA_PORTA = 4.2;
 
 export class Shopping {
   readonly cena = new THREE.Scene();
@@ -60,6 +68,10 @@ export class Shopping {
   /** termina quando as lojas âncora (que baixam a vitrine dos sites) estão montadas */
   readonly pronto: Promise<void>;
   private estrutura!: ReturnType<typeof criarEstrutura>;
+  private atrio!: Atrio;
+  private exterior!: Exterior;
+  private aberturaPorta = 0;
+  private alcanceSombra: number;
   private mat: ReturnType<typeof criarMateriais>;
   private reflexo: Reflexo | null = null;
   private pisos: THREE.Object3D[] = [];
@@ -69,6 +81,11 @@ export class Shopping {
   /** nós de caminho da porta de cada loja */
   private portas = new Map<string, { fora: number; dentro: number }>();
   readonly ancoras: AncoraMontada[];
+  /** os laços das varandas dos pisos 2 e 3 (para a gente de enfeite andar lá em cima) */
+  readonly varandas = [
+    { pontos: caminhoVaranda(), y: PLANTA.piso2 },
+    { pontos: caminhoVaranda(), y: PLANTA.piso3 },
+  ];
   ocupadas: Map<string, Inquilino>;
 
   constructor(
@@ -79,40 +96,51 @@ export class Shopping {
   ) {
     this.cena.environment = ambiente;
     this.cena.environmentIntensity = 0.42;
-    this.cena.fog = new THREE.Fog("#e6e1dc", 90, 240);
+    // névoa morna de fim de tarde: só a cidade lá longe sente
+    this.cena.fog = new THREE.Fog("#eadbd6", 260, 900);
     this.mat = criarMateriais(qualidade);
     this.ocupadas = ocupacao();
     this.ancoras = ANCORAS.map((config) => ({ config, loja: null, atendente: null, fora: -1, dentro: -1, produtoDe: new Map(), ativa: false }));
 
-    const hemi = new THREE.HemisphereLight("#fbf8ff", "#b9ab9c", 0.75);
+    const hemi = new THREE.HemisphereLight("#fff1e6", "#b9a698", 0.62);
     this.cena.add(hemi);
-    this.sol = new THREE.DirectionalLight("#ffeedd", 2.4);
-    this.sol.position.set(-14, 46, 4);
-    this.sol.target.position.set(0, 0, -14);
+    // luz de cima, sem sombra: o shopping é claro até embaixo das varandas
+    const preenche = new THREE.DirectionalLight("#f6efff", 0.38);
+    preenche.position.set(0.15, 1, 0.25);
+    this.cena.add(preenche);
+    // sol dourado do fim de tarde; a sombra acompanha quem está olhando (um quadrado em volta)
+    this.sol = new THREE.DirectionalLight("#ffd6aa", 2.7);
     this.sol.castShadow = true;
-    // a sombra cobre da entrada até o fundo das âncoras
+    this.alcanceSombra = celular ? 40 : 55;
     const sc = this.sol.shadow.camera;
-    sc.left = -36;
-    sc.right = 36;
-    sc.top = 58;
-    sc.bottom = -58;
-    sc.near = 10;
-    sc.far = 120;
+    sc.left = -this.alcanceSombra;
+    sc.right = this.alcanceSombra;
+    sc.top = this.alcanceSombra;
+    sc.bottom = -this.alcanceSombra;
+    sc.near = 1;
+    sc.far = 280;
     const lado = celular ? 2048 : 4096;
     this.sol.shadow.mapSize.set(lado, lado);
     this.sol.shadow.bias = -0.0004;
     this.sol.shadow.normalBias = 0.035;
     this.cena.add(this.sol, this.sol.target);
+    this.seguirSol(new THREE.Vector3(0, 0, 30));
 
     // só o que não muda (prédio); as lojas entram por cima e podem ser refeitas
     this.fixos = new Colisao();
     this.paredesDasAncoras();
     this.montarEstrutura();
+    this.cena.background = this.exterior.cidade.ceu;
     UNIDADES.forEach((u) => this.montarLoja(u.numero));
     this.prepararPisos();
     this.montarCaminhos();
-    void carregarPlantas("./modelos/", this.estrutura.plantas, [0]).then((p) => this.cena.add(p.grupo));
-    this.pronto = this.montarAncoras();
+    void carregarPlantas("./modelos/", [...this.estrutura.plantas, ...this.atrio.plantas, ...this.exterior.plantas], [0]).then((p) => {
+      // no celular as plantas não fazem sombra (são milhares de folhas)
+      if (this.celular) p.grupo.traverse((o) => (o.castShadow = false));
+      this.cena.add(p.grupo);
+    });
+    // a cidade ganha as texturas boas depois que as lojas âncora estão de pé
+    this.pronto = this.montarAncoras().then(() => this.exterior.cidade.detalhar());
   }
 
   private montarEstrutura() {
@@ -125,7 +153,25 @@ export class Shopping {
       ancoras: ANCORAS.map((a) => ({ cx: a.cx, largura: MEIA_ANCORA * 2, altura: ALTURA_ANCORA, inquilino: a.inquilino })),
     });
     this.cena.add(this.estrutura.grupo);
+    this.atrio = criarAtrio({ mat: this.mat, colisao: this.fixos, celular: this.celular, ocupadas: ocupadas.map((q) => ({ nome: q.nome, cor: q.estilo.letreiro === "pulse" ? "#3a2b22" : q.estilo.primaria, slogan: q.slogan })) });
+    this.cena.add(this.atrio.grupo);
+    this.exterior = criarExterior({ mat: this.mat, colisao: this.fixos, renderer: this.renderer, celular: this.celular });
+    this.cena.add(this.exterior.grupo);
     this.juntarColisao();
+  }
+
+  /** a sombra do sol cobre um quadrado em volta de `centro`, preso à grade dos pixels dela (não "treme" ao andar) */
+  private seguirSol(centro: THREE.Vector3) {
+    const d = DIRECAO_SOL;
+    const direita = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), d).normalize();
+    const cima = new THREE.Vector3().crossVectors(d, direita);
+    const pixel = (this.alcanceSombra * 2) / this.sol.shadow.mapSize.x;
+    const a = centro.dot(direita);
+    const b = centro.dot(cima);
+    const c = centro.clone().addScaledVector(direita, Math.round(a / pixel) * pixel - a).addScaledVector(cima, Math.round(b / pixel) * pixel - b);
+    this.sol.target.position.copy(c);
+    this.sol.position.copy(c).addScaledVector(d, 140);
+    this.sol.target.updateMatrixWorld();
   }
 
   /** paredes de fora das âncoras (para a câmera e para "dá para ir reto?"); os móveis ficam na grade de cada uma */
@@ -240,7 +286,7 @@ export class Shopping {
   }
 
   private prepararPisos() {
-    this.pisos = [...this.estrutura.pisos, ...this.lojas.flatMap((l) => l.pisos), ...this.ancoras.flatMap((a) => a.loja?.foraDoReflexo ?? [])];
+    this.pisos = [...this.estrutura.pisos, ...this.lojas.flatMap((l) => l.pisos), ...this.ancoras.flatMap((a) => a.loja?.foraDoReflexo ?? []), ...this.exterior.foraDoReflexo];
     if (this.qualidade !== "alta") return;
     if (!this.reflexo) {
       this.reflexo = criarReflexo(this.renderer, 0);
@@ -252,6 +298,8 @@ export class Shopping {
 
   ajustarReflexo(q: Qualidade) {
     this.qualidade = q;
+    // aparelho lento: sem a sombra do sol (é o que mais pesa depois do reflexo)
+    this.sol.castShadow = q !== "baixa";
     ajustesSuperficie.forcaReflexo.value = q === "alta" && this.reflexo ? 0.85 : 0;
     ajustesSuperficie.lodReflexo.value = 1.4;
     const l = this.renderer.domElement.width;
@@ -267,12 +315,25 @@ export class Shopping {
 
   /** antes de desenhar o quadro */
   preparar(camera: THREE.PerspectiveCamera, esconderNoReflexo: THREE.Object3D[]) {
+    // a sombra fica em volta do que a câmera vê: um pouco à frente dela, no chão
+    camera.getWorldDirection(this.aux);
+    this.aux.y = 0;
+    this.aux.normalize().multiplyScalar(this.alcanceSombra * 0.45).add(camera.position);
+    this.aux.y = 0;
+    this.seguirSol(this.aux);
     if (this.reflexo && ajustesSuperficie.forcaReflexo.value > 0) this.reflexo.atualizar(this.cena, camera, [...this.pisos, ...esconderNoReflexo]);
   }
 
   private aux = new THREE.Vector3();
-  atualizar(t: number, dt: number, pos: THREE.Vector3) {
+  /** `pessoas`: onde estão os outros (visitantes e gente online), para abrir a porta */
+  atualizar(t: number, dt: number, pos: THREE.Vector3, pessoas: { x: number; z: number }[] = []) {
     this.estrutura.atualizar(t, dt);
+    this.atrio.atualizar(t, dt);
+    this.exterior.atualizar(t, dt);
+    const zPorta = PLANTA.zEntrada;
+    const perto = Math.hypot(pos.x, pos.z - zPorta) < PERTO_DA_PORTA || pessoas.some((p) => Math.hypot(p.x, p.z - zPorta) < PERTO_DA_PORTA);
+    this.aberturaPorta = THREE.MathUtils.clamp(this.aberturaPorta + (perto ? dt : -dt) * 1.4, 0, 1);
+    this.exterior.portas(this.aberturaPorta);
     // produtos de uma loja aparecem quando a pessoa chega perto
     for (const l of this.lojas) {
       if (!l.inquilino || l.produtosProntos) continue;
@@ -307,14 +368,17 @@ export class Shopping {
   /** altura máxima da câmera nesse ponto (não atravessa teto) */
   tetoEm(x: number, z: number) {
     if (this.ancoraEm(x, z)) return ALTURA_ANCORA - 0.35;
+    if (z > zFachadaEm(x) + 0.3) return 60;
     const ax = Math.abs(x);
     if (ax > PLANTA.meioCorredor && z < PLANTA.zLojasSul && z > PLANTA.zLojasNorte) return PLANTA.tetoLoja - 0.3;
-    if (ax > PLANTA.varanda - 0.2 && ax < PLANTA.meioCorredor + 0.5 && z > PLANTA.zLojasNorte) return PLANTA.piso2 - 0.3;
-    return PLANTA.tetoGaleria - 0.6;
+    // no vazio do átrio, até perto da claraboia; embaixo das varandas, o teto do térreo
+    if (noVazio(x, z)) return PLANTA.cobertura - 0.8;
+    return PLANTA.piso2 - PLANTA.espLaje - 0.3;
   }
 
-  /** onde a pessoa está: loja (da galeria ou âncora), praça, entrada ou corredor */
+  /** onde a pessoa está: loja (da galeria ou âncora), praça, entrada, corredor ou a praça da frente */
   ondeEsta(x: number, z: number): Lugar {
+    if (z > zFachadaEm(x) - 0.05) return { tipo: "fora" };
     const a = this.ancoraEm(x, z);
     if (a) return { tipo: "loja", nome: a.config.inquilino.nome, inquilino: a.config.inquilino };
     if (Math.abs(x) > PLANTA.meioCorredor && z < PLANTA.zLojasSul && z > PLANTA.zLojasNorte) {
@@ -341,7 +405,8 @@ export class Shopping {
       if (!this.nos[a].viz.includes(b)) this.nos[a].viz.push(b);
       if (!this.nos[b].viz.includes(a)) this.nos[b].viz.push(a);
     };
-    const faixas = [32, 27, 21, 15, 9, 3, -3, -9, -15, -21];
+    // galeria e saguão: duas faixas (x = ±3,4) de nós
+    const faixas = [36.5, 32, 27, 21, 15, 9, 3, -3, -9, -15, -21];
     const lado: Record<number, number[]> = { [-1]: [], [1]: [] };
     for (const s of [-1, 1]) {
       faixas.forEach((z, i) => {
@@ -354,23 +419,79 @@ export class Shopping {
       // atravessa o corredor onde não há ilha de vaso
       if (![15, 9, -9, -15].includes(faixas[i])) liga(lado[-1][i], lado[1][i]);
     });
-    // praça: anel em volta da fonte, mais a frente das âncoras
+    // saguão: os cantos, o provador e a porta (dentro e fora)
+    for (const s of [-1, 1]) {
+      const a = add(s * 13.5, 35);
+      const b = add(s * 13.5, 28.5);
+      liga(a, b);
+      liga(a, lado[s][1]);
+      liga(b, lado[s][2]);
+      if (s > 0) {
+        const p = add(15, 31.5);
+        liga(p, a);
+        liga(p, b);
+      }
+    }
+    const dentro = add(0, 41.2);
+    const fora = add(0, 47.6);
+    liga(dentro, fora);
+    liga(dentro, lado[-1][0]);
+    liga(dentro, lado[1][0]);
+    // praça da frente: em volta dos canteiros, até a calçada
+    const f: Record<string, number> = {};
+    for (const s of [-1, 1]) {
+      f[`a${s}`] = add(s * 10, 47.2);
+      f[`b${s}`] = add(s * 24, 46.5);
+      f[`c${s}`] = add(s * 23, 56.8);
+      f[`d${s}`] = add(s * 15, 64.2);
+      f[`e${s}`] = add(s * 4.5, 58);
+      liga(fora, f[`a${s}`]);
+      liga(f[`a${s}`], f[`b${s}`]);
+      liga(f[`b${s}`], f[`c${s}`]);
+      liga(f[`c${s}`], f[`d${s}`]);
+      liga(fora, f[`e${s}`]);
+    }
+    const calcada = add(0, 63.5);
+    // o meio da praça da frente (onde se chega)
+    const meio = add(0, 56.5);
+    liga(meio, fora);
+    liga(meio, calcada);
+    for (const s of [-1, 1]) {
+      liga(calcada, f[`d${s}`]);
+      liga(calcada, f[`e${s}`]);
+      liga(meio, f[`e${s}`]);
+    }
+    // Praça da Beleza: anel em volta do lounge e do quiosque, as alas e a frente das âncoras
+    const ult = faixas.length - 1;
     const pe = add(-3.4, -25.6);
     const pd = add(3.4, -25.6);
-    liga(pe, lado[-1][faixas.length - 1]);
-    liga(pd, lado[1][faixas.length - 1]);
+    liga(pe, lado[-1][ult]);
+    liga(pd, lado[1][ult]);
     liga(pe, pd);
-    const anel = [add(-7, -27), add(-11, -31), add(-11, -36.5), add(-6.5, -40.5), add(0, -41), add(6.5, -40.5), add(11, -36.5), add(11, -31), add(7, -27)];
-    anel.forEach((n, i) => i && liga(n, anel[i - 1]));
-    liga(pe, anel[0]);
-    liga(pd, anel[anel.length - 1]);
-    const alas = [add(-24, -30), add(-24, -40), add(24, -30), add(24, -40)];
-    liga(alas[0], anel[1]);
-    liga(alas[0], alas[1]);
-    liga(alas[1], anel[2]);
-    liga(alas[2], anel[7]);
-    liga(alas[2], alas[3]);
-    liga(alas[3], anel[6]);
+    const anel: number[] = [];
+    const alas: number[] = [];
+    for (const s of [-1, 1]) {
+      const r1 = add(s * 4.6, -27.2);
+      const r2 = add(s * 5.3, -32.5);
+      const r3 = add(s * 3.6, -38.6);
+      liga(r1, r2);
+      liga(r2, r3);
+      liga(r1, s < 0 ? pe : pd);
+      const w1 = add(s * 11, -30.5);
+      const w2 = add(s * 11, s > 0 ? -37.5 : -38.5);
+      const w3 = add(s * 24, -30);
+      const w4 = add(s * 24, s > 0 ? -37.5 : -39);
+      liga(w1, w2);
+      liga(w2, w4);
+      liga(w3, w4);
+      // do lado direito a escada rolante fica entre w1 e w3: passa por baixo dela, em w2–w4
+      if (s < 0) liga(w1, w3);
+      liga(r1, w1);
+      liga(r2, w1);
+      liga(r3, w2);
+      anel.push(r1, r2, r3);
+      alas.push(w1, w2, w3, w4);
+    }
     for (const a of this.ancoras) {
       if (!a.loja) continue;
       a.fora = add(a.config.cx + a.loja.porta.x, a.config.cz + a.loja.porta.zFora);
@@ -503,6 +624,8 @@ export class Shopping {
 
   descartar() {
     this.estrutura.descartar();
+    this.atrio.descartar();
+    this.exterior.descartar();
     this.lojas.forEach((l) => l.descartar());
     this.ancoras.forEach((a) => {
       a.loja?.descartar();

@@ -102,6 +102,107 @@ export class Visitantes {
     }
   }
 
+  /** onde está cada um (para as portas automáticas) */
+  posicoes() {
+    return this.lista.map((v) => ({ x: v.p.posicao.x, z: v.p.posicao.z }));
+  }
+
+  descartar() {
+    this.lista.forEach((v) => v.p.descartar());
+    this.lista = [];
+  }
+}
+
+interface Laco {
+  pontos: THREE.Vector2[];
+  /** comprimento acumulado até cada ponto (o último fecha o laço) */
+  acumulado: number[];
+  y: number;
+}
+
+interface DaVaranda {
+  p: Personagem;
+  laco: Laco;
+  s: number;
+  sentido: 1 | -1;
+  velocidade: number;
+  espera: number;
+  proximaParada: number;
+}
+
+/**
+ * Gente nas varandas dos pisos de cima (de enfeite: lá ainda não se sobe).
+ * Cada um dá a volta no átrio pela varanda, de vez em quando para no vidro
+ * olhando o movimento lá embaixo e segue.
+ */
+export class VisitantesVaranda {
+  readonly grupo = new THREE.Group();
+  private lista: DaVaranda[] = [];
+  private lacos: Laco[];
+
+  constructor(caminhos: { pontos: THREE.Vector2[]; y: number }[]) {
+    this.lacos = caminhos.map(({ pontos, y }) => {
+      const acumulado = [0];
+      for (let i = 1; i <= pontos.length; i++) acumulado.push(acumulado[i - 1] + pontos[i % pontos.length].distanceTo(pontos[i - 1]));
+      return { pontos, acumulado, y };
+    });
+  }
+
+  async criar(quantos: number, evitar: string, lado: number) {
+    const ids = AVATARES.map((a) => a.id).filter((id) => id !== evitar);
+    for (let i = 0; i < quantos; i++) {
+      const id = ids[(i * 7 + 5) % ids.length];
+      try {
+        const modelo = await criarModelo(
+          { avatar: id, cabelo: acaso() < 0.25 ? sorteio(CORES_CABELO)[1] : null, cima: acaso() < 0.7 ? sorteio(CORES_ROUPA)[1] : null, baixo: acaso() < 0.5 ? sorteio(CORES_CALCA)[1] : null },
+          { lado, sombra: true }
+        );
+        const p = new Personagem(modelo, { variarParado: true });
+        const laco = this.lacos[i % this.lacos.length];
+        const total = laco.acumulado[laco.acumulado.length - 1];
+        this.grupo.add(p.objeto);
+        this.lista.push({ p, laco, s: acaso() * total, sentido: acaso() < 0.5 ? 1 : -1, velocidade: p.passo * (0.8 + acaso() * 0.25), espera: 0, proximaParada: 8 + acaso() * 20 });
+      } catch {
+        /* um a menos */
+      }
+    }
+  }
+
+  private ponto(l: Laco, s: number) {
+    const total = l.acumulado[l.acumulado.length - 1];
+    s = ((s % total) + total) % total;
+    let i = 1;
+    while (l.acumulado[i] < s) i++;
+    const a = l.pontos[(i - 1) % l.pontos.length];
+    const b = l.pontos[i % l.pontos.length];
+    const k = (s - l.acumulado[i - 1]) / (l.acumulado[i] - l.acumulado[i - 1] || 1);
+    return { x: a.x + (b.x - a.x) * k, z: a.y + (b.y - a.y) * k, dx: b.x - a.x, dz: b.y - a.y };
+  }
+
+  atualizar(dt: number) {
+    for (const v of this.lista) {
+      let vel = 0;
+      if (v.espera > 0) {
+        v.espera -= dt;
+      } else {
+        v.s += v.sentido * v.velocidade * dt;
+        v.proximaParada -= dt;
+        vel = v.velocidade;
+        if (v.proximaParada <= 0) {
+          v.espera = 3 + acaso() * 6;
+          v.proximaParada = 10 + acaso() * 25;
+          if (acaso() < 0.3) v.sentido = v.sentido > 0 ? -1 : 1;
+        }
+      }
+      const q = this.ponto(v.laco, v.s);
+      v.p.posicao.set(q.x, v.laco.y, q.z);
+      // andando, olha para a frente; parado, para o vazio do átrio (o meio da galeria)
+      if (vel > 0) v.p.olharPara(Math.atan2(q.dx * v.sentido, q.dz * v.sentido));
+      else v.p.olharPara(Math.atan2(-q.x, THREE.MathUtils.clamp(q.z, -33, 31) - q.z));
+      v.p.atualizar(dt, vel);
+    }
+  }
+
   descartar() {
     this.lista.forEach((v) => v.p.descartar());
     this.lista = [];

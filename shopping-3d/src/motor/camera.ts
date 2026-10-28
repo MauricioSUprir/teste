@@ -15,6 +15,8 @@ export class CameraTerceira {
   private distAtual = 3.6;
   private alvo = new THREE.Vector3();
   private iniciou = false;
+  /** abertura: a câmera vem de longe (vista da fachada) e desce até trás do avatar */
+  private intro: { de: THREE.Vector3; olhar: THREE.Vector3; t: number; dur: number } | null = null;
 
   constructor(
     private camera: THREE.PerspectiveCamera,
@@ -28,9 +30,20 @@ export class CameraTerceira {
     return [-Math.sin(this.giro), -Math.cos(this.giro)];
   }
 
+  abertura(de: THREE.Vector3, olhar: THREE.Vector3, segundos: number) {
+    this.intro = { de: de.clone(), olhar: olhar.clone(), t: 0, dur: segundos };
+  }
+
+  get emAbertura() {
+    return !!this.intro;
+  }
+
   girar(dx: number, dy: number, zoom: number) {
+    // mexeu na câmera: a abertura acaba ali
+    this.intro = null;
     this.giro -= dx * 0.0055;
-    this.inclinacao = THREE.MathUtils.clamp(this.inclinacao + dy * 0.004, -0.15, 1.05);
+    // até −0,35: dá para olhar para cima (a fachada, as varandas, a claraboia)
+    this.inclinacao = THREE.MathUtils.clamp(this.inclinacao + dy * 0.004, -0.35, 1.05);
     this.distancia = THREE.MathUtils.clamp(this.distancia + zoom, 1.6, 9);
   }
 
@@ -58,6 +71,14 @@ export class CameraTerceira {
     const p = this.alvo.clone().addScaledVector(dir, this.distAtual);
     p.y = Math.min(p.y, this.tetoEm(p.x, p.z));
     p.y = Math.max(p.y, 0.4);
+    if (this.intro) {
+      const k = THREE.MathUtils.smootherstep(this.intro.t, 0, this.intro.dur);
+      this.intro.t += dt;
+      this.camera.position.copy(this.intro.de).lerp(p, k);
+      this.camera.lookAt(this.intro.olhar.clone().lerp(this.alvo, k));
+      if (this.intro.t >= this.intro.dur) this.intro = null;
+      return;
+    }
     this.camera.position.copy(p);
     this.camera.lookAt(this.alvo);
   }

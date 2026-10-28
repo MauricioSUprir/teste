@@ -61,7 +61,7 @@ export class Interface {
     this.hud = h(
       "header",
       { class: "hud", hidden: true },
-      h("div", { class: "hud-marca" }, h("span", { class: "hud-shopping" }, "Shopping da"), h("span", { class: "hud-beleza" }, "Beleza")),
+      h("div", { class: "hud-marca" }, h("img", { class: "hud-logo", src: "./marca/logo-roxo.png", alt: textos.shopping.nome, width: 1600, height: 432 })),
       h("div", { class: "hud-local" }, h("span", {}, textos.hud.voceEsta), this.local, this.online),
       h(
         "nav",
@@ -94,7 +94,7 @@ export class Interface {
     this.carregando = h(
       "div",
       { class: "carregando" },
-      h("div", { class: "carregando-marca" }, h("span", { class: "hud-shopping" }, "Shopping da"), h("span", { class: "hud-beleza" }, "Beleza")),
+      h("div", { class: "carregando-marca" }, h("img", { class: "carregando-logo", src: "./marca/logo-branco.png", alt: textos.shopping.nome, width: 1600, height: 432 })),
       h("div", { class: "carregando-anel", "aria-hidden": "true" }),
       this.carregandoTexto
     );

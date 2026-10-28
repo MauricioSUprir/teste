@@ -1,4 +1,4 @@
-/* Shopping da Beleza 3D — a interface por cima do 3D */
+/* Beauty Shopping 3D — a interface por cima do 3D */
 :root {
   --ameixa: #3b1e54;
   --ameixa-2: #5b2f78;
@@ -88,6 +88,16 @@ input:focus-visible,
   display: inline-flex;
   flex-direction: column;
   line-height: 1;
+}
+.hud-logo {
+  display: block;
+  width: auto;
+  height: 34px;
+}
+.carregando-logo {
+  display: block;
+  width: min(420px, 74vw);
+  height: auto;
 }
 .hud-shopping {
   font-size: 10px;

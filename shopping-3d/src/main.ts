@@ -1,5 +1,5 @@
 /**
- * Shopping da Beleza 3D — começa no provador (monta o avatar) e segue no
+ * Beauty Shopping 3D — começa no provador (monta o avatar) e segue no
  * shopping: andar, entrar nas lojas, ver a ficha dos produtos, encher a
  * sacola e fechar no caixa de cada loja, tudo dentro do 3D.
  */
@@ -15,12 +15,13 @@ import { enderecoServidor, Rede, type MensagemChat } from "./rede/rede";
 import { montarBarraGestos, painelConversa, painelPessoa } from "./ui/social";
 import { Personagem, placaDeNome } from "./avatar/personagem";
 import { Provador } from "./avatar/provador";
-import { Visitantes } from "./avatar/visitantes";
+import { Visitantes, VisitantesVaranda } from "./avatar/visitantes";
 import { CameraTerceira } from "./motor/camera";
 import { Entrada } from "./motor/entrada";
 import { Motor } from "./motor/motor";
 import { criarSom } from "./motor/som";
 import { Shopping } from "./mundo/shopping";
+import { carregarMarca } from "./mundo/letreiros";
 import type { PontoInteracao } from "./mundo/estrutura";
 import { Interface } from "./ui/interface";
 import { painelAjuda, painelAluguel, painelCaixa, painelEditor, painelMapa, painelProduto, painelSacola } from "./ui/paineis";
@@ -54,6 +55,7 @@ function iniciar() {
   let placa: THREE.Sprite | null = null;
   let camera3: CameraTerceira | null = null;
   let visitantes: Visitantes | null = null;
+  let varanda: VisitantesVaranda | null = null;
   const atendentes = new Map<string, Personagem>();
   let provadorUi: ReturnType<typeof montarProvadorUi> | null = null;
   let rota: [number, number][] = [];
@@ -279,7 +281,8 @@ function iniciar() {
     const s = construirShopping();
     const novo = !jogador;
     const modelo = await criarModelo(escolha, { lado: ladoTextura });
-    const pos = jogador ? jogador.posicao.clone() : new THREE.Vector3(0, 0, 31);
+    // a primeira vez começa na praça da frente, de frente para a fachada
+    const pos = jogador ? jogador.posicao.clone() : new THREE.Vector3(0, 0, 60);
     const rumo = jogador ? jogador.rumo : Math.PI;
     jogador?.descartar();
     jogador = new Personagem(modelo);
@@ -303,6 +306,8 @@ function iniciar() {
     motor.camera.updateProjectionMatrix();
     camera3!.giro = rumo + Math.PI;
     camera3!.reiniciar();
+    // abertura: de longe, por cima do estacionamento, vendo a fachada com o logo
+    if (novo) camera3!.abertura(new THREE.Vector3(-14, 17, 104), new THREE.Vector3(0, 12, 40), 5);
     motor.usar(s.cena);
     modo = "shopping";
     tempoNoShopping = 0;
@@ -319,6 +324,9 @@ function iniciar() {
       visitantes = new Visitantes(s);
       s.cena.add(visitantes.grupo);
       void visitantes.criar(celular ? 5 : 10, escolha.avatar, 512);
+      varanda = new VisitantesVaranda(s.varandas);
+      s.cena.add(varanda.grupo);
+      void varanda.criar(celular ? 2 : 6, escolha.avatar, 512);
       let viu = false;
       try {
         viu = localStorage.getItem("shopping3d.ajuda") === "1";
@@ -326,7 +334,7 @@ function iniciar() {
       } catch {
         /* sem armazenamento */
       }
-      if (!viu) setTimeout(() => modo === "shopping" && !ui.painelAberto && painelAjuda(ui), 1200);
+      if (!viu) setTimeout(() => modo === "shopping" && !ui.painelAberto && painelAjuda(ui), 5600);
     }
   }
 
@@ -561,7 +569,8 @@ function iniciar() {
 
     // onde está
     const onde = s.ondeEsta(p.x, p.z);
-    const lugar = onde.tipo === "loja" ? (onde.nome ?? "") : onde.tipo === "praca" ? textos.hud.praca : onde.tipo === "entrada" ? textos.hud.entrada : textos.hud.corredor;
+    const lugar =
+      onde.tipo === "loja" ? (onde.nome ?? "") : onde.tipo === "praca" ? textos.hud.praca : onde.tipo === "entrada" ? textos.hud.entrada : onde.tipo === "fora" ? textos.hud.fora : textos.hud.corredor;
     ui.definirLocal(lugar);
     if (lugar !== lugarAnterior) {
       if (onde.tipo === "loja" && onde.inquilino) {
@@ -603,6 +612,7 @@ function iniciar() {
     }
 
     visitantes?.atualizar(dt, p);
+    varanda?.atualizar(dt);
     outros.atualizar(dt, p);
     rede.posicao(p.x, p.z, Math.atan2(Math.sin(jogador.rumo), Math.cos(jogador.rumo)), vel);
     if (meuBalao && tempo > meuBalaoAte) {
@@ -619,7 +629,7 @@ function iniciar() {
       if (d < 4.5) a.olharPara(Math.atan2(p.x - a.posicao.x, p.z - a.posicao.z));
       a.atualizar(dt, 0);
     }
-    s.atualizar(tempo, dt, p);
+    s.atualizar(tempo, dt, p, [...(visitantes?.posicoes() ?? []), ...outros.lista()]);
     s.preparar(motor.camera, placa ? [placa] : []);
     motor.desenhar();
   }
@@ -654,6 +664,28 @@ function iniciar() {
           chamadas: motor.renderer.info.render.calls,
           triangulos: motor.renderer.info.render.triangles,
         }),
+        camera: (inclinacao: number, distancia: number) => {
+          if (!camera3) return;
+          camera3.girar(0, 0, 0);
+          camera3.inclinacao = inclinacao;
+          camera3.distancia = distancia;
+          camera3.reiniciar();
+        },
+        /** triângulos de cada parte da cena (para achar o que pesa) */
+        pesos: () => {
+          const r: Record<string, number> = {};
+          shopping?.cena.children.forEach((g, i) => {
+            let n = 0;
+            g.traverse((o) => {
+              const m = o as THREE.Mesh;
+              if (!m.isMesh || !m.geometry) return;
+              const t = (m.geometry.index ? m.geometry.index.count : (m.geometry.attributes.position?.count ?? 0)) / 3;
+              n += t * ((m as THREE.InstancedMesh).isInstancedMesh ? (m as THREE.InstancedMesh).count : 1);
+            });
+            r[`${i}:${g.name || g.type}:${g.children.length}`] = Math.round(n);
+          });
+          return r;
+        },
         agir,
         levarAte,
         falar: (texto: string) => rede.falar(texto),
@@ -673,7 +705,8 @@ function iniciar() {
 
   // ---- começo: fontes → provador → shopping montado por trás
   void (async () => {
-    await fontesProntas();
+    // fontes e o logo antes de desenhar os letreiros
+    await Promise.all([fontesProntas(), carregarMarca()]);
     ui.definirCarregando(textos.carregando.avatares);
     abrirProvador();
     // o shopping é montado enquanto a pessoa escolhe o visual

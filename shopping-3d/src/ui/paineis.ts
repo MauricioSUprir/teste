@@ -4,7 +4,7 @@
  */
 import { textos } from "../copy/textos";
 import { fichaDe, formatarPreco, fotoDe, nomeMarca, precoPix, type Produto } from "../dados/catalogo";
-import { ANCORAS, PLANTA, UNIDADES, type Inquilino, type LojaPrevia, type Unidade } from "../dados/lojas";
+import { ANCORAS, PLANTA, UNIDADES, zFachadaEm, type Inquilino, type LojaPrevia, type Unidade } from "../dados/lojas";
 import { sacola, totalDe } from "../dados/sacola";
 import { h, icone } from "./dom";
 import { fichaEmHtml } from "./ficha";
@@ -229,10 +229,10 @@ export function painelEditor(ui: Interface, u: Unidade, inicial: LojaPrevia | nu
 /** mapa visto de cima: corredor, lojas, praça e onde a pessoa está */
 export function painelMapa(ui: Interface, ocupadas: Map<string, Inquilino>, pos: () => { x: number; z: number }, aoIr: (unidade: string) => void) {
   const m = textos.mapa;
-  // escala: 1 m = k px; o desenho (galeria, praça e âncoras) cabe em 300 px de largura
-  const k = 4.4;
+  // escala: 1 m = k px; o desenho (praça da frente, saguão, galeria, praça e âncoras) cabe em 300 px de largura
+  const k = 3.6;
   const X = (x: number) => 150 + x * k;
-  const Z = (z: number) => 14 + (PLANTA.zEntrada - z) * k;
+  const Z = (z: number) => 14 + (PLANTA.zCalcada - z) * k;
   const fundoAncoras = Math.min(...ANCORAS.map((a) => a.cz - 10.5));
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", `0 0 300 ${Z(fundoAncoras) + 14}`);
@@ -245,11 +245,26 @@ export function painelMapa(ui: Interface, ocupadas: Map<string, Inquilino>, pos:
     svg.appendChild(el);
     return el;
   };
-  ns("rect", { x: X(-PLANTA.meioCorredor), y: Z(PLANTA.zEntrada), width: PLANTA.meioCorredor * 2 * k, height: (PLANTA.zEntrada - PLANTA.zLojasNorte) * k, fill: "#f4efe9" });
+  // praça da frente, saguão (com a fachada curva), galeria e Praça da Beleza
+  ns("rect", { x: X(-PLANTA.meiaCalcada), y: Z(PLANTA.zCalcada), width: PLANTA.meiaCalcada * 2 * k, height: (PLANTA.zCalcada - PLANTA.zFachada) * k, rx: 6, fill: "#ebe6e0" });
+  const curva = Array.from({ length: 19 }, (_, i) => {
+    const x = PLANTA.meioSaguao - (2 * PLANTA.meioSaguao * i) / 18;
+    return `${X(x)},${Z(zFachadaEm(x))}`;
+  });
+  ns("polygon", { points: [`${X(-PLANTA.meioSaguao)},${Z(PLANTA.zLojasSul)}`, `${X(PLANTA.meioSaguao)},${Z(PLANTA.zLojasSul)}`, ...curva].join(" "), fill: "#f4efe9", stroke: "#b89bd6", "stroke-width": 1.5 });
+  ns("rect", { x: X(-PLANTA.meioCorredor), y: Z(PLANTA.zLojasSul), width: PLANTA.meioCorredor * 2 * k, height: (PLANTA.zLojasSul - PLANTA.zLojasNorte) * k, fill: "#f4efe9" });
   ns("rect", { x: X(-PLANTA.meiaPraca), y: Z(PLANTA.zLojasNorte), width: PLANTA.meiaPraca * 2 * k, height: (PLANTA.zLojasNorte - PLANTA.zPraca) * k, fill: "#efe6f3" });
-  ns("circle", { cx: X(0), cy: Z(-33), r: 3.5 * k, fill: "#9cc8dc" });
-  const tx = ns("text", { x: X(0), y: Z(-39.5), "text-anchor": "middle", class: "mapa-rotulo" });
-  tx.textContent = textos.hud.praca;
+  ns("rect", { x: X(-2.4), y: Z(PLANTA.zEntrada) - 2, width: 4.8 * k, height: 4, rx: 2, fill: "#7a2d9c" });
+  // lounge e quiosque no meio da praça
+  ns("circle", { cx: X(0), cy: Z(-30.5), r: 3 * k, fill: "#c9b6da" });
+  ns("circle", { cx: X(0), cy: Z(-36.4), r: 1.6 * k, fill: "#7a2d9c" });
+  const rotulo = (texto: string, x: number, z: number) => {
+    const t = ns("text", { x: X(x), y: Z(z), "text-anchor": "middle", class: "mapa-rotulo" });
+    t.textContent = texto;
+  };
+  rotulo(textos.hud.praca, 0, -40.8);
+  rotulo(textos.hud.entrada, 0, 31);
+  rotulo(textos.hud.fora, 0, 61);
   const lista = h("ul", { class: "mapa-lista" });
   for (const a of ANCORAS) {
     const q = a.inquilino;

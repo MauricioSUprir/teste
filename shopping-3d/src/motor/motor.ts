@@ -11,10 +11,26 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { Qualidade } from "../mundo/materiais";
+import { textos } from "../copy/textos";
 
 export const ehToque = () => matchMedia("(pointer: coarse)").matches;
+
+/** tratamento de cor no fim: um pouco mais de contraste e de cor, e um tom quente (luz de fim de tarde) */
+const TRATAMENTO_COR = {
+  uniforms: { tDiffuse: { value: null }, contraste: { value: 1.07 }, saturacao: { value: 1.12 }, tom: { value: new THREE.Vector3(1.025, 1.0, 0.965) } },
+  vertexShader: "varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float contraste; uniform float saturacao; uniform vec3 tom; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      vec3 x = (c.rgb - 0.5) * contraste + 0.5;
+      float l = dot(x, vec3(0.2126, 0.7152, 0.0722));
+      x = mix(vec3(l), x, saturacao) * tom;
+      gl_FragColor = vec4(clamp(x, 0.0, 1.0), c.a);
+    }`,
+};
 
 export class Motor {
   readonly renderer: THREE.WebGLRenderer;
@@ -37,7 +53,8 @@ export class Motor {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.domElement.setAttribute("aria-label", "Shopping da Beleza em 3D");
+    this.renderer.info.autoReset = false;
+    this.renderer.domElement.setAttribute("aria-label", textos.shopping.nomeCurto);
     this.renderer.domElement.tabIndex = 0;
     pai.appendChild(this.renderer.domElement);
 
@@ -53,6 +70,7 @@ export class Motor {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.35, 0.45, 2.2);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    this.composer.addPass(new ShaderPass(TRATAMENTO_COR));
     this.aplicarQualidade();
     this.redimensionar();
     addEventListener("resize", () => this.redimensionar());
@@ -60,7 +78,8 @@ export class Motor {
 
   get pixelRatio() {
     const dpr = devicePixelRatio || 1;
-    return this.qualidade === "alta" ? Math.min(dpr, 1.75) : this.qualidade === "media" ? Math.min(dpr, 1.5) : Math.min(dpr, 1);
+    // no "baixa" ainda fica acima de 1 (tela de celular a 1× fica borrada); o que sai é sombra e brilho
+    return this.qualidade === "alta" ? Math.min(dpr, 1.75) : this.qualidade === "media" ? Math.min(dpr, 1.5) : Math.min(dpr, 1.25);
   }
 
   aplicarQualidade() {
@@ -85,6 +104,8 @@ export class Motor {
   }
 
   desenhar() {
+    // conta o quadro inteiro (sombra, reflexo, cena e pós) para o teste de desempenho
+    this.renderer.info.reset();
     this.composer.render();
   }
 

@@ -1,10 +1,15 @@
 /**
  * Planta do shopping e quem ocupa cada loja.
  *
- * Galeria principal ao longo do eixo z: a entrada fica no sul (z = +36), as
- * 8 lojas (4 de cada lado, 12 m de frente × 12 m de fundo = 144 m²) entre
- * z = +24 e z = −24, e a Praça da Beleza com a fonte no norte (até z = −44).
- * Corredor de 16 m (x de −8 a 8); as lojas vão de |x| = 8 a |x| = 20.
+ * Do lado de fora, a praça da frente (até z = +66) e a fachada curva de vidro
+ * (z = +40 nas pontas, +44 na porta). Dentro, o saguão de três andares
+ * (|x| até 18), a galeria principal ao longo do eixo z com as 8 lojas do
+ * térreo (4 de cada lado, 12 m de frente × 12 m de fundo = 144 m²) entre
+ * z = +24 e z = −24, e a Praça da Beleza no norte (até z = −44). Corredor de
+ * 16 m (x de −8 a 8); as lojas vão de |x| = 8 a |x| = 20.
+ *
+ * Em cima, o átrio aberto até a claraboia, com os pisos 2 e 3 em varandas
+ * curvas em volta (mundo/atrio.ts) — as lojas de lá estão "em breve".
  *
  * No fundo da praça ficam as duas lojas âncora — BeautyNow e Be2Beauty —, que
  * são a mesma loja 3D dos sites (30 × 20 m, mundo/loja-site.ts). Nas lojas da
@@ -17,18 +22,33 @@ import { textos } from "../copy/textos";
 export const PLANTA = {
   meioCorredor: 8,
   fundoLoja: 20,
-  zEntrada: 36,
   zLojasSul: 24,
   zLojasNorte: -24,
   frente: 12,
   zPraca: -44,
   meiaPraca: 32,
-  tetoGaleria: 10.5,
   tetoLoja: 4.6,
+  /** saguão da entrada: |x| até 18, de z = 24 até a fachada */
+  meioSaguao: 18,
+  /** fachada de vidro: z = 40 nas pontas, avança 4 m no meio (a porta fica em z = 44) */
+  zFachada: 40,
+  curvaFachada: 4,
+  zEntrada: 44,
+  /** praça da frente, do lado de fora: até z = 66, |x| até 40 */
+  zCalcada: 66,
+  meiaCalcada: 40,
+  /** pisos de cima (altura do piso pronto) e a cobertura com a claraboia */
   piso2: 5.6,
-  /** varanda do 2º piso avança sobre o corredor até |x| = 5,6 */
-  varanda: 5.6,
+  piso3: 10.9,
+  cobertura: 16.2,
+  espLaje: 0.35,
 };
+
+/** z da fachada de vidro em cada x (curva entre |x| = 18; reta nas alas) */
+export function zFachadaEm(x: number) {
+  const k = Math.max(-1, Math.min(1, x / PLANTA.meioSaguao));
+  return PLANTA.zFachada + PLANTA.curvaFachada * Math.cos((k * Math.PI) / 2);
+}
 
 export interface Unidade {
   /** "101" … "108" */

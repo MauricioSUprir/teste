@@ -1,9 +1,9 @@
-/** Todos os textos do Shopping da Beleza 3D (pt-BR) — nada de texto solto no código. */
+/** Todos os textos do Beauty Shopping 3D (pt-BR) — nada de texto solto no código. */
 
 export const textos = {
   shopping: {
-    nome: "Shopping da Beleza",
-    nomeCurto: "Shopping da Beleza 3D",
+    nome: "Beauty Shopping",
+    nomeCurto: "Beauty Shopping 3D",
     slogan: "O primeiro shopping de beleza em 3D do Brasil",
   },
   carregando: {
@@ -65,6 +65,7 @@ export const textos = {
     corredor: "Corredor principal",
     praca: "Praça da Beleza",
     entrada: "Entrada",
+    fora: "Praça da frente",
   },
   ajuda: {
     titulo: "Como passear",
@@ -79,7 +80,7 @@ export const textos = {
     levando: (lugar: string) => `Indo até ${lugar}…`,
     chegou: "Chegou!",
     semCaminho: "Não achei o caminho até lá.",
-    bemVindo: (nome: string) => (nome ? `Bem-vindo(a), ${nome}!` : "Bem-vindo(a) ao Shopping da Beleza!"),
+    bemVindo: (nome: string) => (nome ? `Bem-vindo(a) ao Beauty Shopping, ${nome}!` : "Bem-vindo(a) ao Beauty Shopping!"),
   },
   dicas: {
     entrou: (loja: string) => `Você entrou na ${loja}`,
@@ -200,7 +201,7 @@ export const textos = {
     },
     chamar: "Chamar amigos",
     copiado: "Link copiado! É só mandar para quem você quiser.",
-    convite: "Vem passear comigo no Shopping da Beleza 3D!",
+    convite: "Vem passear comigo no Beauty Shopping 3D!",
     visitante: "Visitante",
   },
   ancora: {
@@ -212,9 +213,23 @@ export const textos = {
     lojas: "Lojas abertas",
     alugue: "Alugue a sua loja",
     alugueTexto: "Unidades de 144 m² na galeria principal",
+    voceAqui: "Você está aqui",
+    pisos: [
+      { piso: "Piso 3", titulo: "Estética e bem-estar", texto: "Spa, estética e salões · em breve" },
+      { piso: "Piso 2", titulo: "Cosméticos e maquiagem", texto: "Perfumaria, maquiagem e skincare · em breve" },
+      { piso: "Piso 1", titulo: "Lojas e serviços", texto: "Galeria, Praça da Beleza e lojas âncora" },
+    ],
   },
   led: {
-    linha1: "SHOPPING DA BELEZA",
+    linha1: "BEAUTY SHOPPING",
     linha2: "Sua marca aqui · alugue a sua loja",
+  },
+  andares: {
+    emBreve: "Em breve",
+    suaMarca: "Sua marca aqui",
+    aluga: "Aluga-se",
+    /** placas das lojas dos pisos 2 e 3 (categorias, não marcas: ainda não há lojistas lá) */
+    categorias: ["Perfumaria", "Maquiagem", "Skincare", "Cabelos", "Unhas", "Estética", "Spa", "Acessórios"],
+    quiosque: "Informações",
   },
 };
