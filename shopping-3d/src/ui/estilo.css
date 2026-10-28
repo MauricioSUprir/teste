@@ -920,10 +920,10 @@ input:focus-visible,
     display: none;
   }
   .botao-hud {
-    padding: 9px;
+    padding: 7px;
   }
   .contagem {
-    left: 20px;
+    left: 18px;
   }
 }
 
@@ -939,8 +939,20 @@ input:focus-visible,
     display: none;
   }
   .hud-local {
-    padding: 6px 14px;
-    max-width: 40vw;
+    padding: 6px 12px;
+    max-width: 36vw;
+    min-width: 0;
+  }
+  .hud-online {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .so-largo {
+    display: none;
+  }
+  .hud-botoes {
+    gap: 0;
+    padding: 4px;
   }
   .hud-local strong {
     white-space: nowrap;

@@ -145,7 +145,9 @@ export class Rede {
     const agora = performance.now();
     if (agora - this.ultimoEnvio < 125) return;
     const [ux, uz, ur, uv] = this.ultima;
-    const mexeu = Math.abs(x - ux) > 0.02 || Math.abs(z - uz) > 0.02 || Math.abs(r - ur) > 0.03 || (uv > 0) !== (v > 0.05);
+    // rumo perto de ±π pula de um lado para o outro: compara pela diferença de ângulo
+    const dr = Math.abs(Math.atan2(Math.sin(r - ur), Math.cos(r - ur)));
+    const mexeu = Math.abs(x - ux) > 0.02 || Math.abs(z - uz) > 0.02 || dr > 0.03 || (uv > 0) !== (v > 0.05);
     // parado, repete a cada 2 s (quem chegou agora vê a pessoa no lugar certo)
     if (!mexeu && agora - this.ultimoEnvio < 2000) return;
     this.ultimoEnvio = agora;

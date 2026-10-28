@@ -71,7 +71,7 @@ export class Interface {
         botao(textos.hud.sacola, "sacola", acoes.sacola, this.contagem),
         botao(textos.hud.visual, "pessoa", acoes.visual),
         this.botaoSom,
-        document.fullscreenEnabled ? botao(textos.hud.telaCheia, "tela", acoes.telaCheia) : null,
+        document.fullscreenEnabled ? h("span", { class: "so-largo" }, botao(textos.hud.telaCheia, "tela", acoes.telaCheia)) : null,
         botao(textos.hud.ajuda, "ajuda", acoes.ajuda)
       )
     );
