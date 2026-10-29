@@ -1,17 +1,402 @@
 {
-  "geradoEm": "2026-10-18T06:28:23.532Z",
+  "geradoEm": "2026-10-29T19:08:16.714Z",
   "restauracaoOk": true,
   "precos": {
     "pulse": {},
     "bradeco": {},
     "be2beauty": {
+      "wahl-wahl-trimninja-single-verde": {
+        "em": "2026-10-29T17:00:16.059Z",
+        "titulo": "Wahl Trimninja Single Verde",
+        "precoDeCentavos": 29887,
+        "precoPorCentavos": 23910
+      },
+      "wahl-wahl-aparador-de-pelos-trim-total": {
+        "em": "2026-10-29T17:00:13.460Z",
+        "titulo": "Wahl Aparador De Pelos - Trim Total",
+        "precoDeCentavos": 25870,
+        "precoPorCentavos": 20696
+      },
+      "wahl-wahl-maquina-de-tosa-groom-lite-usb": {
+        "em": "2026-10-29T17:00:17.436Z",
+        "titulo": "Wahl Máquina De Tosa - Groom Lite Usb",
+        "precoDeCentavos": 44070,
+        "precoPorCentavos": 35256
+      },
+      "wahl-wahl-aparador-de-pelos-nasal-trimmer": {
+        "em": "2026-10-29T17:00:04.993Z",
+        "titulo": "Wahl Aparador De Pelos - Nasal Trimmer",
+        "precoDeCentavos": 4557,
+        "precoPorCentavos": 3646
+      },
+      "wahl-wahl-aparador-de-pelos-vertical-trimmer": {
+        "em": "2026-10-29T17:00:06.796Z",
+        "titulo": "Wahl Aparador De Pelos - Vertical Trimmer",
+        "precoDeCentavos": 8970,
+        "precoPorCentavos": 7176
+      },
       "evoly-ev03-evoly-reduct-frizz-organic-blond-1l": {
         "em": "2026-10-18T00:59:12.525Z",
         "titulo": "Evoly Reduct Frizz Organic Blond - 1L",
         "precoDeCentavos": null,
         "precoPorCentavos": 19900
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-legend-127v": {
+        "em": "2026-10-29T17:00:10.372Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Legend 127V",
+        "precoDeCentavos": 45456,
+        "precoPorCentavos": 36365
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-legend-220v": {
+        "em": "2026-10-29T17:00:10.849Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Legend 220V",
+        "precoDeCentavos": 45456,
+        "precoPorCentavos": 36365
+      },
+      "wahl-wahl-aparador-de-pelos-clean-confident-rose": {
+        "em": "2026-10-29T17:00:12.118Z",
+        "titulo": "Wahl Aparador De Pelos - Clean & Confident Rose",
+        "precoDeCentavos": 8970,
+        "precoPorCentavos": 7176
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-classic-127v-8": {
+        "em": "2026-10-29T17:00:08.905Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Classic 127V #8",
+        "precoDeCentavos": 36797,
+        "precoPorCentavos": 29438
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-classic-220v-8": {
+        "em": "2026-10-29T17:00:09.403Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Classic 220V #8",
+        "precoDeCentavos": 37564,
+        "precoPorCentavos": 30051
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-family-cut-pro": {
+        "em": "2026-10-29T17:00:07.882Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Family Cut Pro",
+        "precoDeCentavos": 32370,
+        "precoPorCentavos": 25896
+      },
+      "wahl-wahl-aparador-de-barba-portatil-travel-shaver": {
+        "em": "2026-10-29T17:00:05.555Z",
+        "titulo": "Wahl Aparador De Barba Portátil - Travel Shaver",
+        "precoDeCentavos": 19370,
+        "precoPorCentavos": 15496
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-127v": {
+        "em": "2026-10-29T17:00:11.666Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip 127V",
+        "precoDeCentavos": 46664,
+        "precoPorCentavos": 37331
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-220v": {
+        "em": "2026-10-29T17:00:11.311Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip 220V",
+        "precoDeCentavos": 43047,
+        "precoPorCentavos": 34438
+      },
+      "wahl-wahl-aparador-de-pelos-groomsman-t-pro-vermelho": {
+        "em": "2026-10-29T17:00:12.574Z",
+        "titulo": "Wahl Aparador De Pelos - Groomsman T-Pro Vermelho",
+        "precoDeCentavos": 33670,
+        "precoPorCentavos": 26936
+      },
+      "wahl-wahl-aparador-de-pelos-pure-and-confidence-rose": {
+        "em": "2026-10-29T17:00:13.054Z",
+        "titulo": "Wahl Aparador De Pelos - Pure And Confidence Rose",
+        "precoDeCentavos": 31070,
+        "precoPorCentavos": 24856
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-pro-cut-127v-60hz": {
+        "em": "2026-10-29T17:00:07.325Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Pro Cut 127V/60Hz",
+        "precoDeCentavos": 12466,
+        "precoPorCentavos": 9973
+      },
+      "wahl-wahl-aparador-de-pelos-beard-trimmer-lithium-ion": {
+        "em": "2026-10-29T17:00:16.435Z",
+        "titulo": "Wahl Aparador De Pelos - Beard Trimmer Lithium Ion",
+        "precoDeCentavos": 27424,
+        "precoPorCentavos": 21939
+      },
+      "wahl-wahl-base-carregadora-single-power-station-all-in-one": {
+        "em": "2026-10-29T17:00:16.947Z",
+        "titulo": "Wahl Base Carregadora Single Power Station All In One",
+        "precoDeCentavos": 38870,
+        "precoPorCentavos": 31096
+      },
+      "wahl-wahl-magic-clip-cordless-maquina-de-corte-profissional": {
+        "em": "2026-10-29T17:00:08.355Z",
+        "titulo": "Wahl Magic Clip Cordless Máquina de Corte Profissional",
+        "precoDeCentavos": 116870,
+        "precoPorCentavos": 93496
+      },
+      "wahl-wahl-maquina-de-acabamento-detailer-li-gold-ions-de-litio": {
+        "em": "2026-10-29T17:00:19.530Z",
+        "titulo": "Wahl Máquina De Acabamento - Detailer Li Gold - Íons De Lítio",
+        "precoDeCentavos": 168870,
+        "precoPorCentavos": 135096
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-launch-clipper-ions-de-litio": {
+        "em": "2026-10-29T17:00:09.851Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Launch Clipper - Íons De Lítio",
+        "precoDeCentavos": 43241,
+        "precoPorCentavos": 34593
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-vapor-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:18.619Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Vapor Cordless - Íons De Lítio",
+        "precoDeCentavos": 164970,
+        "precoPorCentavos": 131976
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-legend-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:14.737Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Legend Cordless - Íons De Lítio",
+        "precoDeCentavos": 142870,
+        "precoPorCentavos": 114296
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-vortex-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:15.646Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Vortex Cordless - Íons De Lítio",
+        "precoDeCentavos": 37205,
+        "precoPorCentavos": 29764
+      },
+      "wahl-wahl-micro-power-shaver-maquina-de-acabamento-e-finalizacao": {
+        "em": "2026-10-29T17:00:06.273Z",
+        "titulo": "Wahl Micro Power Shaver Máquina de Acabamento e Finalização",
+        "precoDeCentavos": 51870,
+        "precoPorCentavos": 41496
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-senior-2-0-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:19.104Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo Senior 2.0 Cordless - Íons De Lítio",
+        "precoDeCentavos": 233870,
+        "precoPorCentavos": 187096
+      },
+      "wahl-wahl-maquina-de-acabamento-e-finalizacao-vanish-gold-ions-de-litio": {
+        "em": "2026-10-29T17:00:14.347Z",
+        "titulo": "Wahl Máquina De Acabamento E Finalização - Vanish Gold - Íons De Lítio",
+        "precoDeCentavos": 110370,
+        "precoPorCentavos": 88296
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-cordless-gold-ions-de-litio": {
+        "em": "2026-10-29T17:00:18.245Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip Cordless Gold - Íons De Lítio",
+        "precoDeCentavos": 188370,
+        "precoPorCentavos": 150696
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-cordless-black-ions-de-litio": {
+        "em": "2026-10-29T17:00:15.133Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip Cordless Black - Íons De Lítio",
+        "precoDeCentavos": 129870,
+        "precoPorCentavos": 103896
+      },
+      "wahl-wahl-kit-maquina-de-cortar-cabelo-e-aparador-de-pelos-color-pro-cordless-combo": {
+        "em": "2026-10-29T17:00:13.879Z",
+        "titulo": "Wahl Kit Máquina De Cortar Cabelo E Aparador De Pelos - Color Pro Cordless Combo",
+        "precoDeCentavos": 45370,
+        "precoPorCentavos": 36296
+      },
+      "wahl-wahl-combo-maquina-de-cortar-cabelo-e-acabamento-barber-combo-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:17.828Z",
+        "titulo": "Wahl Combo Máquina De Cortar Cabelo E Acabamento - Barber Combo Cordless - Íons De Lítio",
+        "precoDeCentavos": 259870,
+        "precoPorCentavos": 207896
       }
     },
-    "beautynow": {}
+    "beautynow": {
+      "wahl-wahl-trimninja-single-verde": {
+        "em": "2026-10-29T17:00:15.845Z",
+        "titulo": "Wahl Trimninja Single Verde",
+        "precoDeCentavos": 29887,
+        "precoPorCentavos": 23910
+      },
+      "wahl-wahl-aparador-de-pelos-trim-total": {
+        "em": "2026-10-29T17:00:13.286Z",
+        "titulo": "Wahl Aparador De Pelos - Trim Total",
+        "precoDeCentavos": 25870,
+        "precoPorCentavos": 20696
+      },
+      "wahl-wahl-maquina-de-tosa-groom-lite-usb": {
+        "em": "2026-10-29T17:00:17.221Z",
+        "titulo": "Wahl Máquina De Tosa - Groom Lite Usb",
+        "precoDeCentavos": 44070,
+        "precoPorCentavos": 35256
+      },
+      "wahl-wahl-aparador-de-pelos-nasal-trimmer": {
+        "em": "2026-10-29T17:00:03.711Z",
+        "titulo": "Wahl Aparador De Pelos - Nasal Trimmer",
+        "precoDeCentavos": 4557,
+        "precoPorCentavos": 3646
+      },
+      "wahl-wahl-aparador-de-pelos-vertical-trimmer": {
+        "em": "2026-10-29T17:00:06.520Z",
+        "titulo": "Wahl Aparador De Pelos - Vertical Trimmer",
+        "precoDeCentavos": 8970,
+        "precoPorCentavos": 7176
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-legend-127v": {
+        "em": "2026-10-29T17:00:10.085Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Legend 127V",
+        "precoDeCentavos": 45456,
+        "precoPorCentavos": 36365
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-legend-220v": {
+        "em": "2026-10-29T17:00:10.617Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Legend 220V",
+        "precoDeCentavos": 45456,
+        "precoPorCentavos": 36365
+      },
+      "wahl-wahl-aparador-de-pelos-clean-confident-rose": {
+        "em": "2026-10-29T17:00:11.879Z",
+        "titulo": "Wahl Aparador De Pelos - Clean & Confident Rose",
+        "precoDeCentavos": 8970,
+        "precoPorCentavos": 7176
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-classic-127v-8": {
+        "em": "2026-10-29T17:00:08.619Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Classic 127V #8",
+        "precoDeCentavos": 36797,
+        "precoPorCentavos": 29438
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-classic-220v-8": {
+        "em": "2026-10-29T17:00:09.113Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Classic 220V #8",
+        "precoDeCentavos": 37564,
+        "precoPorCentavos": 30051
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-family-cut-pro": {
+        "em": "2026-10-29T17:00:07.501Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Family Cut Pro",
+        "precoDeCentavos": 32370,
+        "precoPorCentavos": 25896
+      },
+      "wahl-wahl-aparador-de-barba-portatil-travel-shaver": {
+        "em": "2026-10-29T17:00:05.235Z",
+        "titulo": "Wahl Aparador De Barba Portátil - Travel Shaver",
+        "precoDeCentavos": 19370,
+        "precoPorCentavos": 15496
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-127v": {
+        "em": "2026-10-29T17:00:11.475Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip 127V",
+        "precoDeCentavos": 46664,
+        "precoPorCentavos": 37331
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-220v": {
+        "em": "2026-10-29T17:00:11.056Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip 220V",
+        "precoDeCentavos": 43047,
+        "precoPorCentavos": 34438
+      },
+      "wahl-wahl-aparador-de-pelos-groomsman-t-pro-vermelho": {
+        "em": "2026-10-29T17:00:12.356Z",
+        "titulo": "Wahl Aparador De Pelos - Groomsman T-Pro Vermelho",
+        "precoDeCentavos": 33670,
+        "precoPorCentavos": 26936
+      },
+      "wahl-wahl-aparador-de-pelos-pure-and-confidence-rose": {
+        "em": "2026-10-29T17:00:12.805Z",
+        "titulo": "Wahl Aparador De Pelos - Pure And Confidence Rose",
+        "precoDeCentavos": 31070,
+        "precoPorCentavos": 24856
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-pro-cut-127v-60hz": {
+        "em": "2026-10-29T17:00:07.014Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Pro Cut 127V/60Hz",
+        "precoDeCentavos": 12466,
+        "precoPorCentavos": 9973
+      },
+      "wahl-wahl-aparador-de-pelos-beard-trimmer-lithium-ion": {
+        "em": "2026-10-29T17:00:16.216Z",
+        "titulo": "Wahl Aparador De Pelos - Beard Trimmer Lithium Ion",
+        "precoDeCentavos": 27424,
+        "precoPorCentavos": 21939
+      },
+      "wahl-wahl-base-carregadora-single-power-station-all-in-one": {
+        "em": "2026-10-29T17:00:16.591Z",
+        "titulo": "Wahl Base Carregadora Single Power Station All In One",
+        "precoDeCentavos": 38870,
+        "precoPorCentavos": 31096
+      },
+      "wahl-wahl-magic-clip-cordless-maquina-de-corte-profissional": {
+        "em": "2026-10-29T17:00:08.135Z",
+        "titulo": "Wahl Magic Clip Cordless Máquina de Corte Profissional",
+        "precoDeCentavos": 116870,
+        "precoPorCentavos": 93496
+      },
+      "wahl-wahl-maquina-de-acabamento-detailer-li-gold-ions-de-litio": {
+        "em": "2026-10-29T17:00:19.310Z",
+        "titulo": "Wahl Máquina De Acabamento - Detailer Li Gold - Íons De Lítio",
+        "precoDeCentavos": 168870,
+        "precoPorCentavos": 135096
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-launch-clipper-ions-de-litio": {
+        "em": "2026-10-29T17:00:09.627Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Launch Clipper - Íons De Lítio",
+        "precoDeCentavos": 43241,
+        "precoPorCentavos": 34593
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-vapor-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:18.440Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Vapor Cordless - Íons De Lítio",
+        "precoDeCentavos": 164970,
+        "precoPorCentavos": 131976
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-legend-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:14.539Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Legend Cordless - Íons De Lítio",
+        "precoDeCentavos": 142870,
+        "precoPorCentavos": 114296
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-vortex-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:15.346Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Vortex Cordless - Íons De Lítio",
+        "precoDeCentavos": 37205,
+        "precoPorCentavos": 29764
+      },
+      "wahl-wahl-micro-power-shaver-maquina-de-acabamento-e-finalizacao": {
+        "em": "2026-10-29T17:00:05.969Z",
+        "titulo": "Wahl Micro Power Shaver Máquina de Acabamento e Finalização",
+        "precoDeCentavos": 51870,
+        "precoPorCentavos": 41496
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-senior-2-0-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:18.789Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo Senior 2.0 Cordless - Íons De Lítio",
+        "precoDeCentavos": 233870,
+        "precoPorCentavos": 187096
+      },
+      "wahl-wahl-maquina-de-acabamento-e-finalizacao-vanish-gold-ions-de-litio": {
+        "em": "2026-10-29T17:00:14.060Z",
+        "titulo": "Wahl Máquina De Acabamento E Finalização - Vanish Gold - Íons De Lítio",
+        "precoDeCentavos": 110370,
+        "precoPorCentavos": 88296
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-cordless-gold-ions-de-litio": {
+        "em": "2026-10-29T17:00:18.047Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip Cordless Gold - Íons De Lítio",
+        "precoDeCentavos": 188370,
+        "precoPorCentavos": 150696
+      },
+      "wahl-wahl-maquina-de-cortar-cabelo-magic-clip-cordless-black-ions-de-litio": {
+        "em": "2026-10-29T17:00:14.899Z",
+        "titulo": "Wahl Máquina De Cortar Cabelo - Magic Clip Cordless Black - Íons De Lítio",
+        "precoDeCentavos": 129870,
+        "precoPorCentavos": 103896
+      },
+      "wahl-wahl-kit-maquina-de-cortar-cabelo-e-aparador-de-pelos-color-pro-cordless-combo": {
+        "em": "2026-10-29T17:00:13.672Z",
+        "titulo": "Wahl Kit Máquina De Cortar Cabelo E Aparador De Pelos - Color Pro Cordless Combo",
+        "precoDeCentavos": 45370,
+        "precoPorCentavos": 36296
+      },
+      "wahl-wahl-combo-maquina-de-cortar-cabelo-e-acabamento-barber-combo-cordless-ions-de-litio": {
+        "em": "2026-10-29T17:00:17.618Z",
+        "titulo": "Wahl Combo Máquina De Cortar Cabelo E Acabamento - Barber Combo Cordless - Íons De Lítio",
+        "precoDeCentavos": 259870,
+        "precoPorCentavos": 207896
+      }
+    }
   }
 }
