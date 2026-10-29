@@ -589,6 +589,19 @@ function ehAdmin(req) {
 }
 
 /**
+ * Chave dos robôs do GitHub (catálogo, logos): só abre o que é do catálogo
+ * — exportar do Hub, o estado da sincronização, as marcas — e nada de
+ * cliente, pedido ou Bling. Pode ficar escrita nos robôs (ROBO_CHAVE no
+ * Render); a de admin (EXPORT_CHAVE) não.
+ */
+const ROBO_CHAVE = (process.env.ROBO_CHAVE ?? "").trim();
+function ehRobo(req) {
+  if (ehAdmin(req)) return true;
+  const chave = String(req.body?.chave ?? req.query?.chave ?? "");
+  return Boolean(ROBO_CHAVE) && chave === ROBO_CHAVE;
+}
+
+/**
  * Exportação para o robô de backup: sai cifrada (o mesmo conteúdo que fica no
  * repositório público), então não precisa de chave. Sem BACKUP_CHAVE ela
  * sairia aberta: aí só para o admin.
@@ -746,7 +759,7 @@ const LOGOS_DOMINIOS = {
 };
 
 aplicacao.get("/exportar-logos", async (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!ehRobo(req)) {
     return res.status(403).json({ erro: "Chave de exportação inválida." });
   }
   const CABECALHOS_NAVEGADOR = {
@@ -847,7 +860,7 @@ aplicacao.get("/exportar-logos", async (req, res) => {
 });
 
 aplicacao.get("/exportar-catalogo", (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!ehRobo(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Confira a EXPORT_CHAVE nas variáveis do Render e o parâmetro ?chave= do link."));
   }
   if (!HUB_API_KEY) {
@@ -914,7 +927,7 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
 });
 
 aplicacao.get("/exportar-catalogo/baixar", (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!ehRobo(req)) {
     return res.status(403).send(paginaExport("Chave inválida", "Confira o link."));
   }
   if (exportacao.estado !== "pronto" || !exportacao.json) {
@@ -1696,14 +1709,15 @@ function salvarEstadoCatalogo() {
 }
 
 aplicacao.get("/catalogo/atualizacao", (req, res) => {
-  if (!ehAdmin(req)) return res.status(403).json({ erro: "Chave inválida." });
+  if (!ehRobo(req)) return res.status(403).json({ erro: "Chave inválida." });
   res.set("Cache-Control", "no-store");
   res.json({ ok: true, ...estadoCatalogo, pendente: Boolean(estadoCatalogo.pedidoEm) });
 });
 
 aplicacao.post("/catalogo/atualizacao", (req, res) => {
-  if (!ehAdmin(req)) return res.status(403).json({ erro: "Chave inválida." });
   const acao = String(req.body?.acao ?? "");
+  // pedir é o botão do painel (só o admin); iniciar e terminar são do robô
+  if (!(acao === "pedir" ? ehAdmin(req) : ehRobo(req))) return res.status(403).json({ erro: "Chave inválida." });
   const agora = new Date().toISOString();
   if (acao === "pedir") {
     estadoCatalogo.pedidoEm ??= agora;
@@ -1726,7 +1740,7 @@ aplicacao.post("/catalogo/atualizacao", (req, res) => {
 // marcas cadastradas no Hub Suprir (com logo, quando houver) — o robô de
 // catálogo usa para trazer a logo oficial de cada marca do próprio painel
 aplicacao.get("/hub/marcas", async (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!ehRobo(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   if (!HUB_API_KEY) return res.status(503).json({ erro: "Hub não configurado." });
