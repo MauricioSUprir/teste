@@ -26,15 +26,16 @@ import { listarBanners, type BannerDaLoja } from "@/lib/servidor";
 const INTERVALO_MS = 20_000;
 
 /**
- * Banner de abertura fixo do Be2Beauty (a arte "Only Professional" da marca,
- * a mesma da prévia do WhatsApp). Entra sempre como primeiro slide, antes das
- * artes que o lojista sobe no painel. Nas outras lojas não há banner fixo.
+ * Banner de abertura fixo do Be2Beauty (a arte "Only Professional" da marca).
+ * Entra sempre como primeiro slide, antes das artes que o lojista sobe no
+ * painel. Nas outras lojas não há banner fixo. Sem arte de celular, como os
+ * outros banners: no telefone aparece a mesma arte, inteira.
  */
 const BANNER_INTRO: BannerDaLoja | null = LOJA.vitrineProfissional
   ? {
       slot: "intro-b2b",
-      url: comBase("/banner-b2b-intro.webp"),
-      urlMobile: comBase("/banner-b2b-intro-mobile.webp"),
+      url: comBase("/banner-b2b-abertura.webp"),
+      urlMobile: null,
     }
   : null;
 

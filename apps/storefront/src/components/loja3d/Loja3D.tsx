@@ -261,7 +261,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
         // painel de LED atrás do caixa: os mesmos banners do carrossel da home (na Be2Beauty, com a arte de abertura)
         void listarBanners().then((lista) => {
           if (cancelado) return;
-          const intro = LOJA.vitrineProfissional ? [comBase("/banner-b2b-intro.webp")] : [];
+          const intro = LOJA.vitrineProfissional ? [comBase("/banner-b2b-abertura.webp")] : [];
           cena.current?.definirBanners([...intro, ...lista.map((b) => b.url)]);
         });
       } catch {
