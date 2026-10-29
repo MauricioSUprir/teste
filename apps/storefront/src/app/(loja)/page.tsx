@@ -153,7 +153,12 @@ export default function Home() {
                   height={168}
                   className="h-auto w-[150px] brightness-0 invert md:w-[170px]"
                 />
-                <h2 id="titulo-destaque" className="mt-5 text-[clamp(1.375rem,1.9vw,1.625rem)] font-black uppercase leading-[1.1] [overflow-wrap:anywhere]">
+                {t.destaqueMarca.selo && (
+                  <p className="mt-5 inline-flex rounded-[40px] bg-[#e53935] px-3 py-1 text-[0.75rem] font-bold uppercase tracking-wide text-white">
+                    {t.destaqueMarca.selo}
+                  </p>
+                )}
+                <h2 id="titulo-destaque" className={`${t.destaqueMarca.selo ? "mt-3" : "mt-5"} text-[clamp(1.375rem,1.9vw,1.625rem)] font-black uppercase leading-[1.1] [overflow-wrap:anywhere]`}>
                   {t.destaqueMarca.titulo}
                 </h2>
                 <p className="mt-3 text-[0.875rem] text-white/80">{t.destaqueMarca.texto}</p>
