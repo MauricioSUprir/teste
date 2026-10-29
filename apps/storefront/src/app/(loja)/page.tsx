@@ -64,8 +64,7 @@ function produtosDoDestaque(): Produto[] {
   const preco = (p: Produto) => Math.max(...p.variantes.map((v) => v.precoPor));
   return produtosPorMarca(DESTAQUE_HOME.marca)
     .filter(vitrinavel)
-    .sort((a, b) => Number(maquina(b)) - Number(maquina(a)) || preco(b) - preco(a))
-    .slice(0, 24);
+    .sort((a, b) => Number(maquina(b)) - Number(maquina(a)) || preco(b) - preco(a));
 }
 
 /** categorias com produto suficiente para uma vitrine, da mais cheia para a menor */
@@ -146,11 +145,15 @@ export default function Home() {
           <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
             <div className="flex flex-col justify-between gap-6 rounded-[8px] bg-tinta p-6 text-white md:p-8">
               <div>
-                <p className="inline-flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-wide text-white/80">
-                  <span className="h-2 w-2 rounded-full bg-[#e53935]" aria-hidden="true" />
-                  {t.destaqueMarca.sobretitulo}
-                </p>
-                <h2 id="titulo-destaque" className="mt-2 text-[clamp(1.375rem,1.9vw,1.625rem)] font-black uppercase leading-[1.1] [overflow-wrap:anywhere]">
+                {/* eslint-disable-next-line @next/next/no-img-element -- site estático, sem otimizador de imagem */}
+                <img
+                  src={comBase(DESTAQUE_HOME.logo)}
+                  alt={t.destaqueMarca.logoAlt}
+                  width={512}
+                  height={168}
+                  className="h-auto w-[150px] brightness-0 invert md:w-[170px]"
+                />
+                <h2 id="titulo-destaque" className="mt-5 text-[clamp(1.375rem,1.9vw,1.625rem)] font-black uppercase leading-[1.1] [overflow-wrap:anywhere]">
                   {t.destaqueMarca.titulo}
                 </h2>
                 <p className="mt-3 text-[0.875rem] text-white/80">{t.destaqueMarca.texto}</p>

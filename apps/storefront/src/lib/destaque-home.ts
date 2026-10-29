@@ -5,9 +5,11 @@
  */
 import type { LojaId } from "@/lib/loja";
 
-export const DESTAQUE_HOME: { ativo: boolean; lojas: LojaId[]; marca: string } = {
-  // live da Wahl na Be2Beauty (pedido da Fabiana, 29/10)
+export const DESTAQUE_HOME: { ativo: boolean; lojas: LojaId[]; marca: string; logo: string } = {
+  // Wahl em destaque na Be2Beauty (pedido da Fabiana, 29/10)
   ativo: true,
   lojas: ["be2beauty"],
   marca: "wahl",
+  // logo da marca (escura): no quadro escuro ela aparece em branco
+  logo: "/logos-marcas/wahl.png",
 };

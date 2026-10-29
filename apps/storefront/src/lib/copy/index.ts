@@ -115,7 +115,7 @@ export const copy = {
     porCategoria: "Compre por categoria",
     /** vitrine de campanha (src/lib/destaque-home.ts) */
     destaqueMarca: {
-      sobretitulo: "Live de hoje",
+      logoAlt: "Wahl",
       titulo: "Máquinas Wahl em destaque",
       texto: "Máquinas de corte, de acabamento e aparadores Wahl, com garantia de distribuidor autorizado.",
       cta: "Ver tudo da Wahl",
