@@ -113,6 +113,13 @@ export const copy = {
     maisVendidos: "Mais vendidos",
     lancamentos: "Lançamentos",
     porCategoria: "Compre por categoria",
+    /** vitrine de campanha (src/lib/destaque-home.ts) */
+    destaqueMarca: {
+      sobretitulo: "Live de hoje",
+      titulo: "Máquinas Wahl em destaque",
+      texto: "Máquinas de corte, de acabamento e aparadores Wahl, com garantia de distribuidor autorizado.",
+      cta: "Ver tudo da Wahl",
+    },
     porNecessidade: "O que seu cabelo precisa hoje?",
     marcasDestaque: "Marcas que a gente confia",
     verTudo: "Ver tudo",

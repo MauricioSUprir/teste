@@ -24,6 +24,7 @@ import { ItemPrateleira, Prateleira } from "@/components/home/Prateleira";
 import { MiniProduto } from "@/components/home/MiniProduto";
 import { TituloSecao } from "@/components/home/TituloSecao";
 import { IconeAtalho, type NomeIcone } from "@/components/home/IconesAtalho";
+import { DESTAQUE_HOME } from "@/lib/destaque-home";
 
 const t = copy.home;
 /** marcas profissionais de cabelo que abrem o mosaico da Be2Beauty */
@@ -54,6 +55,17 @@ function variados(lista: Produto[], n: number): Produto[] {
     }
   }
   return escolhidos;
+}
+
+/** vitrine de campanha: as máquinas na frente, cada grupo do mais completo (mais caro) ao mais simples */
+function produtosDoDestaque(): Produto[] {
+  if (!DESTAQUE_HOME.ativo || !DESTAQUE_HOME.lojas.includes(LOJA.id)) return [];
+  const maquina = (p: Produto) => /maquina|combo|shaver|clipper/.test(p.slug);
+  const preco = (p: Produto) => Math.max(...p.variantes.map((v) => v.precoPor));
+  return produtosPorMarca(DESTAQUE_HOME.marca)
+    .filter(vitrinavel)
+    .sort((a, b) => Number(maquina(b)) - Number(maquina(a)) || preco(b) - preco(a))
+    .slice(0, 24);
 }
 
 /** categorias com produto suficiente para uma vitrine, da mais cheia para a menor */
@@ -108,6 +120,8 @@ export default function Home() {
     .filter((m) => m.total > 0 && m.foto)
     .sort((a, b) => prioridadeMosaico(a.slug) - prioridadeMosaico(b.slug) || b.total - a.total);
 
+  const destaque = produtosDoDestaque();
+
   const atalhos: { rotulo: string; href: string; icone: NomeIcone; externo?: boolean }[] = [
     { rotulo: t.atalhos.maisVendidos, href: "/busca?q=mais+vendidos", icone: "estrela" },
     LOJA.b2b
@@ -125,6 +139,39 @@ export default function Home() {
     <>
       {/* 1. Hero: banners do lojista (troca a cada 20s) */}
       <CarrosselBanners />
+
+      {/* 1b. Vitrine de campanha (live de uma marca), quando ligada */}
+      {destaque.length > 0 && (
+        <section aria-labelledby="titulo-destaque" className="container-bn pt-8 md:pt-10">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="flex flex-col justify-between gap-6 rounded-[8px] bg-tinta p-6 text-white md:p-8">
+              <div>
+                <p className="inline-flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-wide text-white/80">
+                  <span className="h-2 w-2 rounded-full bg-[#e53935]" aria-hidden="true" />
+                  {t.destaqueMarca.sobretitulo}
+                </p>
+                <h2 id="titulo-destaque" className="mt-2 text-[clamp(1.375rem,1.9vw,1.625rem)] font-black uppercase leading-[1.1] [overflow-wrap:anywhere]">
+                  {t.destaqueMarca.titulo}
+                </h2>
+                <p className="mt-3 text-[0.875rem] text-white/80">{t.destaqueMarca.texto}</p>
+              </div>
+              <Link
+                href={`/marca/${DESTAQUE_HOME.marca}`}
+                className="inline-flex h-10 items-center gap-2 self-start rounded-[40px] bg-white px-5 text-[0.875rem] font-bold uppercase tracking-wide text-tinta hover:bg-white/90"
+              >
+                {t.destaqueMarca.cta} <span aria-hidden="true">›</span>
+              </Link>
+            </div>
+            <Prateleira rotulo={t.destaqueMarca.titulo}>
+              {destaque.map((p, i) => (
+                <ItemPrateleira key={p.slug}>
+                  <CardProduto produto={p} prioridade={i < 2} />
+                </ItemPrateleira>
+              ))}
+            </Prateleira>
+          </div>
+        </section>
+      )}
 
       {/* 2a. Be2Beauty: divisão por categorias logo na entrada */}
       {categoriasVitrine.length > 0 && (
