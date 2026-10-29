@@ -527,12 +527,73 @@ function decifrarBackup(json) {
   return JSON.parse(texto.toString("utf8"));
 }
 
-/** rota de admin: chave do painel do site (?chave= / corpo) ou token de administração */
+// ===== Sessões do painel do administrador =====
+// O painel do site entra com o código de 6 dígitos no e-mail; se o e-mail é de
+// administrador, /codigo/verificar devolve também um token de sessão do painel
+// (vale 7 dias). É ele que abre as rotas de admin — a chave antiga ficava
+// escrita no código público do site, que qualquer visitante consegue ler.
+// Quem é admin: hash SHA-256 do e-mail em minúsculas (o endereço não fica no
+// código público). PAINEL_ADMIN_EMAILS_SHA256 no Render troca a lista.
+const ADMINS_PAINEL = new Set(
+  (
+    process.env.PAINEL_ADMIN_EMAILS_SHA256 ??
+    // lojabeautynow@gmail.com, Fabiana (as mesmas do painel do site)
+    "3d398f24c18a478378ca799120bd933dba302008dac7fce2e8e9239bd17b67c9,45e590fc9272ca2a68b2a266e38590a7b389ef2af62051dc8cdee52caee53698"
+  )
+    .split(",")
+    .map((h) => h.trim().toLowerCase())
+    .filter((h) => /^[0-9a-f]{64}$/.test(h))
+);
+const SESSAO_PAINEL_MS = 7 * 24 * 3600_000;
+const ARQ_SESSOES_PAINEL = "/tmp/painel-sessoes.json";
+const hashSha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
+const ehEmailAdmin = (email) => ADMINS_PAINEL.has(hashSha256(String(email).trim().toLowerCase()));
+/** hash do token → { expira, quem (hash do e-mail) } */
+const sessoesPainel = new Map();
+try {
+  const fs = await import("node:fs");
+  const salvas = fs.existsSync(ARQ_SESSOES_PAINEL) ? JSON.parse(fs.readFileSync(ARQ_SESSOES_PAINEL, "utf8")) : (doBanco("painel-sessoes") ?? []);
+  for (const [h, s] of salvas) if (s?.expira > Date.now()) sessoesPainel.set(h, s);
+} catch {
+  /* sem sessões: os admins entram de novo */
+}
+function salvarSessoesPainel() {
+  for (const [h, s] of sessoesPainel) if (s.expira <= Date.now()) sessoesPainel.delete(h);
+  const lista = [...sessoesPainel];
+  import("node:fs")
+    .then((fs) => fs.writeFileSync(ARQ_SESSOES_PAINEL, JSON.stringify(lista)))
+    .catch(() => undefined);
+  void gravarNoBanco("painel-sessoes", lista);
+}
+function abrirSessaoPainel(email) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  sessoesPainel.set(hashSha256(token), { expira: Date.now() + SESSAO_PAINEL_MS, quem: hashSha256(email) });
+  salvarSessoesPainel();
+  return token;
+}
+function sessaoPainelValida(token) {
+  if (!token || token.length > 100) return false;
+  const s = sessoesPainel.get(hashSha256(token));
+  return Boolean(s && s.expira > Date.now() && ADMINS_PAINEL.has(s.quem));
+}
+
+/**
+ * rota de admin: sessão do painel ou token de administração (cabeçalho
+ * Authorization), ou a chave de exportação (EXPORT_CHAVE, só no Render)
+ */
 function ehAdmin(req) {
-  if (tokenNaLista(tokenDoCabecalho(req), PAINEL_ADMIN_TOKENS)) return true;
+  const token = tokenDoCabecalho(req);
+  if (tokenNaLista(token, PAINEL_ADMIN_TOKENS) || sessaoPainelValida(token)) return true;
   const chave = String(req.body?.chave ?? req.query?.chave ?? "");
   return Boolean(EXPORT_CHAVE) && chave === EXPORT_CHAVE;
 }
+
+/**
+ * Exportação para o robô de backup: sai cifrada (o mesmo conteúdo que fica no
+ * repositório público), então não precisa de chave. Sem BACKUP_CHAVE ela
+ * sairia aberta: aí só para o admin.
+ */
+const podeExportarCifrado = (req) => Boolean(BACKUP_CHAVE) || ehAdmin(req);
 const exportacao = { estado: "parado", progresso: "", json: null, erro: null };
 
 async function coletarCatalogoHub(modo = "rapido") {
@@ -924,6 +985,14 @@ aplicacao.post("/codigo/verificar", (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
   const r = conferirCodigo(email, String(req.body?.codigo ?? "").trim());
   if (r.erro) return res.status(r.status).json({ erro: r.erro });
+  // e-mail de administrador: já leva a sessão do painel
+  res.json(ehEmailAdmin(email) ? { ok: true, tokenAdmin: abrirSessaoPainel(email) } : { ok: true });
+});
+
+// o admin saiu do painel: a sessão deixa de valer
+aplicacao.post("/painel/sair", (req, res) => {
+  const token = tokenDoCabecalho(req);
+  if (token && sessoesPainel.delete(hashSha256(token))) salvarSessoesPainel();
   res.json({ ok: true });
 });
 
@@ -1044,7 +1113,7 @@ aplicacao.get("/pedidos/situacao/:numero", async (req, res) => {
 
 // backup para o robô do GitHub versionar (o histórico sobrevive à publicação)
 aplicacao.get("/pedidos/exportar", (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!podeExportarCifrado(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json(
@@ -1935,10 +2004,8 @@ aplicacao.post("/enviar-banners/salvar", express.json({ limit: "10mb" }), async 
   res.json({ ok: true, total: bannersEnviados.size });
 });
 
+// o que já é público no site: o robô de backup baixa sem chave
 aplicacao.get("/enviar-banners/exportar", (req, res) => {
-  if (!ehAdmin(req)) {
-    return res.status(403).json({ erro: "Chave inválida." });
-  }
   res.json({
     total: bannersEnviados.size,
     restauracaoOk: !restauracaoFalhou,
@@ -2246,10 +2313,8 @@ aplicacao.post("/avaliacoes", async (req, res) => {
 });
 
 // backup para o robô do GitHub versionar (não perde avaliação em deploy)
+// o que já é público no site: o robô de backup baixa sem chave
 aplicacao.get("/avaliacoes/exportar", (req, res) => {
-  if (!ehAdmin(req)) {
-    return res.status(403).json({ erro: "Chave inválida." });
-  }
   res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, avaliacoes });
 });
 
@@ -2462,7 +2527,7 @@ aplicacao.post("/b2b/decidir", async (req, res) => {
 
 // backup para o robô do GitHub versionar (não perde cadastro em deploy)
 aplicacao.get("/b2b/exportar", (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!podeExportarCifrado(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json(
@@ -2565,10 +2630,8 @@ aplicacao.post("/catalogo/precos", async (req, res) => {
 });
 
 // export p/ backup versionado (mesmo padrão dos outros dados)
+// o que já é público no site: o robô de backup baixa sem chave
 aplicacao.get("/catalogo/precos/exportar", (req, res) => {
-  if (!ehAdmin(req)) {
-    return res.status(403).json({ erro: "Chave inválida." });
-  }
   res.json({ geradoEm: new Date().toISOString(), restauracaoOk: !restauracaoFalhou, precos: precosManuais });
 });
 
@@ -3216,7 +3279,7 @@ aplicacao.post("/b2b/excluir", async (req, res) => {
 
 // backup para o robô do GitHub versionar (afiliados não se perdem em deploy)
 aplicacao.get("/afiliados/exportar", (req, res) => {
-  if (!ehAdmin(req)) {
+  if (!podeExportarCifrado(req)) {
     return res.status(403).json({ erro: "Chave inválida." });
   }
   res.json(
@@ -3443,7 +3506,6 @@ await montarContasShopping(aplicacao, {
   decifrarBackup,
   marcarFalhaRestauracao,
   restauracaoOk: () => !restauracaoFalhou,
-  ehAdmin,
   tokenDoCabecalho,
   emailValido,
   pedirCodigo,

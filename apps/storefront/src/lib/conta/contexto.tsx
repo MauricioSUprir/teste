@@ -30,7 +30,12 @@ import {
 import {
   acordarServidor,
   emailRealAtivo,
+  EVENTO_ADMIN_EXPIROU,
+  guardarTokenAdmin,
+  sairDoPainel,
+  servidorConfigurado,
   solicitarCodigoPorEmail,
+  temTokenAdmin,
   verificarCodigoNoServidor,
 } from "@/lib/servidor";
 
@@ -195,13 +200,16 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     } catch {
       return; // sem sessão
     }
+    // admin só volta com a sessão do painel guardada (sem ela, o servidor não
+    // abre nada): entra de novo com o código
+    const semSessaoPainel = servidorConfigurado() && !temTokenAdmin();
     if (email === ADMIN_EMAIL) {
-      setUsuario(sessaoAdmin(email));
+      if (!semSessaoPainel) setUsuario(sessaoAdmin(email));
       return;
     }
     void nomeAdminPorCodigo(email).then((nome) => {
       if (nome) {
-        setUsuario(sessaoAdmin(email, nome));
+        if (!semSessaoPainel) setUsuario(sessaoAdmin(email, nome));
         return;
       }
       const u = lerUsuarios().find((x) => x.email === email);
@@ -305,9 +313,10 @@ export function ContaProvider({ children }: { children: ReactNode }) {
         return { ok: false, erro: "O código expirou. Faça login novamente." };
       }
       if (pendente.codigo === null) {
-        // código guardado no servidor
+        // código guardado no servidor (para e-mail de admin, ele devolve a sessão do painel)
         const r = await verificarCodigoNoServidor(pendente.email, codigo.trim());
         if (!r.ok) return { ok: false, erro: r.erro ?? "Código incorreto. Confira os 6 dígitos." };
+        guardarTokenAdmin(r.tokenAdmin ?? null);
       } else if (codigo.trim() !== pendente.codigo) {
         return { ok: false, erro: "Código incorreto. Confira os 6 dígitos." };
       }
@@ -482,6 +491,7 @@ export function ContaProvider({ children }: { children: ReactNode }) {
   );
 
   const sair = useCallback(() => {
+    void sairDoPainel().finally(() => guardarTokenAdmin(null));
     setUsuario(null);
     setPendente(null);
     try {
@@ -489,6 +499,20 @@ export function ContaProvider({ children }: { children: ReactNode }) {
     } catch {
       // nada a limpar
     }
+  }, []);
+
+  // a sessão do painel venceu no meio do uso: o admin entra de novo
+  useEffect(() => {
+    const expirou = () => {
+      setUsuario((u) => (u?.admin ? null : u));
+      try {
+        localStorage.removeItem(CHAVE_SESSAO);
+      } catch {
+        // nada a limpar
+      }
+    };
+    window.addEventListener(EVENTO_ADMIN_EXPIROU, expirou);
+    return () => window.removeEventListener(EVENTO_ADMIN_EXPIROU, expirou);
   }, []);
 
   const valor = useMemo<ContaContexto>(

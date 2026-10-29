@@ -13,7 +13,7 @@
  *   PUT  /shopping/conta          { dados }            → { ok, atualizadaEm }
  *   POST /shopping/conta/sair                          → encerra esta sessão
  *   POST /shopping/conta/apagar                        → apaga a conta e tudo o que ela guardou
- *   GET  /shopping/contas/exportar (admin)             → backup cifrado para o robô
+ *   GET  /shopping/contas/exportar                     → backup cifrado para o robô
  *
  * O token vai em "Authorization: Bearer …"; o servidor guarda só o hash dele.
  *
@@ -59,7 +59,7 @@ function limparDados(d) {
  * @param {object} dep funções do servidor principal (banco, backup, código por e-mail)
  */
 export async function montarContasShopping(aplicacao, dep) {
-  const { doBancoComPrefixo, gravarNoBanco, APAGADO, cifrarBackup, decifrarBackup, marcarFalhaRestauracao, restauracaoOk, ehAdmin, tokenDoCabecalho, emailValido, pedirCodigo, conferirCodigo } = dep;
+  const { doBancoComPrefixo, gravarNoBanco, APAGADO, cifrarBackup, decifrarBackup, marcarFalhaRestauracao, restauracaoOk, tokenDoCabecalho, emailValido, pedirCodigo, conferirCodigo } = dep;
 
   /** id → { id, email, criadaEm, atualizadaEm, dados, sessoes: [{ h, expira }] } */
   const contas = new Map();
@@ -228,8 +228,8 @@ export async function montarContasShopping(aplicacao, dep) {
     res.json({ ok: true });
   });
 
+  // sai sempre cifrado (o mesmo que fica no repositório público): o robô baixa sem chave
   aplicacao.get("/shopping/contas/exportar", (req, res) => {
-    if (!ehAdmin(req)) return res.status(403).json({ erro: "Chave inválida." });
     const lista = [...contas.values()].sort((a, b) => a.id.localeCompare(b.id));
     const backup = cifrarBackup({ geradoEm: new Date().toISOString(), restauracaoOk: restauracaoOk(), contas: lista, apagadas: [...apagadas].sort() }, lista.length);
     // o repositório do backup é público: e-mail nunca sai em texto aberto

@@ -2,7 +2,9 @@ name: buscar-logos
 
 # Ponte de logos: o runner do GitHub tem internet aberta, então ele chama o
 # exportador de logos do servidor (Render) e grava o resultado no repositório.
-# Gatilho: qualquer push que altere .github/pedido-logos.txt (a chave vai nele).
+# Gatilho: qualquer push que altere .github/pedido-logos.txt.
+# A chave das rotas de admin NÃO fica mais no arquivo (o repositório é
+# público): vem do segredo PAINEL_CHAVE do GitHub, se ele existir.
 on:
   push:
     paths:
@@ -14,12 +16,14 @@ permissions:
 jobs:
   buscar:
     runs-on: ubuntu-latest
+    env:
+      PAINEL_CHAVE: ${{ secrets.PAINEL_CHAVE }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Baixar logos pelo exportador do servidor
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           ok=""
           for i in 1 2 3 4; do
             if curl -fsS --max-time 280 \
@@ -50,7 +54,7 @@ jobs:
 
       - name: Coletar logos enviadas pelo navegador
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           curl -fsS --max-time 120 \
             "https://beautynow-servidor.onrender.com/enviar-logos/exportar?chave=${chave}" \
             -o logos-enviadas.json || echo '{}' > logos-enviadas.json
@@ -81,7 +85,7 @@ jobs:
 
       - name: Coletar banners enviados pelo navegador
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           curl -fsS --max-time 180 \
             "https://beautynow-servidor.onrender.com/enviar-banners/exportar?chave=${chave}" \
             -o banners-enviados.json || echo '{}' > banners-enviados.json
@@ -96,7 +100,7 @@ jobs:
 
       - name: Status da conexão com o Bling
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           curl -fsS --max-time 120 \
             "https://beautynow-servidor.onrender.com/bling/status?chave=${chave}" \
             -o bling-status.json || echo '{}' > bling-status.json
@@ -105,7 +109,7 @@ jobs:
 
       - name: Backup das avaliações da loja
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           curl -fsS --max-time 120 \
             "https://beautynow-servidor.onrender.com/avaliacoes/exportar?chave=${chave}" \
             -o avaliacoes-novas.json && mv avaliacoes-novas.json avaliacoes-backup.json || true
@@ -113,7 +117,7 @@ jobs:
 
       - name: Backup dos cadastros profissionais (B2B)
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           curl -fsS --max-time 120 \
             "https://beautynow-servidor.onrender.com/b2b/exportar?chave=${chave}" \
             -o b2b-novo.json && mv b2b-novo.json b2b-backup.json || true
@@ -121,7 +125,7 @@ jobs:
 
       - name: Backup das vendas de afiliados
         run: |
-          chave="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')"
+          chave="${PAINEL_CHAVE:-}"
           curl -fsS --max-time 120 \
             "https://beautynow-servidor.onrender.com/afiliados/exportar?chave=${chave}" \
             -o afiliados-novo.json && mv afiliados-novo.json afiliados-backup.json || true

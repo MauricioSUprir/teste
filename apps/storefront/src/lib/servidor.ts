@@ -29,16 +29,79 @@ async function fetchComTimeout(url: string, ms: number, init?: RequestInit): Pro
   }
 }
 
-async function chamar(caminho: string, corpo: unknown): Promise<{ ok: boolean; erro?: string }> {
+// ===== Sessão do painel do administrador =====
+// O servidor só abre as rotas de admin com a sessão do painel, que ele mesmo
+// entrega ao conferir o código de 6 dígitos de um e-mail de administrador.
+// Nada de chave fixa aqui: este arquivo vai inteiro para o navegador de
+// qualquer visitante.
+const CHAVE_TOKEN_ADMIN = "bn.tokenAdmin";
+
+export function guardarTokenAdmin(token: string | null) {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}${caminho}`, 75_000, {
+    if (token) localStorage.setItem(CHAVE_TOKEN_ADMIN, token);
+    else localStorage.removeItem(CHAVE_TOKEN_ADMIN);
+  } catch {
+    // sem armazenamento: a sessão vale até fechar a aba
+  }
+}
+
+export function temTokenAdmin(): boolean {
+  try {
+    return Boolean(localStorage.getItem(CHAVE_TOKEN_ADMIN));
+  } catch {
+    return false;
+  }
+}
+
+/** a sessão do painel venceu (ou foi encerrada): quem estiver ouvindo leva o admin para entrar de novo */
+export const EVENTO_ADMIN_EXPIROU = "bn:admin-expirou";
+
+function cabecalhoAdmin(): Record<string, string> {
+  try {
+    const t = localStorage.getItem(CHAVE_TOKEN_ADMIN);
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  } catch {
+    return {};
+  }
+}
+
+/** chamada a uma rota de admin: leva a sessão do painel no cabeçalho */
+async function fetchAdmin(url: string, ms: number, init: RequestInit = {}): Promise<Response> {
+  const resposta = await fetchComTimeout(url, ms, {
+    ...init,
+    headers: { ...(init.headers as Record<string, string> | undefined), ...cabecalhoAdmin() },
+  });
+  if (resposta.status === 401 || resposta.status === 403) {
+    guardarTokenAdmin(null);
+    window.dispatchEvent(new Event(EVENTO_ADMIN_EXPIROU));
+  }
+  return resposta;
+}
+
+/** o admin saiu: a sessão deixa de valer também no servidor */
+export async function sairDoPainel() {
+  if (!servidorConfigurado()) return;
+  try {
+    await fetchComTimeout(`${SERVIDOR_URL}/painel/sair`, 15_000, { method: "POST", headers: cabecalhoAdmin() });
+  } catch {
+    // sem conexão: a sessão vence sozinha
+  }
+}
+
+async function chamar(
+  caminho: string,
+  corpo: unknown,
+  admin = false
+): Promise<{ ok: boolean; erro?: string; tokenAdmin?: string }> {
+  try {
+    const resposta = await (admin ? fetchAdmin : fetchComTimeout)(`${SERVIDOR_URL}${caminho}`, 75_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(corpo),
     });
-    const dados = (await resposta.json().catch(() => ({}))) as { erro?: string };
+    const dados = (await resposta.json().catch(() => ({}))) as { erro?: string; tokenAdmin?: string };
     if (!resposta.ok) return { ok: false, erro: dados.erro ?? "O servidor não respondeu. Tente novamente." };
-    return { ok: true };
+    return { ok: true, tokenAdmin: dados.tokenAdmin };
   } catch {
     return {
       ok: false,
@@ -208,7 +271,7 @@ export async function definirPrecoManual(
   titulo?: string
 ): Promise<{ ok: boolean; erro?: string }> {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/catalogo/precos`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/catalogo/precos`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -217,7 +280,6 @@ export async function definirPrecoManual(
         precoDeCentavos,
         titulo,
         loja: LOJA_ID,
-        chave: CHAVE_ADMIN_SERVIDOR,
       }),
     });
     const corpo = (await resposta.json().catch(() => ({}))) as { erro?: string };
@@ -302,8 +364,8 @@ export interface PedidoAdmin {
 /** Admin: todos os pedidos do site, com endereço e contato do cliente. */
 export async function listarPedidosAdmin(): Promise<{ ok: boolean; pedidos: PedidoAdmin[] }> {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/pedidos/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/pedidos/lista`,
       75_000,
       {}
     );
@@ -321,10 +383,10 @@ export async function mudarStatusPedidoAdmin(
   status: "pago" | "cancelado" | "aguardando_pagamento"
 ) {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/pedidos/status`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/pedidos/status`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numero, status, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ numero, status }),
     });
     return { ok: resposta.ok };
   } catch {
@@ -379,9 +441,6 @@ export function enviarAvaliacao(dados: {
 
 // ===== Banners do carrossel (gerenciados no painel admin) =====
 
-/** Chave administrativa das rotas de banner (mesma do exportador). */
-export const CHAVE_ADMIN_SERVIDOR = "exporta-bn-2026";
-
 /** Lista os banners ativos, na ordem (URLs absolutas prontas para <img>). */
 export type BannerDaLoja = { slot: string; url: string; urlMobile: string | null };
 
@@ -405,8 +464,8 @@ export async function listarBanners(): Promise<BannerDaLoja[]> {
 /** Envia/substitui um banner (admin). */
 export async function enviarBanner(slot: string, mime: string, base64: string) {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/enviar-banners/salvar?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/enviar-banners/salvar`,
       75_000,
       {
         method: "POST",
@@ -424,8 +483,8 @@ export async function enviarBanner(slot: string, mime: string, base64: string) {
 /** Remove um banner (admin). */
 export async function excluirBanner(slot: string) {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/enviar-banners/excluir?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/enviar-banners/excluir`,
       30_000,
       {
         method: "POST",
@@ -493,8 +552,8 @@ export async function consultarStatusB2B(cnpj: string): Promise<StatusB2B | null
 /** Lista os cadastros B2B (admin). */
 export async function listarCadastrosB2B(): Promise<{ ok: boolean; cadastros: CadastroB2B[] }> {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/b2b/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/b2b/lista`,
       65_000,
       {}
     );
@@ -509,10 +568,10 @@ export async function listarCadastrosB2B(): Promise<{ ok: boolean; cadastros: Ca
 /** Aprova/recusa um cadastro B2B (admin). */
 export async function decidirCadastroB2B(cnpj: string, status: "aprovado" | "recusado" | "pendente") {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/b2b/decidir`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/b2b/decidir`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cnpj, status, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ cnpj, status }),
     });
     return { ok: resposta.ok };
   } catch {
@@ -673,8 +732,8 @@ export async function conferirUsuarioAfiliado(
 /** Admin: lista completa de cadastros de afiliado (para aprovar/recusar). */
 export async function listarCadastrosAfiliado(): Promise<{ ok: boolean; cadastros: CadastroAfiliado[] }> {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/afiliados/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/afiliados/lista`,
       30_000,
       {}
     );
@@ -689,10 +748,10 @@ export async function listarCadastrosAfiliado(): Promise<{ ok: boolean; cadastro
 /** Admin aprova/recusa um pedido de entrada no programa de afiliados. */
 export async function decidirCadastroAfiliado(email: string, status: "aprovado" | "recusado") {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/decidir`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/afiliados/decidir`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, status, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ email, status }),
     });
     return { ok: resposta.ok };
   } catch {
@@ -715,11 +774,11 @@ export async function cadastrarAfiliadoAdmin(
   dados: NovoAfiliado
 ): Promise<{ ok: boolean; erro?: string; usuario?: string; link?: string; comissaoPct?: number }> {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/admin-cadastrar`, 65_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/afiliados/admin-cadastrar`, 65_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       // a loja do painel define para qual site o link do afiliado aponta
-      body: JSON.stringify({ ...dados, loja: LOJA_ID, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ ...dados, loja: LOJA_ID }),
     });
     const corpo = (await resposta.json().catch(() => ({}))) as {
       erro?: string;
@@ -736,10 +795,10 @@ export async function cadastrarAfiliadoAdmin(
 /** Admin exclui um cadastro de afiliado e tudo dele (vendas, saques). */
 export async function excluirAfiliado(email: string) {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/excluir`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/afiliados/excluir`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ email }),
     });
     return { ok: resposta.ok };
   } catch {
@@ -811,8 +870,8 @@ export async function listarAfiliadosAdmin(): Promise<{
     aPagarCentavos: 0,
   };
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/afiliados/admin?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/afiliados/admin`,
       75_000,
       {}
     );
@@ -857,10 +916,10 @@ export async function pedirSaqueAfiliado(
 /** Admin marca um saque como pago (após fazer o Pix) ou recusa. */
 export async function decidirSaqueAfiliado(id: string, status: "pago" | "recusado") {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/saque-decidir`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/afiliados/saque-decidir`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ id, status }),
     });
     return { ok: resposta.ok };
   } catch {
@@ -871,10 +930,10 @@ export async function decidirSaqueAfiliado(id: string, status: "pago" | "recusad
 /** Admin define a comissão (%) de um afiliado. */
 export async function definirComissaoAfiliado(email: string, pct: number) {
   try {
-    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/afiliados/comissao`, 30_000, {
+    const resposta = await fetchAdmin(`${SERVIDOR_URL}/afiliados/comissao`, 30_000, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, pct, chave: CHAVE_ADMIN_SERVIDOR }),
+      body: JSON.stringify({ email, pct }),
     });
     return { ok: resposta.ok };
   } catch {
@@ -905,8 +964,8 @@ export async function buscarCupomServidor(codigo: string): Promise<Cupom | "inex
 /** Admin: lista completa de cupons. */
 export async function listarCuponsAdmin(): Promise<{ ok: boolean; cupons: Cupom[] }> {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/cupons/lista?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/cupons/lista`,
       75_000,
       { cache: "no-store" }
     );
@@ -920,7 +979,7 @@ export async function listarCuponsAdmin(): Promise<{ ok: boolean; cupons: Cupom[
 
 /** Admin: grava a lista inteira de cupons (criar, ativar/desativar, excluir). */
 export function salvarCuponsAdmin(cupons: Cupom[]) {
-  return chamar("/cupons", { cupons, chave: CHAVE_ADMIN_SERVIDOR });
+  return chamar("/cupons", { cupons }, true);
 }
 
 // ===== "Atualizar catálogo agora" =====
@@ -935,8 +994,8 @@ export interface EstadoAtualizacaoCatalogo {
 
 async function estadoCatalogo(init?: RequestInit): Promise<EstadoAtualizacaoCatalogo | null> {
   try {
-    const resposta = await fetchComTimeout(
-      `${SERVIDOR_URL}/catalogo/atualizacao?chave=${encodeURIComponent(CHAVE_ADMIN_SERVIDOR)}`,
+    const resposta = await fetchAdmin(
+      `${SERVIDOR_URL}/catalogo/atualizacao`,
       75_000,
       { cache: "no-store", ...init }
     );
@@ -957,6 +1016,6 @@ export function pedirAtualizacaoCatalogo() {
   return estadoCatalogo({
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ acao: "pedir", chave: CHAVE_ADMIN_SERVIDOR }),
+    body: JSON.stringify({ acao: "pedir" }),
   });
 }

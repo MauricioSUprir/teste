@@ -41,9 +41,8 @@ jobs:
       - name: Baixar os dados vivos do servidor
         env:
           SERVIDOR: https://beautynow-servidor.onrender.com
-        run: |
-          CHAVE="$(head -n1 .github/pedido-logos.txt | tr -d '[:space:]')" \
-            node scripts/backup-dados.mjs
+          # sem chave: o servidor só entrega o que já sai cifrado ou é público
+        run: node scripts/backup-dados.mjs
 
       - name: Guardar no repositório
         run: |

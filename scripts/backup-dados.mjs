@@ -7,9 +7,12 @@
  * repositório. É desses arquivos que o servidor se recupera quando sobe de
  * novo (ver os *_BACKUP_URL em apps/servidor/index.mjs).
  *
- * Pedidos, cadastros B2B e afiliados têm dados pessoais (CPF, endereço,
- * chave Pix) e o repositório é público: com BACKUP_CHAVE no servidor, esses
- * conjuntos chegam aqui já cifrados — só o servidor lê de volta.
+ * Pedidos, cadastros B2B, afiliados e contas do shopping têm dados pessoais
+ * (CPF, endereço, chave Pix, e-mail) e o repositório é público: com
+ * BACKUP_CHAVE no servidor, esses conjuntos chegam aqui já cifrados — só o
+ * servidor lê de volta. Por isso o robô não precisa de chave nenhuma: o
+ * servidor entrega a qualquer um só o que já sai cifrado (ou o que já é
+ * público no site, como avaliações, preços e banners).
  *
  * Regra de segurança: o servidor diz em restauracaoOk se conseguiu recuperar
  * a memória ao subir. Se não conseguiu, um conjunto vazio significa dado
@@ -19,12 +22,8 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const SERVIDOR = process.env.SERVIDOR ?? "https://beautynow-servidor.onrender.com";
+/** opcional: com a chave de exportação, o servidor também entrega o que não está cifrado */
 const CHAVE = (process.env.CHAVE ?? "").trim();
-
-if (!CHAVE) {
-  console.error("CHAVE vazia — nada a fazer.");
-  process.exit(1);
-}
 
 const CONJUNTOS = [
   { rota: "/b2b/exportar", arquivo: "b2b-backup.json", contar: (d) => d?.cadastros?.length ?? 0 },
@@ -65,7 +64,7 @@ async function acordarServidor() {
 async function baixar(rota) {
   for (let i = 1; i <= 3; i++) {
     try {
-      const r = await fetch(`${SERVIDOR}${rota}?chave=${encodeURIComponent(CHAVE)}`, {
+      const r = await fetch(`${SERVIDOR}${rota}${CHAVE ? `?chave=${encodeURIComponent(CHAVE)}` : ""}`, {
         signal: AbortSignal.timeout(90_000),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
