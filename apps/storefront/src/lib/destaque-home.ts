@@ -6,8 +6,8 @@
 import type { LojaId } from "@/lib/loja";
 
 export const DESTAQUE_HOME: { ativo: boolean; lojas: LojaId[]; marca: string; logo: string } = {
-  // Wahl em destaque na BeautyNow e na Be2Beauty (pedido da Fabiana, 29/10)
-  ativo: true,
+  // Wahl em destaque na BeautyNow e na Be2Beauty (live de 29/10; desligado à meia-noite)
+  ativo: false,
   lojas: ["beautynow", "be2beauty"],
   marca: "wahl",
   // logo da marca (escura): no quadro escuro ela aparece em branco

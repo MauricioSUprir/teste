@@ -117,9 +117,9 @@ export const copy = {
     destaqueMarca: {
       logoAlt: "Wahl",
       /** selo da campanha em cima do título (vazio = sem selo) */
-      selo: "Desconto LIVE GUE",
-      titulo: "20% OFF em toda a Wahl",
-      texto: "Máquinas de corte, de acabamento e aparadores Wahl com 20% de desconto. No Pix, ainda tem mais 5%.",
+      selo: "",
+      titulo: "Máquinas Wahl em destaque",
+      texto: "Máquinas de corte, de acabamento e aparadores Wahl, com garantia de distribuidor autorizado.",
       cta: "Ver tudo da Wahl",
     },
     porNecessidade: "O que seu cabelo precisa hoje?",
