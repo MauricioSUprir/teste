@@ -13,6 +13,7 @@ import { atualizarStatus } from "@/lib/pedidos";
 import { formatarPreco } from "@/lib/preco";
 import { statusPagamento } from "@/lib/servidor";
 import { AvaliacaoPosCompra } from "@/components/avaliacoes/AvaliacaoPosCompra";
+import { CartaoVidro, CheckAnimado, EscudoVidro, PalcoVidro, celebrar } from "@/components/efeitos/Vidro";
 
 interface UltimoPedido {
   numero: string;
@@ -52,6 +53,7 @@ export function Confirmacao() {
       const referencia = qs.get("external_reference");
       if (status === "approved") {
         setAprovado(true);
+        celebrar("pagamento");
         if (referencia) atualizarStatus(referencia, "pago");
       }
     } catch {
@@ -73,6 +75,7 @@ export function Confirmacao() {
       const status = await statusPagamento(paymentId);
       if (status === "approved") {
         setAprovado(true);
+        celebrar("pagamento");
         if (pedido) atualizarStatus(pedido.numero, "pago");
         clearInterval(intervalo);
       }
@@ -96,41 +99,39 @@ export function Confirmacao() {
 
   return (
     <div className="container-bn flex flex-col items-center py-16 text-center">
-      <span
-        aria-hidden="true"
-        className={`flex h-16 w-16 items-center justify-center rounded-full text-[1.75rem] text-white ${
-          aguardando ? "animate-pulse bg-alerta" : "bg-sucesso"
-        }`}
-      >
-        {aguardando ? "⏳" : "✓"}
-      </span>
-      <h1 className="font-titulo mt-5 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold">
-        {aprovado
-          ? "Pagamento aprovado!"
-          : aguardando
-            ? copy.confirmacao.tituloAguardando
-            : copy.confirmacao.titulo}
-      </h1>
-      <p className="mt-2 max-w-[52ch] text-[0.9375rem] text-grafite">
-        {aguardando
-          ? copy.confirmacao.subtituloAguardando(pedido?.numero ?? "—")
-          : copy.confirmacao.subtitulo(pedido?.numero ?? "—")}
-      </p>
+      {/* topo no visual "vidro": escudo lilás esperando o Pix, verde quando confirma */}
+      <PalcoVidro className="w-full max-w-2xl rounded-[16px] p-3 sm:p-5">
+        <CartaoVidro className="px-5 pb-7 pt-8 sm:px-8">
+          <EscudoVidro key={aguardando ? "aguardando" : "ok"} estado={aguardando ? "aguardando" : "ok"} />
+          <h1 className="font-titulo mt-5 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold text-white">
+            {aprovado
+              ? copy.confirmacao.aprovadoTitulo
+              : aguardando
+                ? copy.confirmacao.tituloAguardando
+                : copy.confirmacao.titulo}
+          </h1>
+          <p className="mx-auto mt-2 max-w-[52ch] text-[0.9375rem] text-[#E4E1EC]">
+            {aguardando
+              ? copy.confirmacao.subtituloAguardando(pedido?.numero ?? "—")
+              : copy.confirmacao.subtitulo(pedido?.numero ?? "—")}
+          </p>
 
-      {pedido && (
-        <dl className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-[0.9375rem]">
-          <div>
-            <dt className="text-[0.75rem] uppercase tracking-wide text-cinza">Total</dt>
-            <dd className="num font-semibold">{formatarPreco(pedido.totalCentavos)}</dd>
-          </div>
-          <div>
-            <dt className="text-[0.75rem] uppercase tracking-wide text-cinza">
-              {copy.confirmacao.prazo}
-            </dt>
-            <dd className="num font-semibold">até {pedido.dataPrevista}</dd>
-          </div>
-        </dl>
-      )}
+          {pedido && (
+            <dl className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-[0.9375rem]">
+              <div>
+                <dt className="text-[0.75rem] uppercase tracking-wide text-[#CFCADB]">Total</dt>
+                <dd className="num font-semibold text-white">{formatarPreco(pedido.totalCentavos)}</dd>
+              </div>
+              <div>
+                <dt className="text-[0.75rem] uppercase tracking-wide text-[#CFCADB]">
+                  {copy.confirmacao.prazo}
+                </dt>
+                <dd className="num font-semibold text-white">até {pedido.dataPrevista}</dd>
+              </div>
+            </dl>
+          )}
+        </CartaoVidro>
+      </PalcoVidro>
 
       {(!pedido || pedido.meio === "pix") && !aprovado && (
         <div className="mt-8 w-full max-w-md rounded-[8px] border border-linha p-6">
@@ -185,8 +186,9 @@ export function Confirmacao() {
       )}
 
       {aprovado && (
-        <p className="mt-8 rounded-[8px] bg-[#E7F5EE] px-6 py-4 text-[0.9375rem] font-medium text-sucesso">
-          ✓ Pix recebido! Seu pedido já entrou na fila de separação.
+        <p role="status" className="mt-8 flex items-center gap-2 rounded-[8px] bg-[#E7F5EE] px-6 py-4 text-[0.9375rem] font-medium text-sucesso">
+          <CheckAnimado />
+          {copy.confirmacao.aprovadoTexto}
         </p>
       )}
 

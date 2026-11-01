@@ -366,6 +366,27 @@ export const copy = {
       "Assim que despachar, o código de rastreio chega no seu e-mail e no WhatsApp.",
     ],
     duvida: "Dúvida sobre o pedido? Fale com a gente:",
+    aprovadoTitulo: "Pagamento aprovado!",
+    aprovadoTexto: "Pagamento recebido! Seu pedido já entrou na fila de separação.",
+  },
+  /** cartão "vidro" dos momentos de sucesso (components/efeitos/Vidro.tsx) */
+  celebracao: {
+    tipos: {
+      codigo: {
+        titulo: "Verificado",
+        destaque: "com sucesso",
+        texto: "Seu código de verificação foi confirmado.",
+        nota: "Acesso liberado com segurança.",
+        botao: "Verificado e seguro",
+      },
+      pagamento: {
+        titulo: "Pagamento",
+        destaque: "aprovado",
+        texto: "Recebemos seu pagamento. Seu pedido já entrou na fila de separação.",
+        nota: "Você recebe o resumo do pedido por e-mail.",
+        botao: "Tudo certo",
+      },
+    },
   },
   avaliacoes: {
     titulo: "Avaliações da loja",
@@ -808,7 +829,8 @@ export const copy = {
     codigoNaoEnviado: "❌ Não foi possível enviar o código.",
     codigoReenviar: "Reenviar código",
     codigoReenviando: "Reenviando…",
-    codigoReenviarEm: (s: number) => `Reenviar código em ${s}s`,
+    codigoNaoRecebeu: "Não recebeu o código?",
+    codigoReenviarEm: (tempo: string) => `Reenviar em ${tempo}`,
     codigoDemoAviso:
       "Modo demonstração: sem servidor de e-mail, o código aparece aqui. Na versão final ele chega na sua caixa de entrada.",
     codigoDemoRotulo: "Seu código",

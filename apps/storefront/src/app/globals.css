@@ -366,3 +366,358 @@ body {
   body:has([data-barra-fixa="cnpj"]) { padding-bottom: 56px; }
   body:has([data-barra-fixa="compra"]) { padding-bottom: 108px; }
 }
+
+/* ---------------------------------------------------------------------------
+ * Efeito vidro — verificação e momentos de sucesso
+ * (components/efeitos/Vidro.tsx e conta/CodigoVidro.tsx)
+ * Cartão escuro translúcido sobre uma luz que flui nas cores da loja, com um
+ * toque dourado; o verde fica só para "deu certo". Só transform e opacity
+ * animam (leve no celular). Textos claros sobre fundo escuro: contraste ≥ 4,5.
+ * Na camada "components": as classes utilitárias (fixed, -m-6…) vencem.
+ * ------------------------------------------------------------------------- */
+@layer components {
+  .vidro-palco {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: #0c0a12;
+    color: #fff;
+  }
+  .vidro-palco::before,
+  .vidro-palco::after {
+    content: "";
+    position: absolute;
+    inset: -35%;
+    z-index: -1;
+    pointer-events: none;
+    filter: blur(36px);
+    will-change: transform;
+  }
+  .vidro-palco::before {
+    background:
+      radial-gradient(38% 30% at 28% 32%, color-mix(in srgb, var(--color-roxo) 85%, transparent), transparent 70%),
+      radial-gradient(32% 26% at 72% 70%, color-mix(in srgb, var(--color-violeta) 70%, transparent), transparent 70%);
+    animation: vidro-fluir 16s ease-in-out infinite alternate;
+  }
+  .vidro-palco::after {
+    background:
+      radial-gradient(24% 18% at 68% 28%, rgba(242, 196, 92, 0.5), transparent 70%),
+      radial-gradient(20% 16% at 30% 80%, rgba(242, 196, 92, 0.32), transparent 70%);
+    animation: vidro-fluir 22s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes vidro-fluir {
+    0% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1); }
+    50% { transform: translate3d(5%, 3%, 0) rotate(14deg) scale(1.08); }
+    100% { transform: translate3d(-3%, 6%, 0) rotate(-8deg) scale(1.02); }
+  }
+
+  /* por cima da página (celebração) */
+  .vidro-overlay {
+    background: rgba(12, 10, 18, 0.84);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: vidro-aparecer 0.25s ease-out both;
+  }
+  /* por cima da página o vidro fica quase opaco: o blur não "vê" através da camada de fundo */
+  .vidro-overlay .vidro-cartao {
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03) 45%),
+      rgba(16, 13, 26, 0.9);
+  }
+  .vidro-sair {
+    animation: vidro-sumir 0.22s ease-in both;
+  }
+  @keyframes vidro-aparecer { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes vidro-sumir { from { opacity: 1; } to { opacity: 0; } }
+
+  .vidro-cartao {
+    position: relative;
+    border-radius: 20px;
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03) 45%),
+      rgba(14, 12, 22, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 30px 70px -25px rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+  }
+  .vidro-entrar {
+    animation: vidro-entrar 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+  }
+  @keyframes vidro-entrar {
+    from { opacity: 0; transform: translateY(14px) scale(0.95); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* cantos em "L" */
+  .vidro-canto {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 0 solid rgba(134, 239, 172, 0.65);
+    pointer-events: none;
+  }
+  .vidro-canto-1 { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-top-left-radius: 7px; }
+  .vidro-canto-2 { top: 10px; right: 10px; border-width: 2px 2px 0 0; border-top-right-radius: 7px; }
+  .vidro-canto-3 { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; border-bottom-left-radius: 7px; }
+  .vidro-canto-4 { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; border-bottom-right-radius: 7px; }
+
+  /* escudo */
+  .vidro-escudo {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 22px;
+    color: #c9b8ff;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.04));
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 36px color-mix(in srgb, var(--color-roxo) 45%, transparent);
+  }
+  .vidro-escudo::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 2px solid currentColor;
+    opacity: 0;
+    animation: vidro-onda 2.4s ease-out infinite;
+  }
+  .vidro-escudo-ok {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.08), 0 0 44px rgba(74, 222, 128, 0.38);
+    animation: vidro-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+  .vidro-escudo-forma {
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linejoin: round;
+    fill: color-mix(in srgb, currentColor 14%, transparent);
+  }
+  .vidro-cadeado {
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .vidro-traco {
+    stroke: currentColor;
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: vidro-desenhar 0.55s 0.3s ease-out both;
+  }
+  .vidro-traco-tarde { animation-delay: 0.7s; }
+  @keyframes vidro-desenhar { to { stroke-dashoffset: 0; } }
+  @keyframes vidro-onda {
+    0% { transform: scale(1); opacity: 0.5; }
+    100% { transform: scale(1.45); opacity: 0; }
+  }
+  @keyframes vidro-pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* caixa do check (abaixo do texto) */
+  .vidro-caixa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1.5px solid rgba(74, 222, 128, 0.5);
+    box-shadow: inset 0 0 20px rgba(74, 222, 128, 0.15);
+    animation: vidro-pop 0.45s 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+
+  /* palavra em verde com brilho correndo */
+  .vidro-gradiente {
+    color: #4ade80;
+    background: linear-gradient(90deg, #4ade80, #d9f99d 45%, #4ade80 90%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: vidro-brilho 3.2s linear infinite;
+  }
+  @keyframes vidro-brilho { to { background-position: -200% 0; } }
+
+  /* botões e links no vidro */
+  .vidro-botao,
+  .vidro-botao-marca {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    border-radius: 12px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #fff;
+    transition: filter 0.15s, opacity 0.15s;
+  }
+  .vidro-botao {
+    background: linear-gradient(180deg, #15803d, #166534);
+    box-shadow: 0 12px 30px -12px rgba(34, 197, 94, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  .vidro-botao-marca {
+    background: var(--color-roxo);
+    box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--color-roxo) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .vidro-botao:hover,
+  .vidro-botao-marca:hover { filter: brightness(1.12); }
+  .vidro-botao-marca:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+  .vidro-link {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .vidro-link:disabled { opacity: 0.6; }
+
+  /* avisos dentro do vidro */
+  .vidro-aviso {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.07);
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    color: #ece9f3;
+    text-align: left;
+  }
+  .vidro-aviso-ok {
+    border-color: rgba(74, 222, 128, 0.4);
+    background: rgba(74, 222, 128, 0.1);
+    color: #bbf7d0;
+    font-weight: 500;
+  }
+  .vidro-aviso-erro {
+    border-color: rgba(252, 165, 165, 0.45);
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecaca;
+    font-weight: 500;
+  }
+
+  /* as 6 casas do código: o campo de verdade fica por cima, invisível */
+  .vidro-campo-codigo {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: transparent;
+    font-size: 1px;
+    outline: none;
+    -webkit-text-fill-color: transparent;
+  }
+  .vidro-campo-codigo::selection { background: transparent; }
+  .vidro-casa {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 50px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  }
+  .vidro-casa-cheia {
+    border-color: rgba(255, 255, 255, 0.36);
+    background: rgba(255, 255, 255, 0.11);
+    animation: vidro-pop 0.18s ease-out both;
+  }
+  .vidro-casa-ativa {
+    border-color: #c9b8ff;
+    box-shadow: 0 0 0 3px rgba(201, 184, 255, 0.4);
+  }
+  .vidro-casa-erro { border-color: rgba(252, 165, 165, 0.7); }
+  .vidro-cursor {
+    display: block;
+    width: 2px;
+    height: 24px;
+    border-radius: 2px;
+    background: #c9b8ff;
+    animation: vidro-piscar 1s steps(1) infinite;
+  }
+  @keyframes vidro-piscar { 50% { opacity: 0; } }
+
+  /* check pequeno que se desenha (botão da sacola, avisos de sucesso) */
+  .check-animado {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 1.15em;
+    height: 1.15em;
+    vertical-align: -0.2em;
+  }
+  .check-animado-aro,
+  .check-animado-traco {
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .check-animado-aro {
+    stroke-width: 2;
+    opacity: 0.55;
+    animation: vidro-desenhar 0.4s ease-out both;
+  }
+  .check-animado-traco {
+    stroke-width: 2.6;
+    animation: vidro-desenhar 0.35s 0.25s ease-out both;
+  }
+
+  /* menos movimento: tudo já aparece no lugar, sem espera */
+  @media (prefers-reduced-motion: reduce) {
+    .vidro-palco::before,
+    .vidro-palco::after,
+    .vidro-escudo::after,
+    .vidro-gradiente,
+    .vidro-cursor {
+      animation: none !important;
+    }
+    .vidro-traco,
+    .vidro-caixa,
+    .vidro-escudo-ok,
+    .check-animado-aro,
+    .check-animado-traco {
+      animation-delay: 0s !important;
+    }
+  }
+}
+
+/* foco no vidro: fora da camada para vencer o :focus-visible geral (mesmo raio
+   do botão e contorno claro, visível sobre o fundo escuro) */
+.vidro-botao:focus-visible,
+.vidro-botao-marca:focus-visible,
+.vidro-link:focus-visible {
+  outline: 3px solid #d9f99d;
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.vidro-link:focus-visible {
+  border-radius: 4px;
+}
+.vidro-campo-codigo:focus-visible {
+  outline: 2px solid #c9b8ff;
+  outline-offset: 5px;
+  border-radius: 14px;
+}

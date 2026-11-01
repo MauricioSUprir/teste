@@ -18,6 +18,7 @@ import {
   solicitarCodigoPorEmail,
   verificarCodigoNoServidor,
 } from "@/lib/servidor";
+import { celebrar } from "@/components/efeitos/Vidro";
 
 /** validação oficial de CNPJ (mesma regra do servidor) — só roda se preenchido */
 function cnpjValido(cnpj: string): boolean {
@@ -106,6 +107,7 @@ export function SecaoAfiliadoConta() {
     const r = await verificarCodigoNoServidor(u.email, codigo.trim());
     setEnviando(false);
     if (!r.ok) return setErro(r.erro ?? "Código incorreto. Confira os 6 dígitos.");
+    celebrar("codigo");
     await enviarSolicitacao();
   }
 

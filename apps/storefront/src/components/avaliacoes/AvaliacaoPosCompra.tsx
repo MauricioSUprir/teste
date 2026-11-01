@@ -9,6 +9,7 @@ import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { enviarAvaliacao, servidorConfigurado } from "@/lib/servidor";
 import { EstrelasEscolha } from "./Estrelas";
+import { CheckAnimado } from "@/components/efeitos/Vidro";
 
 export function AvaliacaoPosCompra({
   pedido,
@@ -29,7 +30,10 @@ export function AvaliacaoPosCompra({
   if (enviada) {
     return (
       <div className="mt-8 w-full max-w-md rounded-[8px] bg-[#E7F5EE] p-6 text-center">
-        <p className="text-[0.9375rem] font-medium text-sucesso">{copy.avaliacoes.obrigado}</p>
+        <p role="status" className="inline-flex items-center gap-2 text-[0.9375rem] font-medium text-sucesso">
+          <CheckAnimado />
+          {copy.avaliacoes.obrigado}
+        </p>
         <Link href="/avaliacoes" className="mt-2 inline-block text-[0.875rem] font-medium text-violeta underline">
           {copy.avaliacoes.titulo} →
         </Link>

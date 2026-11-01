@@ -7,6 +7,7 @@ import { useCarrinho } from "@/lib/carrinho/contexto";
 import { PEDIDO_MINIMO_CENTAVOS, formatarPreco, precoPix } from "@/lib/preco";
 import { ImagemProduto } from "@/components/produto/ImagemProduto";
 import { BarraFreteGratis } from "./BarraFreteGratis";
+import { CheckAnimado } from "@/components/efeitos/Vidro";
 
 /** Drawer lateral de carrinho — docs/03 §5, ticket 4.1. */
 export function DrawerCarrinho() {
@@ -174,7 +175,8 @@ export function DrawerCarrinho() {
             <div className="border-t border-linha px-4 py-4">
               {carrinho.cupomAplicado ? (
                 <div className="mb-3 flex items-center justify-between rounded-[4px] bg-violeta-claro px-3 py-2">
-                  <span className="text-[0.8125rem] font-medium text-roxo-escuro">
+                  <span className="inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-roxo-escuro">
+                    <CheckAnimado />
                     {copy.carrinho.cupomAplicado(carrinho.cupomAplicado)}
                   </span>
                   <button

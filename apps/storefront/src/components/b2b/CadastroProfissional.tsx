@@ -9,6 +9,7 @@ import { useState } from "react";
 import { copy } from "@/lib/copy";
 import { useB2B } from "@/lib/b2b/contexto";
 import { cadastrarB2B } from "@/lib/servidor";
+import { CheckAnimado } from "@/components/efeitos/Vidro";
 
 /** validação oficial de CNPJ (mesma regra do servidor) */
 function cnpjValido(cnpj: string): boolean {
@@ -73,7 +74,8 @@ export function CadastroProfissional() {
           {copy.b2b.statusTitulo}
         </h2>
         {enviado && (
-          <p role="status" className="mt-2 text-[0.9375rem] font-medium text-sucesso">
+          <p role="status" className="mt-2 flex items-center gap-2 text-[0.9375rem] font-medium text-sucesso">
+            <CheckAnimado />
             {status === "aprovado" ? copy.b2b.enviadoLiberado : copy.b2b.enviadoOk}
           </p>
         )}

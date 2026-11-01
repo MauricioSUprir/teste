@@ -20,6 +20,7 @@ import {
   percentualDesconto,
   precoPix,
 } from "@/lib/preco";
+import { CheckAnimado } from "@/components/efeitos/Vidro";
 
 export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
   const carrinho = useCarrinho();
@@ -201,7 +202,14 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
                 feedback ? "bg-sucesso" : "bg-roxo hover:bg-roxo-escuro"
               }`}
             >
-              {feedback ? `✓ ${copy.pdp.adicionado}` : copy.pdp.adicionarSacola}
+              {feedback ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <CheckAnimado />
+                  {copy.pdp.adicionado}
+                </span>
+              ) : (
+                copy.pdp.adicionarSacola
+              )}
             </button>
           </div>
 
@@ -261,7 +269,8 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
         /* estado esgotado com avise-me — ticket 3.8 */
         <div className="mt-5 rounded-[8px] bg-superficie p-4">
           {aviseMeOk ? (
-            <p role="status" className="text-[0.9375rem] font-medium text-sucesso">
+            <p role="status" className="flex items-center gap-2 text-[0.9375rem] font-medium text-sucesso">
+              <CheckAnimado />
               {copy.pdp.aviseMeOk}
             </p>
           ) : (

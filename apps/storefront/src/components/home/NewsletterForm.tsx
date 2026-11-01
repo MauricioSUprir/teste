@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { copy } from "@/lib/copy";
+import { CheckAnimado } from "@/components/efeitos/Vidro";
 
 export function NewsletterForm() {
   const [enviado, setEnviado] = useState(false);
 
   if (enviado) {
     return (
-      <p role="status" className="mt-5 text-[0.9375rem] font-medium text-sucesso">
+      <p role="status" className="mt-5 inline-flex items-center gap-2 text-[0.9375rem] font-medium text-sucesso">
+        <CheckAnimado />
         {copy.home.newsletterOk}
       </p>
     );
