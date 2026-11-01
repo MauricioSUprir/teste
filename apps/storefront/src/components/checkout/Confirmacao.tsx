@@ -99,18 +99,18 @@ export function Confirmacao() {
 
   return (
     <div className="container-bn flex flex-col items-center py-16 text-center">
-      {/* topo no visual "vidro": escudo lilás esperando o Pix, verde quando confirma */}
+      {/* topo no visual "vidro" claro: escudo da cor da loja esperando o Pix, verde quando confirma */}
       <PalcoVidro className="w-full max-w-2xl rounded-[16px] p-3 sm:p-5">
         <CartaoVidro className="px-5 pb-7 pt-8 sm:px-8">
           <EscudoVidro key={aguardando ? "aguardando" : "ok"} estado={aguardando ? "aguardando" : "ok"} />
-          <h1 className="font-titulo mt-5 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold text-white">
+          <h1 className="font-titulo mt-5 text-[clamp(1.625rem,3.5vw,2.25rem)] font-semibold text-tinta">
             {aprovado
               ? copy.confirmacao.aprovadoTitulo
               : aguardando
                 ? copy.confirmacao.tituloAguardando
                 : copy.confirmacao.titulo}
           </h1>
-          <p className="mx-auto mt-2 max-w-[52ch] text-[0.9375rem] text-[#E4E1EC]">
+          <p className="mx-auto mt-2 max-w-[52ch] text-[0.9375rem] text-grafite">
             {aguardando
               ? copy.confirmacao.subtituloAguardando(pedido?.numero ?? "—")
               : copy.confirmacao.subtitulo(pedido?.numero ?? "—")}
@@ -119,14 +119,14 @@ export function Confirmacao() {
           {pedido && (
             <dl className="mt-6 flex flex-wrap justify-center gap-x-8 gap-y-2 text-[0.9375rem]">
               <div>
-                <dt className="text-[0.75rem] uppercase tracking-wide text-[#CFCADB]">Total</dt>
-                <dd className="num font-semibold text-white">{formatarPreco(pedido.totalCentavos)}</dd>
+                <dt className="text-[0.75rem] uppercase tracking-wide text-cinza">Total</dt>
+                <dd className="num font-semibold text-tinta">{formatarPreco(pedido.totalCentavos)}</dd>
               </div>
               <div>
-                <dt className="text-[0.75rem] uppercase tracking-wide text-[#CFCADB]">
+                <dt className="text-[0.75rem] uppercase tracking-wide text-cinza">
                   {copy.confirmacao.prazo}
                 </dt>
-                <dd className="num font-semibold text-white">até {pedido.dataPrevista}</dd>
+                <dd className="num font-semibold text-tinta">até {pedido.dataPrevista}</dd>
               </div>
             </dl>
           )}

@@ -107,7 +107,6 @@ export function SecaoAfiliadoConta() {
     const r = await verificarCodigoNoServidor(u.email, codigo.trim());
     setEnviando(false);
     if (!r.ok) return setErro(r.erro ?? "Código incorreto. Confira os 6 dígitos.");
-    celebrar("codigo");
     await enviarSolicitacao();
   }
 
@@ -124,6 +123,7 @@ export function SecaoAfiliadoConta() {
     });
     setEnviando(false);
     if (!r.ok) return setErro(r.erro ?? copy.afiliado.falha);
+    celebrar("cadastro");
     setEtapa("resumo");
     setStatus("pendente");
   }

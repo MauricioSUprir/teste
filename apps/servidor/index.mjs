@@ -21,6 +21,7 @@ import cors from "cors";
 import { createTransport } from "nodemailer";
 import crypto, { randomInt } from "node:crypto";
 import { montarContasShopping } from "./contas-shopping.mjs";
+import { emailDoCodigo } from "./email-codigo.mjs";
 
 // Render/Heroku definem PORT; localmente usamos PORTA (padrão 4000)
 const PORTA = Number(process.env.PORTA ?? process.env.PORT ?? 4000);
@@ -251,34 +252,14 @@ if (transporte) {
 if (brevoAtivo) console.log("[email] modo Brevo ativo — envio via HTTPS");
 
 async function enviarEmailCodigo(email, codigo, marca = "beautynow") {
-  const shopping = marca === "shopping";
-  const nome = shopping ? "Beauty Shopping" : "BeautyNow";
-  const texto = `Seu código de verificação ${nome} é: ${codigo}\n\nEle vale por 10 minutos. Se você não tentou entrar, ignore este e-mail.`;
   if (!emailRealLigado()) {
     // modo console (teste): o código sai no log do servidor
     console.log(`[email-teste] para=${email} codigo=${codigo}`);
     return;
   }
-  const topo = shopping
-    ? `<span style="color:#7A2D9C;font-size:14px;font-weight:bold;letter-spacing:4px">BEAUTY SHOPPING</span>`
-    : `<span style="color:#4A2882">BN</span>
-          <span style="color:#6847C8;font-size:12px;letter-spacing:4px">BEAUTY NOW</span>`;
-  await enviarEmail({
-    para: email,
-    assunto: `Seu código ${nome}: ${codigo}`,
-    texto,
-    remetente: nome,
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px">
-        <p style="font-size:22px;font-weight:bold;margin:0">
-          ${topo}
-        </p>
-        <h2 style="color:#14161A">Confirme que é você</h2>
-        <p style="color:#4A4F57">Use o código abaixo para concluir seu login. Ele vale por 10 minutos.</p>
-        <p style="font-size:32px;font-weight:bold;letter-spacing:8px;color:#4A2882;background:#F2EDFA;padding:16px;text-align:center;border-radius:10px">${codigo}</p>
-        <p style="color:#8A9099;font-size:12px">Se você não tentou entrar, ignore este e-mail.</p>
-      </div>`,
-  });
+  // visual "vidro claro" com a logo nova de cada loja (email-codigo.mjs)
+  const { assunto, texto, html, remetente } = emailDoCodigo(codigo, marca);
+  await enviarEmail({ para: email, assunto, texto, html, remetente });
 }
 
 const formatarReais = (centavos) =>
@@ -989,7 +970,9 @@ function conferirCodigo(email, codigo) {
 
 aplicacao.post("/codigo", async (req, res) => {
   const email = String(req.body?.email ?? "").trim().toLowerCase();
-  const r = await pedirCodigo(email);
+  // a loja que pediu escolhe a logo do e-mail (só BeautyNow ou Be2Beauty)
+  const loja = req.body?.loja === "be2beauty" ? "be2beauty" : "beautynow";
+  const r = await pedirCodigo(email, loja);
   if (r.erro) return res.status(r.status).json({ erro: r.erro });
   res.json({ ok: true });
 });

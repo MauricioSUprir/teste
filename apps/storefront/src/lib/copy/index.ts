@@ -379,6 +379,20 @@ export const copy = {
         nota: "Acesso liberado com segurança.",
         botao: "Verificado e seguro",
       },
+      cadastro: {
+        titulo: "Cadastro",
+        destaque: "enviado",
+        texto: "Recebemos seus dados. Vamos analisar e avisar por e-mail.",
+        nota: "Você acompanha a situação por aqui.",
+        botao: "Tudo certo",
+      },
+      liberado: {
+        titulo: "Preços",
+        destaque: "liberados",
+        texto: "CNPJ conferido na Receita Federal. Os preços profissionais já aparecem para você.",
+        nota: "Liberado neste navegador.",
+        botao: "Ver os preços",
+      },
       pagamento: {
         titulo: "Pagamento",
         destaque: "aprovado",

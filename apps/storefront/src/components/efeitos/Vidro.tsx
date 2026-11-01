@@ -3,7 +3,7 @@
 /**
  * Efeito "vidro" — os momentos de "deu certo" do site.
  *
- * Cartão escuro translúcido sobre uma luz que flui nas cores da loja (com um
+ * Cartão de vidro claro sobre fundo branco, com uma luz suave nas cores da loja (com um
  * toque dourado), escudo que acende em verde e check que se desenha.
  *
  * - <Celebracao />: montada uma vez no layout. Quando alguém chama
@@ -166,10 +166,10 @@ export function Celebracao() {
       >
         <Cantos />
         <EscudoVidro estado="ok" />
-        <h2 id="celebracao-titulo" className="font-titulo mt-5 text-[1.5rem] font-semibold leading-tight text-white">
+        <h2 id="celebracao-titulo" className="font-titulo mt-5 text-[1.5rem] font-semibold leading-tight text-tinta">
           {t.titulo} <span className="vidro-gradiente">{t.destaque}</span>
         </h2>
-        <p id="celebracao-texto" className="mx-auto mt-2 max-w-[30ch] text-[0.9375rem] text-[#E4E1EC]">
+        <p id="celebracao-texto" className="mx-auto mt-2 max-w-[30ch] text-[0.9375rem] text-grafite">
           {t.texto}
         </p>
         <span aria-hidden="true" className="vidro-caixa mx-auto mt-5">
@@ -177,7 +177,7 @@ export function Celebracao() {
             <path d="m11 20.5 6 6 12-13" pathLength={1} className="vidro-traco vidro-traco-tarde" />
           </svg>
         </span>
-        <p className="mt-4 text-[0.8125rem] text-[#CFCADB]">{t.nota}</p>
+        <p className="mt-4 text-[0.8125rem] text-grafite">{t.nota}</p>
         <button ref={botao} type="button" onClick={fechar} className="vidro-botao mt-5">
           <IconeEscudo />
           {t.botao}

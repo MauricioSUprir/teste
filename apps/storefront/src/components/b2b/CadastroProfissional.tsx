@@ -9,7 +9,7 @@ import { useState } from "react";
 import { copy } from "@/lib/copy";
 import { useB2B } from "@/lib/b2b/contexto";
 import { cadastrarB2B } from "@/lib/servidor";
-import { CheckAnimado } from "@/components/efeitos/Vidro";
+import { CheckAnimado, celebrar } from "@/components/efeitos/Vidro";
 
 /** validação oficial de CNPJ (mesma regra do servidor) */
 function cnpjValido(cnpj: string): boolean {
@@ -64,6 +64,7 @@ export function CadastroProfissional() {
     }
     registrar(digitos, resultado.status ?? "pendente");
     setEnviado(true);
+    celebrar(resultado.status === "aprovado" ? "liberado" : "cadastro");
   }
 
   // já tem CNPJ neste navegador → painel de situação

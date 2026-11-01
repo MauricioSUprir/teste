@@ -96,10 +96,10 @@ export function CodigoVidro({ idCampo, email, codigoDemo, aguardando, confirmar,
       <CartaoVidro className="mx-auto max-w-[440px] px-5 pb-6 pt-7 sm:px-7">
         <form onSubmit={enviar} className="text-center">
           <EscudoVidro estado="aguardando" />
-          <h2 className="font-titulo mt-4 text-[1.375rem] font-semibold leading-tight text-white">
+          <h2 className="font-titulo mt-4 text-[1.375rem] font-semibold leading-tight text-tinta">
             {copy.conta.codigoTitulo}
           </h2>
-          <p className="mx-auto mt-2 max-w-[34ch] text-[0.9375rem] text-[#E4E1EC]">
+          <p className="mx-auto mt-2 max-w-[34ch] text-[0.9375rem] text-grafite">
             {copy.conta.codigoTexto(email)}
           </p>
 
@@ -120,11 +120,11 @@ export function CodigoVidro({ idCampo, email, codigoDemo, aguardando, confirmar,
           {codigoDemo && (
             <div className="vidro-aviso mt-4">
               <p>{copy.conta.codigoDemoAviso}</p>
-              <p className="num mt-1 text-[1.25rem] font-bold tracking-[0.3em] text-white">{codigoDemo}</p>
+              <p className="num mt-1 text-[1.25rem] font-bold tracking-[0.3em] text-roxo">{codigoDemo}</p>
             </div>
           )}
 
-          <label htmlFor={idCampo} className="mt-5 block text-[0.8125rem] font-medium text-[#E4E1EC]">
+          <label htmlFor={idCampo} className="mt-5 block text-[0.8125rem] font-medium text-grafite">
             {copy.conta.codigoRotulo}
           </label>
           <div className="relative mx-auto mt-2 max-w-[340px]">
@@ -170,10 +170,10 @@ export function CodigoVidro({ idCampo, email, codigoDemo, aguardando, confirmar,
             {enviando ? copy.conta.botaoConfirmando : copy.conta.codigoBotao}
           </button>
 
-          <p className="mt-4 text-[0.875rem] text-[#CFCADB]">
+          <p className="mt-4 text-[0.875rem] text-grafite">
             {copy.conta.codigoNaoRecebeu}{" "}
             {esperaReenvio > 0 ? (
-              <span className="num font-semibold text-white" aria-live="off">
+              <span className="num font-semibold text-tinta" aria-live="off">
                 {copy.conta.codigoReenviarEm(`00:${doisDigitos(esperaReenvio)}`)}
               </span>
             ) : (

@@ -291,7 +291,8 @@ export async function definirPrecoManual(
 
 /** Pede ao servidor que gere e envie o código de verificação por e-mail. */
 export function solicitarCodigoPorEmail(email: string) {
-  return chamar("/codigo", { email });
+  // a loja vai junto para o e-mail sair com a logo dela (BeautyNow ou Be2Beauty)
+  return chamar("/codigo", { email, loja: LOJA_ID });
 }
 
 /** Confirma no servidor o código digitado. */

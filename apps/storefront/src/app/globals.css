@@ -370,9 +370,9 @@ body {
 /* ---------------------------------------------------------------------------
  * Efeito vidro — verificação e momentos de sucesso
  * (components/efeitos/Vidro.tsx e conta/CodigoVidro.tsx)
- * Cartão escuro translúcido sobre uma luz que flui nas cores da loja, com um
- * toque dourado; o verde fica só para "deu certo". Só transform e opacity
- * animam (leve no celular). Textos claros sobre fundo escuro: contraste ≥ 4,5.
+ * Vidro CLARO: fundo branco como o resto do site, com uma luz bem suave nas
+ * cores da loja e um toque dourado; o verde fica só para "deu certo".
+ * Só transform e opacity animam (leve no celular). Texto escuro: contraste ≥ 4,5.
  * Na camada "components": as classes utilitárias (fixed, -m-6…) vencem.
  * ------------------------------------------------------------------------- */
 @layer components {
@@ -380,8 +380,8 @@ body {
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    background: #0c0a12;
-    color: #fff;
+    background: #fff;
+    color: var(--color-tinta);
   }
   .vidro-palco::before,
   .vidro-palco::after {
@@ -390,19 +390,22 @@ body {
     inset: -35%;
     z-index: -1;
     pointer-events: none;
-    filter: blur(36px);
+    filter: blur(32px);
     will-change: transform;
   }
+  /* o brilho fica só atrás do cartão (manchas pequenas perto do centro) e
+     some antes da borda: a caixa não ganha contorno colorido, continua
+     branca como a página */
   .vidro-palco::before {
     background:
-      radial-gradient(38% 30% at 28% 32%, color-mix(in srgb, var(--color-roxo) 85%, transparent), transparent 70%),
-      radial-gradient(32% 26% at 72% 70%, color-mix(in srgb, var(--color-violeta) 70%, transparent), transparent 70%);
+      radial-gradient(16% 14% at 40% 42%, color-mix(in srgb, var(--color-roxo) 16%, transparent), transparent 70%),
+      radial-gradient(14% 12% at 60% 60%, color-mix(in srgb, var(--color-violeta) 14%, transparent), transparent 70%);
     animation: vidro-fluir 16s ease-in-out infinite alternate;
   }
   .vidro-palco::after {
     background:
-      radial-gradient(24% 18% at 68% 28%, rgba(242, 196, 92, 0.5), transparent 70%),
-      radial-gradient(20% 16% at 30% 80%, rgba(242, 196, 92, 0.32), transparent 70%);
+      radial-gradient(12% 10% at 60% 38%, rgba(242, 196, 92, 0.22), transparent 70%),
+      radial-gradient(10% 9% at 41% 63%, rgba(242, 196, 92, 0.14), transparent 70%);
     animation: vidro-fluir 22s ease-in-out infinite alternate-reverse;
   }
   @keyframes vidro-fluir {
@@ -411,18 +414,16 @@ body {
     100% { transform: translate3d(-3%, 6%, 0) rotate(-8deg) scale(1.02); }
   }
 
-  /* por cima da página (celebração) */
+  /* por cima da página (celebração): véu branco fosco */
   .vidro-overlay {
-    background: rgba(12, 10, 18, 0.84);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     animation: vidro-aparecer 0.25s ease-out both;
   }
-  /* por cima da página o vidro fica quase opaco: o blur não "vê" através da camada de fundo */
   .vidro-overlay .vidro-cartao {
     background:
-      linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03) 45%),
-      rgba(16, 13, 26, 0.9);
+      linear-gradient(160deg, rgba(255, 255, 255, 1), rgba(250, 249, 253, 0.97));
   }
   .vidro-sair {
     animation: vidro-sumir 0.22s ease-in both;
@@ -433,15 +434,12 @@ body {
   .vidro-cartao {
     position: relative;
     border-radius: 20px;
-    background:
-      linear-gradient(160deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03) 45%),
-      rgba(14, 12, 22, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.78));
+    border: 1px solid var(--color-linha);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 30px 70px -25px rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(18px) saturate(150%);
-    -webkit-backdrop-filter: blur(18px) saturate(150%);
+      inset 0 1px 0 #fff,
+      0 24px 60px -28px color-mix(in srgb, var(--color-roxo-escuro) 35%, transparent),
+      0 2px 6px rgba(33, 33, 33, 0.04);
   }
   .vidro-entrar {
     animation: vidro-entrar 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
@@ -456,7 +454,7 @@ body {
     position: absolute;
     width: 16px;
     height: 16px;
-    border: 0 solid rgba(134, 239, 172, 0.65);
+    border: 0 solid rgba(23, 121, 76, 0.45);
     pointer-events: none;
   }
   .vidro-canto-1 { top: 10px; left: 10px; border-width: 2px 0 0 2px; border-top-left-radius: 7px; }
@@ -473,10 +471,10 @@ body {
     width: 76px;
     height: 76px;
     border-radius: 22px;
-    color: #c9b8ff;
-    background: linear-gradient(160deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.04));
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 36px color-mix(in srgb, var(--color-roxo) 45%, transparent);
+    color: var(--color-roxo);
+    background: linear-gradient(160deg, #fff, var(--color-roxo-claro));
+    border: 1px solid color-mix(in srgb, var(--color-roxo) 22%, transparent);
+    box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--color-roxo) 45%, transparent);
   }
   .vidro-escudo::after {
     content: "";
@@ -488,16 +486,17 @@ body {
     animation: vidro-onda 2.4s ease-out infinite;
   }
   .vidro-escudo-ok {
-    color: #4ade80;
-    border-color: rgba(74, 222, 128, 0.5);
-    box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.08), 0 0 44px rgba(74, 222, 128, 0.38);
+    color: #17794c;
+    background: linear-gradient(160deg, #fff, #e7f5ee);
+    border-color: rgba(23, 121, 76, 0.3);
+    box-shadow: 0 0 0 6px rgba(23, 121, 76, 0.06), 0 12px 32px -10px rgba(34, 197, 94, 0.45);
     animation: vidro-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   }
   .vidro-escudo-forma {
     stroke: currentColor;
     stroke-width: 2.4;
     stroke-linejoin: round;
-    fill: color-mix(in srgb, currentColor 14%, transparent);
+    fill: color-mix(in srgb, currentColor 10%, transparent);
   }
   .vidro-cadeado {
     stroke: currentColor;
@@ -517,7 +516,7 @@ body {
   .vidro-traco-tarde { animation-delay: 0.7s; }
   @keyframes vidro-desenhar { to { stroke-dashoffset: 0; } }
   @keyframes vidro-onda {
-    0% { transform: scale(1); opacity: 0.5; }
+    0% { transform: scale(1); opacity: 0.45; }
     100% { transform: scale(1.45); opacity: 0; }
   }
   @keyframes vidro-pop {
@@ -533,17 +532,17 @@ body {
     width: 64px;
     height: 64px;
     border-radius: 18px;
-    color: #4ade80;
-    background: rgba(74, 222, 128, 0.1);
-    border: 1.5px solid rgba(74, 222, 128, 0.5);
-    box-shadow: inset 0 0 20px rgba(74, 222, 128, 0.15);
+    color: #17794c;
+    background: #e7f5ee;
+    border: 1.5px solid rgba(23, 121, 76, 0.35);
+    box-shadow: 0 8px 22px -12px rgba(23, 121, 76, 0.55);
     animation: vidro-pop 0.45s 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   }
 
-  /* palavra em verde com brilho correndo */
+  /* palavra em verde com brilho correndo (verde escuro: lê bem no branco) */
   .vidro-gradiente {
-    color: #4ade80;
-    background: linear-gradient(90deg, #4ade80, #d9f99d 45%, #4ade80 90%);
+    color: #17794c;
+    background: linear-gradient(90deg, #166534, #22a35a 45%, #166534 90%);
     background-size: 200% 100%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -569,17 +568,17 @@ body {
   }
   .vidro-botao {
     background: linear-gradient(180deg, #15803d, #166534);
-    box-shadow: 0 12px 30px -12px rgba(34, 197, 94, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    box-shadow: 0 12px 26px -14px rgba(22, 101, 52, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   }
   .vidro-botao-marca {
     background: var(--color-roxo);
-    box-shadow: 0 12px 30px -12px color-mix(in srgb, var(--color-roxo) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 26px -14px color-mix(in srgb, var(--color-roxo) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   .vidro-botao:hover,
-  .vidro-botao-marca:hover { filter: brightness(1.12); }
-  .vidro-botao-marca:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+  .vidro-botao-marca:hover { filter: brightness(1.08); }
+  .vidro-botao-marca:disabled { background: var(--color-cinza); box-shadow: none; opacity: 0.55; cursor: not-allowed; filter: none; }
   .vidro-link {
-    color: #fff;
+    color: var(--color-tinta);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -588,23 +587,23 @@ body {
   /* avisos dentro do vidro */
   .vidro-aviso {
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--color-linha);
+    background: rgba(245, 244, 248, 0.85);
     padding: 10px 12px;
     font-size: 0.8125rem;
-    color: #ece9f3;
+    color: var(--color-grafite);
     text-align: left;
   }
   .vidro-aviso-ok {
-    border-color: rgba(74, 222, 128, 0.4);
-    background: rgba(74, 222, 128, 0.1);
-    color: #bbf7d0;
+    border-color: rgba(23, 121, 76, 0.3);
+    background: #e7f5ee;
+    color: var(--color-sucesso);
     font-weight: 500;
   }
   .vidro-aviso-erro {
-    border-color: rgba(252, 165, 165, 0.45);
-    background: rgba(248, 113, 113, 0.12);
-    color: #fecaca;
+    border-color: rgba(198, 39, 62, 0.3);
+    background: #fdecef;
+    color: var(--color-erro);
     font-weight: 500;
   }
 
@@ -632,29 +631,29 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid #d9d5e2;
+    background: #fff;
     font-size: 1.375rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--color-tinta);
     transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
   }
   .vidro-casa-cheia {
-    border-color: rgba(255, 255, 255, 0.36);
-    background: rgba(255, 255, 255, 0.11);
+    border-color: color-mix(in srgb, var(--color-roxo) 45%, transparent);
+    background: var(--color-roxo-claro);
     animation: vidro-pop 0.18s ease-out both;
   }
   .vidro-casa-ativa {
-    border-color: #c9b8ff;
-    box-shadow: 0 0 0 3px rgba(201, 184, 255, 0.4);
+    border-color: var(--color-roxo);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-roxo) 22%, transparent);
   }
-  .vidro-casa-erro { border-color: rgba(252, 165, 165, 0.7); }
+  .vidro-casa-erro { border-color: var(--color-erro); }
   .vidro-cursor {
     display: block;
     width: 2px;
     height: 24px;
     border-radius: 2px;
-    background: #c9b8ff;
+    background: var(--color-roxo);
     animation: vidro-piscar 1s steps(1) infinite;
   }
   @keyframes vidro-piscar { 50% { opacity: 0; } }
@@ -685,8 +684,39 @@ body {
     animation: vidro-desenhar 0.35s 0.25s ease-out both;
   }
 
+  /* cards aparecem suaves ao entrar na tela (só onde o navegador anima pela
+     rolagem; nos outros, ficam parados e visíveis como sempre) */
+  @supports (animation-timeline: view()) {
+    .revelar {
+      animation: revelar linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+  /* só movimento, sem transparência: o texto do card mantém o contraste
+     enquanto entra (a acessibilidade mede a cor no meio da animação) */
+  @keyframes revelar {
+    from { transform: translateY(22px) scale(0.97); }
+    to { transform: none; }
+  }
+
+  /* coração que "pula" ao favoritar */
+  .coracao-pop {
+    transform-origin: center;
+    animation: coracao-pop 0.42s cubic-bezier(0.2, 1.6, 0.4, 1);
+  }
+  @keyframes coracao-pop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+  }
+
   /* menos movimento: tudo já aparece no lugar, sem espera */
   @media (prefers-reduced-motion: reduce) {
+    .revelar,
+    .coracao-pop {
+      animation: none !important;
+    }
     .vidro-palco::before,
     .vidro-palco::after,
     .vidro-escudo::after,
@@ -704,20 +734,21 @@ body {
   }
 }
 
-/* foco no vidro: fora da camada para vencer o :focus-visible geral (mesmo raio
-   do botão e contorno claro, visível sobre o fundo escuro) */
+/* foco no vidro: fora da camada para vencer o :focus-visible geral (mantém o
+   raio do botão; contorno na cor de apoio da loja, como no resto do site) */
 .vidro-botao:focus-visible,
-.vidro-botao-marca:focus-visible,
-.vidro-link:focus-visible {
-  outline: 3px solid #d9f99d;
+.vidro-botao-marca:focus-visible {
+  outline: 3px solid var(--color-violeta);
   outline-offset: 3px;
   border-radius: 12px;
 }
 .vidro-link:focus-visible {
+  outline: 2px solid var(--color-violeta);
+  outline-offset: 2px;
   border-radius: 4px;
 }
 .vidro-campo-codigo:focus-visible {
-  outline: 2px solid #c9b8ff;
+  outline: 2px solid var(--color-violeta);
   outline-offset: 5px;
   border-radius: 14px;
 }

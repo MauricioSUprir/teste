@@ -68,7 +68,7 @@ export function CardProduto({
 
   return (
     <article
-      className={`group relative flex flex-col rounded-[8px] border border-roxo/25 bg-white transition-colors hover:border-roxo/60 ${deitado ? "p-3" : "p-4"}`}
+      className={`revelar group relative flex flex-col rounded-[8px] border border-roxo/25 bg-white transition-colors hover:border-roxo/60 ${deitado ? "p-3" : "p-4"}`}
     >
       <div className="absolute right-3 top-3 z-10">
         <BotaoFavorito slug={produto.slug} />

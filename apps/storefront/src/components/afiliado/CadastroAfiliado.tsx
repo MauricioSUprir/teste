@@ -5,6 +5,7 @@ import { useState } from "react";
 import { copy } from "@/lib/copy";
 import { useAfiliado } from "@/lib/afiliado/contexto";
 import { USUARIO_VENDEDOR_RE, cadastrarAfiliado } from "@/lib/servidor";
+import { celebrar } from "@/components/efeitos/Vidro";
 
 /** validação oficial de CNPJ (mesma regra do servidor) — só roda se preenchido */
 function cnpjValido(cnpj: string): boolean {
@@ -76,6 +77,7 @@ export function CadastroAfiliado() {
       setErro(r.erro ?? copy.afiliado.falha);
       return;
     }
+    celebrar("cadastro");
     void afiliado.verificar();
   }
 
