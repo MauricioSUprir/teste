@@ -5,8 +5,14 @@
  * anúncios (ad_storage, ad_user_data, ad_personalization).
  *
  * Os IDs entram por variável de ambiente no build de cada loja:
- *   NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX  (o GA4 e outras tags ficam dentro do GTM)
- *   NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX  (GA4 direto — use só se não houver GTM)
+ *   NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX  GA4 direto: páginas e etapas da compra já
+ *                                   chegam ao Analytics, sem configurar nada
+ *   NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX  Tag Manager, para o marketing pôr outras
+ *                                   tags (Google Ads, Meta, TikTok…) sem mexer
+ *                                   no site. Recebe as etapas da compra no
+ *                                   dataLayer ({ event, ecommerce }).
+ * Pode usar um, outro ou os dois. Com os dois, a tag do GA4 NÃO deve ser
+ * criada dentro do Tag Manager (o site já manda direto; contaria em dobro).
  * Sem nenhum dos dois, nada é carregado.
  *
  * As etapas da compra vão no formato de e-commerce do GA4 (view_item,
@@ -59,13 +65,14 @@ export function aplicarConsentimentoGoogle(c: Consentimento | null) {
     w.gtag = gtag;
     gtag("consent", "default", { ...estados(null), wait_for_update: 500 });
     gtag("consent", "update", estados(c));
+    if (GA_ID) {
+      script(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_ID)}`);
+      gtag("js", new Date());
+      gtag("config", GA_ID);
+    }
     if (GTM_ID) {
       w.dataLayer!.push({ "gtm.start": Date.now(), event: "gtm.js" });
       script(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(GTM_ID)}`);
-    } else {
-      script(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA_ID)}`);
-      gtag("js", new Date());
-      gtag("config", GA_ID, { anonymize_ip: true });
     }
     return;
   }
@@ -120,10 +127,9 @@ export function enviarAoGoogle(evento: string, props: Record<string, unknown>, c
   if (!ga) return;
   const [nome, params] = ga;
   const w = window as JanelaGoogle;
+  if (GA_ID) gtag("event", nome, params);
   if (GTM_ID) {
     w.dataLayer!.push({ ecommerce: null });
     w.dataLayer!.push({ event: nome, ecommerce: params });
-  } else {
-    gtag("event", nome, params);
   }
 }
