@@ -138,6 +138,12 @@ export const textos = {
     emBreve: "Em breve",
     aviso: "O pagamento por Pix e cartão aqui dentro do shopping chega na próxima etapa. Nesta prévia nenhum valor é cobrado.",
     voltar: "Continuar comprando",
+    /** lojas âncora: o pagamento acontece no site da loja, com a sacola já pronta */
+    noSite: "No site",
+    pagarNoSite: "Pagar no site",
+    avisoSite: (loja: string) =>
+      `O pagamento é no site da ${loja}, que abre em outra aba com a sua sacola pronta. Lá você escolhe o frete, vê o prazo e paga com segurança pelo Mercado Pago.`,
+    foiParaSite: (loja: string) => `Sua sacola foi para o site da ${loja}. É só concluir o pagamento por lá.`,
   },
   aluguel: {
     disponivel: "Disponível",

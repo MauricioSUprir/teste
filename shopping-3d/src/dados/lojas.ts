@@ -125,6 +125,16 @@ export interface Ancora {
   };
 }
 
+/**
+ * Onde se paga a sacola de cada loja âncora: o checkout do próprio site
+ * (Pix e cartão pelo Mercado Pago). O caixa manda só produto e quantidade
+ * para /levar; o site confere preço e estoque no catálogo dele.
+ */
+export const SITE_DAS_ANCORAS: Record<string, string> = {
+  beautynow: "https://www.beautynowstore.com.br",
+  be2beauty: "https://www.be2beauty.com.br",
+};
+
 export const ANCORAS: Ancora[] = [
   {
     inquilino: {

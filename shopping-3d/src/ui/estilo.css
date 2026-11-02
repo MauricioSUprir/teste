@@ -445,6 +445,10 @@ input:focus-visible,
 .principal:hover {
   filter: brightness(1.12);
 }
+a.principal,
+a.secundario {
+  text-decoration: none;
+}
 .principal.feito {
   background: #2f7d4f;
 }

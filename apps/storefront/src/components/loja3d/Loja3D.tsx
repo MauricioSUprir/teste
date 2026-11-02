@@ -24,7 +24,7 @@ import { copy } from "@/lib/copy";
 import { LOJA } from "@/lib/loja";
 import { NEGOCIO, linkWhatsapp } from "@/lib/negocio";
 import { comBase } from "@/lib/caminho";
-import { formatarPreco, percentualDesconto, precoPix } from "@/lib/preco";
+import { PEDIDO_MINIMO_CENTAVOS, formatarPreco, percentualDesconto, precoPix } from "@/lib/preco";
 import { fichaDoProduto } from "@/lib/catalogo/ficha";
 import { obterMarca } from "@/lib/catalogo/consultas";
 import { useToque } from "@/lib/dispositivo";
@@ -501,6 +501,24 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
                 )}
               </svg>
             </button>
+            {/* atalho para o caixa: a Larissa fecha a compra (também pelo teclado, sem achar ela na cena) */}
+            <button
+              type="button"
+              onClick={() => cena.current?.irAoCaixa()}
+              aria-label={t.larissa.irAoCaixaRotulo(carrinho.totalItens)}
+              className={`${pilula} flex items-center gap-1.5`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 7h12l-1 13H7L6 7Z" />
+                <path d="M9 7a3 3 0 0 1 6 0" />
+              </svg>
+              {t.larissa.irAoCaixa}
+              {carrinho.totalItens > 0 && (
+                <span aria-hidden="true" className="num rounded-full bg-roxo px-1.5 text-[0.6875rem] leading-[1.1rem] text-white">
+                  {carrinho.totalItens}
+                </span>
+              )}
+            </button>
           </div>
           {busca !== null && busca.trim() !== "" && (
             <ul
@@ -712,13 +730,77 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
               </svg>
               <p className="text-[1rem] font-bold text-tinta">{t.larissa.titulo}</p>
             </div>
-            <p className="mt-3 text-[0.875rem] leading-snug text-grafite">{t.larissa.texto}</p>
+            <p className="mt-3 text-[0.875rem] leading-snug text-grafite">
+              {carrinho.itens.length ? t.larissa.caixaTexto : t.larissa.texto}
+            </p>
+
+            {/* o caixa: resumo da cesta e o pagamento no checkout do site (Pix ou cartão) */}
+            {carrinho.itens.length > 0 ? (
+              <div className="mt-3 rounded-[8px] border border-linha p-3">
+                <p className="text-[0.75rem] font-semibold uppercase tracking-wide text-cinza">{t.larissa.cestaTitulo}</p>
+                {/* tela baixa (celular deitado): só os totais, para o "Pagar agora" caber sem rolar */}
+                <ul className="mt-1.5 space-y-1 text-[0.8125rem] text-grafite [@media(max-height:520px)]:hidden">
+                  {carrinho.itens.slice(0, 3).map((i) => (
+                    <li key={i.sku} className="flex justify-between gap-3">
+                      <span className="line-clamp-1">
+                        {i.quantidade}× {i.produto.titulo}
+                      </span>
+                      <span className="num shrink-0 text-tinta">{formatarPreco(i.variante.precoPor * i.quantidade)}</span>
+                    </li>
+                  ))}
+                  {carrinho.itens.length > 3 && <li className="text-cinza">{t.larissa.maisItens(carrinho.itens.length - 3)}</li>}
+                </ul>
+                <dl className="mt-2 space-y-0.5 border-t border-linha pt-2 text-[0.8125rem]">
+                  <div className="flex justify-between">
+                    <dt className="text-grafite">{t.larissa.subtotal}</dt>
+                    <dd className="num font-medium text-tinta">{formatarPreco(carrinho.subtotalCentavos)}</dd>
+                  </div>
+                  {carrinho.descontoCentavos > 0 && (
+                    <div className="flex justify-between text-roxo">
+                      <dt>{t.larissa.desconto}</dt>
+                      <dd className="num font-medium">−{formatarPreco(carrinho.descontoCentavos)}</dd>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sucesso">
+                    <dt>{t.larissa.totalPix}</dt>
+                    <dd className="num font-semibold">{formatarPreco(precoPix(carrinho.subtotalCentavos - carrinho.descontoCentavos))}</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : (
+              <p className="mt-3 rounded-[8px] bg-superficie px-3 py-2.5 text-[0.8125rem] text-grafite">{t.larissa.cestaVazia}</p>
+            )}
+
+            {carrinho.itens.length > 0 &&
+              (carrinho.subtotalCentavos < PEDIDO_MINIMO_CENTAVOS ? (
+                <p className="mt-3 rounded-[4px] bg-roxo-claro px-3 py-2 text-[0.8125rem] text-roxo-escuro">
+                  {copy.carrinho.pedidoMinimo(formatarPreco(PEDIDO_MINIMO_CENTAVOS))}
+                </p>
+              ) : (
+                <>
+                  <Link
+                    href="/checkout"
+                    className="mt-3 flex h-11 items-center justify-center rounded-[40px] bg-roxo px-4 text-[0.9375rem] font-semibold text-white hover:bg-roxo-escuro"
+                  >
+                    {t.larissa.pagar}
+                  </Link>
+                  <p className="mt-1.5 text-center text-[0.75rem] leading-snug text-cinza">{t.larissa.seguro}</p>
+                </>
+              ))}
+
+            {linkLarissa && carrinho.itens.length > 0 && (
+              <p className="mt-3 text-center text-[0.8125rem] text-grafite">{t.larissa.ouWhatsapp}</p>
+            )}
             {linkLarissa && (
               <a
                 href={linkLarissa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 flex h-11 items-center justify-center gap-2 rounded-[40px] bg-[#1f7a46] px-4 text-[0.875rem] font-semibold text-white hover:bg-[#176238]"
+                className={`flex h-11 items-center justify-center gap-2 rounded-[40px] px-4 text-[0.875rem] font-semibold ${
+                  carrinho.itens.length
+                    ? "mt-1.5 border border-[#1f7a46] text-[#1f7a46] hover:bg-[#E7F5EE]"
+                    : "mt-4 bg-[#1f7a46] text-white hover:bg-[#176238]"
+                }`}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
                   <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z" />

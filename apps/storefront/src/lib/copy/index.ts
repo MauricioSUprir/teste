@@ -369,6 +369,19 @@ export const copy = {
     aprovadoTitulo: "Pagamento aprovado!",
     aprovadoTexto: "Pagamento recebido! Seu pedido já entrou na fila de separação.",
   },
+  /** /levar: a sacola montada no Beauty Shopping chega ao checkout do site */
+  levar: {
+    titulo: "Trazendo sua sacola",
+    texto: "Seus produtos do Beauty Shopping estão chegando. Já vamos para o pagamento.",
+    indisponiveis: (n: number) =>
+      n === 1
+        ? "1 produto não está disponível no site agora e ficou de fora."
+        : `${n} produtos não estão disponíveis no site agora e ficaram de fora.`,
+    irPagar: "Ir para o pagamento",
+    nenhumTitulo: "Não encontramos os produtos",
+    nenhumTexto: "Os produtos dessa sacola não estão disponíveis no site agora. Que tal dar uma olhada no que temos?",
+    verLoja: "Ver a loja",
+  },
   /** cartão "vidro" dos momentos de sucesso (components/efeitos/Vidro.tsx) */
   celebracao: {
     tipos: {
@@ -751,6 +764,19 @@ export const copy = {
       botao: "Falar com a Larissa no WhatsApp",
       continuar: "Continuar passeando",
       fechar: "Fechar a conversa com a Larissa",
+      /** no caixa: a Larissa fecha a compra no checkout do site (Pix ou cartão pelo Mercado Pago) */
+      caixaTexto: "Posso fechar a sua compra? Você paga aqui no site, com Pix ou cartão.",
+      cestaTitulo: "Sua cesta",
+      cestaVazia: "Sua cesta ainda está vazia. Pegue os produtos nas prateleiras e volte aqui no caixa.",
+      maisItens: (n: number) => (n === 1 ? "e mais 1 produto" : `e mais ${n} produtos`),
+      subtotal: "Subtotal",
+      desconto: "Cupom",
+      totalPix: "Total no Pix",
+      pagar: "Pagar agora: Pix ou cartão",
+      seguro: "Pagamento seguro pelo Mercado Pago. Frete e prazo você vê no próximo passo.",
+      ouWhatsapp: "Prefere fechar comigo no WhatsApp?",
+      irAoCaixa: "Caixa",
+      irAoCaixaRotulo: (n: number) => (n ? `Ir ao caixa pagar (${n} ${n === 1 ? "item" : "itens"} na cesta)` : "Ir ao caixa falar com a Larissa"),
       mensagem: (itens: string[]) =>
         itens.length
           ? `Oi, Larissa! Estou na loja 3D do site e coloquei na cesta: ${itens.join(", ")}. Pode me ajudar a fechar?`

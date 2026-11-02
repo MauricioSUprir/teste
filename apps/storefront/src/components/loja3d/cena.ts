@@ -147,6 +147,8 @@ export type AlvoGuia = { produto: string } | { marca: string };
 export interface Cena {
   irParaCategoria: (slug: string) => void;
   irParaVisaoGeral: () => void;
+  /** vai até o caixa e a Larissa atende (botão "Ir ao caixa": dá para pagar sem achar ela na cena) */
+  irAoCaixa: () => void;
   /** conteúdo da sacola do site, sem animação */
   definirCesta: (slugs: string[]) => void;
   /** produto que acabou de entrar na sacola: voa da prateleira para a cesta */
@@ -2563,6 +2565,11 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   return {
     irParaCategoria,
     irParaVisaoGeral,
+    irAoCaixa() {
+      larissa.conversar();
+      op.aoFalarComLarissa();
+      irParaVista(vistaLarissa);
+    },
     definirCesta,
     colocarNaCesta,
     posicao: () =>

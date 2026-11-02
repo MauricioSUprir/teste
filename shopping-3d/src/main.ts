@@ -724,6 +724,12 @@ function iniciar() {
           chamadas: motor.renderer.info.render.calls,
           triangulos: motor.renderer.info.render.triangles,
         }),
+        /** abre o caixa de uma loja ocupada (ex.: "A1", a BeautyNow) sem andar até o balcão */
+        caixa: (unidade: string) => {
+          const q = shopping?.ocupadas.get(unidade);
+          if (q) painelCaixa(ui, q);
+          return !!q;
+        },
         camera: (inclinacao: number, distancia: number) => {
           if (!camera3) return;
           camera3.girar(0, 0, 0);

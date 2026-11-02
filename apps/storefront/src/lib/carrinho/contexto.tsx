@@ -41,6 +41,13 @@ interface CarrinhoContexto {
   fechar: () => void;
   /** `abrirSacola: false` só põe na sacola, sem abrir a gaveta (a loja 3D mostra na cesta) */
   adicionar: (produtoSlug: string, sku: string, quantidade?: number, abrirSacola?: boolean) => void;
+  /**
+   * Garante o item na sacola com pelo menos esta quantidade (sacola trazida do
+   * Beauty Shopping): abrir o mesmo link duas vezes não dobra a compra.
+   */
+  levar: (produtoSlug: string, sku: string, quantidade: number) => void;
+  /** a sacola salva neste navegador já foi lida (antes disso, mudanças se perderiam) */
+  pronto: boolean;
   remover: (sku: string) => void;
   alterarQuantidade: (sku: string, quantidade: number) => void;
   aplicarCupom: (codigo: string) => Promise<{ ok: boolean; erro?: string }>;
@@ -106,6 +113,17 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
     if (abrirSacola) setAberto(true);
   }, []);
 
+  const levar = useCallback((produtoSlug: string, sku: string, quantidade: number) => {
+    if (quantidade < 1) return;
+    setItens((atual) => {
+      const existente = atual.find((i) => i.sku === sku);
+      if (existente) {
+        return atual.map((i) => (i.sku === sku ? { ...i, quantidade: Math.max(i.quantidade, quantidade) } : i));
+      }
+      return [...atual, { produtoSlug, sku, quantidade }];
+    });
+  }, []);
+
   const remover = useCallback((sku: string) => {
     setItens((atual) => atual.filter((i) => i.sku !== sku));
   }, []);
@@ -161,13 +179,15 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
       abrir,
       fechar,
       adicionar,
+      levar,
+      pronto: hidratado,
       remover,
       alterarQuantidade,
       aplicarCupom,
       removerCupom: () => setCupom(null),
       limpar,
     };
-  }, [itens, cupom, cupomAplicado, hidratado, aberto, abrir, fechar, adicionar, remover, alterarQuantidade, limpar]);
+  }, [itens, cupom, cupomAplicado, hidratado, aberto, abrir, fechar, adicionar, levar, remover, alterarQuantidade, limpar]);
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

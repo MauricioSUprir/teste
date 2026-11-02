@@ -4,7 +4,7 @@
  */
 import { textos } from "../copy/textos";
 import { fichaDe, formatarPreco, fotoDe, nomeMarca, precoPix, type Produto } from "../dados/catalogo";
-import { ANCORAS, PLANTA, UNIDADES, zFachadaEm, type Inquilino, type LojaPrevia, type Unidade } from "../dados/lojas";
+import { ANCORAS, PLANTA, SITE_DAS_ANCORAS, UNIDADES, zFachadaEm, type Inquilino, type LojaPrevia, type Unidade } from "../dados/lojas";
 import { sacola, totalDe } from "../dados/sacola";
 import { h, icone } from "./dom";
 import { fichaEmHtml } from "./ficha";
@@ -105,6 +105,33 @@ export function painelCaixa(ui: Interface, loja: Inquilino) {
     return;
   }
   const total = totalDe(itens);
+  const site = SITE_DAS_ANCORAS[loja.id];
+  // loja âncora: a sacola vai para o checkout do site (só produto e quantidade; o site confere preço e estoque)
+  const pagar = site
+    ? h(
+        "a",
+        {
+          class: "principal",
+          href: `${site}/levar/?${new URLSearchParams({
+            itens: itens.map((i) => `${i.produto.id}:${i.qtd}`).join(","),
+            utm_source: "beauty-shopping",
+            utm_medium: "3d",
+            utm_campaign: "caixa",
+          })}`,
+          target: "_blank",
+          rel: "noopener",
+          onclick: () => {
+            // a sacola desta loja mudou de casa: sai do shopping e o painel fecha
+            setTimeout(() => {
+              sacola.substituir(sacola.lista().filter((i) => i.lojaId !== loja.id));
+              ui.fecharPainel();
+              ui.avisar(t.foiParaSite(loja.nome), 5000);
+            }, 0);
+          },
+        },
+        t.pagarNoSite
+      )
+    : null;
   ui.abrirPainel(
     "caixa",
     t.titulo(loja.nome),
@@ -122,12 +149,14 @@ export function painelCaixa(ui: Interface, loja: Inquilino) {
       h(
         "ul",
         { class: "formas" },
-        h("li", {}, h("div", {}, h("strong", {}, t.pix), h("span", {}, t.pixDesc)), h("em", {}, t.emBreve)),
-        h("li", {}, h("div", {}, h("strong", {}, t.cartao), h("span", {}, t.cartaoDesc)), h("em", {}, t.emBreve))
+        h("li", {}, h("div", {}, h("strong", {}, t.pix), h("span", {}, t.pixDesc)), h("em", {}, site ? t.noSite : t.emBreve)),
+        h("li", {}, h("div", {}, h("strong", {}, t.cartao), h("span", {}, t.cartaoDesc)), h("em", {}, site ? t.noSite : t.emBreve))
       ),
-      h("p", { class: "nota" }, t.aviso),
+      h("p", { class: "nota" }, site ? t.avisoSite(loja.nome) : t.aviso),
     ],
-    [h("button", { class: "principal", type: "button", onclick: () => ui.fecharPainel() }, t.voltar)]
+    pagar
+      ? [h("button", { class: "secundario", type: "button", onclick: () => ui.fecharPainel() }, t.voltar), pagar]
+      : [h("button", { class: "principal", type: "button", onclick: () => ui.fecharPainel() }, t.voltar)]
   );
 }
 
