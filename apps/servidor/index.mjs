@@ -590,21 +590,98 @@ function ehRobo(req) {
 const podeExportarCifrado = (req) => Boolean(BACKUP_CHAVE) || ehAdmin(req);
 const exportacao = { estado: "parado", progresso: "", json: null, erro: null };
 
+// ---- Estoque ao vivo (Hub → site) ----
+// O catálogo publicado guarda o estoque do dia em que foi gerado. Por cima
+// dele o site aplica este retrato (GET /catalogo/estoque), que o servidor
+// refaz sozinho a cada 2 h e a cada coleta pedida pelo robô ou pelo admin:
+// o que acabou no Hub sai de venda sem esperar uma nova publicação.
+const ESTOQUE_INTERVALO_MS = 2 * 3600_000;
+/** coleta mais nova que isto vale para o robô (ele pede "refazer" todo dia) */
+const COLETA_FRESCA_MS = 90 * 60_000;
+/** menos produtos que isto = a coleta veio pela metade: não vira estoque */
+const MIN_PRODUTOS_COLETA = 900;
+// volta do banco no boot (o /tmp some a cada publicação); vazio até a 1ª coleta
+let estoqueAtual = (() => {
+  const salvo = doBanco("estoque-atual");
+  return salvo && typeof salvo.porSku === "object" && salvo.porSku ? salvo : { atualizadoEm: null, total: 0, porSku: {} };
+})();
+let coletaTerminadaEm = 0;
+
+/** estoque por SKU a partir da coleta (mesmas regras do scripts/sincronizar-catalogo.mjs) */
+function estoqueDaColeta(json) {
+  const { brutos = [] } = JSON.parse(json);
+  const primeiro = (obj, ...nomes) => {
+    for (const n of nomes) {
+      const v = obj?.[n];
+      if (v !== undefined && v !== null && v !== "") return v;
+    }
+    return undefined;
+  };
+  const porSku = {};
+  for (const b of brutos) {
+    const sku = primeiro(b, "sku", "codigo", "id");
+    if (sku === undefined) continue;
+    const preco = Number(primeiro(b, "preco", "preco_venda", "valor", "price") ?? 0);
+    const estoque = Number(primeiro(b, "estoque", "quantidade", "stock", "disponivel") ?? 0);
+    // sem preço no Hub não se vende (mesma regra do catálogo)
+    porSku[String(sku)] = preco > 0 && Number.isFinite(estoque) ? Math.max(0, Math.floor(estoque)) : 0;
+  }
+  return porSku;
+}
+
+/** coleta o catálogo do Hub em segundo plano; ao terminar, atualiza o estoque ao vivo */
+function iniciarColeta(modo = "rapido") {
+  if (exportacao.estado === "coletando") return false;
+  exportacao.estado = "coletando";
+  exportacao.progresso = `iniciando (modo ${modo})…`;
+  exportacao.erro = null;
+  exportacao.json = null;
+  console.log(`[exportar-catalogo] coleta iniciada (${modo})`);
+  coletarCatalogoHub(modo)
+    .then((json) => {
+      exportacao.json = json;
+      exportacao.estado = "pronto";
+      coletaTerminadaEm = Date.now();
+      console.log("[exportar-catalogo] coleta concluída");
+      try {
+        const porSku = estoqueDaColeta(json);
+        const total = Object.keys(porSku).length;
+        if (total >= MIN_PRODUTOS_COLETA) {
+          estoqueAtual = { atualizadoEm: new Date().toISOString(), total, porSku };
+          gravarNoBanco("estoque-atual", estoqueAtual).catch(() => undefined);
+          console.log(`[estoque] retrato novo: ${total} SKUs, ${Object.values(porSku).filter((n) => n > 0).length} com estoque`);
+        } else {
+          console.error(`[estoque] coleta pequena demais (${total}) — mantive o retrato anterior`);
+        }
+      } catch (erro) {
+        console.error(`[estoque] não consegui ler a coleta: ${erro.message}`);
+      }
+    })
+    .catch((erro) => {
+      exportacao.estado = "erro";
+      exportacao.erro = String(erro.message).slice(0, 300);
+      console.error("[exportar-catalogo] falha:", erro.message);
+    });
+  return true;
+}
+
 async function coletarCatalogoHub(modo = "rapido") {
-  // até 3 tentativas por chamada — o Hub às vezes demora/engasga
-  const apiHub = async (caminho) => {
+  // até 3 tentativas por chamada — o Hub às vezes demora/engasga.
+  // Ficha avulsa (marcas extras) espera menos: uma que travar não pode
+  // segurar a coleta inteira (era o que estourava o tempo do robô diário).
+  const apiHub = async (caminho, { tentativas = 3, espera = 45_000 } = {}) => {
     let ultimoErro;
-    for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    for (let tentativa = 1; tentativa <= tentativas; tentativa++) {
       try {
         const r = await fetch(`${HUB_API_URL}${caminho}`, {
           headers: { "X-API-Key": HUB_API_KEY },
-          signal: AbortSignal.timeout(45_000),
+          signal: AbortSignal.timeout(espera),
         });
         if (!r.ok) throw new Error(`${caminho} → HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
         return r.json();
       } catch (erro) {
         ultimoErro = erro;
-        if (tentativa < 3) await new Promise((f) => setTimeout(f, 2000 * tentativa));
+        if (tentativa < tentativas) await new Promise((f) => setTimeout(f, 2000 * tentativa));
       }
     }
     throw ultimoErro;
@@ -642,9 +719,11 @@ async function coletarCatalogoHub(modo = "rapido") {
     const { skus: extras = [] } = JSON.parse(fs.readFileSync(new URL("./produtos-extras.json", import.meta.url), "utf8"));
     const jaVieram = new Set(brutos.map((b) => String(valor(b, "sku", "codigo", "id"))));
     const faltam = extras.map(String).filter((s) => !jaVieram.has(s));
-    for (let i = 0; i < faltam.length; i += 8) {
+    for (let i = 0; i < faltam.length; i += 16) {
       const lote = await Promise.all(
-        faltam.slice(i, i + 8).map((sku) => apiHub(`/produtos/${encodeURIComponent(sku)}`).catch(() => null))
+        faltam
+          .slice(i, i + 16)
+          .map((sku) => apiHub(`/produtos/${encodeURIComponent(sku)}`, { tentativas: 2, espera: 15_000 }).catch(() => null))
       );
       for (const p of lote) {
         if (!p || !valor(p, "sku", "codigo")) continue;
@@ -653,7 +732,7 @@ async function coletarCatalogoHub(modo = "rapido") {
         const temPreco = Number(valor(p, "preco", "preco_venda")) > 0;
         brutos.push(temPreco ? p : { ...p, estoque: 0, disponivel: false });
       }
-      exportacao.progresso = `marcas extras: ${Math.min(i + 8, faltam.length)}/${faltam.length}`;
+      exportacao.progresso = `marcas extras: ${Math.min(i + 16, faltam.length)}/${faltam.length}`;
     }
   } catch (erro) {
     console.error(`[catalogo] marcas extras: ${erro.message}`);
@@ -847,14 +926,18 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
   if (!HUB_API_KEY) {
     return res.status(400).send(paginaExport("Falta configurar", "A variável <b>HUB_API_KEY</b> não está preenchida no Render."));
   }
-  if (exportacao.estado === "pronto" && !req.query.refazer) {
+  // o link volta com a MESMA chave que chegou (a do robô não vira a de admin)
+  const chaveLink = encodeURIComponent(String(req.query.chave ?? ""));
+  // "refazer" com uma coleta de menos de 90 min: entrega a que já está pronta
+  const fresca = exportacao.estado === "pronto" && Date.now() - coletaTerminadaEm < COLETA_FRESCA_MS;
+  if (exportacao.estado === "pronto" && (!req.query.refazer || fresca)) {
     return res.send(
       paginaExport(
         "✅ Catálogo pronto!",
         `A coleta terminou. <br><br>
-         <a href="/exportar-catalogo/baixar?chave=${encodeURIComponent(EXPORT_CHAVE)}"
+         <a href="/exportar-catalogo/baixar?chave=${chaveLink}"
             style="display:inline-block;background:#4A2882;color:#fff;text-decoration:none;font-weight:bold;border-radius:999px;padding:14px 28px">⬇ Baixar catalogo-hub.json</a>
-         <br><br><small>Para coletar de novo do zero: <a href="/exportar-catalogo?chave=${encodeURIComponent(EXPORT_CHAVE)}&refazer=1">refazer exportação</a></small>`
+         <br><br><small>Para coletar de novo do zero: <a href="/exportar-catalogo?chave=${chaveLink}&refazer=1">refazer exportação</a></small>`
       )
     );
   }
@@ -874,7 +957,7 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
       paginaExport(
         "❌ A coleta falhou",
         `<b>Erro:</b> ${exportacao.erro}<br><br>
-         <a href="/exportar-catalogo?chave=${encodeURIComponent(EXPORT_CHAVE)}&refazer=1">Tentar de novo</a>`
+         <a href="/exportar-catalogo?chave=${chaveLink}&refazer=1">Tentar de novo</a>`
       )
     );
   }
@@ -882,22 +965,7 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
   // modo padrão "rapido": só a listagem (nome, preço, marca, foto, estoque) —
   // termina em segundos; "completo" busca também as 1.222 fichas.
   const modo = String(req.query.modo ?? "") === "completo" ? "completo" : "rapido";
-  exportacao.estado = "coletando";
-  exportacao.progresso = `iniciando (modo ${modo})…`;
-  exportacao.erro = null;
-  exportacao.json = null;
-  console.log(`[exportar-catalogo] coleta iniciada (${modo})`);
-  coletarCatalogoHub(modo)
-    .then((json) => {
-      exportacao.json = json;
-      exportacao.estado = "pronto";
-      console.log("[exportar-catalogo] coleta concluída");
-    })
-    .catch((erro) => {
-      exportacao.estado = "erro";
-      exportacao.erro = String(erro.message).slice(0, 300);
-      console.error("[exportar-catalogo] falha:", erro.message);
-    });
+  iniciarColeta(modo);
   res.send(
     paginaExport(
       "⏳ Coleta iniciada!",
@@ -912,12 +980,24 @@ aplicacao.get("/exportar-catalogo/baixar", (req, res) => {
     return res.status(403).send(paginaExport("Chave inválida", "Confira o link."));
   }
   if (exportacao.estado !== "pronto" || !exportacao.json) {
-    return res.redirect(`/exportar-catalogo?chave=${encodeURIComponent(EXPORT_CHAVE)}`);
+    return res.redirect(`/exportar-catalogo?chave=${encodeURIComponent(String(req.query.chave ?? ""))}`);
   }
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Content-Disposition", 'attachment; filename="catalogo-hub.json"');
   res.send(exportacao.json);
 });
+
+// estoque ao vivo para o site (público: só SKU e quantidade, como a página do produto já mostra)
+aplicacao.get("/catalogo/estoque", (_req, res) => {
+  res.set("Cache-Control", "public, max-age=300");
+  res.json(estoqueAtual);
+});
+
+// refaz o retrato do estoque sozinho: 3 min depois de subir e a cada 2 h
+if (HUB_API_KEY) {
+  setTimeout(() => iniciarColeta("rapido"), 3 * 60_000);
+  setInterval(() => iniciarColeta("rapido"), ESTOQUE_INTERVALO_MS);
+}
 
 /** gera o código de 6 dígitos e manda por e-mail; { ok } ou { status, erro } */
 async function pedirCodigo(email, marca = "beautynow") {

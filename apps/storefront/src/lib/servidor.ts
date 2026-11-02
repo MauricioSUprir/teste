@@ -247,6 +247,18 @@ export interface PrecoManual {
 }
 
 /** Preços fixados manualmente no admin desta loja — o site aplica ao carregar. */
+/** Estoque atual do Hub por SKU (o servidor refaz o retrato a cada 2 h). */
+export async function consultarEstoqueVivo(): Promise<import("./catalogo/estoque-vivo").RetratoEstoque | null> {
+  if (!servidorConfigurado()) return null;
+  try {
+    const resposta = await fetchComTimeout(`${SERVIDOR_URL}/catalogo/estoque`, 75_000, {});
+    if (!resposta.ok) return null;
+    return (await resposta.json()) as import("./catalogo/estoque-vivo").RetratoEstoque;
+  } catch {
+    return null;
+  }
+}
+
 export async function consultarPrecosManuais(): Promise<Record<string, PrecoManual> | null> {
   if (!servidorConfigurado()) return null;
   try {

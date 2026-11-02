@@ -8,6 +8,7 @@
  * client aplicam os ajustes após a hidratação (sem mismatch de SSR).
  */
 import type { Produto } from "./tipos";
+import { comEstoqueVivo } from "./estoque-vivo";
 
 export interface EdicaoProduto {
   titulo?: string;
@@ -116,9 +117,11 @@ export function gravarAjustes(ajustes: AjustesCatalogo) {
 }
 
 /** Aplica edição/exclusão a um produto do catálogo base (ou devolve um local). */
-export function aplicarAjustesProduto(produto: Produto): Produto | null {
+export function aplicarAjustesProduto(base: Produto): Produto | null {
   const ajustes = lerAjustes();
-  if (ajustes.excluidos.includes(produto.slug)) return null;
+  if (ajustes.excluidos.includes(base.slug)) return null;
+  // estoque ao vivo do Hub primeiro; a edição do admin (ex.: "esgotado") vale por cima
+  const produto = comEstoqueVivo(base);
   const edicao = ajustes.editados[produto.slug];
   if (!edicao) return produto;
   return aplicarEdicao(produto, edicao);
