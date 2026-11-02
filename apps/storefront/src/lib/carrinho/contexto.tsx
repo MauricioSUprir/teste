@@ -17,6 +17,7 @@ import {
 import { obterProduto } from "@/lib/catalogo/consultas";
 import type { Produto, Variante } from "@/lib/catalogo/tipos";
 import { buscarCupom, calcularDesconto, conferirRegrasCupom, type Cupom } from "@/lib/cupons";
+import { registrar } from "@/lib/rastreio";
 
 export interface ItemCarrinho {
   produtoSlug: string;
@@ -101,6 +102,8 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
   }, [itens, cupom, hidratado]);
 
   const adicionar = useCallback((produtoSlug: string, sku: string, quantidade = 1, abrirSacola = true) => {
+    const v = obterProduto(produtoSlug)?.variantes.find((x) => x.sku === sku);
+    registrar("adicionou_a_sacola", { produto: produtoSlug, sku, quantidade, preco_centavos: v?.precoPor ?? null });
     setItens((atual) => {
       const existente = atual.find((i) => i.sku === sku);
       if (existente) {
@@ -125,6 +128,7 @@ export function CarrinhoProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const remover = useCallback((sku: string) => {
+    registrar("removeu_da_sacola", { sku });
     setItens((atual) => atual.filter((i) => i.sku !== sku));
   }, []);
 

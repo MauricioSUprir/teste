@@ -31,6 +31,7 @@ import {
   mercadoPagoAtivo,
 } from "@/lib/servidor";
 import { obterVendedorUsuario } from "@/lib/afiliado";
+import { registrar } from "@/lib/rastreio";
 
 type MeioPagamento = "pix" | "cartao" | "boleto";
 
@@ -82,6 +83,14 @@ export function CheckoutForm() {
   useEffect(() => {
     acordarServidor();
   }, []);
+
+  // jornada do cliente: chegou ao checkout (quantos itens e quanto, sem dado pessoal)
+  const [checkoutRegistrado, setCheckoutRegistrado] = useState(false);
+  useEffect(() => {
+    if (checkoutRegistrado || !carrinho.pronto || carrinho.itens.length === 0) return;
+    setCheckoutRegistrado(true);
+    registrar("checkout_iniciado", { itens: carrinho.totalItens, subtotal_centavos: carrinho.subtotalCentavos });
+  }, [checkoutRegistrado, carrinho.pronto, carrinho.itens.length, carrinho.totalItens, carrinho.subtotalCentavos]);
 
   // compra exige conta: nome e e-mail vêm dela (o e-mail identifica o pedido)
   useEffect(() => {

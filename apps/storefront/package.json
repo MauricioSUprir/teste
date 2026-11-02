@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "next": "^15.4.6",
+    "posthog-js": "^1.297.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "three": "^0.169.0"

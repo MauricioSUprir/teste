@@ -21,6 +21,7 @@ import {
   precoPix,
 } from "@/lib/preco";
 import { CheckAnimado } from "@/components/efeitos/Vidro";
+import { registrar } from "@/lib/rastreio";
 
 export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
   const carrinho = useCarrinho();
@@ -58,6 +59,18 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
       ? percentualDesconto(variante.precoDe, variante.precoPor)
       : null;
   const parcela = parcelamento(variante.precoPor);
+
+  // jornada do cliente: produto visto (uma vez por produto aberto)
+  useEffect(() => {
+    registrar("produto_visto", {
+      produto: produto.slug,
+      titulo: produto.titulo,
+      marca: produto.marca,
+      preco_centavos: variante.precoPor,
+      disponivel,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao trocar de produto
+  }, [produto.slug]);
 
   function adicionar() {
     carrinho.adicionar(produto.slug, variante.sku, quantidade);

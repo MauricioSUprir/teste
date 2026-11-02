@@ -8,6 +8,7 @@ import { atalhosDaBusca, buscar, obterMarca } from "@/lib/catalogo/consultas";
 import { formatarPreco, precoPix } from "@/lib/preco";
 import { copy } from "@/lib/copy";
 import { ImagemProduto } from "@/components/produto/ImagemProduto";
+import { registrar } from "@/lib/rastreio";
 
 /**
  * Busca com autocomplete — ticket 2.5. Em cima, as marcas e categorias que
@@ -40,6 +41,7 @@ export function BuscaHeader() {
   function irParaBusca() {
     if (!termo.trim()) return;
     setFocado(false);
+    registrar("busca", { termo: termo.trim() });
     router.push(`/busca?q=${encodeURIComponent(termo.trim())}`);
   }
 

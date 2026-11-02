@@ -17,6 +17,7 @@ import { aplicarAjustesProduto } from "@/lib/catalogo/ajustes";
 import { obterProduto } from "@/lib/catalogo/consultas";
 import { lerItensLevar } from "@/lib/carrinho/levar";
 import { CartaoVidro, EscudoVidro, PalcoVidro } from "@/components/efeitos/Vidro";
+import { registrar } from "@/lib/rastreio";
 
 const t = copy.levar;
 /** tempo para ler o aviso de produto que ficou de fora antes de seguir */
@@ -52,6 +53,7 @@ export function LevarSacola() {
     }
     setFora(ficaram);
     setSeguir(true);
+    registrar("sacola_do_beauty_shopping", { produtos: levados, indisponiveis: ficaram });
   }, [carrinho, params]);
 
   // segue para o pagamento (efeito separado: a sacola muda logo acima e não pode cancelar a ida)

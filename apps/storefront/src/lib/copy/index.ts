@@ -369,6 +369,21 @@ export const copy = {
     aprovadoTitulo: "Pagamento aprovado!",
     aprovadoTexto: "Pagamento recebido! Seu pedido já entrou na fila de separação.",
   },
+  /** aviso de cookies (LGPD, docs/08): necessários / desempenho / marketing */
+  cookies: {
+    titulo: "Cookies e privacidade",
+    texto:
+      "Usamos cookies necessários para o site funcionar e, com a sua permissão, para medir como o site é usado (páginas e produtos vistos) e melhorar a sua experiência.",
+    politica: "Política de privacidade",
+    aceitar: "Aceitar todos",
+    recusar: "Só os necessários",
+    personalizar: "Personalizar",
+    salvar: "Salvar escolhas",
+    preferencias: "Preferências de cookies",
+    necessarios: { titulo: "Necessários", texto: "sacola, login e segurança. Sempre ligados." },
+    desempenho: { titulo: "Desempenho", texto: "medição da navegação (páginas, produtos, buscas e etapas da compra) para melhorar o site." },
+    marketing: { titulo: "Marketing", texto: "anúncios e ofertas personalizadas em outros sites." },
+  },
   /** /levar: a sacola montada no Beauty Shopping chega ao checkout do site */
   levar: {
     titulo: "Trazendo sua sacola",

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { copy } from "@/lib/copy";
 import { Logo } from "./Logo";
 import { NEGOCIO, enderecoEmLinha, linkWhatsapp } from "@/lib/negocio";
+import { BotaoPreferenciasCookies } from "@/components/rastreio/AvisoCookies";
 
 export function Footer() {
   return (
@@ -51,6 +52,7 @@ export function Footer() {
             <li><Link className="text-grafite hover:text-roxo" href="/institucional/termos-de-uso">{copy.rodape.termosUso}</Link></li>
             <li><Link className="text-grafite hover:text-roxo" href="/institucional/politica-de-entrega">{copy.rodape.politicaEntrega}</Link></li>
             <li><Link className="text-grafite hover:text-roxo" href="/institucional/trocas-e-devolucoes">{copy.rodape.trocasDevolucoes}</Link></li>
+            <li><BotaoPreferenciasCookies className="text-left text-grafite hover:text-roxo" /></li>
           </ul>
         </nav>
 

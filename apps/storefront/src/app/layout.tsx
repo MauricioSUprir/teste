@@ -7,6 +7,9 @@ import { FavoritosProvider } from "@/lib/favoritos/contexto";
 import { LOJA, LOJA_ID } from "@/lib/loja";
 import { Analytics } from "@/components/layout/Analytics";
 import { Celebracao } from "@/components/efeitos/Vidro";
+import { AvisoCookies } from "@/components/rastreio/AvisoCookies";
+import { Rastreio } from "@/components/rastreio/Rastreio";
+import { SincronizaEstoque } from "@/components/layout/SincronizaEstoque";
 import "./globals.css";
 
 // fonte do design system (BeautyNow e Be2Beauty): 400 corpo, 500 nav/botão,
@@ -202,6 +205,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ))}
         <Analytics />
         <ContaProvider>
+          {/* jornada do cliente no PostHog (só depois do aceite no aviso de cookies) */}
+          <Rastreio />
+          {/* estoque atual do Hub por cima do catálogo publicado (vale também no checkout) */}
+          <SincronizaEstoque />
           <B2BProvider>
             <FavoritosProvider>
               <CarrinhoProvider>{children}</CarrinhoProvider>
@@ -210,6 +217,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ContaProvider>
         {/* cartão "vidro" de sucesso (código confirmado, pagamento aprovado) */}
         <Celebracao />
+        <AvisoCookies />
       </body>
     </html>
   );

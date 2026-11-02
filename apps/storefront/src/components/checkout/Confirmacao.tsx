@@ -14,6 +14,7 @@ import { formatarPreco } from "@/lib/preco";
 import { statusPagamento } from "@/lib/servidor";
 import { AvaliacaoPosCompra } from "@/components/avaliacoes/AvaliacaoPosCompra";
 import { CartaoVidro, CheckAnimado, EscudoVidro, PalcoVidro, celebrar } from "@/components/efeitos/Vidro";
+import { registrar } from "@/lib/rastreio";
 
 interface UltimoPedido {
   numero: string;
@@ -41,7 +42,12 @@ export function Confirmacao() {
   useEffect(() => {
     try {
       const salvo = sessionStorage.getItem("beautynow:ultimo-pedido");
-      if (salvo) setPedido(JSON.parse(salvo) as UltimoPedido);
+      if (salvo) {
+        const p = JSON.parse(salvo) as UltimoPedido;
+        setPedido(p);
+        // jornada do cliente: o pedido fechou (sem dado pessoal: número, total e meio)
+        registrar("pedido_feito", { pedido: p.numero, total_centavos: p.totalCentavos, meio: p.meio });
+      }
     } catch {
       // sem pedido salvo
     }
@@ -76,6 +82,7 @@ export function Confirmacao() {
       if (status === "approved") {
         setAprovado(true);
         celebrar("pagamento");
+        registrar("pagamento_aprovado", { pedido: pedido?.numero ?? null, meio: "pix" });
         if (pedido) atualizarStatus(pedido.numero, "pago");
         clearInterval(intervalo);
       }

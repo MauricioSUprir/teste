@@ -48,8 +48,8 @@ const paginas: Record<string, { titulo: string; paragrafos: string[] }> = {
     paragrafos: [
       `Esta política descreve como a ${LOJA.nome} trata seus dados pessoais, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).`,
       "Coletamos apenas os dados necessários para processar seu pedido (nome, CPF ou CNPJ, e-mail, telefone e endereço de entrega) e, com seu consentimento, para comunicações de marketing. Você pode revogar o consentimento a qualquer momento.",
-      "Usamos cookies e ferramentas de medição de audiência para entender como o site é usado e melhorar a experiência. Esses dados são tratados de forma agregada e você pode bloqueá-los nas configurações do seu navegador.",
-      "Não vendemos nem compartilhamos seus dados com terceiros, exceto os operadores estritamente necessários à operação: meios de pagamento, transportadoras e emissão de nota fiscal.",
+      "Usamos cookies necessários para o site funcionar (sacola, login e segurança). Com a sua permissão no aviso de cookies (categoria Desempenho), registramos como você navega no site — páginas e produtos vistos, buscas, itens colocados na sacola e etapas da compra — e gravamos a navegação com os campos de formulário mascarados, usando a ferramenta PostHog (servidores nos Estados Unidos). Quando você está na sua conta, esse histórico fica ligado ao seu e-mail, para entendermos a sua jornada e melhorar o atendimento. Sem a permissão, nada disso é coletado. Você muda a escolha quando quiser em “Preferências de cookies”, no rodapé.",
+      "Não vendemos nem compartilhamos seus dados com terceiros, exceto os operadores estritamente necessários à operação: meios de pagamento, transportadoras, emissão de nota fiscal e, quando você autoriza, a ferramenta de medição (PostHog).",
       `Para exercer seus direitos de titular (acesso, correção, exclusão, portabilidade), escreva para ${NEGOCIO.email}. Respondemos dentro dos prazos da LGPD.`,
     ],
   },

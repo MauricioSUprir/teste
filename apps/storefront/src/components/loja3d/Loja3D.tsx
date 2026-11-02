@@ -37,6 +37,7 @@ import { CardProduto } from "@/components/produto/CardProduto";
 import { ControleAndar } from "./ControleAndar";
 import { FichaProduto } from "./FichaProduto";
 import type { AlvoGuia, Cena, ModoCena, PosicaoCena, PrecoCena, Qualidade } from "./cena";
+import { registrar } from "@/lib/rastreio";
 
 const t = copy.loja3d;
 const BASE_IMAGEM = "https://comercial.thebeautyhub.app/api/ecom/imagem/";
@@ -232,6 +233,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           aoSelecionarProduto: (slug) => {
             setLarissaAberta(false);
             setSelecionado(slug);
+            registrar("loja3d_produto_aberto", { produto: slug });
           },
           aoMudarSetor: (i) => setSetorAtual(i),
           aoMudarModo: (m) => setModo(m),
@@ -243,6 +245,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
           aoFalarComLarissa: () => {
             setSelecionado(null);
             setLarissaAberta(true);
+            registrar("loja3d_caixa");
           },
           aoChegarNoLimite: () => setAviso(t.soPaisagem),
           aoApontarProduto: (slug, x, y) => {
