@@ -151,18 +151,27 @@ export function aplicarEdicao(produto: Produto, e: EdicaoProduto): Produto {
   };
 }
 
-/** Lista com exclusões e edições aplicadas (não inclui os adicionados). */
+/**
+ * Lista com estoque ao vivo, exclusões e edições aplicadas (não inclui os
+ * adicionados). Sem nenhuma mudança, devolve a mesma lista.
+ */
 export function aplicarAjustesLista(produtos: Produto[]): Produto[] {
   const ajustes = lerAjustes();
-  if (
-    ajustes.excluidos.length === 0 &&
-    Object.keys(ajustes.editados).length === 0
-  ) {
-    return produtos;
+  const excluidos = new Set(ajustes.excluidos);
+  let mudou = false;
+  const lista: Produto[] = [];
+  for (const p of produtos) {
+    if (excluidos.has(p.slug)) {
+      mudou = true;
+      continue;
+    }
+    const vivo = comEstoqueVivo(p);
+    const edicao = ajustes.editados[p.slug];
+    const final = edicao ? aplicarEdicao(vivo, edicao) : vivo;
+    if (final !== p) mudou = true;
+    lista.push(final);
   }
-  return produtos
-    .filter((p) => !ajustes.excluidos.includes(p.slug))
-    .map((p) => (ajustes.editados[p.slug] ? aplicarEdicao(p, ajustes.editados[p.slug]) : p));
+  return mudou ? lista : produtos;
 }
 
 export function produtosLocais(): Produto[] {

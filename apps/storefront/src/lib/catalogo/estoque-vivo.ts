@@ -3,8 +3,11 @@
  * foi gerado; por cima dele vale o retrato que o servidor refaz no Hub a
  * cada 2 h (GET /catalogo/estoque). Aplicado em todo produto do navegador
  * (aplicarAjustesProduto), então página do produto, listas, sacola e
- * checkout enxergam o mesmo número. SKU fora do retrato (produto criado no
- * painel) fica com o estoque do catálogo.
+ * checkout enxergam o mesmo número.
+ *
+ * O Hub só lista o que tem estoque: produto do catálogo do Hub que não veio
+ * no retrato esgotou (ou saiu do Hub) e fica zerado. SKU que não é do Hub
+ * (produto criado no painel) fica com o estoque do catálogo.
  *
  * Fica guardado no navegador para valer já na próxima página, antes de o
  * servidor responder.
@@ -24,6 +27,12 @@ export interface RetratoEstoque {
 }
 
 let porSku: Record<string, number> | null = null;
+/** SKUs do catálogo publicado que vieram do Hub (lib/catalogo/consultas registra) */
+let skusDoHub: Set<string> = new Set();
+
+export function registrarSkusDoHub(skus: Iterable<string>) {
+  skusDoHub = new Set(skus);
+}
 
 function valido(r: RetratoEstoque | null): r is RetratoEstoque {
   return (
@@ -57,12 +66,22 @@ export function definirEstoqueVivo(r: RetratoEstoque): boolean {
   return mudou;
 }
 
+/** estoque de um SKU pelo retrato; undefined = sem retrato ou SKU fora do Hub (vale o do catálogo) */
+function estoqueDoRetrato(mapa: Record<string, number>, sku: string): number | undefined {
+  if (Object.hasOwn(mapa, sku)) return mapa[sku];
+  return skusDoHub.has(sku) ? 0 : undefined;
+}
+
 /** o produto com o estoque do retrato (sem retrato, o do catálogo) */
 export function comEstoqueVivo(produto: Produto): Produto {
   const mapa = porSku;
-  if (!mapa || !produto.variantes.some((v) => v.sku in mapa)) return produto;
-  return {
-    ...produto,
-    variantes: produto.variantes.map((v) => (v.sku in mapa ? { ...v, estoque: mapa[v.sku] } : v)),
-  };
+  if (!mapa) return produto;
+  let mudou = false;
+  const variantes = produto.variantes.map((v) => {
+    const n = estoqueDoRetrato(mapa, v.sku);
+    if (n === undefined || n === v.estoque) return v;
+    mudou = true;
+    return { ...v, estoque: n };
+  });
+  return mudou ? { ...produto, variantes } : produto;
 }

@@ -13,6 +13,7 @@ import {
 } from "./dados";
 import dadosHub from "./dados-hub.json";
 import { aplicarAjustesProduto, lerAjustes, obterProdutoLocal } from "./ajustes";
+import { registrarSkusDoHub } from "./estoque-vivo";
 import { normalizar as normalizarBusca, pesquisar, type FonteBusca, type ResultadoBusca } from "./busca";
 import { LOJA, ajustarPrecoLoja } from "@/lib/loja";
 import { comBase } from "@/lib/caminho";
@@ -95,6 +96,8 @@ const marcas: Marca[] = (usaHub ? hub.marcas : marcasDemo).map((m) => ({
   ),
 }));
 const produtos: Produto[] = usaHub ? hub.produtos : produtosDemo;
+// o estoque ao vivo zera o produto do Hub que saiu da lista do Hub (esgotou)
+if (usaHub) registrarSkusDoHub(hub.produtos.flatMap((p) => p.variantes.map((v) => v.sku)));
 // necessidades são curadoria editorial — o Hub não as fornece
 const necessidades: Necessidade[] = usaHub ? [] : necessidadesDemo;
 

@@ -221,13 +221,16 @@ function coletarDeArquivo(caminho) {
 }
 
 /**
- * Coleta que falha no meio (o Hub dá 502 às vezes) não pode tirar produto do
- * site: quem estava no catálogo anterior e não veio no feed de hoje continua
- * por até DIAS_AUSENTE dias, marcado com `ausenteDesde`. Se o Hub tirou o
- * produto de verdade, ele sai sozinho depois disso. (15/10: uma coleta veio
- * sem 5 produtos que estavam no Hub com estoque.)
+ * Produto que estava no catálogo anterior e não veio no feed de hoje continua
+ * no site por até DIAS_AUSENTE dias, marcado com `ausenteDesde`, mas ESGOTADO
+ * (estoque 0): desde 11/2026 a listagem do Hub só traz o que tem estoque, então
+ * "sumiu do feed" quase sempre é "acabou". Assim a página do produto segue no
+ * ar (link e Google não quebram, aparece "Avise-me") sem vender o que não há.
+ * Voltou ao feed com estoque, volta à venda. Saiu do Hub de vez: some do site
+ * depois do prazo. (15/10: uma coleta veio sem 5 produtos — por isso não se
+ * apaga na hora.)
  */
-const DIAS_AUSENTE = 3;
+const DIAS_AUSENTE = 30;
 function manterAusentes(produtos, brutos) {
   if (!existsSync(SAIDA)) return produtos;
   let anterior;
@@ -245,12 +248,6 @@ function manterAusentes(produtos, brutos) {
     const s = sku(p);
     return s && !noFeed.has(s) && !skus.has(s) && !slugs.has(p.slug) && !ocultos.has(s) && !ehProvador(p.titulo);
   });
-  // sumiço grande não é falha de coleta (e a coleta inteira já é barrada
-  // antes, no workflow, se vier pequena demais): o catálogo segue o Hub
-  if (ausentes.length > (anterior.produtos?.length ?? 0) * 0.1) {
-    console.log(`  ${ausentes.length} produtos fora do feed — muitos para ser falha de coleta; saem do site`);
-    return produtos;
-  }
   const nomeMarca = Object.fromEntries((anterior.marcas ?? []).map((m) => [m.slug, m.nome]));
   const nomeCategoria = Object.fromEntries((anterior.categorias ?? []).map((c) => [c.slug, c.nome]));
   const hoje = new Date().toISOString().slice(0, 10);
@@ -260,6 +257,8 @@ function manterAusentes(produtos, brutos) {
     if ((Date.parse(hoje) - Date.parse(desde)) / 86_400_000 >= DIAS_AUSENTE) continue;
     mantidos.push({
       ...p,
+      // fora do feed = sem estoque no Hub: fica no ar, mas esgotado
+      variantes: (p.variantes ?? []).map((v) => ({ ...v, estoque: 0 })),
       ausenteDesde: desde,
       _marcaNome: nomeMarca[p.marca] ?? p.marca,
       _categoriaNome: nomeCategoria[p.categorias?.[0]] ?? "Beleza",
@@ -267,8 +266,9 @@ function manterAusentes(produtos, brutos) {
   }
   if (ausentes.length) {
     console.log(
-      `  fora do feed de hoje: ${ausentes.length}; mantidos por até ${DIAS_AUSENTE} dias: ` +
-        (mantidos.map((p) => `${sku(p)} (desde ${p.ausenteDesde})`).join(", ") || "nenhum")
+      `  fora do feed de hoje: ${ausentes.length}; mantidos esgotados por até ${DIAS_AUSENTE} dias: ` +
+        `${mantidos.length}` +
+        (mantidos.length ? ` (ex.: ${mantidos.slice(0, 15).map((p) => `${sku(p)} desde ${p.ausenteDesde}`).join(", ")})` : "")
     );
   }
   return [...produtos, ...mantidos];

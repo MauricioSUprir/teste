@@ -596,8 +596,12 @@ const exportacao = { estado: "parado", progresso: "", json: null, erro: null };
 // refaz sozinho a cada 2 h e a cada coleta pedida pelo robô ou pelo admin:
 // o que acabou no Hub sai de venda sem esperar uma nova publicação.
 const ESTOQUE_INTERVALO_MS = 2 * 3600_000;
-/** coleta mais nova que isto vale para o robô (ele pede "refazer" todo dia) */
-const COLETA_FRESCA_MS = 90 * 60_000;
+/**
+ * coleta mais nova que isto vale para o robô (ele pede "refazer" todo dia e só
+ * espera 15 min; uma coleta leva ~13). Como o servidor coleta sozinho a cada
+ * 2 h, o robô quase sempre já encontra uma pronta e não corre contra o relógio.
+ */
+const COLETA_FRESCA_MS = 3 * 3600_000;
 /** menos produtos que isto = a coleta veio pela metade: não vira estoque */
 const MIN_PRODUTOS_COLETA = 900;
 // volta do banco no boot (o /tmp some a cada publicação); vazio até a 1ª coleta
@@ -928,7 +932,7 @@ aplicacao.get("/exportar-catalogo", (req, res) => {
   }
   // o link volta com a MESMA chave que chegou (a do robô não vira a de admin)
   const chaveLink = encodeURIComponent(String(req.query.chave ?? ""));
-  // "refazer" com uma coleta de menos de 90 min: entrega a que já está pronta
+  // "refazer" com uma coleta de menos de 3 h: entrega a que já está pronta
   const fresca = exportacao.estado === "pronto" && Date.now() - coletaTerminadaEm < COLETA_FRESCA_MS;
   if (exportacao.estado === "pronto" && (!req.query.refazer || fresca)) {
     return res.send(
