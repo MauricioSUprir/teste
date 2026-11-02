@@ -102,6 +102,10 @@ const dominioLoja =
 
 export const metadata: Metadata = {
   metadataBase: new URL(dominioLoja),
+  // Google Search Console: código de verificação por loja (meta google-site-verification)
+  ...(process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO
+    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO } }
+    : {}),
   title: {
     default: tituloLoja,
     template: `%s | ${LOJA.nome}`,

@@ -1,29 +1,21 @@
-import Script from "next/script";
+"use client";
 
 /**
- * Google Analytics 4. O identificador de medição entra por variável de
- * ambiente no build de cada loja (NEXT_PUBLIC_GA_ID=G-XXXXXXX) — sem ele,
- * nada é carregado, então o site não fica pedindo um script que não existe.
- *
- * `anonymize_ip` liga a anonimização do IP, como pede a nossa política de
- * privacidade.
+ * Google Analytics 4 / Google Tag Manager (lib/google.ts): nada carrega
+ * antes da escolha no aviso de cookies; quando a pessoa muda a escolha, o
+ * consentimento do Google acompanha.
  */
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+import { useEffect } from "react";
+import { aplicarConsentimentoGoogle, googleConfigurado } from "@/lib/google";
+import { EVENTO_CONSENTIMENTO, lerConsentimento } from "@/lib/rastreio";
 
 export function Analytics() {
-  if (!GA_ID) return null;
-  return (
-    <>
-      <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-        strategy="afterInteractive"
-      />
-      <Script id="ga4" strategy="afterInteractive">
-        {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${GA_ID}', { anonymize_ip: true });`}
-      </Script>
-    </>
-  );
+  useEffect(() => {
+    if (!googleConfigurado()) return;
+    const aplicar = () => aplicarConsentimentoGoogle(lerConsentimento());
+    aplicar();
+    window.addEventListener(EVENTO_CONSENTIMENTO, aplicar);
+    return () => window.removeEventListener(EVENTO_CONSENTIMENTO, aplicar);
+  }, []);
+  return null;
 }

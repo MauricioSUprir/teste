@@ -13,6 +13,7 @@
  * NEXT_PUBLIC_POSTHOG_KEY no build.
  */
 import type { PostHog } from "posthog-js";
+import { enviarAoGoogle } from "./google";
 
 const CHAVE_PUBLICA = process.env.NEXT_PUBLIC_POSTHOG_KEY || "phc_sJDNUHqQA7kAuV386UDMUUytRvphyY354WhRuMxATF9d";
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
@@ -93,9 +94,12 @@ export function iniciarRastreio() {
   if (lerConsentimento()?.desempenho) void ligar();
 }
 
-/** registra um evento da jornada (só com aceite) */
+/** registra um evento da jornada (só com aceite) — no PostHog e, se configurado, no Google */
 export function registrar(evento: string, props: Record<string, unknown> = {}) {
-  if (typeof window === "undefined" || lerConsentimento()?.desempenho !== true) return;
+  if (typeof window === "undefined") return;
+  const consentimento = lerConsentimento();
+  if (consentimento?.desempenho !== true) return;
+  enviarAoGoogle(evento, props, consentimento);
   if (ph) ph.capture(evento, props);
   else {
     if (fila.length < 50) fila.push([evento, props]);

@@ -64,6 +64,7 @@ export function ColunaCompra({ produto: produtoBase }: { produto: Produto }) {
   useEffect(() => {
     registrar("produto_visto", {
       produto: produto.slug,
+      sku: variante.sku,
       titulo: produto.titulo,
       marca: produto.marca,
       preco_centavos: variante.precoPor,
