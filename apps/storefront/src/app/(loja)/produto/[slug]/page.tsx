@@ -13,7 +13,6 @@ import {
   relacionados,
   temEstoque,
 } from "@/lib/catalogo/consultas";
-import { precoPix } from "@/lib/preco";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { BotaoVoltar } from "@/components/layout/BotaoVoltar";
 import { Acordeao } from "@/components/produto/Acordeao";
@@ -76,7 +75,10 @@ export default async function PaginaProduto({
     sku: produto.variantes[0].sku,
     offers: produto.variantes.map((v) => ({
       "@type": "Offer",
-      price: (precoPix(v.precoPor) / 100).toFixed(2),
+      // preço cheio (cartão), o mesmo do feed do Merchant: o Google reprova o
+      // anúncio se a página e o feed divergem, e não aceita preço que depende
+      // da forma de pagamento (o desconto do Pix aparece na página)
+      price: (v.precoPor / 100).toFixed(2),
       priceCurrency: "BRL",
       availability:
         v.estoque > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",

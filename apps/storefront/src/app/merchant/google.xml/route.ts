@@ -10,6 +10,7 @@
  */
 import { obterCategoria, obterMarca, produtos } from "@/lib/catalogo/consultas";
 import { LOJA, LOJA_ID } from "@/lib/loja";
+import { parcelamento } from "@/lib/preco";
 
 export const dynamic = "force-static";
 
@@ -63,6 +64,10 @@ export function GET() {
               `<g:availability>${v.estoque > 0 ? "in_stock" : "out_of_stock"}</g:availability>`,
               `<g:price>${preco(cheio)}</g:price>`,
               cheio !== v.precoPor ? `<g:sale_price>${preco(v.precoPor)}</g:sale_price>` : "",
+              // cartão em até 6x sem juros (mesma regra da página do produto)
+              parcelamento(v.precoPor).vezes > 1
+                ? `<g:installment><g:months>${parcelamento(v.precoPor).vezes}</g:months><g:amount>${preco(parcelamento(v.precoPor).valor)}</g:amount></g:installment>`
+                : "",
               `<g:brand>${xml(marca)}</g:brand>`,
               gtinValido(ean) ? `<g:gtin>${String(ean).trim()}</g:gtin>` : `<g:mpn>${xml(v.sku)}</g:mpn>`,
               "<g:condition>new</g:condition>",
