@@ -1,24 +1,24 @@
-# Jarvis — Kickoff: explicação do projeto e início da estruturação
+# GIDEON — Kickoff: explicação do projeto e início da estruturação
 
 *05/11/2026 · Leia junto com `jarvis-arquitetura-roadmap.md`*
 
-Este arquivo é para quem vai construir o Jarvis, seja uma IA (Claude Code, por exemplo) ou uma pessoa. Ele explica o projeto e diz o que fazer agora: **estruturar o projeto antes de escrever qualquer funcionalidade nova.**
+Este arquivo é para quem vai construir o GIDEON, seja uma IA (Claude Code, por exemplo) ou uma pessoa. Ele explica o projeto e diz o que fazer agora: **estruturar o projeto antes de escrever qualquer funcionalidade nova.**
 
 ---
 
-## 1. O que é o Jarvis
+## 1. O que é o GIDEON
 
-O Jarvis é um assistente pessoal de IA. A ideia é ele deixar de só responder mensagens e passar a lembrar de tudo, pesquisar a fundo, mexer no computador, enxergar a tela, falar e ouvir, e trabalhar com uma pequena equipe de agentes.
+O GIDEON é um assistente pessoal de IA. A ideia é ele deixar de só responder mensagens e passar a lembrar de tudo, pesquisar a fundo, mexer no computador, enxergar a tela, falar e ouvir, e trabalhar com uma pequena equipe de agentes.
 
-Os 9 projetos da lista original (Jarvis Prime, Neural Core, AI Company, Deep Research, Self-Improving, Nexus OS, Screen Intelligence, Voice OS e Universal Memory) **não são 9 sistemas separados**. Eles são peças de um sistema só, organizadas em 4 camadas:
+Os 9 projetos da lista original (GIDEON Prime, Neural Core, AI Company, Deep Research, Self-Improving, Nexus OS, Screen Intelligence, Voice OS e Universal Memory) **não são 9 sistemas separados**. Eles são peças de um sistema só, organizadas em 4 camadas:
 
 | Camada | O que faz | Projetos |
 | --- | --- | --- |
-| Canais | Por onde o dono fala com o Jarvis | Telegram/WhatsApp (já existe), Voice OS, Nexus OS |
-| Orquestrador | Recebe o pedido e decide quem resolve | Jarvis no n8n (já existe) |
+| Canais | Por onde o dono fala com o GIDEON | Telegram/WhatsApp (já existe), Voice OS, Nexus OS |
+| Orquestrador | Recebe o pedido e decide quem resolve | GIDEON no n8n (já existe) |
 | Cérebro | Pensa e lembra | Gemini + Claude (já existe), Universal Memory, Neural Core |
 | Equipe | Faz trabalhos longos com vários passos | Deep Research, AI Company, Self-Improving |
-| No computador | Age no PC do dono | Jarvis Prime, Screen Intelligence |
+| No computador | Age no PC do dono | GIDEON Prime, Screen Intelligence |
 
 A ordem de construção está no roadmap: **Fase 1 Memória → 2 Pesquisa → 3 Mãos no PC → 4 Visão de tela → 5 Voz → 6 Cérebro local → 7 Equipe → 8 Auto-melhoria → 9 Painel.**
 
@@ -30,7 +30,7 @@ Não comece do zero. Isto já funciona:
 
 - **n8n cloud:** [https://mauriciosrn8n.app.n8n.cloud](https://mauriciosrn8n.app.n8n.cloud), conectado ao Claude via MCP.
 - **Workflow “Jarvis - Fase 1”:** Telegram → Claude → Telegram.
-- **WhatsApp:** WAHA rodando no Render ([https://jarvis-waha.onrender.com](https://jarvis-waha.onrender.com)), a partir do repositório `MauricioSUprir/jarvis-waha`. O workflow “Jarvis - Despertador WhatsApp” acorda o serviço a cada 10 minutos. Ferramenta “WhatsApp - Enviar mensagem” ligada ao Jarvis.
+- **WhatsApp:** WAHA rodando no Render ([https://jarvis-waha.onrender.com](https://jarvis-waha.onrender.com)), a partir do repositório `MauricioSUprir/jarvis-waha`. O workflow “Jarvis - Despertador WhatsApp” acorda o serviço a cada 10 minutos. Ferramenta “WhatsApp - Enviar mensagem” ligada ao GIDEON.
 - **Dois cérebros:** Gemini como modelo principal + Pesquisador com Claude Haiku e SerpApi para pesquisas.
 - **Leitura de arquivos:** PDF, Word, PowerPoint, Excel, fotos, vídeos (Telegram e Drive), YouTube e links.
 - **Integrações:** Google Agenda e Gmail (inclusive as postagens do Google Classroom que chegam por e-mail).
@@ -42,11 +42,11 @@ Não comece do zero. Isto já funciona:
 
 Antes de construir a Fase 1, organize a casa. Faça nesta ordem:
 
-1. **Criar o repositório** `jarvis` no GitHub (privado), na mesma conta do `jarvis-waha`, com esta estrutura:
+1. **Criar o repositório** `gideon` no GitHub (privado), na mesma conta do `jarvis-waha`, com esta estrutura:
 
     ```
-    jarvis/
-    ├── README.md                 ← o que é o Jarvis e como as peças se ligam
+    gideon/
+    ├── README.md                 ← o que é o GIDEON e como as peças se ligam
     ├── .env.example              ← só os NOMES das chaves, nunca os valores
     ├── docs/
     │   ├── roadmap.md            ← cópia do jarvis-arquitetura-roadmap.md
@@ -71,7 +71,7 @@ Antes de construir a Fase 1, organize a casa. Faça nesta ordem:
 2. **Fazer backup do que existe:** exportar todos os workflows do n8n para `n8n/workflows/`, removendo credenciais antes do commit.
 3. **Escrever `docs/arquitetura.md`:** inventário do estado atual (seção 2 deste arquivo), com um diagrama simples de como as peças conversam.
 4. **Registrar as decisões já tomadas** em `docs/decisoes/`: Gemini como cérebro principal, Pesquisador com Claude Haiku + SerpApi, WAHA no Render, voz por último.
-5. **Começar o `testes/tarefas-reais.md`** com 10 pedidos que o dono já fez ao Jarvis e a resposta que ele esperava.
+5. **Começar o `testes/tarefas-reais.md`** com 10 pedidos que o dono já fez ao GIDEON e a resposta que ele esperava.
 6. **Perguntar ao dono as decisões em aberto** (seção 5) e registrar as respostas.
 7. **Quebrar a Fase 1 em tarefas pequenas** (issues no GitHub ou checklist no `memoria/README.md`).
 8. **Só então começar a Fase 1.**
@@ -95,13 +95,13 @@ Antes de construir a Fase 1, organize a casa. Faça nesta ordem:
 - [ ] Computador: Windows ou Mac, quanta RAM e qual placa de vídeo? Define as Fases 3 e 6.
 - [ ] Banco da memória: Supabase (plano grátis, recomendado) ou Qdrant?
 - [ ] Orçamento mensal de API (Claude, Gemini, ElevenLabs, SerpApi): define quantos agentes e quanto roda local.
-- [ ] Lista do que o Jarvis pode fazer sem perguntar.
+- [ ] Lista do que o GIDEON pode fazer sem perguntar.
 
 ---
 
 ## 6. O que entregar ao fim desta etapa
 
-- [ ] Link do repositório `jarvis` com a estrutura criada
+- [ ] Link do repositório `gideon` com a estrutura criada
 - [ ] Workflows atuais exportados em `n8n/workflows/`, sem credenciais
 - [ ] `docs/arquitetura.md` com o estado atual
 - [ ] `docs/decisoes/` com as decisões já tomadas
@@ -117,7 +117,7 @@ Antes de construir a Fase 1, organize a casa. Faça nesta ordem:
 ```
 Leia os arquivos jarvis-kickoff.md e jarvis-arquitetura-roadmap.md.
 
-Sua tarefa agora é ESTRUTURAR o projeto Jarvis, seguindo a seção
+Sua tarefa agora é ESTRUTURAR o projeto GIDEON, seguindo a seção
 "3. Sua missão agora" do kickoff, na ordem indicada, respeitando as
 regras da seção 4.
 

@@ -1,8 +1,8 @@
-# Jarvis — Arquitetura e Roadmap dos 9 Projetos
+# GIDEON — Arquitetura e Roadmap dos 9 Projetos
 
 *Atualizado em 05/11/2026*
 
-Os 9 projetos não são 9 sistemas: são peças de um só, o Jarvis que já roda no n8n. A ordem é memória primeiro, depois pesquisa, mãos no PC, visão, voz, cérebro local, equipe, auto-melhoria e painel.
+Os 9 projetos não são 9 sistemas: são peças de um só, o GIDEON que já roda no n8n. A ordem é memória primeiro, depois pesquisa, mãos no PC, visão, voz, cérebro local, equipe, auto-melhoria e painel.
 
 ---
 
@@ -16,7 +16,7 @@ flowchart TB
     NX["Nexus OS<br/>Fase 9 · painel web"]
   end
 
-  J["Jarvis · orquestrador no n8n<br/>(já funciona: recebe o pedido e escolhe a ferramenta)"]
+  J["GIDEON · orquestrador no n8n<br/>(já funciona: recebe o pedido e escolhe a ferramenta)"]
 
   subgraph Cerebro["Cérebro"]
     GC["Gemini + Claude<br/>(já funciona hoje, via API)"]
@@ -31,7 +31,7 @@ flowchart TB
   end
 
   subgraph PC["No seu computador (o n8n na nuvem não alcança o PC: precisa de ponte local)"]
-    JP["Jarvis Prime<br/>Fase 3 · controla o PC"]
+    JP["GIDEON Prime<br/>Fase 3 · controla o PC"]
     SC["Screen Intelligence<br/>Fase 4 · entende a tela"]
   end
 
@@ -43,17 +43,17 @@ flowchart TB
   J --> PC
 ```
 
-Tudo entra pelos canais, passa pelo Jarvis, e ele aciona o cérebro, a equipe ou o agente no seu PC. O número da fase diz a ordem de construção.
+Tudo entra pelos canais, passa pelo GIDEON, e ele aciona o cérebro, a equipe ou o agente no seu PC. O número da fase diz a ordem de construção.
 
 **As 4 camadas, em texto:**
 
 | Camada | Projetos | Onde roda |
 | --- | --- | --- |
 | Canais | Telegram/WhatsApp (já existe), Voice OS, Nexus OS | Celular, PC, navegador |
-| Orquestrador | Jarvis (já existe) | n8n na nuvem |
+| Orquestrador | GIDEON (já existe) | n8n na nuvem |
 | Cérebro | Gemini + Claude (já existe), Universal Memory, Neural Core | APIs + banco vetorial + PC (modelos locais) |
 | Equipe | Deep Research, AI Company, Self-Improving | n8n / Python |
-| No seu computador | Jarvis Prime, Screen Intelligence | Agente local instalado no PC |
+| No seu computador | GIDEON Prime, Screen Intelligence | Agente local instalado no PC |
 
 ---
 
@@ -65,13 +65,13 @@ Ordenados pela fase em que entram. Dificuldade = esforço para quem não é prog
 | --- | --- | --- | --- | --- |
 | 1 | Universal Memory | Banco que guarda tudo com data, origem e assunto; você pergunta e ele acha | Média | n8n + [Supabase](https://supabase.com) (pgvector) ou [Qdrant](https://qdrant.tech) |
 | 2 | Deep Research | Planeja perguntas, busca, lê as páginas, cruza e entrega relatório com fontes | Média | [GPT Researcher](https://github.com/assafelovic/gpt-researcher), [Open Deep Research](https://github.com/langchain-ai/open_deep_research) |
-| 3 | Jarvis Prime | Agente instalado no PC que abre apps, organiza arquivos e roda código | Alta | [Claude Desktop](https://claude.ai/download) com computer use, [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop), agent-desktop (Vercel Labs) |
-| 4 | Screen Intelligence | Atalho que tira print e manda para um modelo de visão explicar | Baixa | Visão do Gemini e do Claude, que o Jarvis já usa |
+| 3 | GIDEON Prime | Agente instalado no PC que abre apps, organiza arquivos e roda código | Alta | [Claude Desktop](https://claude.ai/download) com computer use, [UI-TARS Desktop](https://github.com/bytedance/UI-TARS-desktop), agent-desktop (Vercel Labs) |
+| 4 | Screen Intelligence | Atalho que tira print e manda para um modelo de visão explicar | Baixa | Visão do Gemini e do Claude, que o GIDEON já usa |
 | 5 | Voice OS | Palavra de ativação, transcrição e resposta falada | Média | [whisper.cpp](https://github.com/ggml-org/whisper.cpp), [ElevenLabs](https://elevenlabs.io), [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) |
 | 6 | Neural Core | Chat próprio com modelos rodando no seu computador | Média, depende da placa de vídeo | [Ollama](https://ollama.com) + [Open WebUI](https://openwebui.com), modelos Qwen3 ou Gemma 4 |
 | 7 | AI Company | Um diretor que divide a tarefa entre 4 a 5 agentes especialistas | Alta, e o custo de API sobe rápido | [CrewAI](https://www.crewai.com) ou [LangGraph](https://www.langchain.com/langgraph) |
 | 8 | Self-Improving | Bateria de testes semanal; a IA propõe correção e só aplica com seu OK | Alta | [Claude Code](https://claude.com/claude-code) + workflows salvos no GitHub |
-| 9 | Nexus OS | Painel web do Jarvis, não um sistema operacional | Média como painel; anos de trabalho como SO | Página web simples hospedada no Render |
+| 9 | Nexus OS | Painel web do GIDEON, não um sistema operacional | Média como painel; anos de trabalho como SO | Página web simples hospedada no Render |
 
 Dois ajustes de escopo: a AI Company começa com 4 a 5 agentes, não 20, porque cada agente a mais multiplica tokens e custo. O Nexus OS vira painel, porque um desktop próprio dá muito trabalho e pouco ganho sobre Windows ou Mac.
 
@@ -81,20 +81,20 @@ Dois ajustes de escopo: a AI Company começa com 4 a 5 agentes, não 20, porque 
 
 Cada fase entrega algo que funciona sozinho. A seguinte só começa quando o critério de pronto da anterior passa.
 
-1. **Fase 1 — Universal Memory.** Tudo que entra no Jarvis (PDFs, Drive, anotações, conversas, tarefas) vai para um banco vetorial com data, origem e projeto.
+1. **Fase 1 — Universal Memory.** Tudo que entra no GIDEON (PDFs, Drive, anotações, conversas, tarefas) vai para um banco vetorial com data, origem e projeto.
     - Pronto quando: “onde está aquele projeto que comecei em agosto?” volta o arquivo certo, com link e histórico.
     - Vem primeiro porque pesquisa, equipe e auto-melhoria precisam lembrar o que já foi feito.
 2. **Fase 2 — Deep Research.** O Pesquisador que já existe (Claude Haiku + SerpApi) ganha um fluxo: planeja perguntas, busca, lê as páginas inteiras, aponta contradições e escreve o relatório.
     - Pronto quando: um pedido no Telegram devolve relatório com fontes clicáveis, salvo no Drive e na memória.
     - Atalho: testar o GPT Researcher antes de montar do zero.
-3. **Fase 3 — Jarvis Prime (mãos no PC).** O n8n na nuvem não alcança seu computador, então entra um agente local que recebe ordens do Jarvis.
+3. **Fase 3 — GIDEON Prime (mãos no PC).** O n8n na nuvem não alcança seu computador, então entra um agente local que recebe ordens do GIDEON.
     - Começa por arquivos e terminal; cliques em aplicativos vêm depois.
     - Caminho sem código: Claude Desktop com computer use. Caminho próprio: servidor MCP open source instalado no PC.
     - Pronto quando: “organiza a pasta X e prepara o ambiente do projeto Y” roda inteiro, pedindo OK antes de apagar.
 4. **Fase 4 — Screen Intelligence.** Um atalho de teclado tira print, manda para o modelo de visão e a explicação chega no Telegram.
     - Pronto quando: o print de uma mensagem de erro volta com a causa e o próximo passo.
     - Depois vira os olhos do agente da Fase 3.
-5. **Fase 5 — Voice OS.** Palavra de ativação “Jarvis”, transcrição local com whisper.cpp e resposta com a voz da ElevenLabs.
+5. **Fase 5 — Voice OS.** Palavra de ativação “GIDEON”, transcrição local com whisper.cpp e resposta com a voz da ElevenLabs.
     - Fica depois das outras interfaces, como a voz já estava programada para o fim.
     - Pronto quando: “abre meu editor e mostra os erros do projeto mais recente” funciona falado.
 6. **Fase 6 — Neural Core.** Ollama + Open WebUI no PC viram um terceiro cérebro, para assuntos privados e tarefas simples sem custo de API.
@@ -127,16 +127,16 @@ Valem antes da Fase 3, porque tudo que aparece na tela ou numa página pode traz
 - [ ] Computador: Windows ou Mac, quanta RAM e qual placa de vídeo? Define as Fases 3 e 6.
 - [ ] Banco da memória: Supabase (plano grátis, recomendado) ou Qdrant?
 - [ ] Orçamento mensal de API (Claude, Gemini, ElevenLabs, SerpApi): define quantos agentes e quanto roda local.
-- [ ] Lista do que o Jarvis pode fazer sem perguntar.
+- [ ] Lista do que o GIDEON pode fazer sem perguntar.
 
 ---
 
 ## Primeira semana: Fase 1
 
 - [ ] Criar projeto no [Supabase](https://supabase.com) e ativar a extensão pgvector
-- [ ] No n8n, criar o workflow “Jarvis - Memória Universal”: recebe texto ou arquivo, gera embedding e grava com data, origem e projeto
-- [ ] Indexar a pasta do Drive e os arquivos que já passaram pelo Jarvis
-- [ ] Ligar a ferramenta “Buscar na memória” no Jarvis, mantendo as tabelas jarvis_memoria, jarvis_tarefas e jarvis_lembretes
+- [ ] No n8n, criar o workflow “GIDEON - Memória Universal”: recebe texto ou arquivo, gera embedding e grava com data, origem e projeto
+- [ ] Indexar a pasta do Drive e os arquivos que já passaram pelo GIDEON
+- [ ] Ligar a ferramenta “Buscar na memória” no GIDEON, mantendo as tabelas jarvis_memoria, jarvis_tarefas e jarvis_lembretes
 - [ ] Testar: “onde está o projeto que comecei em agosto?”
 
 ---

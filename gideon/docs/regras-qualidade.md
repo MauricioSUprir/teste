@@ -1,8 +1,8 @@
-# Jarvis — Regras de rendimento, análise e qualidade
+# GIDEON — Regras de rendimento, análise e qualidade
 
 *05/11/2026 · Leia junto com `jarvis-kickoff.md` e `jarvis-arquitetura-roadmap.md`*
 
-Estas regras valem para **todas as fases** do Jarvis e para quem constrói (IA ou pessoa). Elas existem para três coisas: o Jarvis ficar **rápido e barato** (rendimento), saber **o que funciona e o que falha** (análise) e entregar **respostas e sistemas confiáveis** (qualidade).
+Estas regras valem para **todas as fases** do GIDEON e para quem constrói (IA ou pessoa). Elas existem para três coisas: o GIDEON ficar **rápido e barato** (rendimento), saber **o que funciona e o que falha** (análise) e entregar **respostas e sistemas confiáveis** (qualidade).
 
 Regra geral: **o que não é medido não melhora, e o que não está escrito não foi decidido.**
 
@@ -74,7 +74,7 @@ Criar a tabela `jarvis_execucoes`, preenchida automaticamente no fim de cada ped
 
 ### 2.2 Feedback do usuário
 
-- Depois de respostas importantes (pesquisa, resumo, ação no PC), o Jarvis manda dois botões no Telegram: **Útil** e **Não útil**.
+- Depois de respostas importantes (pesquisa, resumo, ação no PC), o GIDEON manda dois botões no Telegram: **Útil** e **Não útil**.
 - Todo “Não útil” vira candidato a teste em `testes/tarefas-reais.md`.
 
 ### 2.3 Alertas de erro
@@ -84,7 +84,7 @@ Criar a tabela `jarvis_execucoes`, preenchida automaticamente no fim de cada ped
 
 ### 2.4 Relatório semanal automático
 
-Todo domingo, o Jarvis manda no Telegram:
+Todo domingo, o GIDEON manda no Telegram:
 
 - Total de pedidos, taxa de sucesso e tempo médio
 - Custo da semana por modelo
@@ -131,7 +131,7 @@ Uma entrega só está pronta quando:
 ### 3.4 Qualidade técnica
 
 - **Um workflow, uma função.** Partes repetidas viram sub-workflows reutilizáveis (ex.: “Buscar na memória”, “Enviar no Telegram”, “Registrar execução”).
-- **Nomes padronizados:** `Jarvis - <Área> - <Ação>` (ex.: `Jarvis - Memória - Indexar arquivo`).
+- **Nomes padronizados:** `GIDEON - <Área> - <Ação>` (ex.: `GIDEON - Memória - Indexar arquivo`).
 - **Credenciais só no cofre do n8n**, nunca escritas dentro de um nó.
 - **Mudança em produção:** duplicar o workflow, testar a cópia, só então trocar. Manter a versão anterior desativada por 7 dias.
 - **Changelog:** toda mudança relevante entra em `docs/changelog.md` (data, o que mudou, por quê).
@@ -175,14 +175,14 @@ Antes de declarar uma fase pronta e passar para a próxima:
 Somar ao que está no `jarvis-kickoff.md`:
 
 ```
-jarvis/
+gideon/
 ├── prompts/                  ← prompt de sistema de cada agente, versionado
 ├── docs/
 │   └── changelog.md          ← histórico de mudanças
 └── n8n/workflows/
-    ├── Jarvis - Sistema - Registrar execução.json
-    ├── Jarvis - Sistema - Alerta de erro.json
-    └── Jarvis - Sistema - Relatório semanal.json
+    ├── GIDEON - Sistema - Registrar execução.json
+    ├── GIDEON - Sistema - Alerta de erro.json
+    └── GIDEON - Sistema - Relatório semanal.json
 ```
 
 E no banco: a tabela `jarvis_execucoes` (seção 2.1).
@@ -193,17 +193,17 @@ E no banco: a tabela `jarvis_execucoes` (seção 2.1).
 
 ```
 Leia o arquivo jarvis-regras-qualidade.md. A partir de agora, siga
-essas regras em todo trabalho no projeto Jarvis.
+essas regras em todo trabalho no projeto GIDEON.
 
 Junto com a estruturação do jarvis-kickoff.md, inclua:
 1. A pasta prompts/ com o prompt atual de cada agente
 2. O arquivo docs/changelog.md
 3. A tabela jarvis_execucoes (seção 2.1)
-4. O workflow "Jarvis - Sistema - Registrar execução", chamado no fim
+4. O workflow "GIDEON - Sistema - Registrar execução", chamado no fim
    de cada pedido
-5. O workflow "Jarvis - Sistema - Alerta de erro" (Error Trigger →
+5. O workflow "GIDEON - Sistema - Alerta de erro" (Error Trigger →
    Telegram)
-6. O workflow "Jarvis - Sistema - Relatório semanal" (todo domingo)
+6. O workflow "GIDEON - Sistema - Relatório semanal" (todo domingo)
 
 Explique cada passo de forma simples, com links diretos, e peça meu OK
 antes de alterar qualquer workflow que já está funcionando. Antes de

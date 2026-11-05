@@ -1,4 +1,4 @@
-# Jarvis
+# GIDEON
 
 Assistente pessoal de IA que roda no n8n. Os 9 projetos do roadmap são peças de um sistema só, em 4 camadas: Canais → Orquestrador (n8n) → Cérebro / Equipe → Agente no PC.
 
@@ -12,4 +12,4 @@ Assistente pessoal de IA que roda no n8n. Os 9 projetos do roadmap são peças d
 
 Fase atual: **estruturação** (antes da Fase 1 — Memória). Checklist: [memoria/README.md](memoria/README.md).
 
-> Esta pasta está provisoriamente dentro do repositório `teste`. Deve ser movida para o repositório privado `jarvis` (ver `docs/changelog.md`).
+> Esta pasta está provisoriamente dentro do repositório `teste`. Deve ser movida para o repositório privado `gideon` (ver `docs/changelog.md`).

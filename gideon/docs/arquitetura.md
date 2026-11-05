@@ -10,7 +10,7 @@ Inventário do que já funciona. Fonte: kickoff, seção 2. Itens marcados ⚠ a
 | Jarvis - Fase 1 | Telegram → Claude → Telegram | n8n |
 | WAHA | API de WhatsApp (repositório `MauricioSUprir/jarvis-waha`) | Render grátis, https://jarvis-waha.onrender.com |
 | Jarvis - Despertador WhatsApp | Acorda o WAHA a cada 10 min | n8n |
-| Ferramenta "WhatsApp - Enviar mensagem" | Ligada ao Jarvis | n8n |
+| Ferramenta "WhatsApp - Enviar mensagem" | Ligada ao GIDEON | n8n |
 | Gemini | Modelo principal | API |
 | Pesquisador | Claude Haiku + SerpApi | n8n / API |
 | Leitura de arquivos | PDF, Word, PowerPoint, Excel, fotos, vídeos (Telegram e Drive), YouTube, links | n8n |
@@ -21,7 +21,7 @@ Inventário do que já funciona. Fonte: kickoff, seção 2. Itens marcados ⚠ a
 
 ```mermaid
 flowchart LR
-  TG[Telegram] --> J[Jarvis no n8n]
+  TG[Telegram] --> J[GIDEON no n8n]
   WA[WhatsApp / WAHA no Render] <--> J
   J --> G[Gemini principal]
   J --> P[Pesquisador: Claude Haiku + SerpApi]
@@ -38,5 +38,5 @@ flowchart LR
 
 ## Pendências de levantamento
 
-- Lista exata de workflows e ferramentas ligadas ao Jarvis.
+- Lista exata de workflows e ferramentas ligadas ao GIDEON.
 - Prompt de sistema atual de cada agente (para `prompts/`).

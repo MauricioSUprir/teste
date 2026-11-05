@@ -1,6 +1,6 @@
 # Tarefas reais (base da Fase 8)
 
-Pedidos reais feitos ao Jarvis + a resposta esperada. Toda falha real e todo "Não útil" vira uma linha aqui.
+Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "Não útil" vira uma linha aqui.
 
 > **Status:** os 10 pedidos abaixo são **rascunhos baseados nas capacidades listadas no kickoff**, não pedidos reais do histórico. O dono deve substituí-los/confirmá-los com os pedidos que realmente fez (histórico do Telegram e do WhatsApp).
 
