@@ -5,3 +5,4 @@
 - Provisoriamente dentro do repositório `teste`, em `gideon/`; mover para o repositório privado `gideon`.
 
 - Nome oficial da IA definido como GIDEON (decisão 006); pasta renomeada de `jarvis/` para `gideon/`.
+- Adicionado `CLAUDE.md` com as instruções permanentes para o Claude.
