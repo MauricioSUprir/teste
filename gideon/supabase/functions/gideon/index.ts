@@ -7,9 +7,12 @@
 //   POST /gideon/status     ← situação do webhook do Telegram (x-gideon-chave)
 //   POST /gideon/google/conectar ← manda ao dono o link de autorização do Google (x-gideon-chave)
 //   GET  /gideon/google/retorno  ← o Google volta aqui depois da autorização
+//   POST /gideon/whatsapp        ← WAHA entrega mensagens (cabeçalho x-gideon-whatsapp)
+//   POST /gideon/configurar-whatsapp ← cria a sessão no WAHA e gera o código de pareamento (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, config, dispararLembretes, relatorioSemanal, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
+import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -38,8 +41,10 @@ Deno.serve(async (req) => {
       return json({ ok: true }); // responde já, para o Telegram não reenviar
     }
     if (rota === "retorno") return await retorno(req); // o Google volta aqui (protegido pelo state assinado)
+    if (rota === "whatsapp") return await receberWhatsapp(req); // WAHA (protegido pelo cabeçalho secreto)
     if (!(await autorizado(req))) return json({ erro: "não autorizado" }, 401);
     if (rota === "conectar") return json(await linkConectar());
+    if (rota === "configurar-whatsapp") { const b = await req.json().catch(() => ({})); return json(await configurarWhatsapp(b.numero)); }
     if (rota === "nucleo") {
       const b = await req.json();
       const r = await atender({ texto: String(b.texto ?? ""), canal: String(b.canal ?? "sistema"), sessao: String(b.sessao ?? "teste") });

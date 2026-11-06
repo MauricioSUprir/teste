@@ -35,3 +35,4 @@
 - Correção: chaves com quebra de linha no fim (o GOOGLE_CLIENT_ID foi salvo com `\n`) quebravam o login do Google; agora todas as chaves passam por `trim()`. Link de autorização também é devolvido pela rota `google/conectar`.
 - Google: conta combinada fixada em `gideon_config.google_conta` (gui.drodrigues21@gmail.com); o link força a escolha de conta e a conexão é recusada se vier de outra conta.
 - ✅ Google conectado (gui.drodrigues21@gmail.com). Teste: "eventos nos próximos 7 dias e e-mails não lidos" → usou agenda_listar e gmail_buscar, 3,2 s.
+- WhatsApp (código pronto, ainda não publicado): webhook do WAHA → Núcleo (só o dono; ignora respostas do próprio GIDEON, que começam com 🤖), ferramenta `whatsapp_enviar` com confirmação, rota `configurar-whatsapp` com código de pareamento. WAHA no Render: versão 2026.8 CORE, sem sessão (precisa conectar de novo).
