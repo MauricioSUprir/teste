@@ -22,9 +22,11 @@ export async function linkConectar() {
   const ts = String(Date.now());
   const state = `${ts}.${(await hmac(await segredoCron(), "google:" + ts)).slice(0, 32)}`;
   const u = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  u.search = new URLSearchParams({ client_id: cliente().id, redirect_uri: retornoURL(), response_type: "code", scope: ESCOPOS,
-    access_type: "offline", prompt: "consent", include_granted_scopes: "true", state }).toString();
   const cfg = await config();
+  const params: Record<string, string> = { client_id: cliente().id, redirect_uri: retornoURL(), response_type: "code", scope: ESCOPOS,
+    access_type: "offline", prompt: "select_account consent", include_granted_scopes: "true", state };
+  if (cfg.google_conta) params.login_hint = cfg.google_conta; // sugere a conta certa na tela de escolha
+  u.search = new URLSearchParams(params).toString();
   await telegram("sendMessage", { chat_id: cfg.dono_telegram_id,
     text: "🔗 Para conectar o GIDEON ao seu Google (Agenda, Gmail e Drive), abra este link em até 15 minutos.\n\nSe aparecer \"app não verificado\": Avançado → Acessar GIDEON.\n\n" + u.toString() });
   return { enviado: true, url: u.toString() };
@@ -42,12 +44,14 @@ export async function retorno(req: Request) {
     body: new URLSearchParams({ code: q.get("code") ?? "", client_id: cliente().id, client_secret: cliente().segredo, redirect_uri: retornoURL(), grant_type: "authorization_code" }) });
   const t = await r.json();
   if (!r.ok || !t.refresh_token) return texto("Não consegui concluir a conexão com o Google (" + (t.error_description || t.error || "sem autorização duradoura") + "). Tente de novo.", 400);
-  const { error } = await sb.rpc("gideon_guardar_segredo", { nome: "google_refresh_token", valor: t.refresh_token });
-  if (error) return texto("Erro ao guardar a autorização: " + error.message, 500);
-  cacheAcesso = null;
   let email = "";
   try { email = JSON.parse(atob(String(t.id_token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).email ?? ""; } catch { /* sem e-mail */ }
   const cfg = await config();
+  if (cfg.google_conta && email.toLowerCase() !== cfg.google_conta.toLowerCase())
+    return texto(`Esta conta (${email || "desconhecida"}) não é a combinada (${cfg.google_conta}). Nada foi conectado. Peça um novo link e escolha a conta certa.`, 400);
+  const { error } = await sb.rpc("gideon_guardar_segredo", { nome: "google_refresh_token", valor: t.refresh_token });
+  if (error) return texto("Erro ao guardar a autorização: " + error.message, 500);
+  cacheAcesso = null;
   await telegram("sendMessage", { chat_id: cfg.dono_telegram_id, text: `✅ Google conectado${email ? " (" + email + ")" : ""}. Agora posso ver sua agenda, seus e-mails e seu Drive.` }).catch(() => {});
   return texto("GIDEON conectado ao Google" + (email ? " (" + email + ")" : "") + ". Pode fechar esta aba.");
 }
