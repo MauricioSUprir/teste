@@ -32,3 +32,4 @@
 - **Troca feita:** Telegram, lembretes (pg_cron a cada minuto) e relatório (domingo 19h) rodando no Supabase. Workflows do n8n desligados (reserva). Serviço de teste no Render suspenso.
 - Testes do Núcleo no Supabase: conversa com memória antiga (4,8 s), tarefa + lembrete na mesma mensagem (8 s, 2 ferramentas, fuso correto), agendador sem envios vazios.
 - Conexão Google (Agenda, Gmail só leitura, Drive só leitura) publicada na função `gideon` (rotas `google/conectar` e `google/retorno`, autorização no Vault). Link de autorização enviado ao dono.
+- Correção: chaves com quebra de linha no fim (o GOOGLE_CLIENT_ID foi salvo com `\n`) quebravam o login do Google; agora todas as chaves passam por `trim()`. Link de autorização também é devolvido pela rota `google/conectar`.

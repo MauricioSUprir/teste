@@ -8,7 +8,7 @@ const ESCOPOS = [
   "https://www.googleapis.com/auth/drive.readonly",
 ].join(" ");
 const retornoURL = () => `${Deno.env.get("SUPABASE_URL")}/functions/v1/gideon/google/retorno`;
-const cliente = () => ({ id: Deno.env.get("GOOGLE_CLIENT_ID") ?? "", segredo: Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "" });
+const cliente = () => ({ id: (Deno.env.get("GOOGLE_CLIENT_ID") ?? "").trim(), segredo: (Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "").trim() });
 
 async function hmac(chave: string, msg: string) {
   const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(chave), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -27,7 +27,7 @@ export async function linkConectar() {
   const cfg = await config();
   await telegram("sendMessage", { chat_id: cfg.dono_telegram_id,
     text: "🔗 Para conectar o GIDEON ao seu Google (Agenda, Gmail e Drive), abra este link em até 15 minutos.\n\nSe aparecer \"app não verificado\": Avançado → Acessar GIDEON.\n\n" + u.toString() });
-  return { enviado: true };
+  return { enviado: true, url: u.toString() };
 }
 
 // 2) O Google volta aqui com o código; troca por uma autorização duradoura e guarda no Vault

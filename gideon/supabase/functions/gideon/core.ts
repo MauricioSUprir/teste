@@ -9,8 +9,8 @@ const CHAVE_SB = (() => {
 export const sb = createClient(URL_SB, CHAVE_SB, { auth: { persistSession: false } });
 
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
-const chaveGemini = () => Deno.env.get("GEMINI_API_KEY") ?? "";
-export const tokenTelegram = () => Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+const chaveGemini = () => (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
+export const tokenTelegram = () => (Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "").trim();
 
 // ---------- utilidades ----------
 let cacheConfig: Record<string, string> | null = null;
