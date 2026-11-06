@@ -8,8 +8,9 @@
  * na sacola de sempre sem abrir a gaveta, e a cena mostra o produto caindo na cesta.
  *
  * Também: o guia "onde fica?" (busca de produto/marca que acende a trilha no
- * chão), o botão do som e o card da Larissa, que leva ao WhatsApp já com o
- * que está na cesta. As etiquetas de preço da cena seguem os preços do painel.
+ * chão) e o card da Larissa, que leva ao WhatsApp já com o
+ * que está na cesta (a loja é silenciosa: sem música nem efeitos de som).
+ * As etiquetas de preço da cena seguem os preços do painel.
  *
  * three.js só baixa nesta página (import dinâmico) — as outras não pesam nada.
  * No celular e no tablet a loja ocupa a tela toda (por cima do topo do site,
@@ -44,7 +45,6 @@ const BASE_IMAGEM = "https://comercial.thebeautyhub.app/api/ecom/imagem/";
 
 // Quem abre um produto e toca em "Voltar" cai no mesmo lugar da loja, com o mesmo card aberto.
 const CHAVE_VOLTA = "bn:loja3d";
-const CHAVE_SOM = "bn:som";
 type Volta = PosicaoCena & { slug: string | null };
 
 function lerVolta(): Volta | null {
@@ -55,14 +55,6 @@ function lerVolta(): Volta | null {
     return v as Volta;
   } catch {
     return null;
-  }
-}
-
-function lerSom(): boolean {
-  try {
-    return localStorage.getItem(CHAVE_SOM) !== "0";
-  } catch {
-    return true;
   }
 }
 
@@ -120,7 +112,6 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   const [mostrarDica, setMostrarDica] = useState(true);
   const [modo, setModo] = useState<ModoCena>("perto");
   const [larissaAberta, setLarissaAberta] = useState(false);
-  const [som, setSom] = useState(true);
   const [busca, setBusca] = useState<string | null>(null); // null = fechada
   const [marcada, setMarcada] = useState(0);
   const [guia, setGuia] = useState<string | null>(null); // nome do destino
@@ -140,7 +131,6 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
   useEffect(() => {
     selecionadoAgora.current = selecionado;
   }, [selecionado]);
-  useEffect(() => setSom(lerSom()), []);
 
   const porSlug = useMemo(() => {
     const mapa = new Map<string, Produto>();
@@ -258,7 +248,6 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
             setGuia(null);
             setAviso(t.guia.chegou);
           },
-          somLigado: lerSom(),
         });
         setEstado("pronta");
         // painel de LED atrás do caixa: os mesmos banners do carrossel da home (na Be2Beauty, com a arte de abertura)
@@ -378,17 +367,6 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
     if (!document.fullscreenElement) void document.documentElement.requestFullscreen().catch(() => undefined);
   }
 
-  function alternarSom() {
-    const novo = !som;
-    setSom(novo);
-    cena.current?.definirSom(novo);
-    try {
-      localStorage.setItem(CHAVE_SOM, novo ? "1" : "0");
-    } catch {
-      // sem armazenamento: vale só nesta visita
-    }
-  }
-
   const linkLarissa = NEGOCIO.whatsapp
     ? linkWhatsapp(
         NEGOCIO.whatsapp,
@@ -452,7 +430,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
         </p>
       )}
 
-      {/* guia "onde fica?" e som, no canto de cima à esquerda */}
+      {/* guia "onde fica?" e atalho do caixa, no canto de cima à esquerda */}
       {estado === "pronta" && (
         <div className="absolute left-4 top-4 flex w-[calc(100%-2rem)] max-w-[300px] flex-col items-start gap-2">
           <div className="flex gap-2">
@@ -487,24 +465,7 @@ export function Loja3D({ setores, categorias }: { setores: Setor3D[]; categorias
                 className="h-9 w-[min(230px,calc(100vw-6.5rem))] rounded-[40px] border-0 bg-white px-4 text-[0.8125rem] text-tinta shadow-sm outline-none ring-roxo focus-visible:ring-2"
               />
             )}
-            <button
-              type="button"
-              onClick={alternarSom}
-              aria-pressed={som}
-              aria-label={som ? t.som.desligar : t.som.ligar}
-              title={som ? t.som.desligar : t.som.ligar}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-tinta shadow-sm hover:text-roxo"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M2 6 H5 L9 2.5 V13.5 L5 10 H2 Z" fill="currentColor" />
-                {som ? (
-                  <path d="M11.5 5 Q13.5 8 11.5 11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                ) : (
-                  <path d="M11 5.5 L15 10.5 M15 5.5 L11 10.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                )}
-              </svg>
-            </button>
-            {/* atalho para o caixa: a Larissa fecha a compra (também pelo teclado, sem achar ela na cena) */}
+                        {/* atalho para o caixa: a Larissa fecha a compra (também pelo teclado, sem achar ela na cena) */}
             <button
               type="button"
               onClick={() => cena.current?.irAoCaixa()}

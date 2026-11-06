@@ -29,7 +29,7 @@
  * ângulo e a visão geral mostra a loja de lado, para caber o comprimento.
  *
  * Loja viva: etiqueta de preço embaixo de cada produto (etiquetas.ts), a
- * Larissa no caixa (larissa.ts), som ambiente (som.ts) e o guia "onde fica?"
+ * Larissa no caixa (larissa.ts) e o guia "onde fica?"
  * com a trilha acesa no chão (guia.ts).
  *
  * Desempenho: o cenário fixo vira uma malha por material, cada produto é uma
@@ -54,7 +54,6 @@ import { criarLuzAssada, type LuzAssada, type ReceptorAssado } from "./luz-assad
 import { carregarPlantas, TERRA_DO_MODELO, type LugarPlanta, type Plantas, type TipoPlanta } from "./plantas";
 import { criarEtiquetas, type DadosEtiqueta } from "./etiquetas";
 import { criarLarissa } from "./larissa";
-import { criarSom } from "./som";
 import { criarGuia, type PontoGuia } from "./guia";
 import { criarPainelLed } from "./painel-led";
 
@@ -138,7 +137,6 @@ export interface OpcoesCena {
   aoChegarNoLimite?: () => void;
   /** mouse em cima de um produto (null = saiu); x e y em pixels dentro da cena, para o balão da ficha */
   aoApontarProduto?: (slug: string | null, x: number, y: number) => void;
-  somLigado: boolean;
 }
 
 /** destino do guia: um produto ou a seção de uma marca */
@@ -159,7 +157,6 @@ export interface Cena {
   /** anda sozinho até o fim da trilha */
   irAteGuia: () => void;
   pararGuia: () => void;
-  definirSom: (ligado: boolean) => void;
   /** controle de andar na tela (celular): frente/trás e virar, de -1 a 1 (0 e 0 = parado) */
   mover: (frente: number, vira: number) => void;
   /** preço mudou no painel: refaz as etiquetas */
@@ -377,7 +374,7 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   cena.environment = ambiente;
   cena.environmentIntensity = 0.24;
 
-  const cesta = criarCesta(op.corCesta, () => som.cesta());
+  const cesta = criarCesta(op.corCesta);
   cesta.cena.environment = ambiente;
   cesta.cena.environmentIntensity = 0.5;
 
@@ -1869,10 +1866,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     if (v) irParaVista(v);
   }
 
-  // ---- som
-  const som = criarSom();
-  som.ligar(op.somLigado);
-
   // ---- interação
   const raycaster = new THREE.Raycaster();
   const ponteiro = new THREE.Vector2();
@@ -1951,7 +1944,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     hit && volumes.includes(hit.object as THREE.Mesh) ? (hit.object.userData.vista as QualVista) : null;
 
   function aoApertar(ev: PointerEvent) {
-    som.destravar();
     op.aoApontarProduto?.(null, 0, 0); // arrastar para olhar esconde o balão da ficha
     if (ev.pointerType !== "mouse") {
       dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
@@ -2094,7 +2086,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
 
   const teclas = new Set<string>();
   function aoTeclar(ev: KeyboardEvent) {
-    som.destravar();
     const k = ev.key.toLowerCase();
     if (["w", "s", "a", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) {
       ev.preventDefault();
@@ -2396,7 +2387,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
   let proximaNitida = 0;
   let proximaSombra = 0;
   let quadro = 0;
-  let andadoDesdePasso = 0;
   const ultimaVista = new THREE.Matrix4();
   let quadrosSemReflexo = 0;
   const auxLarissa = new THREE.Vector3();
@@ -2480,7 +2470,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     const pertoDaPorta = posicao.y < 3 && Math.abs(posicao.x) < VAO + 2.5 && Math.abs(posicao.z - Z1) < 3.5;
     const antesPorta = porta;
     porta = limitar(porta + (pertoDaPorta ? 1 : -1) * dt * 1.6, 0, 1);
-    if (antesPorta === 0 && porta > 0) som.porta();
     if (porta !== antesPorta) {
       const k = suave(porta);
       for (const folha of folhas) folha.position.x = ((folha.userData.lado as number) * VAO) / 2 + (folha.userData.lado as number) * k * (VAO - 0.08);
@@ -2499,17 +2488,8 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     andando = !voo && modo === "perto" && antes.distanceTo(posicao) > 0.002;
     cesta.mostrar(posicao.y < 2.4);
     cesta.atualizar(dt, andando, camera);
-    // passos no porcelanato
-    if (andando) {
-      andadoDesdePasso += antes.distanceTo(posicao);
-      if (andadoDesdePasso > 0.72) {
-        andadoDesdePasso = 0;
-        som.passo();
-      }
-    }
     larissa.grupo.getWorldPosition(auxLarissa);
     larissa.atualizar(dt, camera.position, modo === "perto" ? Math.hypot(posicao.x - auxLarissa.x, posicao.z - auxLarissa.z) : 99);
-    if (larissa.acenou()) som.balao();
     painelLed.atualizar(dt);
     cuidarGuia(dt, agora);
 
@@ -2577,7 +2557,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
     guiarPara,
     irAteGuia,
     pararGuia,
-    definirSom: (ligado) => som.ligar(ligado),
     mover(frente, vira) {
       controle.frente = limitar(frente, -1, 1);
       controle.vira = limitar(vira, -1, 1);
@@ -2601,7 +2580,6 @@ export function criarCena(container: HTMLElement, op: OpcoesCena): Cena {
         m.texNitida?.dispose();
       }
       spots.dispose();
-      som.descartar();
       plantas?.descartar();
       luzAssada?.descartar();
       for (const d of descartar) d.dispose();

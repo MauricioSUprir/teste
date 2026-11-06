@@ -808,7 +808,6 @@ export const copy = {
       parar: "Parar o guia",
       chegou: "É aqui!",
     },
-    som: { ligar: "Ligar o som", desligar: "Tirar o som" },
     // ficha do produto: no balão do mouse e no card
     ficha: {
       tipo: "Tipo",
