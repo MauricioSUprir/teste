@@ -28,3 +28,4 @@
 - Estrutura por categorias e subcategorias dos 9 projetos (`docs/estrutura-projetos.md`), análise de limites do n8n e proposta de substituto (Supabase Edge Functions + pg_cron).
 - Hugging Face descartado (Docker exige PRO). Teste do n8n no Render grátis iniciado (serviço `gideon-n8n`).
 - Nova categoria ★ GIDEON HOME (o Jarvis): casa própria, interface estilo Jarvis e conversa contínua por voz com Gemini Live (plano grátis).
+- Decisão 011: Núcleo do GIDEON no Supabase (Edge Function `gideon` + pg_cron). Função publicada e testada (rota de relatório); falta o dono cadastrar GEMINI_API_KEY e TELEGRAM_BOT_TOKEN.

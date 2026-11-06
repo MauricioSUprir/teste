@@ -10,6 +10,7 @@
 | 002 | `002_espinha_e_memoria.sql` | Memória com vetor, arquivos, tarefas, lembretes, aprovações, ações, ponte com o PC, função de busca, esquema `n8n` | 06/11/2026 |
 | 003 | `003_indices_fk.sql` | Índices das chaves estrangeiras | 06/11/2026 |
 | 004 | `004_usuario_n8n.sql` | Usuário `gideon_n8n` (só tabelas do GIDEON) | 06/11/2026 |
+| 005 | `005_nucleo_supabase.sql` | Memória curta, configuração, pg_cron, segredo do agendador, funções de lembretes e relatório | 06/11/2026 |
 
 ## Tabelas
 
