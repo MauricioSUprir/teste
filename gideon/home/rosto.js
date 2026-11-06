@@ -32,16 +32,22 @@ export function iniciarRosto(palco) {
   for (let i = 0; i < N; i++) {
     let x = B[i * 3], y = B[i * 3 + 1], z = B[i * 3 + 2];
     y += 0.3 * suave(-7, -9.4, y);                                                      // queixo um pouco menor (olhos ficam no meio da cabeça)
-    x *= 0.87 * (1 - 0.2 * suave(-2.5, -10.5, y));                                      // mais estreito; maxilar afina até o queixo
+    x *= 0.9 * (1 - 0.2 * suave(-2.5, -10.5, y));                                       // mais estreito; maxilar afina até o queixo
     const ax = Math.abs(x);
-    z += 0.3 * suave(3.2, 5.6, ax) * suave(-1.2, 0.6, y) * suave(2.8, 1.0, y);        // maçãs do rosto
-    z -= 0.35 * suave(3.0, 5.0, ax) * suave(-1.6, -3.2, y) * suave(-6.2, -4.4, y);    // bochecha um pouco funda
-    const nariz = suave(2.4, 1.0, ax) * suave(-3.0, -1.8, y) * suave(3.2, 2.0, y) * suave(4.6, 5.6, z);
-    z -= (z - 4.6) * 0.2 * nariz; x *= 1 - 0.1 * nariz;                                 // nariz mais delicado
+    // relevo (rosto menos achatado): profundidade geral maior, olhos fundos, sobrancelha, nariz, maçãs, lábios e queixo saltando
+    z = 0.6 + (z - 0.6) * 1.2;
+    const orbita = 1 - suave(0.55, 1.45, Math.hypot((ax - 2.8) / 1.05, (y - 2.7) / 0.85));
+    z -= 0.45 * orbita;                                                                  // olhos mais fundos
+    z += 0.12 * suave(0.8, 1.8, ax) * suave(5.2, 4.4, ax) * suave(3.4, 3.9, y) * suave(5.4, 4.6, y); // arco da sobrancelha
+    z += 0.55 * suave(3.0, 5.4, ax) * suave(-1.4, 0.4, y) * suave(2.6, 1.0, y);        // maçãs do rosto
+    z -= 0.55 * suave(3.0, 5.0, ax) * suave(-1.6, -3.2, y) * suave(-6.4, -4.4, y);    // bochecha funda abaixo da maçã
+    z += 0.6 * suave(2.8, 0.6, ax) * suave(-6.8, -8.2, y);                              // queixo marcado (não fica para trás no perfil)
+    const nariz = suave(2.4, 1.0, ax) * suave(-3.0, -1.8, y) * suave(3.2, 2.0, y) * suave(5.0, 6.2, z);
+    z += (z - 5.0) * 0.03 * nariz; x *= 1 - 0.12 * nariz;                               // nariz fino
     B[i * 3] = x; B[i * 3 + 1] = y; B[i * 3 + 2] = z;
   }
-  for (const i of [185, 40, 39, 37, 0, 267, 269, 270, 409]) { B[i * 3 + 1] += 0.08; B[i * 3 + 2] += 0.1; }
-  for (const i of [146, 91, 181, 84, 17, 314, 405, 321, 375]) { B[i * 3 + 1] -= 0.1; B[i * 3 + 2] += 0.1; }
+  for (const i of [185, 40, 39, 37, 0, 267, 269, 270, 409]) { B[i * 3 + 1] += 0.08; B[i * 3 + 2] += 0.15; }
+  for (const i of [146, 91, 181, 84, 17, 314, 405, 321, 375]) { B[i * 3 + 1] -= 0.1; B[i * 3 + 2] += 0.15; }
   for (const i of SOBRANCELHAS) B[i * 3 + 1] += 0.15;
   for (const i of [95, 88, 178, 87, 14, 317, 402, 318, 324]) B[i * 3 + 1] += 0.42; // fecha a fresta da malha original
   for (const i of [191, 80, 81, 82, 13, 312, 311, 310, 415]) B[i * 3 + 1] -= 0.06;
@@ -118,8 +124,8 @@ export function iniciarRosto(palco) {
       vec4 mv = viewMatrix * w; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
   const FRAG = `uniform vec3 uCor; uniform float uT, uBrilho, uPinos, uSome; varying vec3 vN; varying vec3 vV; varying vec3 vW; varying vec3 vB;
     void main(){ vec3 n = normalize(vN); float fr = pow(1.0 - abs(dot(n, normalize(vV))), 2.0);
-      vec3 L = normalize(vec3(0.2, 0.55, 0.8)); float luz = max(dot(n, L), 0.0);
-      float esp = pow(max(dot(reflect(-L, n), normalize(vV)), 0.0), 6.0);
+      vec3 L = normalize(vec3(-0.3, 0.6, 0.75)); float luz = max(dot(n, L), 0.0);
+      float esp = pow(max(dot(reflect(-L, n), normalize(vV)), 0.0), 10.0);
       float linhas = 0.86 + 0.14 * sin(vW.y * 7.0 - uT * 2.2);
       float faixa = smoothstep(1.3, 0.0, abs(vW.y - (16.0 - mod(uT * 6.0, 46.0))));
       vec3 q = vB - vec3(0.0, 1.5, -4.0);
@@ -128,7 +134,7 @@ export function iniciarRosto(palco) {
       float pino = smoothstep(0.2, 0.09, d) * (0.5 + 0.5 * smoothstep(0.12, 0.0, length(f - vec2(-0.05, 0.06))));
       float grade = (smoothstep(0.05, 0.0, abs(f.x)) * 0.7 + smoothstep(0.04, 0.0, abs(f.y)) * 0.3) * 0.09;
       float pontos = uPinos * (pino * mix(0.75, 0.38, rosto) + grade * (1.0 - 0.6 * rosto));
-      float a = (0.02 + 0.55 * fr + 0.2 * luz * luz + 0.16 * esp) * linhas + 0.18 * faixa + pontos * (0.45 + 0.55 * luz);
+      float a = (0.006 + 0.36 * fr + 0.34 * pow(luz, 1.8) + 0.2 * esp) * linhas + 0.14 * faixa + pontos * (0.22 + 0.7 * luz);
       a *= mix(1.0, 0.8 * smoothstep(-4.5, 4.5, vB.y), uSome); // pescoço some para baixo
       gl_FragColor = vec4(uCor * a * uBrilho, 1.0); }`;
   const pele = (pinos = 1) => { const m = new T.ShaderMaterial({ uniforms: { ...uni, uPinos: { value: pinos }, uSome: { value: 0 } }, vertexShader: VERT, fragmentShader: FRAG,
