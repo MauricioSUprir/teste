@@ -9,7 +9,7 @@ n8n atual: https://n8n-production-a0ba2.up.railway.app (Railway, decisão 007). 
 | GIDEON - Núcleo - Atender pedido | Cérebro único: memória → agente → guarda → registra | Ativo |
 | GIDEON - Memória - Guardar | Texto → trechos → vetor → Supabase (sem duplicar) | Ativo (sub-workflow) |
 | GIDEON - Memória - Buscar | Pergunta → vetor → até 5 trechos parecidos | Ativo (sub-workflow) |
-| GIDEON - Lembretes - Disparar | A cada minuto, envia lembretes vencidos | Ativo |
+| GIDEON - Lembretes - Disparar | A cada minuto, envia lembretes vencidos | **Desligado** após o incidente de 06/11 (corrigido; religar junto com o canal novo) |
 | GIDEON - Sistema - Relatório semanal | Domingo 19h | Ativo |
 | GIDEON - Sistema - Alerta de erro | Avisa no Telegram quando algo falha | Ativo |
 | GIDEON - Telegram - Conversa | Canal antigo (sem memória) | Ativo até a troca |

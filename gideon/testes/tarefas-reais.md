@@ -39,3 +39,9 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | "cancela o lembrete..." / "marca como feita a tarefa..." | Cancelar / concluir | ✅ | ~2 s |
 | Busca sem relação ("receita de bolo de cenoura") | Similaridade baixa, não usar | ✅ 0,51 (limite 0,60) | — |
 | Guardar a mesma nota duas vezes | Não duplicar | ✅ | — |
+
+## Falhas reais que viraram teste
+
+| Data | Falha | Teste que impede a volta |
+| --- | --- | --- |
+| 06/11/2026 | Disparador mandou "⏰ Lembrete:" vazio a cada minuto | Rodar o disparador sem lembretes vencidos: nada pode chegar ao Telegram |

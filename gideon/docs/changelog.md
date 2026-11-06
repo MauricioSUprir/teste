@@ -18,3 +18,10 @@
 - Fase 1 (parte): `GIDEON - Núcleo - Atender pedido`, `Memória - Guardar/Buscar`, `Lembretes - Disparar`, `Sistema - Relatório semanal` criados, ativos e testados. Canal novo do Telegram criado desligado (aguarda OK).
 - Decisão 010: n8n grátis no Hugging Face Spaces; arquivos em `infra/hf-space/`.
 - Teste dos vetores do Gemini (`gemini-embedding-2`, 768 dimensões) no plano grátis: ok.
+
+### Incidente 06/11/2026 — mensagens "⏰ Lembrete:" vazias a cada minuto
+- **O que houve:** o `GIDEON - Lembretes - Disparar` mandou uma mensagem vazia por minuto (~30) ao dono.
+- **Causa:** no n8n, um `UPDATE ... RETURNING` que não altera nenhuma linha devolve um item `{success:true}` em vez de nenhum item; o passo seguinte (Telegram) rodava para esse item. O caso "sem lembrete vencido" não foi testado antes de ligar.
+- **Correção:** workflow desligado na hora; novo passo "Só lembretes de verdade" deixa passar apenas itens com `id` e `texto`. Testado numa cópia sem envio: com zero lembretes, o fluxo para no filtro.
+- **Regra nova:** todo passo do Postgres que alimenta um envio (Telegram, WhatsApp, e-mail) passa por um filtro de itens reais, e o caso "vazio" é testado antes de ligar.
+- **Situação:** continua desligado até o dono aprovar o canal novo.

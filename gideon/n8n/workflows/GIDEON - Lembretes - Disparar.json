@@ -47,6 +47,7 @@
     {
       "id": "l3",
       "name": "Avisa no Telegram",
+      "webhookId": "14054322-1e10-470e-a390-7cd82bac12c4",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
@@ -65,8 +66,7 @@
           "id": "8laolpRHTWXd6lke",
           "name": "Telegram account"
         }
-      },
-      "webhookId": "14054322-1e10-470e-a390-7cd82bac12c4"
+      }
     },
     {
       "id": "l4",
@@ -82,7 +82,7 @@
         "query": "insert into public.gideon_lembretes (texto, quando, recorrencia, canal) select texto, quando + case recorrencia when 'diaria' then interval '1 day' when 'semanal' then interval '7 days' when 'mensal' then interval '1 month' end, recorrencia, canal from public.gideon_lembretes where id=$1::bigint and recorrencia in ('diaria','semanal','mensal')",
         "options": {
           "queryBatching": "independently",
-          "queryReplacement": "={{ [ $('Vencidos').item.json.id ] }}"
+          "queryReplacement": "={{ [ $('Só lembretes de verdade').item.json.id ] }}"
         }
       },
       "credentials": {
@@ -90,6 +90,19 @@
           "id": "F7EszepsjeaP49us",
           "name": "GIDEON Supabase"
         }
+      }
+    },
+    {
+      "id": "l5",
+      "name": "Só lembretes de verdade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        330,
+        160
+      ],
+      "parameters": {
+        "jsCode": "// O Postgres devolve {success:true} quando nenhuma linha muda; isso não é lembrete.\nreturn $input.all().filter(i => i.json && i.json.id && String(i.json.texto || '').trim());"
       }
     }
   ],
@@ -109,7 +122,7 @@
       "main": [
         [
           {
-            "node": "Avisa no Telegram",
+            "node": "Só lembretes de verdade",
             "type": "main",
             "index": 0
           }
@@ -126,11 +139,22 @@
           }
         ]
       ]
+    },
+    "Só lembretes de verdade": {
+      "main": [
+        [
+          {
+            "node": "Avisa no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "none",
+    "saveDataSuccessExecution": "all",
     "errorWorkflow": "lVwLCMKuahInrGyE",
     "timezone": "America/Sao_Paulo",
     "executionOrder": "v1"
