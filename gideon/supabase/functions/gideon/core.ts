@@ -10,7 +10,7 @@ const CHAVE_SB = (() => {
 export const sb = createClient(URL_SB, CHAVE_SB, { auth: { persistSession: false } });
 
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
-const chaveGemini = () => (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
+export const chaveGemini = () => (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
 export const tokenTelegram = () => (Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "").trim();
 
 // ---------- utilidades ----------
@@ -34,7 +34,7 @@ export async function sha256(txt: string): Promise<string> {
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
-const agoraBrasilia = () =>
+export const agoraBrasilia = () =>
   new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date());
 const fmtBrasilia = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : null;
@@ -115,7 +115,7 @@ export async function buscarMemoria(pergunta: string, qtd = 5, projeto?: string)
 }
 
 // ---------- Ferramentas do agente ----------
-const FERRAMENTAS = [
+export const FERRAMENTAS = [
   { name: "criar_lembrete", description: "Cria um lembrete enviado ao dono no Telegram na data e hora indicadas.", parameters: { type: "object", properties: {
       texto: { type: "string", description: "O que lembrar, em poucas palavras" },
       quando: { type: "string", description: "Data e hora em ISO 8601 com fuso -03:00, ex. 2026-11-07T15:00:00-03:00" },
@@ -132,7 +132,7 @@ const FERRAMENTAS = [
       pergunta: { type: "string" }, projeto: { type: "string" } }, required: ["pergunta"] } },
 ];
 type Args = Record<string, unknown>;
-async function executar(nome: string, a: Args, canal: string): Promise<unknown> {
+export async function executar(nome: string, a: Args, canal: string): Promise<unknown> {
   switch (nome) {
     case "criar_lembrete": {
       const { data, error } = await sb.from("gideon_lembretes").insert({ texto: a.texto, quando: a.quando, recorrencia: a.recorrencia || null, canal: "telegram" }).select("id, quando, recorrencia").single();
@@ -174,7 +174,7 @@ async function executar(nome: string, a: Args, canal: string): Promise<unknown> 
 }
 
 // ---------- Prompt ----------
-const PROMPT = `Você é o GIDEON, assistente pessoal do seu dono. Responda no idioma e no tom dele (normalmente português do Brasil), de forma curta e direta; dê detalhes só quando ele pedir.
+export const PROMPT = `Você é o GIDEON, assistente pessoal do seu dono. Responda no idioma e no tom dele (normalmente português do Brasil), de forma curta e direta; dê detalhes só quando ele pedir.
 
 Memória:
 - Junto com a mensagem podem vir "Trechos da memória". Use-os só se forem relevantes e, quando houver link, cite o link.

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060c">
+<title>GIDEON</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg">
+<style>
+  :root { --fundo:#04060c; --texto:#d8f3ff; --suave:#6f8ba3; --ciano:#27c4ff; --ambar:#ffb547; --violeta:#9b7bff; --vermelho:#ff6b6b; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:var(--fundo); color:var(--texto); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow:hidden; }
+  main { height:100%; display:grid; grid-template-rows:auto 1fr auto; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+  header { display:flex; justify-content:space-between; align-items:center; }
+  h1 { font-size:14px; letter-spacing:.45em; font-weight:600; color:var(--ciano); }
+  #estado { font-size:12px; letter-spacing:.15em; text-transform:uppercase; color:var(--suave); }
+  #palco { position:relative; display:grid; place-items:center; min-height:0; }
+  canvas { width:min(78vw, 60vh); height:min(78vw, 60vh); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  #dica { position:absolute; bottom:6%; font-size:13px; color:var(--suave); text-align:center; }
+  #legendas { min-height:118px; max-width:720px; width:100%; margin:0 auto; display:grid; gap:8px; align-content:end; }
+  .fala { font-size:15px; line-height:1.4; opacity:.95; }
+  .fala.dono { color:var(--suave); }
+  .fala.dono::before { content:"Você: "; color:var(--suave); }
+  .fala.gideon::before { content:"GIDEON: "; color:var(--ciano); font-weight:600; }
+  #aviso { position:fixed; inset:0; display:none; place-items:center; background:rgba(4,6,12,.94); padding:24px; text-align:center; }
+  #aviso.on { display:grid; }
+  #aviso p { max-width:420px; line-height:1.5; }
+  #aviso code { color:var(--ciano); }
+  button.sair { background:none; border:1px solid #1c2a3a; color:var(--suave); border-radius:999px; padding:6px 12px; font-size:12px; }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>GIDEON</h1><div id="estado">desligado</div></header>
+  <section id="palco"><canvas id="orbe" width="800" height="800" aria-label="Toque para falar com o GIDEON" role="button"></canvas><div id="dica">Toque no orbe para conversar</div></section>
+  <section id="legendas"><div class="fala dono" id="ultDono" hidden></div><div class="fala gideon" id="ultGideon" hidden></div></section>
+</main>
+<div id="aviso"><p>Para abrir o GIDEON Home, mande <code>/home</code> para o GIDEON no Telegram e toque no link que ele enviar.<br><br>O link é pessoal e vale 30 dias.</p></div>
+<script>
+const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
+const $ = (id) => document.getElementById(id);
+
+// ---------- chave de acesso (vem no link do Telegram: #t=...) ----------
+let chave = null;
+try {
+  const h = new URLSearchParams(location.hash.slice(1)).get("t");
+  if (h) { localStorage.setItem("gideon_home", h); history.replaceState(null, "", location.pathname); }
+  chave = localStorage.getItem("gideon_home");
+} catch { chave = new URLSearchParams(location.hash.slice(1)).get("t"); }
+if (!chave || Number(chave.split(".")[0]) < Date.now()) $("aviso").classList.add("on");
+async function api(rota, corpo) {
+  const r = await fetch(FUNC + rota, { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave }, body: JSON.stringify(corpo ?? {}) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { $("aviso").classList.add("on"); throw new Error("acesso negado"); }
+  if (!r.ok) throw new Error(j.erro || ("erro " + r.status));
+  return j;
+}
+
+// ---------- estado e orbe ----------
+let estado = "desligado", nivelMic = 0, nivelVoz = 0, suave = 0;
+const CORES = { desligado:[111,139,163], conectando:[155,123,255], ouvindo:[39,196,255], pensando:[255,181,71], falando:[155,123,255], erro:[255,107,107] };
+function mudar(e, dica) { estado = e; $("estado").textContent = e; if (dica !== undefined) $("dica").textContent = dica; }
+const cv = $("orbe"), g = cv.getContext("2d");
+function desenhar(t) {
+  const alvo = estado === "falando" ? nivelVoz : estado === "ouvindo" ? nivelMic : estado === "pensando" ? 0.15 + 0.1 * Math.sin(t / 180) : 0.04;
+  suave += (Math.min(alvo * 3, 1) - suave) * 0.18;
+  const [r, gg, b] = CORES[estado] || CORES.desligado, c = 400, base = 210;
+  g.clearRect(0, 0, 800, 800);
+  for (let i = 5; i >= 1; i--) { // halo
+    g.beginPath(); g.arc(c, c, base + i * 22 + suave * 70 + 4 * Math.sin(t / 600 + i), 0, Math.PI * 2);
+    g.fillStyle = `rgba(${r},${gg},${b},${0.035 * (6 - i)})`; g.fill();
+  }
+  const raio = base + suave * 55;
+  const grad = g.createRadialGradient(c - 40, c - 50, 10, c, c, raio);
+  grad.addColorStop(0, "rgba(235,250,255,.95)"); grad.addColorStop(0.35, `rgba(${r},${gg},${b},.9)`); grad.addColorStop(1, "rgba(4,6,12,.2)");
+  g.beginPath(); g.arc(c, c, raio, 0, Math.PI * 2); g.fillStyle = grad; g.fill();
+  g.lineWidth = 3; g.strokeStyle = `rgba(${r},${gg},${b},.55)`;
+  g.beginPath(); for (let a = 0; a <= Math.PI * 2 + 0.01; a += Math.PI / 90) { // anel que ondula com a voz
+    const rr = raio + 28 + suave * 40 * Math.sin(a * 6 + t / 200); g.lineTo(c + rr * Math.cos(a), c + rr * Math.sin(a)); } g.stroke();
+  requestAnimationFrame(desenhar);
+}
+requestAnimationFrame(desenhar);
+
+// ---------- áudio ----------
+let ws = null, ctxMic = null, ctxVoz = null, analisador = null, fluxo = null, noMic = null, proximo = 0, fontes = [], travaTela = null;
+const CAPTURA = `class Captura extends AudioWorkletProcessor {
+  constructor(){ super(); this.buf=[]; this.passo=sampleRate/16000; this.acc=0; }
+  process(entradas){ const ch=entradas[0][0]; if(!ch) return true;
+    for(let i=0;i<ch.length;i++){ this.acc+=1; if(this.acc>=this.passo){ this.acc-=this.passo; this.buf.push(ch[i]); } }
+    if(this.buf.length>=1600){ const pcm=new Int16Array(this.buf.length); let s2=0;
+      for(let i=0;i<this.buf.length;i++){ const s=Math.max(-1,Math.min(1,this.buf[i])); pcm[i]=s<0?s*0x8000:s*0x7fff; s2+=s*s; }
+      this.port.postMessage({pcm:pcm.buffer,nivel:Math.sqrt(s2/this.buf.length)},[pcm.buffer]); this.buf=[]; }
+    return true; } }
+registerProcessor('captura', Captura);`;
+const paraBase64 = (buf) => { const b = new Uint8Array(buf); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+function tocar(b64) {
+  const bin = atob(b64), n = bin.length / 2, f = new Float32Array(n);
+  for (let i = 0; i < n; i++) { let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); if (v >= 32768) v -= 65536; f[i] = v / 32768; }
+  const buf = ctxVoz.createBuffer(1, n, 24000); buf.copyToChannel(f, 0);
+  const src = ctxVoz.createBufferSource(); src.buffer = buf; src.connect(analisador);
+  proximo = Math.max(proximo, ctxVoz.currentTime + 0.03); src.start(proximo); proximo += buf.duration;
+  fontes.push(src); src.onended = () => { fontes = fontes.filter((x) => x !== src); if (!fontes.length && estado === "falando") mudar("ouvindo", "Pode falar"); };
+  mudar("falando", "Toque para encerrar · pode interromper falando");
+}
+function calar() { fontes.forEach((s) => { try { s.stop(); } catch {} }); fontes = []; proximo = 0; }
+function medirVoz() { if (!analisador) return; const d = new Uint8Array(analisador.fftSize); analisador.getByteTimeDomainData(d); let s = 0; for (const v of d) s += ((v - 128) / 128) ** 2; nivelVoz = Math.sqrt(s / d.length); requestAnimationFrame(medirVoz); }
+
+// ---------- conversa ----------
+let turno = { dono: "", gideon: "", ferramentas: [], inicio: 0 };
+function legenda(id, txt) { const el = $(id); el.hidden = !txt; el.textContent = txt; }
+async function guardarTurno() {
+  const t = turno; turno = { dono: "", gideon: "", ferramentas: [], inicio: 0 };
+  if (t.dono.trim() || t.gideon.trim()) api("home-conversa", { pedido: t.dono, resposta: t.gideon, ferramentas: t.ferramentas, tempo_ms: t.inicio ? Date.now() - t.inicio : null }).catch(() => {});
+}
+async function ligar() {
+  mudar("conectando", "Conectando…");
+  try {
+    const s = await api("home-sessao");
+    ctxVoz = new AudioContext({ sampleRate: 24000 }); analisador = ctxVoz.createAnalyser(); analisador.fftSize = 512; analisador.connect(ctxVoz.destination); medirVoz();
+    fluxo = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+    ctxMic = new AudioContext(); await ctxMic.audioWorklet.addModule(URL.createObjectURL(new Blob([CAPTURA], { type: "text/javascript" })));
+    noMic = new AudioWorkletNode(ctxMic, "captura"); ctxMic.createMediaStreamSource(fluxo).connect(noMic);
+    ws = new WebSocket(`${s.url}?access_token=${encodeURIComponent(s.token)}`);
+    ws.onopen = () => ws.send(JSON.stringify({ setup: {
+      model: `models/${s.modelo}`,
+      generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: s.voz } } } },
+      systemInstruction: { parts: [{ text: s.sistema }] },
+      tools: [{ functionDeclarations: s.ferramentas }],
+      inputAudioTranscription: {}, outputAudioTranscription: {},
+    } }));
+    ws.onmessage = async (ev) => {
+      const m = JSON.parse(typeof ev.data === "string" ? ev.data : await ev.data.text());
+      if (m.setupComplete) {
+        noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; if (ws?.readyState === 1) ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); };
+        mudar("ouvindo", "Pode falar · toque para encerrar");
+        try { travaTela = await navigator.wakeLock?.request("screen"); } catch {}
+      }
+      const sc = m.serverContent;
+      if (sc) {
+        if (sc.interrupted) { calar(); mudar("ouvindo", "Pode falar"); }
+        if (sc.inputTranscription?.text) { if (!turno.inicio) turno.inicio = Date.now(); turno.dono += sc.inputTranscription.text; legenda("ultDono", turno.dono.trim()); }
+        if (sc.outputTranscription?.text) { turno.gideon += sc.outputTranscription.text; legenda("ultGideon", turno.gideon.trim()); }
+        for (const p of sc.modelTurn?.parts ?? []) if (p.inlineData?.data) tocar(p.inlineData.data);
+        if (sc.turnComplete) guardarTurno();
+      }
+      if (m.toolCall) {
+        mudar("pensando", "Pensando…");
+        const respostas = [];
+        for (const fc of m.toolCall.functionCalls ?? []) {
+          turno.ferramentas.push(fc.name);
+          const r = await api("home-ferramenta", { nome: fc.name, args: fc.args }).catch((e) => ({ resultado: { erro: e.message } }));
+          respostas.push({ id: fc.id, name: fc.name, response: { resultado: r.resultado } });
+        }
+        ws?.send(JSON.stringify({ toolResponse: { functionResponses: respostas } }));
+      }
+      if (m.goAway) mudar(estado, "A sessão vai encerrar em instantes — toque de novo para continuar");
+    };
+    ws.onclose = (e) => { desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque no orbe para conversar"); };
+    ws.onerror = () => mudar("erro", "Falha na conexão com a voz");
+  } catch (e) { desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : "Não consegui ligar: " + e.message); }
+}
+function desligar(dica) {
+  guardarTurno(); calar();
+  try { ws?.close(); } catch {} ws = null;
+  try { fluxo?.getTracks().forEach((t) => t.stop()); } catch {}
+  try { ctxMic?.close(); ctxVoz?.close(); } catch {}
+  ctxMic = ctxVoz = analisador = noMic = fluxo = null; nivelMic = nivelVoz = 0;
+  try { travaTela?.release(); } catch {} travaTela = null;
+  mudar("desligado", dica ?? "Toque no orbe para conversar");
+}
+cv.addEventListener("click", () => { if (estado === "desligado" || estado === "erro") ligar(); else desligar(); });
+</script>
+</body>
+</html>

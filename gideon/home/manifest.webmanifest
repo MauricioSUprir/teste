@@ -1,0 +1,11 @@
+{
+  "name": "GIDEON",
+  "short_name": "GIDEON",
+  "description": "Seu assistente pessoal por voz",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#04060c",
+  "theme_color": "#04060c",
+  "orientation": "portrait",
+  "icons": [{ "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
