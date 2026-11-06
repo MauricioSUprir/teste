@@ -81,7 +81,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Histórico das conversas
 
 **★.3 Voz contínua** (Gemini Live: áudio direto, plano grátis com limites)
-- 🟡 Fala e ouve ao mesmo tempo (Gemini Live `gemini-3.8-live`, voz Charon) — publicado, aguardando teste do dono
+- 🟡 Fala e ouve ao mesmo tempo (Gemini Live `gemini-3.8-live`, voz feminina Kore — decisão 013) — funcionando no PC do dono
 - ⬜ Interromper no meio ("para, não é isso")
 - ⬜ Percebe sozinho quando você terminou de falar
 - ⬜ Voz em português, escolhida por você
