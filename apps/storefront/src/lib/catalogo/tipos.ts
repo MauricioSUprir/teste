@@ -55,6 +55,10 @@ export interface Variante {
   precoPor: number;
   estoque: number;
   pesoG: number;
+  /** medidas da embalagem no Hub, em cm: [altura, largura, profundidade] ("Ver no seu espaço") */
+  medidasCm?: [number, number, number];
+  /** conteúdo da embalagem (ml ou g), lido do nome do produto no Hub */
+  conteudo?: number;
 }
 
 export interface Avaliacao {

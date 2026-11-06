@@ -135,6 +135,9 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
         // indisponível ("Avise-me") em vez de R$ 0,00 com botão de comprar
         estoque: precoPor > 0 && Number.isFinite(estoque) ? estoque : 0,
         pesoG: Number(campo(bruto, "peso_g", "peso") ?? 300),
+        // tamanho real no "Ver no seu espaço" (realidade aumentada da página do produto)
+        medidasCm: medidasDoHub(bruto),
+        conteudo: conteudoDoNome(String(titulo)),
       },
     ],
     avaliacoes: [],
@@ -142,6 +145,31 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
     _marcaNome: marcaNome,
     _categoriaNome: categoriaNome,
   };
+}
+
+/** medidas da embalagem no Hub ([altura, largura, profundidade] em cm); sem as três, nada */
+function medidasDoHub(bruto) {
+  const m = campo(bruto, "dimensoes_cm", "dimensoes");
+  const cm = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 && n < 200 ? Math.round(n * 10) / 10 : null;
+  };
+  const a = cm(m?.altura);
+  const l = cm(m?.largura);
+  const p = cm(m?.profundidade);
+  return a && l && p ? [a, l, p] : undefined;
+}
+
+/** conteúdo (ml ou g) pelo nome do Hub: "SHAMPOO 500 ML" → 500; kit não entra (vários frascos) */
+function conteudoDoNome(nome) {
+  if (/\bkit\b|\+|\bcombo\b/i.test(nome)) return undefined;
+  const achados = [...nome.matchAll(/(\d+(?:[.,]\d+)?)\s*(ml|lt|litros?|l|kg|grs|gr|g)(?![a-z])/gi)];
+  if (!achados.length) return undefined;
+  const [, numero, unidade] = achados[achados.length - 1];
+  const valor = Number(numero.replace(",", "."));
+  const u = unidade.toLowerCase();
+  const total = ["l", "lt", "litro", "litros", "kg"].includes(u) ? valor * 1000 : valor;
+  return total >= 1 && total <= 5000 ? Math.round(total) : undefined;
 }
 
 /** prefixo das fotos do Hub — repetido em milhares de URLs se ficar por extenso */

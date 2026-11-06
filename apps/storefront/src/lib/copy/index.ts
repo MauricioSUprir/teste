@@ -282,6 +282,24 @@ export const copy = {
     emAte: "em até",
     semJuros: "sem juros",
   },
+  /** "Ver no seu espaço": o produto em 3D, em tamanho real, pela câmera do celular */
+  ar: {
+    botao: "Ver no seu espaço",
+    botaoDetalhe: "em 3D e tamanho real, pela câmera",
+    titulo: "Ver no seu espaço",
+    fechar: "Fechar",
+    montando: "Montando o produto em 3D…",
+    falhou: "Não deu para montar este produto em 3D. Tente outro ou veja as fotos.",
+    abrirCamera: "Abrir a câmera e colocar na mesa",
+    dicaCamera: "Aponte a câmera para uma mesa ou para o chão e mexa o celular devagar até o produto aparecer.",
+    semCamera: "Gire o produto com o dedo ou o mouse. Para colocá-lo na sua mesa pela câmera, abra esta página no celular.",
+    semCameraCelular:
+      "Gire o produto com o dedo. Este navegador não abre a câmera em 3D: no Android, abra a página no Chrome; no iPhone, no Safari.",
+    medida: (altura: string, largura: string) => `Cerca de ${altura} de altura × ${largura} de largura`,
+    aproximado: "Tamanho aproximado: este produto não tem a medida cadastrada.",
+    aviso: "Modelo 3D montado a partir da foto do produto. Cores e detalhes podem variar.",
+    alt: (produto: string) => `${produto} em 3D`,
+  },
   carrinho: {
     titulo: "Sua sacola",
     vazio: "Sua sacola está vazia. Comece pelos mais vendidos.",

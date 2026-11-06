@@ -11,10 +11,13 @@
  * Quem chega perto ganha a mesma foto em resolução maior (`nitida`).
  * Origem da geometria: no meio da base do produto (fica em pé na prateleira),
  * com a frente virada para +z.
+ *
+ * As etapas de foto (baixar, tirar o fundo, contorno) também servem ao "Ver no
+ * seu espaço" da página do produto (components/produto/ar/modelo-ar.ts).
  */
 import * as THREE from "three";
 
-const LADO_BASE = 256; // resolução da foto tratada
+export const LADO_BASE = 256; // resolução da foto tratada
 const LADO = LADO_BASE;
 const GRADE = 128; // resolução do contorno (2×2 px por célula)
 
@@ -30,7 +33,7 @@ export interface Produto3D {
 
 type Ponto = [number, number];
 
-function baixarImagem(url: string): Promise<HTMLImageElement> {
+export function baixarImagem(url: string): Promise<HTMLImageElement> {
   return new Promise((ok, falha) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
@@ -42,7 +45,7 @@ function baixarImagem(url: string): Promise<HTMLImageElement> {
 }
 
 /** Marca o fundo (1) por inundação a partir das bordas; null = a foto não tem fundo liso. */
-function acharFundo(px: Uint8ClampedArray, ret: { x0: number; y0: number; x1: number; y1: number }, LADO = LADO_BASE) {
+export function acharFundo(px: Uint8ClampedArray, ret: { x0: number; y0: number; x1: number; y1: number }, LADO = LADO_BASE) {
   const n = LADO * LADO;
   const pareceFundo = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
@@ -185,7 +188,7 @@ function simplificarFechado(p: Ponto[], eps: number): Ponto[] {
 }
 
 /** Contornos dos pedaços do produto (em coordenadas de textura, v para cima). */
-function contornos(fundo: Uint8Array): Ponto[][] {
+export function contornos(fundo: Uint8Array): Ponto[][] {
   const L = GRADE + 2; // borda de 1 célula vazia: o rastreamento nunca sai da grade
   const cel = LADO / GRADE;
   const cheio = new Uint8Array(L * L);
@@ -263,7 +266,7 @@ function umMaterialSo(
 }
 
 /** foto centrada no quadrado, com margem (a mesma conta em qualquer resolução) */
-function desenhar(img: HTMLImageElement, lado: number) {
+export function desenhar(img: HTMLImageElement, lado: number) {
   const c = document.createElement("canvas");
   c.width = c.height = lado;
   const g = c.getContext("2d", { willReadFrequently: true });
@@ -279,7 +282,7 @@ function desenhar(img: HTMLImageElement, lado: number) {
 }
 
 /** fundo transparente; o pixel claro colado no fundo também sai (sem halo branco) */
-function recortar(px: Uint8ClampedArray, fundo: Uint8Array, lado: number) {
+export function recortar(px: Uint8ClampedArray, fundo: Uint8Array, lado: number) {
   for (let y = 0; y < lado; y++) {
     for (let x = 0; x < lado; x++) {
       const i = y * lado + x;

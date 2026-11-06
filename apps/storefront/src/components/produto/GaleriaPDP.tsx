@@ -4,6 +4,7 @@
 import { useState } from "react";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { ImagemProduto } from "./ImagemProduto";
+import { VerNoEspaco } from "./VerNoEspaco";
 
 export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) {
   const [ativa, setAtiva] = useState(0);
@@ -15,6 +16,8 @@ export function GaleriaPDP({ produto, alt }: { produto: Produto; alt: string }) 
       <div className="overflow-hidden rounded-[8px] border border-linha">
         <ImagemProduto produto={produto} alt={alt} variacao={ativa} />
       </div>
+      {/* produto em 3D, em tamanho real, pela câmera do celular */}
+      <VerNoEspaco produto={produto} />
       {TOTAL_FOTOS > 1 && (
       // rola na horizontal quando não cabem — nada vaza da tela no celular
       <div
