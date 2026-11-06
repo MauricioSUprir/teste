@@ -25,3 +25,5 @@
 - **Correção:** workflow desligado na hora; novo passo "Só lembretes de verdade" deixa passar apenas itens com `id` e `texto`. Testado numa cópia sem envio: com zero lembretes, o fluxo para no filtro.
 - **Regra nova:** todo passo do Postgres que alimenta um envio (Telegram, WhatsApp, e-mail) passa por um filtro de itens reais, e o caso "vazio" é testado antes de ligar.
 - **Situação:** continua desligado até o dono aprovar o canal novo.
+- Estrutura por categorias e subcategorias dos 9 projetos (`docs/estrutura-projetos.md`), análise de limites do n8n e proposta de substituto (Supabase Edge Functions + pg_cron).
+- Hugging Face descartado (Docker exige PRO). Teste do n8n no Render grátis iniciado (serviço `gideon-n8n`).
