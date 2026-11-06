@@ -18,11 +18,15 @@ Não é programador. Explique cada passo de forma simples (o que vai fazer e por
 - Nome oficial da IA: **GIDEON**. Workflows novos: `GIDEON - <Área> - <Ação>` (ex.: `GIDEON - Memória - Indexar arquivo`).
 - Ainda com nome antigo em produção (não renomear sem backup e OK): tabelas `jarvis_memoria`, `jarvis_tarefas`, `jarvis_lembretes`, repositório `jarvis-waha`, workflows "Jarvis - Fase 1" e "Jarvis - Despertador WhatsApp". Ver `docs/decisoes/006-nome-gideon.md`.
 
+## Escopo e orçamento
+- Meta: fazer **todos os 9 projetos** e, no final, tudo conectado no GIDEON (decisão 009).
+- **Orçamento zero por enquanto:** só planos grátis e open source. Nada pago sem OK explícito do dono.
+
 ## Rendimento e qualidade (resumo)
 - Comece pelo modelo mais barato que acerta (Gemini → Claude Haiku → Sonnet/Opus só se falhar nos testes). Todo modelo tem fallback e aviso no log.
 - Mandar só o necessário: resumo + no máximo 5 trechos de memória + o pedido. Cache de pesquisa (24 h) e de arquivos (hash).
 - Chamadas externas: tempo limite e no máximo 2 tentativas. Tarefa longa: responder "recebi" e entregar depois.
-- Toda execução é registrada em `jarvis_execucoes`; erros avisam no Telegram.
+- Toda execução é registrada em `gideon_execucoes`; erros avisam no Telegram.
 - **Definição de pronto:** passa nos testes reais (mín. 10 pedidos, >90%), trata erro, tem tempo e custo medidos, documentada, workflow exportado e commitado, sem chaves no código, dono testou e aprovou.
 - Prompts de sistema ficam em `prompts/` (um por agente). Mudou prompt: data e motivo no commit e rodar os testes da área.
 - Toda falha real ou "Não útil" vira teste em `testes/tarefas-reais.md`.

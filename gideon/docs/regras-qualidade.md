@@ -56,7 +56,7 @@ Regra geral: **o que não é medido não melhora, e o que não está escrito nã
 
 ### 2.1 Registrar toda execução
 
-Criar a tabela `jarvis_execucoes`, preenchida automaticamente no fim de cada pedido:
+Criar a tabela `gideon_execucoes`, preenchida automaticamente no fim de cada pedido:
 
 | Campo | Exemplo |
 | --- | --- |
@@ -108,7 +108,7 @@ Uma entrega só está pronta quando:
 
 - [ ] Passa nos testes reais da fase (mínimo 10 pedidos)
 - [ ] Trata erro: não trava, avisa o usuário e registra no log
-- [ ] Tem tempo e custo medidos na `jarvis_execucoes`
+- [ ] Tem tempo e custo medidos na `gideon_execucoes`
 - [ ] Está documentada em `docs/`
 - [ ] Workflow exportado e commitado no GitHub
 - [ ] Nenhuma chave ou senha no código
@@ -185,7 +185,7 @@ gideon/
     └── GIDEON - Sistema - Relatório semanal.json
 ```
 
-E no banco: a tabela `jarvis_execucoes` (seção 2.1).
+E no banco: a tabela `gideon_execucoes` (seção 2.1).
 
 ---
 
@@ -198,7 +198,7 @@ essas regras em todo trabalho no projeto GIDEON.
 Junto com a estruturação do jarvis-kickoff.md, inclua:
 1. A pasta prompts/ com o prompt atual de cada agente
 2. O arquivo docs/changelog.md
-3. A tabela jarvis_execucoes (seção 2.1)
+3. A tabela gideon_execucoes (seção 2.1)
 4. O workflow "GIDEON - Sistema - Registrar execução", chamado no fim
    de cada pedido
 5. O workflow "GIDEON - Sistema - Alerta de erro" (Error Trigger →

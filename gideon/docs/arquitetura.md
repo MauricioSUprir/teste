@@ -11,6 +11,7 @@ A instância do n8n Cloud (`mauriciosrn8n.app.n8n.cloud`) **não existe mais**, 
 | Peça | O que é | Onde roda | Situação |
 | --- | --- | --- | --- |
 | n8n (orquestrador) | n8n self-hosted, imagem oficial `n8nio/n8n` | Railway, projeto `gideon-n8n`, https://n8n-production-a0ba2.up.railway.app | ✅ No ar desde 06/11; conta de dono criada |
+| Supabase `gideon` | Memória do GIDEON e diário de bordo (`gideon_execucoes`); plano grátis, us-east-1, ref `ntgsrfqmlaocxjelvnef` | Supabase | ✅ Criado em 06/11 |
 | Postgres do n8n | Guarda workflows, credenciais e execuções (volume persistente, rede privada) | Railway, mesmo projeto | ✅ No ar |
 | n8n Cloud antigo | Antigo orquestrador | `mauriciosrn8n.app.n8n.cloud` | ❌ Instância não existe |
 | GIDEON - Telegram - Conversa | Telegram → filtro "Só o dono" → GIDEON (Gemini `gemini-3.5-flash-lite` + memória das últimas 10 mensagens) → Telegram | n8n Railway | ✅ Ativo e testado em 06/11 (resposta em ~1 s) |
@@ -36,7 +37,7 @@ flowchart LR
   J --> F[Leitura de arquivos / Drive / YouTube]
   J --> GC[Google Agenda + Gmail]
   J --> M[(Memória: Supabase pgvector · Fase 1)]
-  J --> X[(jarvis_execucoes)]
+  J --> X[(gideon_execucoes)]
   D[Despertador a cada 10 min] --> WA
   PG[(Postgres do n8n · Railway)] --- J
 ```

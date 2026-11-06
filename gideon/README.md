@@ -2,6 +2,7 @@
 
 Assistente pessoal de IA que roda no n8n. Os 9 projetos do roadmap são peças de um sistema só, em 4 camadas: Canais → Orquestrador (n8n) → Cérebro / Equipe → Agente no PC.
 
+- **Plano completo (os 9 projetos e como se juntam): [docs/plano-completo.md](docs/plano-completo.md)**
 - Roadmap e ordem das fases: [docs/roadmap.md](docs/roadmap.md)
 - Como construir (kickoff): [docs/kickoff.md](docs/kickoff.md)
 - Regras de rendimento, análise e qualidade: [docs/regras-qualidade.md](docs/regras-qualidade.md)

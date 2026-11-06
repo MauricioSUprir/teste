@@ -14,7 +14,7 @@ Tudo que entra no GIDEON vai para um banco vetorial com data, origem e projeto.
 ## Checklist da Fase 1 (tarefas pequenas)
 
 **A. Base de medição (regras de qualidade) — antes de tudo**
-- [ ] A1. Criar a tabela `jarvis_execucoes` (`jarvis_execucoes.sql`) após definir o banco
+- [ ] A1. Criar a tabela `gideon_execucoes` (`gideon_execucoes.sql`) após definir o banco
 - [ ] A2. Workflow "GIDEON - Sistema - Registrar execução" (sub-workflow chamado no fim de cada pedido)
 - [ ] A3. Workflow "GIDEON - Sistema - Alerta de erro" (Error Trigger → Telegram)
 - [ ] A4. Workflow "GIDEON - Sistema - Relatório semanal" (domingo)
