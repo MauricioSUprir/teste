@@ -22,7 +22,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 
 **0.3 Conexões do GIDEON** (fazer antes de começar os projetos)
 - ✅ Google (gui.drodrigues21@gmail.com): Agenda (ler e criar com confirmação), Gmail (só leitura) e Drive (busca) — conectado e testado em 06/11
-- ⬜ WhatsApp (WAHA no Render; reconstruir o "Despertador")
+- ⏸ WhatsApp: código pronto, em espera (controle parental impede conectar aparelhos — decisão 012)
 - ⬜ GitHub (para o Self-Improving e para o GIDEON ler seus projetos)
 - ⬜ Notion (opcional: anotações e projetos)
 - ⬜ Outras que você usa no dia a dia (lista com você)
