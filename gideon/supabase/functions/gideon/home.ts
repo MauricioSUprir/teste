@@ -29,7 +29,10 @@ Você está no GIDEON HOME, conversando por VOZ em tempo real com o dono.
 - Fale como numa conversa: frases curtas e naturais, em português do Brasil, sem listas, sem markdown, sem emojis e sem ler links em voz alta (diga "mandei o link no Telegram" só se tiver mandado).
 - Se ele te interromper, pare e escute.
 - Para confirmar ações (criar evento, enviar mensagem), repita em voz alta o que vai fazer e espere ele dizer "sim".
-- Use buscar_memoria quando ele perguntar sobre algo do passado que você não sabe.`;
+- Use buscar_memoria quando ele perguntar sobre algo do passado que você não sabe.
+- Você TEM ferramentas de verdade: Gmail (ler), Agenda (ver e criar), Drive (buscar), lembretes, tarefas, notas e memória. O dono também fala com você pelo Telegram; é o mesmo GIDEON e a mesma memória.
+- Quando ele pedir para guardar, anotar, lembrar ou criar algo, CHAME a ferramenta. Nunca diga "guardei", "criei" ou "anotei" sem ter chamado a ferramenta e recebido a confirmação.
+- Seu nome é GIDEON. Nunca diga que é o Gemini nem fale do Google como seu criador.`;
 
 export async function rotaHome(rota: string, req: Request) {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -39,20 +42,31 @@ export async function rotaHome(rota: string, req: Request) {
 
   if (rota === "home-sessao") {
     const agora = Date.now();
-    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
-      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": chaveGemini() },
-      body: JSON.stringify({ uses: 1, expireTime: new Date(agora + 30 * 60_000).toISOString(), newSessionExpireTime: new Date(agora + 2 * 60_000).toISOString(),
-        bidiGenerateContentSetup: { model: `models/${modelo}` } }),
-    });
-    const t = await r.json();
-    if (!r.ok || !t.name) return json({ erro: "Google recusou a senha temporária: " + JSON.stringify(t).slice(0, 200) }, 502);
     const { data: hist } = await sb.from("gideon_mensagens").select("papel, texto").eq("sessao", "voz").order("criado_em", { ascending: false }).limit(6);
     const recentes = (hist ?? []).reverse().map((m) => `${m.papel === "user" ? "Dono" : "GIDEON"}: ${m.texto}`).join("\n");
     const sistema = PROMPT + VOZ + `\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília).` + (recentes ? `\n\nÚltimas falas por voz (contexto):\n${recentes}` : "");
+    const voz = cfg.voz_gideon || "Charon";
+    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS];
+    // A configuração inteira vai DENTRO da senha temporária: com ela, o Google ignora o setup enviado pelo navegador
+    // (sem isso o modelo falava como "Gemini", sem o prompt do GIDEON e sem ferramentas). Também impede que a senha seja usada para outra coisa.
+    const setup = {
+      model: `models/${modelo}`,
+      generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } } } },
+      systemInstruction: { parts: [{ text: sistema }] },
+      tools: [{ functionDeclarations: ferramentas }],
+      inputAudioTranscription: {}, outputAudioTranscription: {},
+      contextWindowCompression: { slidingWindow: {} }, // conversa longa sem cair aos 15 min
+    };
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+      method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": chaveGemini() },
+      body: JSON.stringify({ uses: 1, expireTime: new Date(agora + 30 * 60_000).toISOString(), newSessionExpireTime: new Date(agora + 2 * 60_000).toISOString(),
+        bidiGenerateContentSetup: setup }),
+    });
+    const t = await r.json();
+    if (!r.ok || !t.name) return json({ erro: "Google recusou a senha temporária: " + JSON.stringify(t).slice(0, 200) }, 502);
     return json({
-      token: t.name, modelo, voz: cfg.voz_gideon || "Charon", sistema,
+      token: t.name, modelo, voz, sistema, ferramentas,
       url: "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained",
-      ferramentas: [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS],
     });
   }
   if (rota === "home-ferramenta") {
