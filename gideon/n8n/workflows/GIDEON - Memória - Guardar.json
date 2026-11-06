@@ -1,0 +1,133 @@
+{
+  "name": "GIDEON - Memória - Guardar",
+  "nodes": [
+    {
+      "id": "g1",
+      "name": "Entrada",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "g2",
+      "name": "Trechos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "function fnv(s){let h=0xcbf29ce484222325n;const p=0x100000001b3n;for(const ch of s){h^=BigInt(ch.codePointAt(0));h=(h*p)&0xffffffffffffffffn;}return h.toString(16);}\nconst out=[];\nfor (const it of $input.all()) {\n  const j=it.json; const txt=String(j.conteudo||'').trim(); if(!txt) continue;\n  const size=1200, ov=150; const parts=[];\n  if (txt.length<=size) parts.push(txt); else { for(let i=0;i<txt.length && parts.length<50;i+=size-ov) parts.push(txt.slice(i,i+size)); }\n  parts.forEach((p,idx)=>out.push({json:{\n    conteudo:p, resumo:String(j.resumo||''), tipo:j.tipo||'nota', origem:j.origem||'desconhecida',\n    projeto:String(j.projeto||''), link:String(j.link||''), data_ref:j.data_ref||new Date().toISOString(),\n    metadados:JSON.stringify({...(j.metadados||{}), parte:idx+1, de:parts.length}),\n    hash_trecho:fnv((j.tipo||'')+'|'+(j.link||'')+'|'+(j.data_ref||'')+'|'+p)}}));\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "g3",
+      "name": "Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: { parts: [{ text: 'title: ' + ($json.projeto || 'none') + ' | text: ' + $json.conteudo }] }, outputDimensionality: 768 }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "25kTbapWHUheCDgV",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "id": "g4",
+      "name": "Grava",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into public.gideon_memoria (conteudo, resumo, embedding, tipo, origem, projeto, link, data_ref, metadados, hash_trecho) values ($1, nullif($2,''), $3::extensions.vector, $4, $5, nullif($6,''), nullif($7,''), $8::timestamptz, $9::jsonb, $10) on conflict (hash_trecho) do nothing returning id",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $('Trechos').item.json.conteudo, $('Trechos').item.json.resumo, '[' + $json.embedding.values.join(',') + ']', $('Trechos').item.json.tipo, $('Trechos').item.json.origem, $('Trechos').item.json.projeto, $('Trechos').item.json.link, $('Trechos').item.json.data_ref, $('Trechos').item.json.metadados, $('Trechos').item.json.hash_trecho ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "F7EszepsjeaP49us",
+          "name": "GIDEON Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Trechos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trechos": {
+      "main": [
+        [
+          {
+            "node": "Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding": {
+      "main": [
+        [
+          {
+            "node": "Grava",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  }
+}

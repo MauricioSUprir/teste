@@ -1,0 +1,174 @@
+{
+  "name": "GIDEON - Telegram - Canal",
+  "nodes": [
+    {
+      "id": "c1",
+      "name": "Telegram - Recebe",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "8laolpRHTWXd6lke",
+          "name": "Telegram account"
+        }
+      },
+      "webhookId": "74a59409-56f2-453d-b008-79e4de7970c6"
+    },
+    {
+      "id": "c2",
+      "name": "Só o dono",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ String($json.message.from.id) }}",
+              "rightValue": "DONO_TELEGRAM_ID",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c3",
+      "name": "Para o Núcleo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const m=$input.first().json.message; return [{json:{ texto: m.text || m.caption || '[O dono enviou algo sem texto (foto, áudio ou arquivo). Diga que ainda não consegue ler esse tipo de mensagem.]', canal:'telegram', sessao:String(m.chat.id) }}];"
+      }
+    },
+    {
+      "id": "c4",
+      "name": "Núcleo",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "WJlEDEq47GE6BCzE",
+          "mode": "id"
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "c5",
+      "name": "Telegram - Responde",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        -20
+      ],
+      "parameters": {
+        "chatId": "={{ $('Telegram - Recebe').first().json.message.chat.id }}",
+        "text": "={{ String($json.resposta || 'Desculpe, não consegui responder agora.').slice(0, 4000) }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "8laolpRHTWXd6lke",
+          "name": "Telegram account"
+        }
+      },
+      "webhookId": "8f43010a-15c5-4ab1-9d8c-8c93ec327696"
+    }
+  ],
+  "connections": {
+    "Telegram - Recebe": {
+      "main": [
+        [
+          {
+            "node": "Só o dono",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Só o dono": {
+      "main": [
+        [
+          {
+            "node": "Para o Núcleo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Para o Núcleo": {
+      "main": [
+        [
+          {
+            "node": "Núcleo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Núcleo": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Responde",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "lVwLCMKuahInrGyE",
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  }
+}

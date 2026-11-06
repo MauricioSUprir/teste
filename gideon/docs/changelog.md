@@ -14,3 +14,7 @@
 - Decisão 009: escopo completo (9 projetos) e orçamento zero por enquanto; memória no Supabase.
 - Supabase: projeto `sinapse` pausado (a pedido do dono) e projeto `gideon` criado (us-east-1, plano grátis). Tabela `gideon_execucoes` aplicada.
 - Render descartado para o n8n: a conta já tem 8 serviços grátis dividindo 750 h/mês. Hospedagem grátis do n8n em decisão (ver `docs/plano-completo.md`).
+- Supabase: tabelas da espinha dorsal e da memória (migrações 002 a 004), usuário `gideon_n8n` com acesso restrito.
+- Fase 1 (parte): `GIDEON - Núcleo - Atender pedido`, `Memória - Guardar/Buscar`, `Lembretes - Disparar`, `Sistema - Relatório semanal` criados, ativos e testados. Canal novo do Telegram criado desligado (aguarda OK).
+- Decisão 010: n8n grátis no Hugging Face Spaces; arquivos em `infra/hf-space/`.
+- Teste dos vetores do Gemini (`gemini-embedding-2`, 768 dimensões) no plano grátis: ok.

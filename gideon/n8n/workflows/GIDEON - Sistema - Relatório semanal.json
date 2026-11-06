@@ -1,0 +1,132 @@
+{
+  "name": "GIDEON - Sistema - Relatório semanal",
+  "nodes": [
+    {
+      "id": "r1",
+      "name": "Domingo 19h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                0
+              ],
+              "triggerAtHour": 19,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "r2",
+      "name": "Números da semana",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select count(*) as total, count(*) filter (where status='sucesso') as sucesso, count(*) filter (where status='erro') as erros,\n coalesce(round(avg(tempo_ms)),0) as tempo_medio_ms, coalesce(sum(custo_estimado),0) as custo,\n count(*) filter (where nota_usuario='nao_util') as nao_util,\n (select coalesce(json_agg(e),'[]'::json) from (select left(erro_mensagem,120) as erro, count(*) as n from public.gideon_execucoes where data_hora > now()-interval '7 days' and status='erro' group by 1 order by 2 desc limit 3) e) as top_erros,\n (select count(*) from public.gideon_memoria where criado_em > now()-interval '7 days') as memorias_novas,\n (select count(*) from public.gideon_tarefas where status='aberta') as tarefas_abertas,\n (select count(*) from public.gideon_lembretes where enviado_em > now()-interval '7 days') as lembretes_enviados\nfrom public.gideon_execucoes where data_hora > now() - interval '7 days'",
+        "options": {
+          "queryBatching": "independently"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "F7EszepsjeaP49us",
+          "name": "GIDEON Supabase"
+        }
+      }
+    },
+    {
+      "id": "r3",
+      "name": "Monta texto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const r=$input.first().json; const tot=Number(r.total)||0; const ok=Number(r.sucesso)||0;\nconst taxa= tot? Math.round(ok*100/tot) : 0;\nconst erros=(r.top_erros||[]).map(e=>`• ${e.erro} (${e.n}x)`).join('\\n') || '• nenhum';\nlet sug='Tudo dentro do esperado.';\nif (tot===0) sug='Quase não houve uso: teste o GIDEON com pedidos do dia a dia para criar histórico.';\nelse if (taxa<95) sug='Taxa de sucesso abaixo de 95%: corrigir o erro mais frequente.';\nelse if (Number(r.tempo_medio_ms)>5000) sug='Respostas acima de 5 s: revisar o tamanho do contexto enviado ao modelo.';\nconst txt=`📊 GIDEON — relatório da semana\\n\\nPedidos: ${tot} (sucesso ${taxa}%)\\nTempo médio: ${(Number(r.tempo_medio_ms)/1000).toFixed(1)} s\\nCusto: R$ ${Number(r.custo).toFixed(2)}\\nMarcados como \"não útil\": ${r.nao_util}\\nMemórias novas: ${r.memorias_novas}\\nLembretes enviados: ${r.lembretes_enviados}\\nTarefas abertas: ${r.tarefas_abertas}\\n\\nErros mais frequentes:\\n${erros}\\n\\nSugestão: ${sug}`;\nreturn [{json:{texto:txt}}];"
+      }
+    },
+    {
+      "id": "r4",
+      "name": "Envia no Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "chatId": "DONO_TELEGRAM_ID",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "8laolpRHTWXd6lke",
+          "name": "Telegram account"
+        }
+      },
+      "webhookId": "c4dfd549-70c2-4d3d-8cf7-17e30c71bba7"
+    }
+  ],
+  "connections": {
+    "Domingo 19h": {
+      "main": [
+        [
+          {
+            "node": "Números da semana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Números da semana": {
+      "main": [
+        [
+          {
+            "node": "Monta texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta texto": {
+      "main": [
+        [
+          {
+            "node": "Envia no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "lVwLCMKuahInrGyE",
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  }
+}

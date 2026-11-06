@@ -11,10 +11,15 @@ A instância do n8n Cloud (`mauriciosrn8n.app.n8n.cloud`) **não existe mais**, 
 | Peça | O que é | Onde roda | Situação |
 | --- | --- | --- | --- |
 | n8n (orquestrador) | n8n self-hosted, imagem oficial `n8nio/n8n` | Railway, projeto `gideon-n8n`, https://n8n-production-a0ba2.up.railway.app | ✅ No ar desde 06/11; conta de dono criada |
-| Supabase `gideon` | Memória do GIDEON e diário de bordo (`gideon_execucoes`); plano grátis, us-east-1, ref `ntgsrfqmlaocxjelvnef` | Supabase | ✅ Criado em 06/11 |
+| Supabase `gideon` | Memória, tarefas, lembretes, aprovações, ações, ponte com o PC e diário de bordo; plano grátis, us-east-1, ref `ntgsrfqmlaocxjelvnef` (ver `supabase/README.md`) | Supabase | ✅ No ar; n8n conecta com o usuário `gideon_n8n` |
 | Postgres do n8n | Guarda workflows, credenciais e execuções (volume persistente, rede privada) | Railway, mesmo projeto | ✅ No ar |
 | n8n Cloud antigo | Antigo orquestrador | `mauriciosrn8n.app.n8n.cloud` | ❌ Instância não existe |
 | GIDEON - Telegram - Conversa | Telegram → filtro "Só o dono" → GIDEON (Gemini `gemini-3.5-flash-lite` + memória das últimas 10 mensagens) → Telegram | n8n Railway | ✅ Ativo e testado em 06/11 (resposta em ~1 s) |
+| GIDEON - Núcleo - Atender pedido | Cérebro único que todo canal chama: busca na memória → agente (Gemini + ferramentas de lembretes e tarefas) → guarda a conversa → registra a execução | n8n Railway | ✅ Ativo e testado em 06/11 (~2 s) |
+| GIDEON - Memória - Guardar / Buscar | Sub-workflows da memória (vetores `gemini-embedding-2`, 768 dimensões, no Supabase) | n8n Railway | ✅ Ativos e testados |
+| GIDEON - Lembretes - Disparar | A cada minuto envia no Telegram os lembretes vencidos (com repetição diária, semanal ou mensal) | n8n Railway | ✅ Ativo |
+| GIDEON - Sistema - Relatório semanal | Domingo 19h: pedidos, sucesso, tempo, custo, erros, memórias novas | n8n Railway | ✅ Ativo; texto testado sem enviar |
+| GIDEON - Telegram - Canal | Novo canal do Telegram que usa o Núcleo (substitui o "Conversa") | n8n Railway | ⏸ Criado e **desligado**: aguarda OK do dono para a troca |
 | GIDEON - Sistema - Alerta de erro | Error Trigger → aviso no Telegram do dono | n8n Railway | ✅ Ativo; ligado ao workflow da conversa |
 | Jarvis - Fase 1 (antigo) | Telegram → Claude → Telegram | n8n Cloud antigo | ❌ Perdido; substituído pelo GIDEON - Telegram - Conversa |
 | WAHA | API de WhatsApp (repositório `MauricioSUprir/jarvis-waha`) | Render grátis, https://jarvis-waha.onrender.com | ⚠ Serviço separado, deve existir; sem o Despertador, dorme |
@@ -24,7 +29,7 @@ A instância do n8n Cloud (`mauriciosrn8n.app.n8n.cloud`) **não existe mais**, 
 | Pesquisador | Claude Haiku + SerpApi | n8n Cloud antigo / API | ❌ Workflow perdido; chaves a cadastrar |
 | Leitura de arquivos | PDF, Word, PowerPoint, Excel, fotos, vídeos, YouTube, links | n8n Cloud antigo | ❌ Perdida; reconstruir |
 | Google Agenda e Gmail | Inclui posts do Classroom que chegam por e-mail | n8n Cloud antigo | ❌ Credenciais a refazer no n8n novo |
-| Memória simples | Tabelas do n8n `jarvis_memoria`, `jarvis_tarefas`, `jarvis_lembretes` | n8n Cloud antigo | ❌ Perdidas (dados também) |
+| Memória simples antiga | Tabelas `jarvis_memoria`, `jarvis_tarefas`, `jarvis_lembretes` | n8n Cloud antigo | ❌ Perdidas; substituídas pelas tabelas `gideon_*` no Supabase |
 
 ## Como vai conversar (alvo)
 
@@ -63,4 +68,4 @@ flowchart LR
 
 - Prompt de sistema que o assistente usava (o que o dono lembrar) para `prompts/`.
 - Confirmar se o WAHA no Render ainda está de pé.
-- A memória da conversa é temporária (fica na memória do n8n e se perde quando o serviço reinicia). A memória de longo prazo é a Fase 1.
+- A memória curta da conversa (últimas 10 mensagens) fica no n8n e se perde quando ele reinicia; a memória de longo prazo fica no Supabase e não se perde.

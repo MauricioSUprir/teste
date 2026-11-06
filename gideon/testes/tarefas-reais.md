@@ -25,3 +25,17 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | 06/11/2026 | "o que eu te perguntei antes?" | Lembra a mensagem anterior | ✅ Repetiu a pergunta anterior | 0,9 s |
 | 06/11/2026 | Mensagem de quem não é o dono | Não responde | ✅ Filtro barrou (primeiro "oi", antes de configurar o ID) | — |
 
+
+## Testes internos do Claude (não contam como pedidos reais do dono)
+
+06/11/2026, pelo Núcleo, sessão de teste, sem passar pelo Telegram:
+
+| Pedido | Esperado | Resultado | Tempo |
+| --- | --- | --- | --- |
+| "quando começou o projeto da loja Bradeco?" (com uma nota de teste na memória) | Responder pela memória | ✅ "começou em agosto de 2026" | 1,7 s |
+| "me lembra de revisar o plano do GIDEON amanhã às 9h" | Criar lembrete 07/11 09:00 (Brasília) | ✅ gravado 07/11 09:00 | 2,0 s |
+| "anota uma tarefa: configurar o servidor no Hugging Face" | Criar tarefa | ✅ | 2,0 s |
+| "quais são minhas tarefas abertas?" | Listar | ✅ | 1,7 s |
+| "cancela o lembrete..." / "marca como feita a tarefa..." | Cancelar / concluir | ✅ | ~2 s |
+| Busca sem relação ("receita de bolo de cenoura") | Similaridade baixa, não usar | ✅ 0,51 (limite 0,60) | — |
+| Guardar a mesma nota duas vezes | Não duplicar | ✅ | — |

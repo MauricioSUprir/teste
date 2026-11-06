@@ -1,0 +1,138 @@
+{
+  "name": "GIDEON - Lembretes - Disparar",
+  "nodes": [
+    {
+      "id": "l1",
+      "name": "A cada minuto",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "l2",
+      "name": "Vencidos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update public.gideon_lembretes set enviado_em=now() where id in (select id from public.gideon_lembretes where ativo and enviado_em is null and quando <= now() order by quando limit 20 for update skip locked) returning id, texto, quando, recorrencia, canal",
+        "options": {
+          "queryBatching": "independently"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "F7EszepsjeaP49us",
+          "name": "GIDEON Supabase"
+        }
+      }
+    },
+    {
+      "id": "l3",
+      "name": "Avisa no Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "chatId": "DONO_TELEGRAM_ID",
+        "text": "=⏰ Lembrete: {{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "8laolpRHTWXd6lke",
+          "name": "Telegram account"
+        }
+      },
+      "webhookId": "14054322-1e10-470e-a390-7cd82bac12c4"
+    },
+    {
+      "id": "l4",
+      "name": "Agenda a próxima",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into public.gideon_lembretes (texto, quando, recorrencia, canal) select texto, quando + case recorrencia when 'diaria' then interval '1 day' when 'semanal' then interval '7 days' when 'mensal' then interval '1 month' end, recorrencia, canal from public.gideon_lembretes where id=$1::bigint and recorrencia in ('diaria','semanal','mensal')",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ $('Vencidos').item.json.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "F7EszepsjeaP49us",
+          "name": "GIDEON Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada minuto": {
+      "main": [
+        [
+          {
+            "node": "Vencidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vencidos": {
+      "main": [
+        [
+          {
+            "node": "Avisa no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisa no Telegram": {
+      "main": [
+        [
+          {
+            "node": "Agenda a próxima",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none",
+    "errorWorkflow": "lVwLCMKuahInrGyE",
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  }
+}

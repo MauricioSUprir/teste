@@ -1,0 +1,134 @@
+{
+  "name": "GIDEON - Memória - Buscar",
+  "nodes": [
+    {
+      "id": "b1",
+      "name": "Entrada",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "b2",
+      "name": "Consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const j=$input.first().json; return [{json:{q:String(j.pergunta||j.texto||'').slice(0,2000), qtd:Number(j.qtd)||5, projeto:String(j.projeto||''), desde:String(j.desde||''), ate:String(j.ate||'')}}];"
+      }
+    },
+    {
+      "id": "b3",
+      "name": "Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ content: { parts: [{ text: 'task: search result | query: ' + $json.q }] }, outputDimensionality: 768 }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "25kTbapWHUheCDgV",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "id": "b4",
+      "name": "Busca",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "alwaysOutputData": true,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select id, conteudo, resumo, tipo, origem, projeto, link, data_ref, round(similaridade::numeric,3) as similaridade from public.gideon_buscar_memoria($1::extensions.vector, $2::int, nullif($3,''), null, nullif($4,'')::timestamptz, nullif($5,'')::timestamptz)",
+        "options": {
+          "queryBatching": "independently",
+          "queryReplacement": "={{ [ '[' + $json.embedding.values.join(',') + ']', $('Consulta').first().json.qtd, $('Consulta').first().json.projeto, $('Consulta').first().json.desde, $('Consulta').first().json.ate ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "F7EszepsjeaP49us",
+          "name": "GIDEON Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Entrada": {
+      "main": [
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding": {
+      "main": [
+        [
+          {
+            "node": "Busca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  }
+}
