@@ -18,6 +18,8 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Produto } from "@/lib/catalogo/tipos";
 import { copy } from "@/lib/copy";
 import { registrar } from "@/lib/rastreio";
+import { FOTOS_VERSO } from "@/lib/catalogo/versos";
+import { comBase } from "@/lib/caminho";
 
 interface ElementoModelViewer extends HTMLElement {
   canActivateAR: boolean;
@@ -44,7 +46,14 @@ function PainelAR({ produto, aoFechar }: { produto: Produto; aoFechar: () => voi
   const botaoFechar = useRef<HTMLButtonElement>(null);
   const [estado, setEstado] = useState<Estado>("montando");
   const [podeCamera, setPodeCamera] = useState(false);
-  const [medida, setMedida] = useState<{ altura: number; largura: number; aproximado: boolean } | null>(null);
+  const [medida, setMedida] = useState<{
+    altura: number;
+    largura: number;
+    aproximado: boolean;
+    base: "conteudo" | "medidas" | "aproximado";
+    conta: { conteudo: number | null; medidas: number | null };
+  } | null>(null);
+  const [verso, setVerso] = useState<"foto" | "liso" | null>(null);
   // tela de toque sem câmera 3D: em geral navegador dentro de app (Instagram, WhatsApp)
   const [celular] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
 
@@ -63,12 +72,25 @@ function PainelAR({ produto, aoFechar }: { produto: Produto; aoFechar: () => voi
           import("@google/model-viewer"),
         ]);
         const v = produto.variantes[0];
-        const modelo = await montarModeloAR(foto, { medidasCm: v?.medidasCm, conteudo: v?.conteudo });
+        // a frente sai da 1ª foto de fundo branco; o verso, da foto cadastrada (se houver)
+        const verso = v ? FOTOS_VERSO[v.sku] : undefined;
+        const modelo = await montarModeloAR(
+          produto.imagens ?? [foto],
+          { medidasCm: v?.medidasCm, conteudo: v?.conteudo },
+          verso ? (verso.startsWith("/") ? comBase(verso) : verso) : undefined
+        );
         descartar = modelo.descartar;
         const glb = (await new GLTFExporter().parseAsync(modelo.objeto, { binary: true, maxTextureSize: 1024 })) as ArrayBuffer;
         if (cancelado || !palco.current) return;
         enderecoGlb = URL.createObjectURL(new Blob([glb], { type: "model/gltf-binary" }));
-        setMedida({ altura: modelo.alturaCm, largura: modelo.larguraCm, aproximado: modelo.aproximado });
+        setMedida({
+          altura: modelo.alturaCm,
+          largura: modelo.larguraCm,
+          aproximado: modelo.aproximado,
+          base: modelo.base,
+          conta: modelo.estimativas,
+        });
+        setVerso(modelo.verso);
 
         const mv = document.createElement("model-viewer") as ElementoModelViewer;
         const atributos: Record<string, string> = {
@@ -142,7 +164,11 @@ function PainelAR({ produto, aoFechar }: { produto: Produto; aoFechar: () => voi
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby={idTitulo} className="fixed inset-0 z-[95] flex flex-col bg-white">
+    <div role="dialog" aria-modal="true" aria-labelledby={idTitulo} data-verso={verso ?? undefined}
+      data-base={medida?.base}
+      data-cm-conteudo={medida?.conta.conteudo?.toFixed(1)}
+      data-cm-medidas={medida?.conta.medidas?.toFixed(1)}
+      className="fixed inset-0 z-[95] flex flex-col bg-white">
       <div className="flex items-center justify-between gap-3 border-b border-linha px-4 py-3">
         <div className="min-w-0">
           <h2 id={idTitulo} className="font-titulo text-[1.125rem] font-semibold text-tinta">
@@ -174,7 +200,12 @@ function PainelAR({ produto, aoFechar }: { produto: Produto; aoFechar: () => voi
             {copy.ar.medida(cm(medida.altura), cm(medida.largura))}
           </p>
         )}
+        {medida?.base === "conteudo" && produto.variantes[0]?.conteudo && (
+          <p className="mt-0.5 text-[0.8125rem] text-grafite">{copy.ar.pelaConta(produto.variantes[0].conteudo, produto.variantes[0].conteudoUn ?? "ml")}</p>
+        )}
+        {medida?.base === "medidas" && <p className="mt-0.5 text-[0.8125rem] text-grafite">{copy.ar.pelasMedidas}</p>}
         {medida?.aproximado && <p className="mt-0.5 text-[0.8125rem] text-grafite">{copy.ar.aproximado}</p>}
+        {verso === "liso" && <p className="mt-0.5 text-[0.8125rem] text-grafite">{copy.ar.versoLiso}</p>}
         {estado === "pronto" &&
           (podeCamera ? (
             <>

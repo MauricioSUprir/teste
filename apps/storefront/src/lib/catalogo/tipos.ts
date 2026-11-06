@@ -59,6 +59,7 @@ export interface Variante {
   medidasCm?: [number, number, number];
   /** conteúdo da embalagem (ml ou g), lido do nome do produto no Hub */
   conteudo?: number;
+  conteudoUn?: "ml" | "g";
 }
 
 export interface Avaliacao {

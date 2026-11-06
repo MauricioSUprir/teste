@@ -137,7 +137,7 @@ function mapearProduto(bruto, detalhe, slugsUsados) {
         pesoG: Number(campo(bruto, "peso_g", "peso") ?? 300),
         // tamanho real no "Ver no seu espaço" (realidade aumentada da página do produto)
         medidasCm: medidasDoHub(bruto),
-        conteudo: conteudoDoNome(String(titulo)),
+        ...conteudoDoNome(String(titulo)),
       },
     ],
     avaliacoes: [],
@@ -160,16 +160,17 @@ function medidasDoHub(bruto) {
   return a && l && p ? [a, l, p] : undefined;
 }
 
-/** conteúdo (ml ou g) pelo nome do Hub: "SHAMPOO 500 ML" → 500; kit não entra (vários frascos) */
+/** conteúdo pelo nome do Hub: "SHAMPOO 500 ML" → { conteudo: 500, conteudoUn: "ml" }; kit não entra (vários frascos) */
 function conteudoDoNome(nome) {
-  if (/\bkit\b|\+|\bcombo\b/i.test(nome)) return undefined;
+  if (/\bkit\b|\+|\bcombo\b/i.test(nome)) return {};
   const achados = [...nome.matchAll(/(\d+(?:[.,]\d+)?)\s*(ml|lt|litros?|l|kg|grs|gr|g)(?![a-z])/gi)];
-  if (!achados.length) return undefined;
+  if (!achados.length) return {};
   const [, numero, unidade] = achados[achados.length - 1];
   const valor = Number(numero.replace(",", "."));
   const u = unidade.toLowerCase();
   const total = ["l", "lt", "litro", "litros", "kg"].includes(u) ? valor * 1000 : valor;
-  return total >= 1 && total <= 5000 ? Math.round(total) : undefined;
+  if (!(total >= 1 && total <= 5000)) return {};
+  return { conteudo: Math.round(total), conteudoUn: ["kg", "g", "gr", "grs"].includes(u) ? "g" : "ml" };
 }
 
 /** prefixo das fotos do Hub — repetido em milhares de URLs se ficar por extenso */

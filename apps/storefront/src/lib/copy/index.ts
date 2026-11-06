@@ -297,6 +297,14 @@ export const copy = {
       "Gire o produto com o dedo. Este navegador não abre a câmera em 3D: no Android, abra a página no Chrome; no iPhone, no Safari.",
     medida: (altura: string, largura: string) => `Cerca de ${altura} de altura × ${largura} de largura`,
     aproximado: "Tamanho aproximado: este produto não tem a medida cadastrada.",
+    pelaConta: (conteudo: number, unidade: "ml" | "g") => {
+      const grande = conteudo >= 1000;
+      const numero = grande ? String(conteudo / 1000).replace(".", ",") : String(conteudo);
+      const un = unidade === "g" ? (grande ? "kg" : "g") : grande ? "L" : "ml";
+      return `Tamanho calculado pelo conteúdo (${numero} ${un}) e pelo formato da embalagem.`;
+    },
+    pelasMedidas: "Tamanho pelas medidas da embalagem informadas pelo fornecedor.",
+    versoLiso: "O verso aparece liso, nas cores do produto: ainda não temos a foto do verso dele.",
     aviso: "Modelo 3D montado a partir da foto do produto. Cores e detalhes podem variar.",
     alt: (produto: string) => `${produto} em 3D`,
   },
