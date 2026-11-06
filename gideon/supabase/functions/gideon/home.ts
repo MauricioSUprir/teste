@@ -70,5 +70,11 @@ export async function rotaHome(rota: string, req: Request) {
     if (pedido && resposta) await guardarMemoria({ conteudo: `Dono (voz): ${pedido}\nGIDEON: ${resposta}`, resumo: pedido.slice(0, 200), tipo: "conversa", origem: "voz" }).catch(() => 0);
     return json({ ok: true });
   }
+  if (rota === "home-diagnostico") {
+    const b = await req.json().catch(() => ({}));
+    await sb.from("gideon_execucoes").insert({ canal: "voz", pedido_resumo: ("diagnóstico: " + String(b.motivo ?? "")).slice(0, 200), ferramenta: "diagnostico",
+      modelo, status: b.ok ? "sucesso" : "erro", erro_mensagem: JSON.stringify(b).slice(0, 1800), workflow: "supabase:gideon/home" });
+    return json({ ok: true });
+  }
   return json({ erro: "rota desconhecida" }, 404);
 }

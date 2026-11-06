@@ -18,6 +18,8 @@
   #palco { position:relative; display:grid; place-items:center; min-height:0; }
   canvas { width:min(78vw, 60vh); height:min(78vw, 60vh); cursor:pointer; -webkit-tap-highlight-color:transparent; }
   #dica { position:absolute; bottom:6%; font-size:13px; color:var(--suave); text-align:center; }
+  #barra { position:absolute; bottom:2%; width:140px; height:4px; border-radius:4px; background:#14202d; overflow:hidden; }
+  #nivel { display:block; height:100%; width:0; background:var(--ciano); transition:width .08s; }
   #legendas { min-height:118px; max-width:720px; width:100%; margin:0 auto; display:grid; gap:8px; align-content:end; }
   .fala { font-size:15px; line-height:1.4; opacity:.95; }
   .fala.dono { color:var(--suave); }
@@ -35,14 +37,21 @@
 <main>
   <header><h1>GIDEON</h1><div id="estado">desligado</div></header>
   <div id="diag" hidden></div>
-  <section id="palco"><canvas id="orbe" width="800" height="800" aria-label="Toque para falar com o GIDEON" role="button"></canvas><div id="dica">Toque no orbe para conversar</div></section>
+  <section id="palco"><canvas id="orbe" width="800" height="800" aria-label="Toque para falar com o GIDEON" role="button"></canvas><div id="dica">Toque no orbe para conversar</div><div id="barra"><i id="nivel"></i></div></section>
   <section id="legendas"><div class="fala dono" id="ultDono" hidden></div><div class="fala gideon" id="ultGideon" hidden></div></section>
 </main>
 <div id="aviso"><p>Para abrir o GIDEON Home, mande <code>/home</code> para o GIDEON no Telegram e toque no link que ele enviar.<br><br>O link é pessoal e vale 30 dias.</p></div>
 <script>
 const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
 const $ = (id) => document.getElementById(id);
-const diag = { audio: "-", enviado: 0, recebido: 0, ultimo: "-" };
+const diag = { audio: "-", enviado: 0, recebido: 0, ultimo: "-", nivelMax: 0, eventos: [], erro: null, fechou: null, falaReconhecida: false, respostas: 0 };
+let diagEnviado = false;
+function enviarDiag(motivo, ok = false) { // manda ao GIDEON o que aconteceu, para o Claude poder ajudar sem prints
+  if (diagEnviado || !chave) return; diagEnviado = true;
+  const corpo = { motivo, ok, ...diag, eventos: diag.eventos.slice(-15), navegador: navigator.userAgent, idioma: navigator.language, hora: new Date().toISOString() };
+  fetch(FUNC + "home-diagnostico", { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave }, body: JSON.stringify(corpo), keepalive: true }).catch(() => {});
+}
+function evento(e) { diag.eventos.push(`${((Date.now() - (diag.t0 || Date.now())) / 1000).toFixed(1)}s ${e}`); }
 const mostrarDiag = location.hash.includes("debug") || localStorage.getItem("gideon_debug") === "1";
 if (mostrarDiag) { $("diag").hidden = false; setInterval(() => { $("diag").textContent = `áudio: ${diag.audio}\nenviado: ${(diag.enviado / 1024).toFixed(0)} kB · recebido: ${(diag.recebido / 1024).toFixed(0)} kB\núltimo evento: ${diag.ultimo}`; }, 300); }
 
@@ -119,6 +128,7 @@ async function guardarTurno() {
   if (t.dono.trim() || t.gideon.trim()) api("home-conversa", { pedido: t.dono, resposta: t.gideon, ferramentas: t.ferramentas, tempo_ms: t.inicio ? Date.now() - t.inicio : null }).catch(() => {});
 }
 async function ligar() {
+  Object.assign(diag, { enviado: 0, recebido: 0, nivelMax: 0, eventos: [], erro: null, fechou: null, falaReconhecida: false, respostas: 0, t0: Date.now() }); diagEnviado = false; evento("toque");
   mudar("conectando", "Conectando…");
   try {
     const s = await api("home-sessao");
@@ -139,18 +149,20 @@ async function ligar() {
     ws.onmessage = async (ev) => {
       const bruto = typeof ev.data === "string" ? ev.data : await ev.data.text(); diag.recebido += bruto.length;
       const m = JSON.parse(bruto); diag.ultimo = Object.keys(m).join(",") + (m.serverContent ? ":" + Object.keys(m.serverContent).join(",") : "");
-      if (m.setupComplete) {
-        noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; if (ws?.readyState === 1) { diag.enviado += e.data.pcm.byteLength; ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); } };
+      if (m.setupComplete) { evento("conectado ao Google");
+        setTimeout(() => { if (estado === "ouvindo" && diag.nivelMax < 0.01) { mudar("ouvindo", "Não estou ouvindo nada do seu microfone 🎤 — veja a permissão do site e o microfone do Windows"); evento("microfone mudo"); enviarDiag("microfone mudo"); } }, 7000);
+        setTimeout(() => { if (estado !== "desligado" && !diag.falaReconhecida) { evento("nenhuma fala reconhecida em 25s"); enviarDiag("nenhuma fala reconhecida"); } }, 25000);
+        noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; diag.nivelMax = Math.max(diag.nivelMax, nivelMic); $("nivel").style.width = Math.min(100, nivelMic * 900) + "%"; if (ws?.readyState === 1) { diag.enviado += e.data.pcm.byteLength; ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); } };
         mudar("ouvindo", "Pode falar · toque para encerrar");
         try { travaTela = await navigator.wakeLock?.request("screen"); } catch {}
       }
       const sc = m.serverContent;
       if (sc) {
         if (sc.interrupted) { calar(); mudar("ouvindo", "Pode falar"); }
-        if (sc.inputTranscription?.text) { if (!turno.inicio) turno.inicio = Date.now(); turno.dono += sc.inputTranscription.text; legenda("ultDono", turno.dono.trim()); }
+        if (sc.inputTranscription?.text) { if (!diag.falaReconhecida) evento("fala reconhecida"); diag.falaReconhecida = true; if (!turno.inicio) turno.inicio = Date.now(); turno.dono += sc.inputTranscription.text; legenda("ultDono", turno.dono.trim()); }
         if (sc.outputTranscription?.text) { turno.gideon += sc.outputTranscription.text; legenda("ultGideon", turno.gideon.trim()); }
         for (const p of sc.modelTurn?.parts ?? []) if (p.inlineData?.data) tocar(p.inlineData.data);
-        if (sc.turnComplete) guardarTurno();
+        if (sc.turnComplete) { diag.respostas++; evento("resposta completa"); if (diag.respostas === 1) enviarDiag("primeira resposta ok", true); guardarTurno(); }
       }
       if (m.toolCall) {
         mudar("pensando", "Pensando…");
@@ -164,12 +176,13 @@ async function ligar() {
       }
       if (m.goAway) mudar(estado, "A sessão vai encerrar em instantes — toque de novo para continuar");
     };
-    ws.onclose = (e) => { console.log("ws fechou", e.code, e.reason); desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque no orbe para conversar"); };
+    ws.onclose = (e) => { console.log("ws fechou", e.code, e.reason); diag.fechou = `${e.code} ${e.reason || ""}`.trim(); evento("conexão fechada " + diag.fechou); if (!diag.respostas) enviarDiag("conexão fechada sem resposta"); desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque no orbe para conversar"); };
     ws.onerror = () => mudar("erro", "Falha na conexão com a voz");
-  } catch (e) { console.error("ligar:", e); desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : "Não consegui ligar: " + e.message); }
+  } catch (e) { console.error("ligar:", e); diag.erro = `${e.name || ""}: ${e.message}`; evento("erro " + diag.erro); enviarDiag("erro ao ligar"); desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : e.name === "NotAllowedError" ? "O microfone foi bloqueado: clique no cadeado ao lado do endereço e permita o microfone" : e.name === "NotFoundError" ? "Nenhum microfone encontrado no computador" : e.name === "NotReadableError" ? "O microfone está sendo usado por outro programa (feche Teams, Discord, Zoom…)" : "Não consegui ligar: " + e.message); }
 }
 function desligar(dica) {
-  guardarTurno(); calar();
+  if (estado !== "desligado") { evento("desligado"); enviarDiag(diag.respostas ? "sessão encerrada" : "encerrada sem resposta", diag.respostas > 0); }
+  guardarTurno(); calar(); $("nivel").style.width = "0";
   try { ws?.close(); } catch {} ws = null;
   try { fluxo?.getTracks().forEach((t) => t.stop()); } catch {}
   try { ctxMic?.close(); ctxVoz?.close(); } catch {}
