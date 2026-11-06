@@ -5,8 +5,11 @@
 //   POST /gideon/relatorio  ← pg_cron, domingo 19h (x-gideon-chave)
 //   POST /gideon/registrar  ← liga o Telegram nesta função (x-gideon-chave)
 //   POST /gideon/status     ← situação do webhook do Telegram (x-gideon-chave)
+//   POST /gideon/google/conectar ← manda ao dono o link de autorização do Google (x-gideon-chave)
+//   GET  /gideon/google/retorno  ← o Google volta aqui depois da autorização
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, config, dispararLembretes, relatorioSemanal, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
+import { linkConectar, retorno } from "./google.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -34,7 +37,9 @@ Deno.serve(async (req) => {
       EdgeRuntime.waitUntil(trabalho);
       return json({ ok: true }); // responde já, para o Telegram não reenviar
     }
+    if (rota === "retorno") return await retorno(req); // o Google volta aqui (protegido pelo state assinado)
     if (!(await autorizado(req))) return json({ erro: "não autorizado" }, 401);
+    if (rota === "conectar") return json(await linkConectar());
     if (rota === "nucleo") {
       const b = await req.json();
       const r = await atender({ texto: String(b.texto ?? ""), canal: String(b.canal ?? "sistema"), sessao: String(b.sessao ?? "teste") });

@@ -11,9 +11,8 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 ## 0. BASE — o que liga tudo (antes de qualquer projeto)
 
 **0.1 Servidor e orquestrador**
-- ✅ n8n no Railway (crédito de teste) com Supabase
-- 🟡 Teste do n8n no Render grátis (512 MB — no limite)
-- ⬜ **Decidir o substituto do n8n** (ver "Até onde o n8n aguenta" no fim)
+- ✅ GIDEON no Supabase (Edge Function + pg_cron), grátis — decisão 011
+- ✅ n8n desligado (reserva no Railway); teste no Render suspenso
 
 **0.2 Núcleo (o cérebro único)**
 - ✅ Núcleo: memória → agente Gemini → guarda conversa → registra execução
@@ -22,7 +21,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ⬜ Reserva automática quando o Gemini falhar ou bater o limite grátis
 
 **0.3 Conexões do GIDEON** (fazer antes de começar os projetos)
-- ⬜ Google: Gmail, Agenda e Drive (uma autorização só)
+- 🟡 Google: Gmail (leitura), Agenda (ler e criar com confirmação) e Drive (busca) — código pronto; falta o dono autorizar
 - ⬜ WhatsApp (WAHA no Render; reconstruir o "Despertador")
 - ⬜ GitHub (para o Self-Improving e para o GIDEON ler seus projetos)
 - ⬜ Notion (opcional: anotações e projetos)

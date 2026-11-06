@@ -11,6 +11,7 @@
 | 003 | `003_indices_fk.sql` | Índices das chaves estrangeiras | 06/11/2026 |
 | 004 | `004_usuario_n8n.sql` | Usuário `gideon_n8n` (só tabelas do GIDEON) | 06/11/2026 |
 | 005 | `005_nucleo_supabase.sql` | Memória curta, configuração, pg_cron, segredo do agendador, funções de lembretes e relatório | 06/11/2026 |
+| 006 | `006_agendador_e_google.sql` | Agendador (pg_cron) e cofre para a autorização do Google | 06/11/2026 |
 
 ## Tabelas
 
