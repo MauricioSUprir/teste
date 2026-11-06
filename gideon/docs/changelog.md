@@ -9,3 +9,4 @@
 
 ## 2026-11-06
 - n8n Cloud fora do ar (instância não existe). Decisão 007: n8n self-hosted no Railway, projeto `gideon-n8n`.
+- Conta de dono criada no n8n novo. Ambiente `gideon` criado no Claude Code, com a API key do n8n como segredo de rede. Acesso pela API testado (0 workflows, 0 credenciais).

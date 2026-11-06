@@ -10,7 +10,7 @@ A instância do n8n Cloud (`mauriciosrn8n.app.n8n.cloud`) **não existe mais**, 
 
 | Peça | O que é | Onde roda | Situação |
 | --- | --- | --- | --- |
-| n8n (orquestrador) | n8n self-hosted, imagem oficial `n8nio/n8n` | Railway, projeto `gideon-n8n`, https://n8n-production-a0ba2.up.railway.app | ✅ No ar desde 06/11; falta criar a conta de dono |
+| n8n (orquestrador) | n8n self-hosted, imagem oficial `n8nio/n8n` | Railway, projeto `gideon-n8n`, https://n8n-production-a0ba2.up.railway.app | ✅ No ar desde 06/11; conta de dono criada; 0 workflows |
 | Postgres do n8n | Guarda workflows, credenciais e execuções (volume persistente, rede privada) | Railway, mesmo projeto | ✅ No ar |
 | n8n Cloud antigo | Antigo orquestrador | `mauriciosrn8n.app.n8n.cloud` | ❌ Instância não existe |
 | Jarvis - Fase 1 | Telegram → Claude → Telegram | n8n Cloud antigo | ❌ Perdido; reconstruir |
@@ -44,6 +44,11 @@ flowchart LR
 - **Railway (n8n + Postgres):** plano Hobby, US$ 5/mês com US$ 5 de uso incluso; estimativa de US$ 5 a 10/mês. Conta: `gui.drodrigues21@gmail.com`. Região: `sfo` (EUA). Volume do Postgres: 500 MB.
 - ⚠ Render grátis (WAHA): o serviço dorme sem tráfego, por isso o Despertador. Plano B: mover o WAHA para o mesmo projeto do Railway.
 - ⚠ Limites do plano grátis do Gemini e da SerpApi: a levantar e registrar aqui.
+
+## Acesso do Claude
+
+- API do n8n: chave `claude-gideon`, guardada como segredo de rede do ambiente `gideon` do Claude Code (não está no Git nem em variável). Para trocar: apagar a chave no n8n, criar outra e salvar pelo formulário seguro.
+- Railway: conector do Railway na conta do Claude.
 
 ## Backup
 
