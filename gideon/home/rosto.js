@@ -19,7 +19,7 @@ const OLHOS = [
 ];
 const SOBRANCELHAS = [156, 70, 63, 105, 66, 107, 55, 193, 35, 124, 46, 53, 52, 65, 383, 300, 293, 334, 296, 336, 285, 417, 265, 353, 276, 283, 282, 295];
 const CONTORNO = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
-const CENTRO = new T.Vector3(0, 1.4, -3.4), RAIO = new T.Vector3(8.0, 10.2, 9.6); // crânio (elipsoide)
+const CENTRO = new T.Vector3(0, 1.5, -4.0); // meio da cabeça (de onde sai o crânio)
 
 export function iniciarRosto(palco) {
   // ---------- malha do rosto (traços suaves e sorriso leve) ----------
@@ -28,12 +28,17 @@ export function iniciarRosto(palco) {
     for (let i = 0; i < tri.length; i += 3) { const [a, b, c] = [tri[i] * 3, tri[i + 1] * 3, tri[i + 2] * 3];
       soma += (B[b] - B[a]) * (B[c + 1] - B[a + 1]) - (B[b + 1] - B[a + 1]) * (B[c] - B[a]); }
     if (soma < 0) for (let i = 0; i < tri.length; i += 3) { const t = tri[i + 1]; tri[i + 1] = tri[i + 2]; tri[i + 2] = t; } }
-  const yBoca = (B[13 * 3 + 1] + B[14 * 3 + 1]) / 2;
+  // proporções no estilo do logo e do holograma: rosto mais longo e estreito, maçãs marcadas, bochecha funda, maxilar fino até o queixo
   for (let i = 0; i < N; i++) {
-    const x = B[i * 3], y = B[i * 3 + 1];
-    let fx = 0.97 * (1 - 0.11 * suave(-1.5, -9.4, y));
-    if (y > -1.5 && y < 2.5 && Math.abs(x) > 3.5) fx *= 1.02;
-    B[i * 3] = x * fx; B[i * 3 + 1] = y + 0.4 * suave(-7, -9.4, y);
+    let x = B[i * 3], y = B[i * 3 + 1], z = B[i * 3 + 2];
+    y += 0.3 * suave(-7, -9.4, y);                                                      // queixo um pouco menor (olhos ficam no meio da cabeça)
+    x *= 0.87 * (1 - 0.2 * suave(-2.5, -10.5, y));                                      // mais estreito; maxilar afina até o queixo
+    const ax = Math.abs(x);
+    z += 0.3 * suave(3.2, 5.6, ax) * suave(-1.2, 0.6, y) * suave(2.8, 1.0, y);        // maçãs do rosto
+    z -= 0.35 * suave(3.0, 5.0, ax) * suave(-1.6, -3.2, y) * suave(-6.2, -4.4, y);    // bochecha um pouco funda
+    const nariz = suave(2.4, 1.0, ax) * suave(-3.0, -1.8, y) * suave(3.2, 2.0, y) * suave(4.6, 5.6, z);
+    z -= (z - 4.6) * 0.2 * nariz; x *= 1 - 0.1 * nariz;                                 // nariz mais delicado
+    B[i * 3] = x; B[i * 3 + 1] = y; B[i * 3 + 2] = z;
   }
   for (const i of [185, 40, 39, 37, 0, 267, 269, 270, 409]) { B[i * 3 + 1] += 0.08; B[i * 3 + 2] += 0.1; }
   for (const i of [146, 91, 181, 84, 17, 314, 405, 321, 375]) { B[i * 3 + 1] -= 0.1; B[i * 3 + 2] += 0.1; }
@@ -41,6 +46,13 @@ export function iniciarRosto(palco) {
   for (const i of [95, 88, 178, 87, 14, 317, 402, 318, 324]) B[i * 3 + 1] += 0.42; // fecha a fresta da malha original
   for (const i of [191, 80, 81, 82, 13, 312, 311, 310, 415]) B[i * 3 + 1] -= 0.06;
   for (const [i, k] of [[61, 1], [291, 1], [78, 0.8], [308, 0.8], [146, 0.4], [375, 0.4], [185, 0.4], [409, 0.4], [57, 0.5], [287, 0.5]]) B[i * 3 + 1] += 0.22 * k; // sorriso
+  for (const [i, k] of [[63, 0.2], [105, 0.2], [70, 0.1], [53, 0.15], [52, 0.12], [293, 0.2], [334, 0.2], [300, 0.1], [283, 0.15], [282, 0.12]]) B[i * 3 + 1] += k; // arco da sobrancelha
+  for (const o of OLHOS) { // olhos um pouco mais abertos
+    for (const i of o.sup) B[i * 3 + 1] += 0.13;
+    for (const i of o.acima) B[i * 3 + 1] += 0.07;
+    for (const i of o.inf.slice(1, -1)) B[i * 3 + 1] -= 0.07;
+  }
+  const yBoca = (B[13 * 3 + 1] + B[14 * 3 + 1]) / 2;
 
   const pesoQueixo = new Float32Array(N);
   for (let i = 0; i < N; i++) pesoQueixo[i] = suave(0, 1.3, yBoca - B[i * 3 + 1]);
@@ -57,7 +69,18 @@ export function iniciarRosto(palco) {
   });
 
   // ---------- crânio: estende o contorno do rosto para trás até fechar a cabeça ----------
-  const raioEm = (d) => 1 / Math.sqrt((d.x / RAIO.x) ** 2 + (d.y / RAIO.y) ** 2 + (d.z / RAIO.z) ** 2);
+  // Perfil no estilo do holograma: alto da cabeça grande, têmporas fechadas, nuca que entra para o pescoço.
+  const PERFIL = [ // altura (y), meia-largura, frente (z), trás (z) — em cm
+    [14.0, 0.0, -3.6, -3.6], [13.6, 2.5, -1.0, -6.4], [12.8, 4.4, 1.6, -9.4], [11.3, 5.8, 3.5, -11.4], [8.5, 6.6, 4.6, -12.9], [5, 6.75, 5.0, -13.3],
+    [2, 6.6, 5.0, -12.6], [-1, 6.15, 4.8, -11.0], [-3.5, 5.6, 4.2, -9.3], [-5.6, 5.1, 3.0, -7.9], [-8.0, 3.6, 1.6, -6.6], [-9.6, 1.8, 0.2, -4.6], [-10.4, 0, -2.2, -2.2],
+  ];
+  const perfil = (y) => {
+    if (y >= PERFIL[0][0]) return PERFIL[0];
+    for (let k = 1; k < PERFIL.length; k++) if (y >= PERFIL[k][0]) { const a = PERFIL[k - 1], b = PERFIL[k], t = (y - b[0]) / (a[0] - b[0]); return b.map((v, n) => lerp(v, a[n], t)); }
+    return PERFIL[PERFIL.length - 1];
+  };
+  const dentro = (p) => { const [, w, f, t] = perfil(p.y); if (w <= 0) return false; const zc = (f + t) / 2, dz = (f - t) / 2; return (p.x / w) ** 2 + ((p.z - zc) / dz) ** 2 <= 1; };
+  const raioEm = (d) => { let a = 0, b = 30; for (let n = 0; n < 28; n++) { const m = (a + b) / 2; if (dentro(CENTRO.clone().addScaledVector(d, m))) a = m; else b = m; } return a; };
   const slerp = (a, b, t) => a.clone().applyQuaternion(new T.Quaternion().slerp(new T.Quaternion().setFromUnitVectors(a, b), t));
   const K = CONTORNO.length, M = 18, atras = new T.Vector3(0, 0.08, -1).normalize();
   const posCranio = new Float32Array((M + 1) * K * 3);
@@ -65,7 +88,7 @@ export function iniciarRosto(palco) {
     const i = CONTORNO[k], v = new T.Vector3(B[i * 3], B[i * 3 + 1], B[i * 3 + 2]);
     const u = j / M, d0 = v.clone().sub(CENTRO), r0 = d0.length(); d0.normalize();
     const d = u < 1 ? slerp(d0, atras, u) : atras.clone();
-    const r = lerp(r0, raioEm(d) * 1.01 * lerp(1, 0.8, suave(-0.1, -0.85, d.y)), suave(0, 0.4, u));
+    const r = lerp(r0, raioEm(d), suave(0, 0.35, u));
     posCranio.set(CENTRO.clone().add(d.multiplyScalar(r)).toArray(), (j * K + k) * 3);
   }
   const idxCranio = [];
@@ -93,46 +116,68 @@ export function iniciarRosto(palco) {
   const VERT = `attribute vec3 aBase; varying vec3 vN; varying vec3 vV; varying vec3 vW; varying vec3 vB;
     void main(){ vB = aBase; vec4 w = modelMatrix * vec4(position,1.0); vW = w.xyz; vN = normalize(normalMatrix * normal);
       vec4 mv = viewMatrix * w; vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
-  const FRAG = `uniform vec3 uCor; uniform float uT, uBrilho, uPinos; varying vec3 vN; varying vec3 vV; varying vec3 vW; varying vec3 vB;
+  const FRAG = `uniform vec3 uCor; uniform float uT, uBrilho, uPinos, uSome; varying vec3 vN; varying vec3 vV; varying vec3 vW; varying vec3 vB;
     void main(){ vec3 n = normalize(vN); float fr = pow(1.0 - abs(dot(n, normalize(vV))), 2.0);
       vec3 L = normalize(vec3(0.2, 0.55, 0.8)); float luz = max(dot(n, L), 0.0);
       float esp = pow(max(dot(reflect(-L, n), normalize(vV)), 0.0), 6.0);
       float linhas = 0.86 + 0.14 * sin(vW.y * 7.0 - uT * 2.2);
       float faixa = smoothstep(1.3, 0.0, abs(vW.y - (16.0 - mod(uT * 6.0, 46.0))));
-      vec3 q = vB - vec3(0.0, 1.4, -3.4);
+      vec3 q = vB - vec3(0.0, 1.5, -4.0);
       vec2 g = vec2(atan(q.x, q.z) * 8.2, vB.y) / 1.12; vec2 f = fract(g) - 0.5; float d = length(f);
       float rosto = smoothstep(1.5, 4.5, vB.z);
       float pino = smoothstep(0.2, 0.09, d) * (0.5 + 0.5 * smoothstep(0.12, 0.0, length(f - vec2(-0.05, 0.06))));
       float grade = (smoothstep(0.05, 0.0, abs(f.x)) * 0.7 + smoothstep(0.04, 0.0, abs(f.y)) * 0.3) * 0.09;
       float pontos = uPinos * (pino * mix(0.75, 0.38, rosto) + grade * (1.0 - 0.6 * rosto));
       float a = (0.02 + 0.55 * fr + 0.2 * luz * luz + 0.16 * esp) * linhas + 0.18 * faixa + pontos * (0.45 + 0.55 * luz);
+      a *= mix(1.0, 0.8 * smoothstep(-4.5, 4.5, vB.y), uSome); // pescoço some para baixo
       gl_FragColor = vec4(uCor * a * uBrilho, 1.0); }`;
-  const pele = (pinos = 1) => { const m = new T.ShaderMaterial({ uniforms: { ...uni, uPinos: { value: pinos } }, vertexShader: VERT, fragmentShader: FRAG,
-    transparent: true, blending: T.AdditiveBlending, depthWrite: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }); return m; };
+  const pele = (pinos = 1) => { const m = new T.ShaderMaterial({ uniforms: { ...uni, uPinos: { value: pinos }, uSome: { value: 0 } }, vertexShader: VERT, fragmentShader: FRAG,
+    transparent: true, blending: T.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }); return m; };
+  // mesma conta de posição da pele (mesmo VERT), para a profundidade bater exatamente e não tremer
+  const matProfundidade = new T.ShaderMaterial({ vertexShader: VERT, fragmentShader: "void main(){ gl_FragColor = vec4(0.0); }", colorWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const solido = (m) => { m.add(new T.Mesh(m.geometry, matProfundidade)); return m; }; // passada só de profundidade, desenhada antes
   const matPele = pele(1);
 
   const geo = new T.BufferGeometry();
   const pos = new T.BufferAttribute(new Float32Array(B), 3).setUsage(T.DynamicDrawUsage);
   geo.setAttribute("position", pos); geo.setAttribute("aBase", new T.BufferAttribute(new Float32Array(B), 3));
   geo.setIndex(new T.BufferAttribute(tri, 1)); geo.computeVertexNormals();
-  const malha = new T.Mesh(geo, matPele); malha.renderOrder = 1; cabeca.add(malha);
+  const malha = solido(new T.Mesh(geo, matPele)); malha.renderOrder = 1; cabeca.add(malha);
 
   const geoCranio = new T.BufferGeometry();
   const posC = new T.BufferAttribute(posCranio, 3).setUsage(T.DynamicDrawUsage);
   geoCranio.setAttribute("position", posC); geoCranio.setAttribute("aBase", new T.BufferAttribute(new Float32Array(posCranio), 3));
   geoCranio.setIndex(idxCranio); geoCranio.computeVertexNormals();
-  const cranio = new T.Mesh(geoCranio, matPele); cranio.renderOrder = 1; cabeca.add(cranio);
+  const cranio = solido(new T.Mesh(geoCranio, matPele)); cranio.renderOrder = 1; cabeca.add(cranio);
 
-  // orelhas
+  // orelhas: forma de C com a borda (hélice), a dobra de dentro e o lóbulo; um pouco abertas para fora
+  const formaOrelha = new T.Shape();
+  formaOrelha.moveTo(0, 2.3);
+  formaOrelha.bezierCurveTo(0.25, 3.3, 1.9, 3.45, 2.55, 2.35);
+  formaOrelha.bezierCurveTo(3.1, 1.4, 2.95, -0.4, 2.35, -1.45);
+  formaOrelha.bezierCurveTo(1.95, -2.2, 1.65, -3.05, 0.95, -3.15);
+  formaOrelha.bezierCurveTo(0.35, -3.2, 0.05, -2.65, 0.15, -2.0);
+  formaOrelha.bezierCurveTo(0.4, -1.2, 0.05, -0.5, 0.15, 0.3);
+  formaOrelha.lineTo(0, 2.3);
+  const geoOrelha = new T.ExtrudeGeometry(formaOrelha, { depth: 0.16, bevelEnabled: true, bevelThickness: 0.16, bevelSize: 0.2, bevelSegments: 3, curveSegments: 18 });
+  const curva = (pts, z) => new T.CatmullRomCurve3(pts.map(([u, v]) => new T.Vector3(u, v, z)));
+  const geoBorda = new T.TubeGeometry(curva([[0.35, 2.2], [0.9, 2.95], [1.9, 2.95], [2.55, 2.0], [2.65, 0.6], [2.2, -1.0], [1.6, -2.0]], 0.4), 40, 0.19, 8, false);
+  const geoDobra = new T.TubeGeometry(curva([[1.0, 2.15], [1.7, 1.6], [1.9, 0.4], [1.5, -0.8], [1.0, -1.3]], 0.36), 30, 0.13, 8, false);
+  const partesOrelha = [geoOrelha, geoBorda, geoDobra];
+  for (const g of partesOrelha) g.setAttribute("aBase", g.attributes.position.clone());
+  const matOrelha = pele(0);
   for (const lado of [-1, 1]) {
-    const orelha = new T.Group();
-    const casca = new T.SphereGeometry(1, 28, 20); casca.setAttribute("aBase", casca.attributes.position.clone());
-    const externa = new T.Mesh(casca, pele(0)); externa.scale.set(0.5, 2.75, 1.5);
-    const dentro = new T.Mesh(casca, pele(0)); dentro.scale.set(0.32, 1.75, 0.95); dentro.position.set(lado * 0.3, -0.15, 0.15);
-    orelha.add(externa, dentro);
-    orelha.position.set(lado * 7.55, 0.1, -2.7); orelha.rotation.set(0.05, lado * 0.42, lado * -0.1);
-    externa.renderOrder = dentro.renderOrder = 1; cabeca.add(orelha);
+    const base = new T.Group(), giro = new T.Group();
+    giro.rotation.y = lado * (Math.PI / 2 - 0.62); if (lado < 0) giro.scale.x = -1; // a de lá é o espelho da de cá
+    for (const g of partesOrelha) { const m = solido(new T.Mesh(g, matOrelha)); m.renderOrder = 1; giro.add(m); }
+    base.add(giro); base.position.set(lado * 6.4, 1.5, -3.0); base.rotation.x = -0.2; base.scale.setScalar(1.0);
+    cabeca.add(base);
   }
+
+  // pescoço: aparece embaixo do maxilar e some para baixo
+  const geoPescoco = new T.CylinderGeometry(3.7, 4.3, 15, 40, 10, true); geoPescoco.setAttribute("aBase", geoPescoco.attributes.position.clone());
+  const matPescoco = pele(0); matPescoco.uniforms.uSome.value = 1;
+  const pescoco = solido(new T.Mesh(geoPescoco, matPescoco)); pescoco.scale.set(1, 1, 1.05); pescoco.position.set(0, -12.6, -3.3); pescoco.renderOrder = 2; cabeca.add(pescoco); // depois do rosto: a parte de trás do queixo fica escondida
 
   // linhas finas da malha do rosto
   const arestas = new Map();
@@ -147,7 +192,7 @@ export function iniciarRosto(palco) {
   const BOCA = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146];
   const BOCA_DENTRO = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95];
   const geoTracos = new T.BufferGeometry(); geoTracos.setAttribute("position", pos);
-  geoTracos.setIndex([...laco(OLHO_A), ...laco(OLHO_B), ...laco(BOCA), ...laco(BOCA_DENTRO)]);
+  geoTracos.setIndex([...laco(OLHO_A), ...laco(OLHO_B), ...laco(BOCA_DENTRO), ...laco(BOCA)]);
   const matTracos = new T.LineBasicMaterial({ color: 0x8fd8ff, transparent: true, opacity: 0.5, blending: T.AdditiveBlending, depthWrite: false });
   const tracos = new T.LineSegments(geoTracos, matTracos); tracos.renderOrder = 3; cabeca.add(tracos);
 
@@ -163,11 +208,11 @@ export function iniciarRosto(palco) {
         float iris = smoothstep(0.52, 0.46, d), pupila = smoothstep(0.17, 0.13, d), aro = smoothstep(0.36, 0.47, d) * iris;
         float raios = 0.6 + 0.4 * sin(ang * 26.0 + d * 18.0 + uT * 0.4);
         float reflexo = smoothstep(0.12, 0.0, distance(vP.xy, vec2(-0.15, 0.18))) * iris;
-        vec3 c = uCor * ((iris - pupila * 0.7) * (0.7 * raios + 1.1 * aro) + (1.0 - iris) * 0.35) + vec3(0.8, 0.95, 1.0) * (reflexo * 1.4 + iris * 0.3);
+        vec3 c = uCor * ((iris - pupila * 0.7) * (0.7 * raios + 1.1 * aro) + (1.0 - iris) * 0.55) + vec3(0.8, 0.95, 1.0) * (reflexo * 1.4 + iris * 0.35);
         gl_FragColor = vec4(c * uBrilho * 1.5, 1.0); }` });
   const olhos = palpebras.map((p) => {
-    const o = new T.Mesh(new T.SphereGeometry(1.12, 32, 24), matOlho);
-    o.position.set(p.centro[0], p.centro[1] - 0.05, p.centro[2] - 0.95); o.renderOrder = 2; cabeca.add(o); return o; });
+    const o = new T.Mesh(new T.SphereGeometry(1.06, 32, 24), matOlho);
+    o.position.set(p.centro[0], p.centro[1] - 0.05, p.centro[2] - 0.85); o.renderOrder = 2; cabeca.add(o); return o; });
 
   // ---------- fundo: riscos de luz horizontais, partículas e halo ----------
   const ponto = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
@@ -198,12 +243,12 @@ export function iniciarRosto(palco) {
   const bloom = new T.UnrealBloomPass(new T.Vector2(256, 256), 0.7, 0.32, 0.02);
   if (!location.search.includes("semBloom")) composer.addPass(bloom);
   composer.addPass(new T.OutputPass());
-  const MEIO = 1.2;
+  const MEIO = 0.6;
   function ajustar() {
     const W = window.innerWidth || 1, H = window.innerHeight || 1, r = palco.getBoundingClientRect(), w = r.width || W, h = Math.max(120, (r.height || H) - 56); // 56 px embaixo para o aviso e a barra do microfone
     renderer.setSize(W, H, false); composer.setSize(W, H); bloom.resolution.set(Math.round(W / 2), Math.round(H / 2));
     camera.aspect = W / H;
-    const tg = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), alt = 25, larg = 21; // a cabeça inteira precisa caber no palco
+    const tg = Math.tan(T.MathUtils.degToRad(camera.fov / 2)), alt = 28, larg = 20; // cabeça inteira + começo do pescoço precisam caber no palco
     const dist = Math.max(alt / 2 / tg * (H / h), larg / 2 / (tg * camera.aspect) * (W / w)) * 1.05;
     camera.position.set(0, MEIO, dist); camera.lookAt(0, MEIO, 0);
     camera.setViewOffset(W, H, W / 2 - (r.left + w / 2), H / 2 - (r.top + h / 2), W, H); // desloca a imagem até o centro do palco
@@ -270,6 +315,7 @@ export function iniciarRosto(palco) {
     cabeca.rotation.x = 0.04 * Math.sin(t * 0.31) + (e === "ouvindo" ? -0.03 : 0) + abre * 0.03 + 0.05 * sono;
     cabeca.rotation.z = 0.025 * Math.sin(t * 0.19) + (e === "ouvindo" ? 0.03 : 0);
     cabeca.position.y = 0.3 * Math.sin(t * 0.8);
+    if (window.__giro !== undefined) cabeca.rotation.set(0, window.__giro, 0); // só para fotos de teste (modo depurar)
     if (t > proxOlhar) { proxOlhar = t + 0.6 + Math.random() * 2.2; olharAlvo.set((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2); }
     if (e === "pensando") olharAlvo.set(-7, 6);
     olhar.lerp(olharAlvo, 0.12);
@@ -285,7 +331,7 @@ export function iniciarRosto(palco) {
     uni.uCor.value.copy(cor); uni.uT.value = t;
     uni.uBrilho.value = brilho * (emFalha ? 0.55 : 1) * (0.97 + 0.03 * Math.sin(t * 37));
     matLinhas.color.copy(cor); matLinhas.opacity = 0.07 * brilho;
-    matTracos.color.copy(cor).lerp(new T.Color(1, 1, 1), 0.35); matTracos.opacity = 0.2 * brilho;
+    matTracos.color.copy(cor).lerp(new T.Color(1, 1, 1), 0.35); matTracos.opacity = 0.13 * brilho;
     riscos.forEach((r, i) => { const k = r.forca * brilho * Math.max(0, Math.sin(t * r.vel + r.fase)) ** 3;
       corRiscos.set([cor.r * k * 0.3, cor.g * k * 0.3, cor.b * k * 0.3, cor.r * k, cor.g * k, cor.b * k], i * 6); });
     geoRiscos.attributes.color.needsUpdate = true;
