@@ -16,3 +16,12 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | 8 | "O que tem nessa foto?" (anexo) | Descrição fiel da imagem | Visão | ☐ |
 | 9 | "Anota: <tarefa>" | Cria a tarefa em `jarvis_tarefas` e confirma | Tarefas | ☐ |
 | 10 | "Resuma essa planilha" (Excel) | Resumo com totais/estrutura reais da planilha | Arquivos | ☐ |
+
+## Testes reais já feitos
+
+| Data | Pedido | Resposta esperada | Resultado | Tempo |
+| --- | --- | --- | --- | --- |
+| 06/11/2026 | "oi, quem é vc?" | Apresenta-se como GIDEON, curto | ✅ "Sou o GIDEON, seu assistente pessoal. Como posso ajudar?" | 1,3 s |
+| 06/11/2026 | "o que eu te perguntei antes?" | Lembra a mensagem anterior | ✅ Repetiu a pergunta anterior | 0,9 s |
+| 06/11/2026 | Mensagem de quem não é o dono | Não responde | ✅ Filtro barrou (primeiro "oi", antes de configurar o ID) | — |
+

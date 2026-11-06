@@ -10,14 +10,16 @@ A instância do n8n Cloud (`mauriciosrn8n.app.n8n.cloud`) **não existe mais**, 
 
 | Peça | O que é | Onde roda | Situação |
 | --- | --- | --- | --- |
-| n8n (orquestrador) | n8n self-hosted, imagem oficial `n8nio/n8n` | Railway, projeto `gideon-n8n`, https://n8n-production-a0ba2.up.railway.app | ✅ No ar desde 06/11; conta de dono criada; 0 workflows |
+| n8n (orquestrador) | n8n self-hosted, imagem oficial `n8nio/n8n` | Railway, projeto `gideon-n8n`, https://n8n-production-a0ba2.up.railway.app | ✅ No ar desde 06/11; conta de dono criada |
 | Postgres do n8n | Guarda workflows, credenciais e execuções (volume persistente, rede privada) | Railway, mesmo projeto | ✅ No ar |
 | n8n Cloud antigo | Antigo orquestrador | `mauriciosrn8n.app.n8n.cloud` | ❌ Instância não existe |
-| Jarvis - Fase 1 | Telegram → Claude → Telegram | n8n Cloud antigo | ❌ Perdido; reconstruir |
+| GIDEON - Telegram - Conversa | Telegram → filtro "Só o dono" → GIDEON (Gemini `gemini-3.5-flash-lite` + memória das últimas 10 mensagens) → Telegram | n8n Railway | ✅ Ativo e testado em 06/11 (resposta em ~1 s) |
+| GIDEON - Sistema - Alerta de erro | Error Trigger → aviso no Telegram do dono | n8n Railway | ✅ Ativo; ligado ao workflow da conversa |
+| Jarvis - Fase 1 (antigo) | Telegram → Claude → Telegram | n8n Cloud antigo | ❌ Perdido; substituído pelo GIDEON - Telegram - Conversa |
 | WAHA | API de WhatsApp (repositório `MauricioSUprir/jarvis-waha`) | Render grátis, https://jarvis-waha.onrender.com | ⚠ Serviço separado, deve existir; sem o Despertador, dorme |
 | Jarvis - Despertador WhatsApp | Acorda o WAHA a cada 10 min | n8n Cloud antigo | ❌ Perdido; reconstruir |
 | Ferramenta "WhatsApp - Enviar mensagem" | Ligada ao assistente | n8n Cloud antigo | ❌ Perdida; reconstruir |
-| Gemini | Modelo principal | API | ⚠ Chave precisa ser cadastrada no n8n novo |
+| Gemini | Modelo principal (`gemini-3.5-flash-lite`) | API | ✅ Credencial cadastrada no n8n novo |
 | Pesquisador | Claude Haiku + SerpApi | n8n Cloud antigo / API | ❌ Workflow perdido; chaves a cadastrar |
 | Leitura de arquivos | PDF, Word, PowerPoint, Excel, fotos, vídeos, YouTube, links | n8n Cloud antigo | ❌ Perdida; reconstruir |
 | Google Agenda e Gmail | Inclui posts do Classroom que chegam por e-mail | n8n Cloud antigo | ❌ Credenciais a refazer no n8n novo |
@@ -60,3 +62,4 @@ flowchart LR
 
 - Prompt de sistema que o assistente usava (o que o dono lembrar) para `prompts/`.
 - Confirmar se o WAHA no Render ainda está de pé.
+- A memória da conversa é temporária (fica na memória do n8n e se perde quando o serviço reinicia). A memória de longo prazo é a Fase 1.

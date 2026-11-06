@@ -1,0 +1,57 @@
+{
+  "name": "GIDEON - Sistema - Alerta de erro",
+  "nodes": [
+    {
+      "id": "e1",
+      "name": "Erro em algum workflow",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e2",
+      "name": "Avisa no Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "chatId": "DONO_TELEGRAM_ID",
+        "text": "=⚠️ GIDEON: erro em workflow\n\nWorkflow: {{ $json.workflow.name }}\nNó: {{ $json.execution.lastNodeExecuted || '—' }}\nErro: {{ ($json.execution.error && $json.execution.error.message || 'sem mensagem').slice(0, 500) }}\nQuando: {{ $now.setZone('America/Sao_Paulo').toFormat('dd/MM HH:mm') }}\nDetalhes: {{ $json.execution.url || '—' }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "8laolpRHTWXd6lke",
+          "name": "Telegram account"
+        }
+      },
+      "webhookId": "4f695709-6dca-4016-8ad2-5f7a3dbd7a13"
+    }
+  ],
+  "connections": {
+    "Erro em algum workflow": {
+      "main": [
+        [
+          {
+            "node": "Avisa no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "America/Sao_Paulo",
+    "executionOrder": "v1"
+  }
+}
