@@ -30,6 +30,7 @@
   #aviso p { max-width:420px; line-height:1.5; }
   #aviso code { color:var(--ciano); }
   #diag { position:fixed; left:12px; bottom:8px; font: 11px/1.4 ui-monospace, monospace; color:#4d6a82; white-space:pre; pointer-events:none; }
+  #mics { position:fixed; right:12px; bottom:8px; max-width:min(60vw, 320px); background:#0a121c; color:var(--suave); border:1px solid #1c2a3a; border-radius:8px; padding:4px 6px; font-size:12px; }
   button.sair { background:none; border:1px solid #1c2a3a; color:var(--suave); border-radius:999px; padding:6px 12px; font-size:12px; }
 </style>
 </head>
@@ -37,6 +38,7 @@
 <main>
   <header><h1>GIDEON</h1><div id="estado">desligado</div></header>
   <div id="diag" hidden></div>
+  <select id="mics" hidden aria-label="Microfone"></select>
   <section id="palco"><canvas id="orbe" width="800" height="800" aria-label="Toque para falar com o GIDEON" role="button"></canvas><div id="dica">Toque no orbe para conversar</div><div id="barra"><i id="nivel"></i></div></section>
   <section id="legendas"><div class="fala dono" id="ultDono" hidden></div><div class="fala gideon" id="ultGideon" hidden></div></section>
 </main>
@@ -127,17 +129,83 @@ async function guardarTurno() {
   const t = turno; turno = { dono: "", gideon: "", ferramentas: [], inicio: 0 };
   if (t.dono.trim() || t.gideon.trim()) api("home-conversa", { pedido: t.dono, resposta: t.gideon, ferramentas: t.ferramentas, tempo_ms: t.inicio ? Date.now() - t.inicio : null }).catch(() => {});
 }
+// ---------- microfone: escolhe sozinho um que tenha som ----------
+let sessaoAtual = 0, fonteMic = null, varrendo = false;
+const espera = (ms) => new Promise((ok) => setTimeout(ok, ms));
+const restricoes = (id, processar = true) => ({ audio: { ...(id ? { deviceId: { exact: id } } : {}), echoCancellation: processar, noiseSuppression: processar, autoGainControl: processar, channelCount: 1 } });
+let micSalvo = null; try { micSalvo = localStorage.getItem("gideon_mic"); } catch {}
+function salvarMic(id) { micSalvo = id; try { localStorage.setItem("gideon_mic", id); } catch {} }
+function ligarFonte(stream) {
+  try { fonteMic?.disconnect(); } catch {}
+  if (fluxo && fluxo !== stream) fluxo.getTracks().forEach((t) => t.stop());
+  fluxo = stream; fonteMic = ctxMic.createMediaStreamSource(stream); fonteMic.connect(noMic);
+  const t = stream.getAudioTracks()[0];
+  diag.mic = t?.label || "?"; diag.micMudo = !!t?.muted;
+  if (t) { t.onmute = () => evento("o sistema silenciou o microfone"); t.onended = () => evento("microfone desconectado"); }
+  const id = t?.getSettings?.().deviceId; if (id) $("mics").value = id;
+}
+async function listarMics() {
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === "audioinput");
+  diag.mics = devs.map((d) => d.label || "(sem nome)").slice(0, 10);
+  const sel = $("mics"); sel.innerHTML = "";
+  for (const d of devs) { const o = document.createElement("option"); o.value = d.deviceId; o.textContent = "🎤 " + (d.label || "Microfone"); sel.appendChild(o); }
+  sel.hidden = devs.length < 2;
+  const id = fluxo?.getAudioTracks()[0]?.getSettings?.().deviceId; if (id) sel.value = id;
+  return devs;
+}
+async function medirPico(stream, ms = 1600) { // maior amplitude que o aparelho manda (0 = aparelho mudo)
+  const src = ctxMic.createMediaStreamSource(stream), an = ctxMic.createAnalyser(), g = ctxMic.createGain();
+  an.fftSize = 2048; g.gain.value = 0; src.connect(an); an.connect(g); g.connect(ctxMic.destination);
+  const d = new Float32Array(an.fftSize); let pico = 0;
+  for (const fim = Date.now() + ms; Date.now() < fim && pico === 0;) { await espera(100); an.getFloatTimeDomainData(d); for (const v of d) pico = Math.max(pico, Math.abs(v)); }
+  try { src.disconnect(); an.disconnect(); g.disconnect(); } catch {}
+  return pico;
+}
+async function acharMicrofone(sessao) {
+  varrendo = true; evento("microfone sem som: testando os outros");
+  mudar("ouvindo", "Seu microfone não está mandando som — testando os outros…");
+  const devs = await listarMics().catch(() => []);
+  const atual = fluxo?.getAudioTracks()[0]?.getSettings?.().deviceId;
+  const ordem = [...devs.filter((d) => d.deviceId === atual), ...devs.filter((d) => d.deviceId !== atual)].slice(0, 8);
+  const resultado = [];
+  for (const d of ordem) {
+    if (sessao !== sessaoAtual) { varrendo = false; return; }
+    let s = null;
+    try { s = await navigator.mediaDevices.getUserMedia(restricoes(d.deviceId, false)); } catch (e) { resultado.push(`${d.label}: ${e.name}`); continue; }
+    const pico = await medirPico(s); s.getTracks().forEach((t) => t.stop());
+    resultado.push(`${d.label}: ${pico.toFixed(5)}`);
+    if (pico > 0 && sessao === sessaoAtual) {
+      ligarFonte(await navigator.mediaDevices.getUserMedia(restricoes(d.deviceId, true)));
+      salvarMic(d.deviceId); $("mics").value = d.deviceId; diag.varredura = resultado; varrendo = false;
+      evento("troquei para " + d.label); mudar("ouvindo", `Agora estou usando “${d.label}” — pode falar`);
+      return;
+    }
+  }
+  diag.varredura = resultado; varrendo = false;
+  if (sessao !== sessaoAtual) return;
+  evento("nenhum microfone com som");
+  mudar("ouvindo", "Nenhum microfone manda som. No Windows: veja se o microfone não está mudo e em Configurações → Privacidade → Microfone, deixe “aplicativos da área de trabalho” ligado.");
+  enviarDiag("nenhum microfone com som");
+}
+$("mics").addEventListener("change", async (e) => {
+  salvarMic(e.target.value); evento("escolheu microfone na lista");
+  if (ctxMic && noMic) { try { ligarFonte(await navigator.mediaDevices.getUserMedia(restricoes(e.target.value, true))); mudar("ouvindo", "Microfone trocado — pode falar"); } catch (er) { mudar("ouvindo", "Não consegui abrir esse microfone: " + er.name); } }
+});
+
 async function ligar() {
-  Object.assign(diag, { enviado: 0, recebido: 0, nivelMax: 0, eventos: [], erro: null, fechou: null, falaReconhecida: false, respostas: 0, t0: Date.now() }); diagEnviado = false; evento("toque");
+  const sessao = ++sessaoAtual;
+  Object.assign(diag, { enviado: 0, recebido: 0, nivelMax: 0, eventos: [], erro: null, fechou: null, falaReconhecida: false, respostas: 0, mic: null, micMudo: null, mics: null, varredura: null, t0: Date.now() }); diagEnviado = false; evento("toque");
   mudar("conectando", "Conectando…");
   try {
     const s = await api("home-sessao");
     analisador = ctxVoz.createAnalyser(); analisador.fftSize = 512; analisador.connect(ctxVoz.destination); medirVoz();
-    fluxo = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+    let inicial;
+    try { inicial = await navigator.mediaDevices.getUserMedia(restricoes(micSalvo, true)); }
+    catch (e) { if (!micSalvo || e.name === "NotAllowedError") throw e; inicial = await navigator.mediaDevices.getUserMedia(restricoes(null, true)); } // microfone salvo sumiu: usa o padrão
     await ctxMic.audioWorklet.addModule(URL.createObjectURL(new Blob([CAPTURA], { type: "text/javascript" })));
     await ctxMic.resume(); await ctxVoz.resume();
     diag.audio = `mic ${ctxMic.state}/${ctxMic.sampleRate}Hz · voz ${ctxVoz.state}`;
-    noMic = new AudioWorkletNode(ctxMic, "captura"); ctxMic.createMediaStreamSource(fluxo).connect(noMic);
+    noMic = new AudioWorkletNode(ctxMic, "captura"); ligarFonte(inicial); listarMics().catch(() => {});
     ws = new WebSocket(`${s.url}?access_token=${encodeURIComponent(s.token)}`);
     ws.onopen = () => ws.send(JSON.stringify({ setup: {
       model: `models/${s.modelo}`,
@@ -150,8 +218,9 @@ async function ligar() {
       const bruto = typeof ev.data === "string" ? ev.data : await ev.data.text(); diag.recebido += bruto.length;
       const m = JSON.parse(bruto); diag.ultimo = Object.keys(m).join(",") + (m.serverContent ? ":" + Object.keys(m.serverContent).join(",") : "");
       if (m.setupComplete) { evento("conectado ao Google");
-        setTimeout(() => { if (estado === "ouvindo" && diag.nivelMax < 0.01) { mudar("ouvindo", "Não estou ouvindo nada do seu microfone 🎤 — veja a permissão do site e o microfone do Windows"); evento("microfone mudo"); enviarDiag("microfone mudo"); } }, 7000);
-        setTimeout(() => { if (estado !== "desligado" && !diag.falaReconhecida) { evento("nenhuma fala reconhecida em 25s"); enviarDiag("nenhuma fala reconhecida"); } }, 25000);
+        setTimeout(() => { if (sessao === sessaoAtual && diag.nivelMax === 0) acharMicrofone(sessao); }, 2500);
+        setTimeout(() => { if (sessao === sessaoAtual && !varrendo && estado === "ouvindo" && diag.nivelMax > 0 && diag.nivelMax < 0.004) mudar("ouvindo", "Estou te ouvindo muito baixo — fale mais perto do microfone"); }, 10000);
+        setTimeout(() => { if (sessao === sessaoAtual && !diag.falaReconhecida) { evento("nenhuma fala reconhecida em 25s"); enviarDiag("nenhuma fala reconhecida"); } }, 25000);
         noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; diag.nivelMax = Math.max(diag.nivelMax, nivelMic); $("nivel").style.width = Math.min(100, nivelMic * 900) + "%"; if (ws?.readyState === 1) { diag.enviado += e.data.pcm.byteLength; ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); } };
         mudar("ouvindo", "Pode falar · toque para encerrar");
         try { travaTela = await navigator.wakeLock?.request("screen"); } catch {}
@@ -181,12 +250,14 @@ async function ligar() {
   } catch (e) { console.error("ligar:", e); diag.erro = `${e.name || ""}: ${e.message}`; evento("erro " + diag.erro); enviarDiag("erro ao ligar"); desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : e.name === "NotAllowedError" ? "O microfone foi bloqueado: clique no cadeado ao lado do endereço e permita o microfone" : e.name === "NotFoundError" ? "Nenhum microfone encontrado no computador" : e.name === "NotReadableError" ? "O microfone está sendo usado por outro programa (feche Teams, Discord, Zoom…)" : "Não consegui ligar: " + e.message); }
 }
 function desligar(dica) {
+  sessaoAtual++;
   if (estado !== "desligado") { evento("desligado"); enviarDiag(diag.respostas ? "sessão encerrada" : "encerrada sem resposta", diag.respostas > 0); }
   guardarTurno(); calar(); $("nivel").style.width = "0";
   try { ws?.close(); } catch {} ws = null;
   try { fluxo?.getTracks().forEach((t) => t.stop()); } catch {}
   try { ctxMic?.close(); ctxVoz?.close(); } catch {}
-  ctxMic = ctxVoz = analisador = noMic = fluxo = null; nivelMic = nivelVoz = 0;
+  try { fonteMic?.disconnect(); } catch {}
+  ctxMic = ctxVoz = analisador = noMic = fluxo = fonteMic = null; nivelMic = nivelVoz = 0;
   try { travaTela?.release(); } catch {} travaTela = null;
   mudar("desligado", dica ?? "Toque no orbe para conversar");
 }
