@@ -4,7 +4,7 @@
 
 Cada **categoria** é um dos seus projetos. Cada categoria tem **subcategorias**, e cada subcategoria tem **itens** pequenos o bastante para fazer e testar em uma sessão. Legenda: ✅ feito · 🟡 em andamento · ⬜ a fazer.
 
-Ordem de construção: **0 → 9 → 4 → 1 → 7 → 8 → 2 → 3 → 5 → 6**. Primeiro a base e a memória, porque tudo depende delas; depois o que roda na nuvem; por último o que precisa do seu computador.
+Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 → 5 → 6**. Primeiro a base e a memória, porque tudo depende delas; depois o **Jarvis de voz (★)**, que é o rosto do GIDEON; depois o que roda na nuvem; por último o que precisa do seu computador.
 
 ---
 
@@ -63,6 +63,47 @@ Ordem de construção: **0 → 9 → 4 → 1 → 7 → 8 → 2 → 3 → 5 → 6
 
 **9.4 Pronto quando**
 - ⬜ "Onde está aquele projeto que comecei em agosto?" → arquivo certo, com link e histórico
+
+---
+
+## ★ GIDEON HOME — o Jarvis: casa própria, interface e conversa contínua por voz
+
+A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como uma conversa de verdade. Dá para interromper no meio, ele lembra de você e age (lembretes, tarefas, pesquisa e, depois, o PC).
+
+**★.1 Casa própria**
+- ⬜ App GIDEON Home: site que se instala como aplicativo no celular e no PC (PWA), com endereço próprio
+- ⬜ Login só seu
+- ⬜ Opcional: aparelho dedicado ligado o tempo todo (tablet, celular antigo, notebook ou Raspberry Pi) como "central" da casa
+
+**★.2 Interface estilo Jarvis**
+- ⬜ Tela cheia com orbe animado que reage à voz (ouvindo / pensando / falando)
+- ⬜ Legenda ao vivo do que você diz e do que ele responde
+- ⬜ Cartões na tela: lembretes, tarefas, resultados de pesquisa, aprovações
+- ⬜ Histórico das conversas
+
+**★.3 Voz contínua** (Gemini Live: áudio direto, plano grátis com limites)
+- ⬜ Fala e ouve ao mesmo tempo, com resposta em menos de 1 s
+- ⬜ Interromper no meio ("para, não é isso")
+- ⬜ Percebe sozinho quando você terminou de falar
+- ⬜ Voz em português, escolhida por você
+- ⬜ Modo "sempre ouvindo": palavra de ativação "GIDEON" rodando no próprio aparelho; dorme depois de um tempo em silêncio
+
+**★.4 Cérebro conectado**
+- ⬜ A voz usa as mesmas ferramentas do Núcleo: memória, lembretes, tarefas, pesquisa e, depois, o PC
+- ⬜ Toda conversa por voz vira memória e entra no registro de execuções
+- ⬜ Mesma personalidade e prompt do GIDEON no Telegram
+
+**★.5 Segurança**
+- ⬜ A chave do Gemini nunca vai para o navegador: o servidor (Edge Function) entrega uma senha temporária por conversa
+- ⬜ Ações sensíveis pedem "confirma?" por voz e por botão na tela
+
+**★.6 Modo privado / sem internet (depois, com o Neural Core)**
+- ⬜ Whisper + Kokoro + modelo local para conversas que não podem sair de casa
+
+**★.7 Pronto quando**
+- ⬜ Conversa de 10 min só por voz, com interrupções, em que ele lembra de algo antigo, cria um lembrete e responde rápido
+
+*Custo: grátis dentro dos limites do plano grátis do Gemini Live; acima disso, ~US$ 0,023 por minuto de conversa. Hospedagem: site estático grátis + Supabase.*
 
 ---
 

@@ -27,3 +27,4 @@
 - **Situação:** continua desligado até o dono aprovar o canal novo.
 - Estrutura por categorias e subcategorias dos 9 projetos (`docs/estrutura-projetos.md`), análise de limites do n8n e proposta de substituto (Supabase Edge Functions + pg_cron).
 - Hugging Face descartado (Docker exige PRO). Teste do n8n no Render grátis iniciado (serviço `gideon-n8n`).
+- Nova categoria ★ GIDEON HOME (o Jarvis): casa própria, interface estilo Jarvis e conversa contínua por voz com Gemini Live (plano grátis).
