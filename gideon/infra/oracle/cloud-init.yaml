@@ -1,0 +1,60 @@
+#cloud-config
+# GIDEON: n8n grátis na Oracle Cloud (Always Free, Ubuntu 24.04, Ampere/ARM).
+# Não contém senhas: a chave de criptografia e a senha do banco local são geradas no próprio servidor.
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - netfilter-persistent
+write_files:
+  - path: /opt/gideon/docker-compose.yml
+    content: |
+      services:
+        db:
+          image: postgres:16
+          restart: unless-stopped
+          environment:
+            POSTGRES_USER: n8n
+            POSTGRES_PASSWORD: ${DB_SENHA}
+            POSTGRES_DB: n8n
+          volumes: [db:/var/lib/postgresql/data]
+        n8n:
+          image: n8nio/n8n:2.46.6
+          restart: unless-stopped
+          depends_on: [db]
+          environment:
+            DB_TYPE: postgresdb
+            DB_POSTGRESDB_HOST: db
+            DB_POSTGRESDB_DATABASE: n8n
+            DB_POSTGRESDB_USER: n8n
+            DB_POSTGRESDB_PASSWORD: ${DB_SENHA}
+            N8N_ENCRYPTION_KEY: ${N8N_CHAVE}
+            N8N_HOST: ${DOMINIO}
+            N8N_PROTOCOL: https
+            WEBHOOK_URL: https://${DOMINIO}/
+            N8N_PROXY_HOPS: "1"
+            GENERIC_TIMEZONE: America/Sao_Paulo
+            TZ: America/Sao_Paulo
+            EXECUTIONS_DATA_PRUNE: "true"
+            EXECUTIONS_DATA_MAX_AGE: "336"
+            N8N_DIAGNOSTICS_ENABLED: "false"
+          volumes: [n8n:/home/node/.n8n]
+        caddy:
+          image: caddy:2
+          restart: unless-stopped
+          ports: ["80:80", "443:443"]
+          command: caddy reverse-proxy --from ${DOMINIO} --to n8n:5678
+          volumes: [caddy:/data]
+      volumes: {db: {}, n8n: {}, caddy: {}}
+runcmd:
+  # Libera as portas 80 e 443 no firewall interno do Ubuntu da Oracle
+  - iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT
+  - iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT
+  - netfilter-persistent save
+  # Endereço público com HTTPS grátis: IP 1.2.3.4 vira 1-2-3-4.sslip.io
+  - IP=$(curl -s https://api.ipify.org); echo "DOMINIO=$(echo $IP | tr . -).sslip.io" > /opt/gideon/.env
+  - echo "DB_SENHA=$(openssl rand -hex 24)" >> /opt/gideon/.env
+  - echo "N8N_CHAVE=$(openssl rand -hex 32)" >> /opt/gideon/.env
+  - chmod 600 /opt/gideon/.env
+  - cd /opt/gideon && docker compose up -d
+  # Atualizações de segurança automáticas do Ubuntu já vêm ligadas na imagem
