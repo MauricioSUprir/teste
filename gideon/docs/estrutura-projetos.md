@@ -75,7 +75,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Opcional: aparelho dedicado ligado o tempo todo (tablet, celular antigo, notebook ou Raspberry Pi) como "central" da casa
 
 **★.2 Interface estilo Jarvis**
-- 🟡 Tela cheia com orbe animado que reage à voz (versão 1) → **trocar pelo rosto holográfico** (pedido do dono: rosto feminino em malha azul, estilo holograma, mexendo na fala)
+- ✅ Rosto holográfico 3D no estilo do logo do GIDEON (cabeça de luz azul, pontos em grade, olhos que piscam e olham, boca que abre com a voz, cores por estado); se o aparelho não tiver 3D, volta o orbe (`home/rosto.js`)
 - ⬜ Legenda ao vivo do que você diz e do que ele responde
 - ⬜ Cartões na tela: lembretes, tarefas, resultados de pesquisa, aprovações
 - ⬜ Histórico das conversas

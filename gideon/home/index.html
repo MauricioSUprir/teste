@@ -6,14 +6,27 @@
 <meta name="theme-color" content="#04060c">
 <title>GIDEON</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icone.svg">
+<link rel="icon" href="icone-192.png">
+<link rel="apple-touch-icon" href="icone-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&display=swap" rel="stylesheet">
 <style>
   :root { --fundo:#04060c; --texto:#d8f3ff; --suave:#6f8ba3; --ciano:#27c4ff; --ambar:#ffb547; --violeta:#9b7bff; --vermelho:#ff6b6b; }
   * { box-sizing:border-box; margin:0; padding:0; }
   html,body { height:100%; background:var(--fundo); color:var(--texto); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow:hidden; }
-  main { height:100%; display:grid; grid-template-rows:auto 1fr auto; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+  main { height:100%; display:grid; grid-template-rows:auto 1fr auto auto; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
   header { display:flex; justify-content:space-between; align-items:center; }
-  h1 { font-size:14px; letter-spacing:.45em; font-weight:600; color:var(--ciano); }
+  h1 { font-size:11px; letter-spacing:.35em; font-weight:400; color:#4f86b8; font-family:Michroma, system-ui, sans-serif; }
+  #marca { text-align:center; padding:4px 0 10px; }
+  #marca b { display:block; font: 400 clamp(22px, 6vw, 40px)/1 Michroma, "Segoe UI", system-ui, sans-serif; letter-spacing:.62em; margin-right:-.62em; color:#eaf6ff;
+    text-shadow: 0 0 6px rgba(120,200,255,.9), 0 0 22px rgba(40,140,255,.55); }
+  #marca i { display:block; height:2px; margin:14px auto 0; width:min(78vw, 560px); background: radial-gradient(closest-side, #bfe6ff, #2a8cff 38%, rgba(20,90,255,.25) 70%, transparent); box-shadow:0 0 18px 2px rgba(40,140,255,.6); }
+  #rosto { position:fixed; inset:0; width:100vw; height:100vh; display:block; z-index:0; }
+  main { position:relative; z-index:1; }
+  #aviso, #diag, #mics { z-index:10; }
+  .com-rosto #orbe { display:none; }
+  #palco { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  #dica, #barra { z-index:1; }
   #estado { font-size:12px; letter-spacing:.15em; text-transform:uppercase; color:var(--suave); }
   #palco { position:relative; display:grid; place-items:center; min-height:0; }
   canvas { width:min(78vw, 60vh); height:min(78vw, 60vh); cursor:pointer; -webkit-tap-highlight-color:transparent; }
@@ -39,7 +52,8 @@
   <header><h1>GIDEON</h1><div id="estado">desligado</div></header>
   <div id="diag" hidden></div>
   <select id="mics" hidden aria-label="Microfone"></select>
-  <section id="palco"><canvas id="orbe" width="800" height="800" aria-label="Toque para falar com o GIDEON" role="button"></canvas><div id="dica">Toque no orbe para conversar</div><div id="barra"><i id="nivel"></i></div></section>
+  <section id="palco" role="button" aria-label="Toque para falar com o GIDEON"><canvas id="orbe" width="800" height="800" aria-hidden="true"></canvas><div id="dica">Toque para conversar</div><div id="barra"><i id="nivel"></i></div></section>
+  <div id="marca" aria-hidden="true"><b>GIDEON</b><i></i></div>
   <section id="legendas"><div class="fala dono" id="ultDono" hidden></div><div class="fala gideon" id="ultGideon" hidden></div></section>
 </main>
 <div id="aviso"><p>Para abrir o GIDEON Home, mande <code>/home</code> para o GIDEON no Telegram e toque no link que ele enviar.<br><br>O link é pessoal e vale 30 dias.</p></div>
@@ -76,9 +90,12 @@ async function api(rota, corpo) {
 // ---------- estado e orbe ----------
 let estado = "desligado", nivelMic = 0, nivelVoz = 0, suave = 0;
 const CORES = { desligado:[111,139,163], conectando:[155,123,255], ouvindo:[39,196,255], pensando:[255,181,71], falando:[155,123,255], erro:[255,107,107] };
+window.gideonSinais = () => ({ estado, mic: nivelMic, voz: nivelVoz, analisador }); // o rosto 3D lê daqui
 function mudar(e, dica) { estado = e; $("estado").textContent = e; if (dica !== undefined) $("dica").textContent = dica; }
 const cv = $("orbe"), g = cv.getContext("2d");
+window.gideonOrbe = () => requestAnimationFrame(desenhar); // o rosto 3D chama se falhar
 function desenhar(t) {
+  if (document.body.classList.contains("com-rosto")) return; // o rosto 3D assumiu
   const alvo = estado === "falando" ? nivelVoz : estado === "ouvindo" ? nivelMic : estado === "pensando" ? 0.15 + 0.1 * Math.sin(t / 180) : 0.04;
   suave += (Math.min(alvo * 3, 1) - suave) * 0.18;
   const [r, gg, b] = CORES[estado] || CORES.desligado, c = 400, base = 210;
@@ -245,7 +262,7 @@ async function ligar() {
       }
       if (m.goAway) mudar(estado, "A sessão vai encerrar em instantes — toque de novo para continuar");
     };
-    ws.onclose = (e) => { console.log("ws fechou", e.code, e.reason); diag.fechou = `${e.code} ${e.reason || ""}`.trim(); evento("conexão fechada " + diag.fechou); if (!diag.respostas) enviarDiag("conexão fechada sem resposta"); desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque no orbe para conversar"); };
+    ws.onclose = (e) => { console.log("ws fechou", e.code, e.reason); diag.fechou = `${e.code} ${e.reason || ""}`.trim(); evento("conexão fechada " + diag.fechou); if (!diag.respostas) enviarDiag("conexão fechada sem resposta"); desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque para conversar"); };
     ws.onerror = () => mudar("erro", "Falha na conexão com a voz");
   } catch (e) { console.error("ligar:", e); diag.erro = `${e.name || ""}: ${e.message}`; evento("erro " + diag.erro); enviarDiag("erro ao ligar"); desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : e.name === "NotAllowedError" ? "O microfone foi bloqueado: clique no cadeado ao lado do endereço e permita o microfone" : e.name === "NotFoundError" ? "Nenhum microfone encontrado no computador" : e.name === "NotReadableError" ? "O microfone está sendo usado por outro programa (feche Teams, Discord, Zoom…)" : "Não consegui ligar: " + e.message); }
 }
@@ -259,9 +276,9 @@ function desligar(dica) {
   try { fonteMic?.disconnect(); } catch {}
   ctxMic = ctxVoz = analisador = noMic = fluxo = fonteMic = null; nivelMic = nivelVoz = 0;
   try { travaTela?.release(); } catch {} travaTela = null;
-  mudar("desligado", dica ?? "Toque no orbe para conversar");
+  mudar("desligado", dica ?? "Toque para conversar");
 }
-cv.addEventListener("click", () => {
+$("palco").addEventListener("click", () => {
   if (estado === "desligado" || estado === "erro") {
     // O Chrome só libera áudio criado no momento do toque: crie e retome aqui, antes de qualquer espera.
     ctxVoz = new AudioContext({ sampleRate: 24000 }); ctxMic = new AudioContext();
@@ -269,6 +286,11 @@ cv.addEventListener("click", () => {
     ligar();
   } else desligar();
 });
+</script>
+<script type="module">
+import { iniciarRosto } from "./rosto.js";
+try { iniciarRosto(document.getElementById("palco")); document.body.classList.add("com-rosto"); }
+catch (e) { console.warn("Rosto 3D indisponível; fica o orbe.", e); }
 </script>
 </body>
 </html>
