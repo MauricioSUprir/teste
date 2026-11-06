@@ -76,21 +76,21 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 
 **★.2 Interface estilo Jarvis**
 - ✅ Rosto holográfico 3D no estilo do logo do GIDEON (cabeça de luz azul, pontos em grade, olhos que piscam e olham, boca que abre com a voz, cores por estado); se o aparelho não tiver 3D, volta o orbe (`home/rosto.js`)
-- ⬜ Legenda ao vivo do que você diz e do que ele responde
+- ✅ Legenda ao vivo do que você diz e do que ela responde
 - ⬜ Cartões na tela: lembretes, tarefas, resultados de pesquisa, aprovações
 - ⬜ Histórico das conversas
 
 **★.3 Voz contínua** (Gemini Live: áudio direto, plano grátis com limites)
-- 🟡 Fala e ouve ao mesmo tempo (Gemini Live `gemini-3.8-live`, voz feminina Kore — decisão 013) — funcionando no PC do dono
-- ⬜ Interromper no meio ("para, não é isso")
-- ⬜ Percebe sozinho quando você terminou de falar
-- ⬜ Voz em português, escolhida por você
+- ✅ Fala e ouve ao mesmo tempo (Gemini Live `gemini-3.8-live`) — funcionando no PC do dono (Edge), com troca automática de microfone
+- ✅ Interromper no meio ("para, não é isso")
+- ✅ Percebe sozinho quando você terminou de falar
+- ✅ Voz feminina em português, escolhida por você (Kore — decisão 013)
 - ⬜ Modo "sempre ouvindo": palavra de ativação "GIDEON" rodando no próprio aparelho; dorme depois de um tempo em silêncio
 
 **★.4 Cérebro conectado**
-- ⬜ A voz usa as mesmas ferramentas do Núcleo: memória, lembretes, tarefas, pesquisa e, depois, o PC
-- ⬜ Toda conversa por voz vira memória e entra no registro de execuções
-- ⬜ Mesma personalidade e prompt do GIDEON no Telegram
+- ✅ A voz usa as mesmas ferramentas do Núcleo: memória, lembretes, tarefas, Agenda, Gmail, Drive (pesquisa e PC quando existirem)
+- ✅ Toda conversa por voz vira memória e entra no registro de execuções
+- ✅ Mesma personalidade e prompt do GIDEON no Telegram
 
 **★.5 Segurança**
 - ✅ A chave do Gemini nunca vai para o navegador: o Supabase entrega uma senha temporária de uso único por conversa
@@ -100,7 +100,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Whisper + Kokoro + modelo local para conversas que não podem sair de casa
 
 **★.7 Pronto quando**
-- ⬜ Conversa de 10 min só por voz, com interrupções, em que ele lembra de algo antigo, cria um lembrete e responde rápido
+- 🟡 Conversa de 10 min só por voz, com interrupções, em que ela lembra de algo antigo, cria um lembrete e responde rápido — falta o teste do dono
 
 *Custo: grátis dentro dos limites do plano grátis do Gemini Live; acima disso, ~US$ 0,023 por minuto de conversa. Hospedagem: site estático grátis + Supabase.*
 
