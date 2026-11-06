@@ -34,3 +34,4 @@
 - Conexão Google (Agenda, Gmail só leitura, Drive só leitura) publicada na função `gideon` (rotas `google/conectar` e `google/retorno`, autorização no Vault). Link de autorização enviado ao dono.
 - Correção: chaves com quebra de linha no fim (o GOOGLE_CLIENT_ID foi salvo com `\n`) quebravam o login do Google; agora todas as chaves passam por `trim()`. Link de autorização também é devolvido pela rota `google/conectar`.
 - Google: conta combinada fixada em `gideon_config.google_conta` (gui.drodrigues21@gmail.com); o link força a escolha de conta e a conexão é recusada se vier de outra conta.
+- ✅ Google conectado (gui.drodrigues21@gmail.com). Teste: "eventos nos próximos 7 dias e e-mails não lidos" → usou agenda_listar e gmail_buscar, 3,2 s.
