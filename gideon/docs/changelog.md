@@ -39,3 +39,4 @@
 - Decisão 012: WhatsApp em espera (controle parental do WhatsApp bloqueia aparelhos conectados). Sessão do WAHA parada.
 - GIDEON Home publicado: site https://gideon-home.onrender.com (Render estático), rotas home-sessao/home-ferramenta/home-conversa na função `gideon`, comando /home no Telegram. Teste da sessão: senha temporária do Google ok, 14 ferramentas.
 - Pedido do dono: rosto holográfico (malha azul) que se mexe ao falar, no lugar do orbe.
+- GIDEON Home: corrigido "não responde" — o Chrome deixava o áudio pausado porque os contextos de áudio eram criados depois de esperar a sessão; agora são criados e retomados no toque. Painel de diagnóstico com #debug. Teste em Chromium com microfone simulado: fala reconhecida e resposta em voz em ~1 s.

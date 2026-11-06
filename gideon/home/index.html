@@ -27,12 +27,14 @@
   #aviso.on { display:grid; }
   #aviso p { max-width:420px; line-height:1.5; }
   #aviso code { color:var(--ciano); }
+  #diag { position:fixed; left:12px; bottom:8px; font: 11px/1.4 ui-monospace, monospace; color:#4d6a82; white-space:pre; pointer-events:none; }
   button.sair { background:none; border:1px solid #1c2a3a; color:var(--suave); border-radius:999px; padding:6px 12px; font-size:12px; }
 </style>
 </head>
 <body>
 <main>
   <header><h1>GIDEON</h1><div id="estado">desligado</div></header>
+  <div id="diag" hidden></div>
   <section id="palco"><canvas id="orbe" width="800" height="800" aria-label="Toque para falar com o GIDEON" role="button"></canvas><div id="dica">Toque no orbe para conversar</div></section>
   <section id="legendas"><div class="fala dono" id="ultDono" hidden></div><div class="fala gideon" id="ultGideon" hidden></div></section>
 </main>
@@ -40,6 +42,9 @@
 <script>
 const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
 const $ = (id) => document.getElementById(id);
+const diag = { audio: "-", enviado: 0, recebido: 0, ultimo: "-" };
+const mostrarDiag = location.hash.includes("debug") || localStorage.getItem("gideon_debug") === "1";
+if (mostrarDiag) { $("diag").hidden = false; setInterval(() => { $("diag").textContent = `áudio: ${diag.audio}\nenviado: ${(diag.enviado / 1024).toFixed(0)} kB · recebido: ${(diag.recebido / 1024).toFixed(0)} kB\núltimo evento: ${diag.ultimo}`; }, 300); }
 
 // ---------- chave de acesso (vem no link do Telegram: #t=...) ----------
 let chave = null;
@@ -117,9 +122,11 @@ async function ligar() {
   mudar("conectando", "Conectando…");
   try {
     const s = await api("home-sessao");
-    ctxVoz = new AudioContext({ sampleRate: 24000 }); analisador = ctxVoz.createAnalyser(); analisador.fftSize = 512; analisador.connect(ctxVoz.destination); medirVoz();
+    analisador = ctxVoz.createAnalyser(); analisador.fftSize = 512; analisador.connect(ctxVoz.destination); medirVoz();
     fluxo = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
-    ctxMic = new AudioContext(); await ctxMic.audioWorklet.addModule(URL.createObjectURL(new Blob([CAPTURA], { type: "text/javascript" })));
+    await ctxMic.audioWorklet.addModule(URL.createObjectURL(new Blob([CAPTURA], { type: "text/javascript" })));
+    await ctxMic.resume(); await ctxVoz.resume();
+    diag.audio = `mic ${ctxMic.state}/${ctxMic.sampleRate}Hz · voz ${ctxVoz.state}`;
     noMic = new AudioWorkletNode(ctxMic, "captura"); ctxMic.createMediaStreamSource(fluxo).connect(noMic);
     ws = new WebSocket(`${s.url}?access_token=${encodeURIComponent(s.token)}`);
     ws.onopen = () => ws.send(JSON.stringify({ setup: {
@@ -130,9 +137,10 @@ async function ligar() {
       inputAudioTranscription: {}, outputAudioTranscription: {},
     } }));
     ws.onmessage = async (ev) => {
-      const m = JSON.parse(typeof ev.data === "string" ? ev.data : await ev.data.text());
+      const bruto = typeof ev.data === "string" ? ev.data : await ev.data.text(); diag.recebido += bruto.length;
+      const m = JSON.parse(bruto); diag.ultimo = Object.keys(m).join(",") + (m.serverContent ? ":" + Object.keys(m.serverContent).join(",") : "");
       if (m.setupComplete) {
-        noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; if (ws?.readyState === 1) ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); };
+        noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; if (ws?.readyState === 1) { diag.enviado += e.data.pcm.byteLength; ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); } };
         mudar("ouvindo", "Pode falar · toque para encerrar");
         try { travaTela = await navigator.wakeLock?.request("screen"); } catch {}
       }
@@ -156,9 +164,9 @@ async function ligar() {
       }
       if (m.goAway) mudar(estado, "A sessão vai encerrar em instantes — toque de novo para continuar");
     };
-    ws.onclose = (e) => { desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque no orbe para conversar"); };
+    ws.onclose = (e) => { console.log("ws fechou", e.code, e.reason); desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque no orbe para conversar"); };
     ws.onerror = () => mudar("erro", "Falha na conexão com a voz");
-  } catch (e) { desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : "Não consegui ligar: " + e.message); }
+  } catch (e) { console.error("ligar:", e); desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : "Não consegui ligar: " + e.message); }
 }
 function desligar(dica) {
   guardarTurno(); calar();
@@ -169,7 +177,14 @@ function desligar(dica) {
   try { travaTela?.release(); } catch {} travaTela = null;
   mudar("desligado", dica ?? "Toque no orbe para conversar");
 }
-cv.addEventListener("click", () => { if (estado === "desligado" || estado === "erro") ligar(); else desligar(); });
+cv.addEventListener("click", () => {
+  if (estado === "desligado" || estado === "erro") {
+    // O Chrome só libera áudio criado no momento do toque: crie e retome aqui, antes de qualquer espera.
+    ctxVoz = new AudioContext({ sampleRate: 24000 }); ctxMic = new AudioContext();
+    ctxVoz.resume(); ctxMic.resume();
+    ligar();
+  } else desligar();
+});
 </script>
 </body>
 </html>
