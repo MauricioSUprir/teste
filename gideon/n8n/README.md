@@ -1,5 +1,7 @@
 # Workflows do n8n
 
+> **Desde 06/11 à tarde todos estes workflows estão desligados**: o GIDEON passou para o Supabase (decisão 011). Ficam como reserva e referência.
+
 Export JSON de cada workflow, **sem segredos** (credenciais aparecem só pelo nome). Padrão de nome: `GIDEON - <Área> - <Ação>`.
 
 n8n atual: https://n8n-production-a0ba2.up.railway.app (Railway, decisão 007). Vai mudar para o Hugging Face (decisão 010).

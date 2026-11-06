@@ -1,4 +1,17 @@
-# Arquitetura — estado atual (06/11/2026)
+# Arquitetura — estado atual (06/11/2026, tarde)
+
+> **Desde 06/11 à tarde o GIDEON roda no Supabase** (decisão 011): Edge Function `gideon` + pg_cron. Os workflows do n8n abaixo estão **desligados** e ficam como reserva no Railway até o crédito de teste acabar.
+
+| Peça | Onde | Situação |
+| --- | --- | --- |
+| Telegram → GIDEON | Edge Function `gideon/telegram` (webhook com segredo; só o dono) | ✅ Ativo |
+| Núcleo (memória → Gemini com ferramentas → guarda → registra) | Edge Function `gideon/nucleo` | ✅ Testado (respostas em 2–8 s) |
+| Lembretes | pg_cron a cada minuto → `gideon/lembretes` | ✅ Ativo |
+| Relatório semanal | pg_cron domingo 22h UTC (19h Brasília) → `gideon/relatorio` | ✅ Ativo |
+| Memória curta da conversa | Tabela `gideon_mensagens` (não se perde mais) | ✅ |
+| Segredos | `GEMINI_API_KEY` e `TELEGRAM_BOT_TOKEN` nos segredos das Edge Functions; segredo do agendador no Vault | ✅ |
+
+Histórico do dia (n8n) a seguir.
 
 Itens marcados ⚠ ainda precisam de confirmação do dono.
 

@@ -1,13 +1,14 @@
 # GIDEON — instruções para o Claude
 
-GIDEON (antes "Jarvis") é o assistente pessoal de IA do dono, que roda no n8n. Os 9 projetos do roadmap são peças de um sistema só. Leia antes de trabalhar: `docs/roadmap.md`, `docs/kickoff.md`, `docs/regras-qualidade.md`, `docs/arquitetura.md`.
+GIDEON (antes "Jarvis") é o assistente pessoal de IA do dono. Desde 06/11/2026 roda no **Supabase** (Edge Function `supabase/functions/gideon/` + pg_cron; decisão 011); o n8n ficou só como reserva. Os 9 projetos do roadmap são peças de um sistema só. Leia antes de trabalhar: `docs/roadmap.md`, `docs/kickoff.md`, `docs/regras-qualidade.md`, `docs/arquitetura.md`.
 
 ## Quem é o dono
 Não é programador. Explique cada passo de forma simples (o que vai fazer e por quê), em português, com **URL completa** para cada lugar onde ele precise clicar. Resposta curta por padrão.
 
 ## Regras de trabalho
 - **Uma fase por vez.** A próxima só começa quando o critério de pronto da atual passa (roadmap) e o checklist de `docs/regras-qualidade.md` seção 5 está cumprido.
-- **Fase atual:** Fase 1 — Universal Memory. Checklist em `memoria/README.md`. Não começar antes de o dono responder as decisões em aberto.
+- **Ordem de trabalho:** `docs/estrutura-projetos.md` (categorias e subcategorias). Agora: BASE (conexões) e Memória.
+- **Deploy:** editar `supabase/functions/gideon/*.ts`, publicar com o conector do Supabase (`deploy_edge_function`, `verify_jwt=false`) e testar via `net.http_post` com o segredo do Vault antes de mexer no Telegram.
 - **Backup e OK antes de mexer em produção.** Antes de alterar ou apagar qualquer workflow que já funciona: exportar a versão atual e pedir OK. Mudança: duplicar, testar a cópia, só então trocar; versão antiga desativada por 7 dias.
 - **Ferramenta pronta antes de código próprio** (ver tabela do roadmap).
 - **Nada de segredos no Git.** Chaves, senhas e tokens só no cofre de credenciais do n8n; `.env.example` lista só nomes.

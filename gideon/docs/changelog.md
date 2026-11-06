@@ -29,3 +29,5 @@
 - Hugging Face descartado (Docker exige PRO). Teste do n8n no Render grátis iniciado (serviço `gideon-n8n`).
 - Nova categoria ★ GIDEON HOME (o Jarvis): casa própria, interface estilo Jarvis e conversa contínua por voz com Gemini Live (plano grátis).
 - Decisão 011: Núcleo do GIDEON no Supabase (Edge Function `gideon` + pg_cron). Função publicada e testada (rota de relatório); falta o dono cadastrar GEMINI_API_KEY e TELEGRAM_BOT_TOKEN.
+- **Troca feita:** Telegram, lembretes (pg_cron a cada minuto) e relatório (domingo 19h) rodando no Supabase. Workflows do n8n desligados (reserva). Serviço de teste no Render suspenso.
+- Testes do Núcleo no Supabase: conversa com memória antiga (4,8 s), tarefa + lembrete na mesma mensagem (8 s, 2 ferramentas, fuso correto), agendador sem envios vazios.
