@@ -37,3 +37,5 @@
 - ✅ Google conectado (gui.drodrigues21@gmail.com). Teste: "eventos nos próximos 7 dias e e-mails não lidos" → usou agenda_listar e gmail_buscar, 3,2 s.
 - WhatsApp (código pronto, ainda não publicado): webhook do WAHA → Núcleo (só o dono; ignora respostas do próprio GIDEON, que começam com 🤖), ferramenta `whatsapp_enviar` com confirmação, rota `configurar-whatsapp` com código de pareamento. WAHA no Render: versão 2026.8 CORE, sem sessão (precisa conectar de novo).
 - Decisão 012: WhatsApp em espera (controle parental do WhatsApp bloqueia aparelhos conectados). Sessão do WAHA parada.
+- GIDEON Home publicado: site https://gideon-home.onrender.com (Render estático), rotas home-sessao/home-ferramenta/home-conversa na função `gideon`, comando /home no Telegram. Teste da sessão: senha temporária do Google ok, 14 ferramentas.
+- Pedido do dono: rosto holográfico (malha azul) que se mexe ao falar, no lugar do orbe.

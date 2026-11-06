@@ -70,18 +70,18 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como uma conversa de verdade. Dá para interromper no meio, ele lembra de você e age (lembretes, tarefas, pesquisa e, depois, o PC).
 
 **★.1 Casa própria**
-- ⬜ App GIDEON Home: site que se instala como aplicativo no celular e no PC (PWA), com endereço próprio
-- ⬜ Login só seu
+- ✅ App GIDEON Home: https://gideon-home.onrender.com (instala como app; link pessoal pelo /home no Telegram)
+- ✅ Acesso só seu: chave pessoal assinada, entregue pelo Telegram, vale 30 dias
 - ⬜ Opcional: aparelho dedicado ligado o tempo todo (tablet, celular antigo, notebook ou Raspberry Pi) como "central" da casa
 
 **★.2 Interface estilo Jarvis**
-- ⬜ Tela cheia com orbe animado que reage à voz (ouvindo / pensando / falando)
+- 🟡 Tela cheia com orbe animado que reage à voz (versão 1) → **trocar pelo rosto holográfico** (pedido do dono: rosto feminino em malha azul, estilo holograma, mexendo na fala)
 - ⬜ Legenda ao vivo do que você diz e do que ele responde
 - ⬜ Cartões na tela: lembretes, tarefas, resultados de pesquisa, aprovações
 - ⬜ Histórico das conversas
 
 **★.3 Voz contínua** (Gemini Live: áudio direto, plano grátis com limites)
-- ⬜ Fala e ouve ao mesmo tempo, com resposta em menos de 1 s
+- 🟡 Fala e ouve ao mesmo tempo (Gemini Live `gemini-3.8-live`, voz Charon) — publicado, aguardando teste do dono
 - ⬜ Interromper no meio ("para, não é isso")
 - ⬜ Percebe sozinho quando você terminou de falar
 - ⬜ Voz em português, escolhida por você
@@ -93,7 +93,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Mesma personalidade e prompt do GIDEON no Telegram
 
 **★.5 Segurança**
-- ⬜ A chave do Gemini nunca vai para o navegador: o servidor (Edge Function) entrega uma senha temporária por conversa
+- ✅ A chave do Gemini nunca vai para o navegador: o Supabase entrega uma senha temporária de uso único por conversa
 - ⬜ Ações sensíveis pedem "confirma?" por voz e por botão na tela
 
 **★.6 Modo privado / sem internet (depois, com o Neural Core)**
