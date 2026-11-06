@@ -10,6 +10,8 @@ import { copy } from "@/lib/copy";
 import { ADMIN_EMAIL, ADMINS_POR_CODIGO, GOOGLE_CLIENT_ID } from "@/lib/conta/config";
 import { catalogoReal } from "@/lib/catalogo/consultas";
 import { emailRealAtivo, mercadoPagoAtivo, servidorConfigurado } from "@/lib/servidor";
+import { GOOGLE_IDS } from "@/lib/google";
+import { comBase } from "@/lib/caminho";
 
 interface Integracao {
   nome: string;
@@ -55,6 +57,36 @@ export function AbaConfiguracoes() {
       ativa: mpAtivo ?? false,
       verificando: mpAtivo === null,
       pendencia: "Enviar o Access Token do painel de desenvolvedor do Mercado Pago.",
+    },
+    {
+      nome: "Google Analytics (GA4)",
+      descricao: GOOGLE_IDS.ga
+        ? `Medindo com ${GOOGLE_IDS.ga}: páginas, buscas, sacola, checkout e compras (só de quem aceita os cookies).`
+        : "Páginas, buscas, sacola, checkout e compras no Analytics (só de quem aceita os cookies).",
+      ativa: Boolean(GOOGLE_IDS.ga),
+      pendencia: "Criar a propriedade GA4 em analytics.google.com e enviar o código G-… para ligar no site.",
+    },
+    {
+      nome: "Google Tag Manager",
+      descricao: GOOGLE_IDS.gtm
+        ? `Contêiner ${GOOGLE_IDS.gtm} carregado (só depois do aceite dos cookies).`
+        : "Para o marketing pôr outras tags (Google Ads, Meta, TikTok) sem mexer no site.",
+      ativa: Boolean(GOOGLE_IDS.gtm),
+      pendencia: "Criar o contêiner Web em tagmanager.google.com e enviar o código GTM-….",
+    },
+    {
+      nome: "Google Search Console",
+      descricao: "Mostra como o site aparece na busca do Google e recebe o mapa do site.",
+      ativa: Boolean(GOOGLE_IDS.searchConsole),
+      pendencia: "Verificar o domínio pelo DNS (registro TXT) ou enviar o código da tag HTML para colocar no site.",
+    },
+    {
+      nome: "Google Merchant Center (feed)",
+      descricao: `Lista de produtos para o Google Shopping, atualizada todo dia: ${
+        typeof window !== "undefined" ? window.location.origin : ""
+      }${comBase("/merchant/google.xml")}`,
+      ativa: true,
+      pendencia: "",
     },
     {
       nome: "Notificações de venda",

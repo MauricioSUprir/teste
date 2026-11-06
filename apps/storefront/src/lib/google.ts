@@ -29,6 +29,9 @@ let carregado = false;
 
 export const googleConfigurado = () => Boolean(GTM_ID || GA_ID);
 
+/** IDs deste build (para o painel do admin mostrar o que está ligado) */
+export const GOOGLE_IDS = { ga: GA_ID, gtm: GTM_ID, searchConsole: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO ?? "" };
+
 function gtag(...args: unknown[]) {
   const w = window as JanelaGoogle;
   w.dataLayer = w.dataLayer || [];
