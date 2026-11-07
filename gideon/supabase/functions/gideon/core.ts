@@ -14,12 +14,12 @@ export const chaveGemini = () => (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
 export const tokenTelegram = () => (Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "").trim();
 
 // ---------- utilidades ----------
-let cacheConfig: Record<string, string> | null = null;
-export async function config(): Promise<Record<string, string>> {
-  if (cacheConfig) return cacheConfig;
+let cacheConfig: Record<string, string> | null = null, cacheConfigEm = 0;
+export async function config(): Promise<Record<string, string>> { // relida a cada minuto: mudar gideon_config vale sem publicar de novo
+  if (cacheConfig && Date.now() - cacheConfigEm < 60_000) return cacheConfig;
   const { data, error } = await sb.from("gideon_config").select("chave, valor");
   if (error) throw new Error("config: " + error.message);
-  cacheConfig = Object.fromEntries((data ?? []).map((r) => [r.chave, r.valor]));
+  cacheConfig = Object.fromEntries((data ?? []).map((r) => [r.chave, r.valor])); cacheConfigEm = Date.now();
   return cacheConfig;
 }
 let cacheSegredo: string | null = null;
@@ -57,18 +57,35 @@ export async function embedding(texto: string): Promise<number[]> {
   }
   return [];
 }
+// Modelo principal (gideon_config.modelo_conversa) com reserva automática (modelo_reserva): se o principal bater o limite grátis,
+// sair do ar ou demorar, a reserva responde. A resposta traz _modelo (quem respondeu) e _reserva (por que trocou), para o registro.
+async function chamarModelo(modelo: string, corpo: unknown, ms: number) {
+  const r = await comTempo(ms, (signal) => fetch(`${GEMINI}/${modelo}:generateContent`, {
+    method: "POST", signal, headers: { "Content-Type": "application/json", "x-goog-api-key": chaveGemini() }, body: JSON.stringify(corpo),
+  }));
+  if (r.ok) return await r.json();
+  throw Object.assign(new Error(`gemini ${modelo} ${r.status}: ${(await r.text()).slice(0, 300)}`), { status: r.status });
+}
 export async function gerar(corpo: unknown) {
   const cfg = await config();
-  for (let tentativa = 1; tentativa <= 2; tentativa++) {
-    const r = await comTempo(40000, (signal) => fetch(`${GEMINI}/${cfg.modelo_conversa}:generateContent`, {
-      method: "POST", signal,
-      headers: { "Content-Type": "application/json", "x-goog-api-key": chaveGemini() },
-      body: JSON.stringify(corpo),
-    }));
-    if (r.ok) return await r.json();
-    if (tentativa === 2 || r.status < 500 && r.status !== 429) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 300)}`);
-    await new Promise((ok) => setTimeout(ok, 1500));
+  const modelos = [cfg.modelo_conversa, cfg.modelo_reserva].filter((m, i, l) => m && l.indexOf(m) === i);
+  let ultimo: Error | null = null;
+  for (const [n, modelo] of modelos.entries()) {
+    for (let tentativa = 1; tentativa <= 2; tentativa++) {
+      try {
+        const j = await chamarModelo(modelo, corpo, n === 0 ? 30000 : 40000);
+        j._modelo = modelo;
+        if (n > 0) j._reserva = String(ultimo?.message ?? "").slice(0, 300);
+        return j;
+      } catch (e) {
+        ultimo = e as Error;
+        const st = Number((e as { status?: number }).status ?? 0);
+        if (st >= 500 && tentativa === 1) { await new Promise((ok) => setTimeout(ok, 1200)); continue; } // fora do ar: tenta de novo uma vez
+        break; // limite (429), demora ou erro do pedido: vai para a reserva
+      }
+    }
   }
+  throw ultimo ?? new Error("gemini: nenhum modelo configurado");
 }
 
 // ---------- Telegram ----------
@@ -173,6 +190,28 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
   return { erro: "ferramenta desconhecida" };
 }
 
+// ---------- Aprovações (botões Aprovar/Negar no Telegram) ----------
+export const CONFIRMAVEIS = ["agenda_criar", "whatsapp_enviar"];
+export function descreverAcao(nome: string, r: Record<string, any>) {
+  if (nome === "agenda_criar") return `Criar evento "${r.titulo ?? ""}"${r.inicio ? " em " + r.inicio : ""}${r.local ? " — " + r.local : ""}`;
+  if (nome === "whatsapp_enviar") return `Enviar WhatsApp para ${r.para ?? r.numero ?? ""}: "${String(r.texto ?? "").slice(0, 200)}"`;
+  return `${nome}: ${JSON.stringify(r).slice(0, 200)}`;
+}
+// O dono confirmou na conversa ("sim") em vez do botão: fecha o pedido pendente igual, para o botão não repetir a ação
+async function aprovadaPorConversa(nome: string, a: Record<string, unknown>, canal: string) {
+  const campo = a.titulo ? "titulo" : a.numero ? "numero" : "";
+  let q = sb.from("gideon_aprovacoes").update({ status: "aprovada", decidido_em: new Date().toISOString(), decidido_via: "conversa:" + canal }).eq("acao", nome).eq("status", "pendente");
+  if (campo) q = q.eq(`detalhes->args->>${campo}`, String(a[campo]));
+  await q;
+}
+// Resposta no Telegram com botões: Aprovar/Negar quando há ação esperando OK; senão 👍/👎 para medir se ajudou
+export async function responderTelegram(chatId: number | string, r: { resposta: string; execucaoId?: number | null; aprovacoes?: { id: number; descricao: string }[] }) {
+  const aps = r.aprovacoes ?? [], linhas: unknown[] = [];
+  aps.forEach((a, i) => linhas.push([{ text: `✅ Aprovar${aps.length > 1 ? " " + (i + 1) : ""}`, callback_data: `a:${a.id}` }, { text: `❌ Negar${aps.length > 1 ? " " + (i + 1) : ""}`, callback_data: `x:${a.id}` }]));
+  if (!aps.length && r.execucaoId) linhas.push([{ text: "👍", callback_data: `u:${r.execucaoId}` }, { text: "👎", callback_data: `n:${r.execucaoId}` }]);
+  return telegram("sendMessage", { chat_id: chatId, text: r.resposta.slice(0, 4000) || "…", ...(linhas.length ? { reply_markup: { inline_keyboard: linhas } } : {}) });
+}
+
 // ---------- Prompt ----------
 export const PROMPT = `Você é a GIDEON, assistente pessoal do seu dono. Você é mulher: fale sempre no feminino ("estou pronta", "obrigada", "fiquei feliz"). Responda no idioma e no tom dele (normalmente português do Brasil), de forma curta e direta; dê detalhes só quando ele pedir.
 
@@ -194,6 +233,7 @@ Google do dono:
 WhatsApp:
 - O dono também conversa com você pelo WhatsApp (canal whatsapp).
 - whatsapp_enviar manda mensagem em nome dele: chame com confirmado=false, mostre para quem e o texto exatos, e só envie (confirmado=true) depois de um "sim" explícito. Peça o número com DDI e DDD se não souber.
+- No Telegram, ações que pedem confirmação aparecem com botões Aprovar e Negar embaixo da sua resposta: diga em uma frase o que vai fazer e que ele pode tocar em Aprovar ou responder "sim".
 
 Arquivos que o dono manda (fotos, prints, PDFs, Word, Excel, PowerPoint, textos, áudios e vídeos curtos):
 - O conteúdo vem junto da mensagem. Faça o que ele pediu na legenda; sem legenda, diga em poucas frases o que é, o que tem de importante, e ofereça ajuda.
@@ -214,8 +254,8 @@ Regras:
 export async function atender(p: { texto: string; canal: string; sessao: string; anexos?: Record<string, unknown>[]; rotulo?: string; textoHistorico?: string; buscarNaMemoria?: boolean; guardar?: boolean }) {
   const inicio = Date.now();
   const texto = p.texto.slice(0, 4000), historico = (p.textoHistorico ?? texto).slice(0, 4000);
-  let resposta = "", status = "sucesso", erro = "", tokIn = 0, tokOut = 0, nTrechos = 0;
-  const usadas: string[] = [];
+  let resposta = "", status = "sucesso", erro = "", tokIn = 0, tokOut = 0, nTrechos = 0, modeloUsado = "", reserva = "";
+  const usadas: string[] = [], aprovacoes: { id: number; descricao: string }[] = [];
   try {
     const [trechos, hist] = await Promise.all([
       p.buscarNaMemoria === false ? Promise.resolve([]) : buscarMemoria(texto, 5).catch(() => []),
@@ -232,6 +272,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
     for (let volta = 0; volta < 6; volta++) {
       const r = await gerar({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS] }], generationConfig: { temperature: 0.4 } });
       tokIn += r.usageMetadata?.promptTokenCount ?? 0; tokOut += r.usageMetadata?.candidatesTokenCount ?? 0;
+      modeloUsado = r._modelo ?? modeloUsado; if (r._reserva) reserva = r._reserva;
       const cont = r.candidates?.[0]?.content;
       if (!cont?.parts?.length) throw new Error("resposta vazia do modelo: " + JSON.stringify(r).slice(0, 200));
       contents.push(cont);
@@ -239,9 +280,17 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       if (!chamadas.length) { resposta = cont.parts.map((x: Record<string, unknown>) => x.text ?? "").join("").trim(); break; }
       const respostas = [];
       for (const c of chamadas) {
-        usadas.push(c.functionCall.name);
-        const res = await executar(c.functionCall.name, c.functionCall.args ?? {}, p.canal).catch((e) => ({ erro: String(e.message ?? e) }));
-        respostas.push({ functionResponse: { name: c.functionCall.name, response: { resultado: res } } });
+        const nome = c.functionCall.name, args = c.functionCall.args ?? {};
+        usadas.push(nome);
+        if (CONFIRMAVEIS.includes(nome) && args.confirmado === true) await aprovadaPorConversa(nome, args, p.canal).catch(() => {});
+        const res: any = await executar(nome, args, p.canal).catch((e) => ({ erro: String(e.message ?? e) }));
+        if (res?.precisa_confirmacao && p.canal === "telegram") { // vira pedido de aprovação com botões
+          const descricao = descreverAcao(nome, res.resumo ?? args);
+          const { data } = await sb.from("gideon_aprovacoes").insert({ acao: nome, descricao, pedido_por: p.canal, expira_em: new Date(Date.now() + 2 * 3600_000).toISOString(),
+            detalhes: { nome, args: { ...args, confirmado: true }, canal: p.canal, sessao: p.sessao } }).select("id").single();
+          if (data?.id) { aprovacoes.push({ id: data.id, descricao }); res.botoes = "Embaixo da sua resposta aparecem os botões Aprovar e Negar (vale por 2 horas)."; }
+        }
+        respostas.push({ functionResponse: { name: nome, response: { resultado: res } } });
       }
       contents.push({ role: "user", parts: respostas });
     }
@@ -251,20 +300,25 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
     resposta = "Desculpe, tive um problema para responder agora. O erro foi registrado.";
   }
   const tempo = Date.now() - inicio;
-  // Depois de responder: memória curta, memória longa e registro (não atrasam a resposta)
+  // Registro antes de responder (o id vai nos botões 👍/👎); se a reserva respondeu, fica anotado o motivo
+  let execucaoId: number | null = null;
+  try {
+    const cfg = await config();
+    const { data } = await sb.from("gideon_execucoes").insert({
+      canal: p.canal, pedido_resumo: historico.slice(0, 200), ferramenta: [p.rotulo, ...usadas].filter(Boolean).join(",") || (nTrechos ? "memoria" : "conversa"),
+      modelo: modeloUsado || cfg.modelo_conversa, tokens_entrada: tokIn, tokens_saida: tokOut, custo_estimado: 0, tempo_ms: tempo,
+      status, erro_mensagem: erro || (reserva ? "modelo reserva usado: " + reserva : null), workflow: "supabase:gideon/nucleo",
+    }).select("id").single();
+    execucaoId = data?.id ?? null;
+  } catch (e) { console.error("registro:", e); }
+  // Depois de responder: memória curta e longa (não atrasam a resposta)
   const posResposta = (async () => {
     if (status === "sucesso" && p.guardar !== false) {
       await sb.from("gideon_mensagens").insert([{ sessao: p.sessao, papel: "user", texto: historico, canal: p.canal }, { sessao: p.sessao, papel: "model", texto: resposta, canal: p.canal }]);
       await guardarMemoria({ conteudo: `Dono: ${historico}\nGIDEON: ${resposta}`, resumo: historico.slice(0, 200), tipo: "conversa", origem: p.canal, metadados: { sessao: p.sessao } }).catch(() => 0);
     }
-    const cfg = await config();
-    await sb.from("gideon_execucoes").insert({
-      canal: p.canal, pedido_resumo: historico.slice(0, 200), ferramenta: [p.rotulo, ...usadas].filter(Boolean).join(",") || (nTrechos ? "memoria" : "conversa"),
-      modelo: cfg.modelo_conversa, tokens_entrada: tokIn, tokens_saida: tokOut, custo_estimado: 0, tempo_ms: tempo,
-      status, erro_mensagem: erro || null, workflow: "supabase:gideon/nucleo",
-    });
   })().catch((e) => console.error("pós-resposta:", e));
-  return { resposta, status, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, posResposta };
+  return { resposta, status, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, modelo: modeloUsado, reserva: reserva || null, execucaoId, aprovacoes, posResposta };
 }
 
 // ---------- Lembretes e relatório ----------

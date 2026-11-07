@@ -11,12 +11,14 @@
 //   POST /gideon/configurar-whatsapp ← cria a sessão no WAHA e gera o código de pareamento (x-gideon-chave)
 //   POST /gideon/home-sessao|home-ferramenta|home-conversa ← GIDEON Home (cabeçalho x-gideon-home)
 //   POST /gideon/nucleo-arquivo  ← teste de leitura de arquivo: { base64, mime, nome, legenda } (x-gideon-chave)
+//   POST /gideon/aprovacao | modelos ← teste da fila de aprovações; lista de modelos do Gemini (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { atender, config, dispararLembretes, relatorioSemanal, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
+import { atender, chaveGemini, config, dispararLembretes, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
 import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 import { rotaHome, tokenHome } from "./home.ts";
 import { arquivoDaMensagem, atenderArquivo, receberArquivoTelegram } from "./arquivos.ts";
+import { resolverAprovacao, tratarBotao } from "./botoes.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -33,6 +35,10 @@ Deno.serve(async (req) => {
       const upd = await req.json();
       const m = upd.message;
       const cfg = await config();
+      if (upd.callback_query) { // toque num botão (👍/👎, Aprovar/Negar): só do dono
+        if (String(upd.callback_query.from?.id) === cfg.dono_telegram_id) EdgeRuntime.waitUntil(tratarBotao(upd.callback_query).catch((e) => console.error("botão:", e)));
+        return json({ ok: true });
+      }
       if (!m || String(m.from?.id) !== cfg.dono_telegram_id) return json({ ok: true }); // só o dono
       const arquivo = arquivoDaMensagem(m);
       if (arquivo) { EdgeRuntime.waitUntil(receberArquivoTelegram(m, arquivo).catch((e) => console.error("arquivo:", e))); return json({ ok: true }); } // foto, PDF, áudio...
@@ -45,7 +51,7 @@ Deno.serve(async (req) => {
       const trabalho = (async () => {
         await telegram("sendChatAction", { chat_id: m.chat.id, action: "typing" }).catch(() => {});
         const r = await atender({ texto, canal: "telegram", sessao: String(m.chat.id) });
-        await telegram("sendMessage", { chat_id: m.chat.id, text: r.resposta.slice(0, 4000) || "…" });
+        await responderTelegram(m.chat.id, r); // com botões 👍/👎 ou Aprovar/Negar
         await r.posResposta;
       })().catch((e) => console.error("telegram:", e));
       EdgeRuntime.waitUntil(trabalho);
@@ -59,7 +65,7 @@ Deno.serve(async (req) => {
     if (rota === "configurar-whatsapp") { const b = await req.json().catch(() => ({})); return json(await configurarWhatsapp(b.numero)); }
     if (rota === "nucleo") {
       const b = await req.json();
-      const r = await atender({ texto: String(b.texto ?? ""), canal: String(b.canal ?? "sistema"), sessao: String(b.sessao ?? "teste") });
+      const r = await atender({ texto: String(b.texto ?? ""), canal: String(b.canal ?? "sistema"), sessao: String(b.sessao ?? "teste"), guardar: b.guardar !== false });
       await r.posResposta;
       const { posResposta: _p, ...resto } = r;
       return json(resto);
@@ -71,6 +77,12 @@ Deno.serve(async (req) => {
       await r.posResposta;
       const { posResposta: _p, ...resto } = r as Record<string, unknown>;
       return json(resto);
+    }
+    if (rota === "aprovacao") { const b = await req.json(); return json(await resolverAprovacao(Number(b.id), b.aprovar === true, "teste")); } // teste da fila de aprovações
+    if (rota === "modelos") { // modelos do Gemini disponíveis para esta chave (para escolher o reserva)
+      const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": chaveGemini() } });
+      const j = await r.json();
+      return json((j.models ?? []).filter((x: any) => (x.supportedGenerationMethods ?? []).includes("generateContent")).map((x: any) => x.name));
     }
     if (rota === "lembretes") return json(await dispararLembretes());
     if (rota === "relatorio") {

@@ -18,7 +18,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ✅ Núcleo: memória → agente Gemini → guarda conversa → registra execução
 - ✅ Telegram ligado ao Núcleo, só responde ao dono
 - ⬜ Roteador de modelos (simples → Flash-Lite; difícil → Flash; privado → local)
-- ⬜ Reserva automática quando o Gemini falhar ou bater o limite grátis
+- ✅ Reserva automática quando o Gemini falhar ou bater o limite grátis (`gemini-3.1-flash-lite`; fica anotado no registro) — testado em 07/11
 
 **0.3 Conexões do GIDEON** (fazer antes de começar os projetos)
 - ✅ Google (gui.drodrigues21@gmail.com): Agenda (ler e criar com confirmação), Gmail (só leitura) e Drive (busca) — conectado e testado em 06/11
@@ -30,14 +30,14 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 **0.4 Qualidade e custos**
 - ✅ Registro de cada pedido, alerta de erro, relatório semanal
 - ✅ Regra "testar o caso vazio" (incidente dos lembretes)
-- ⬜ Contar tokens por pedido (para não bater o limite grátis do Gemini)
+- ✅ Contar tokens por pedido (registro de cada execução; vai para o relatório semanal)
 - ⬜ Cache por significado (pergunta repetida não gasta o modelo)
-- ⬜ Botões Útil e Não útil
+- 🟡 Botões 👍 / 👎 em cada resposta do Telegram (grava em `gideon_execucoes.nota_usuario`) — falta o teste do dono
 
 **0.5 Segurança**
 - ✅ Banco fechado (RLS) e usuário restrito para o GIDEON
-- ⬜ Fila de aprovações no Telegram (botões Aprovar e Negar)
-- ⬜ Diário de ações (`gideon_acoes`) em uso
+- 🟡 Fila de aprovações no Telegram: botões ✅ Aprovar / ❌ Negar para criar evento e mandar WhatsApp; vale 2 h; um toque só executa uma vez — testado por rota de teste; falta o teste do dono
+- ✅ Diário de ações (`gideon_acoes`) em uso: eventos criados e mensagens enviadas ficam registrados, com como desfazer
 
 ---
 

@@ -1,7 +1,7 @@
 // GIDEON — ler o que o dono manda: fotos e prints, PDFs, Word, Excel, PowerPoint, textos, mensagens de áudio e vídeos curtos.
 // Áudio sem legenda vira texto (transcrição) e segue como conversa normal. Todo arquivo ganha um resumo na memória.
 import { type Anexo, prepararAnexo } from "./anexos.ts";
-import { agoraBrasilia, atender, gerar, guardarMemoria, sb, telegram, tokenTelegram } from "./core.ts";
+import { agoraBrasilia, atender, gerar, guardarMemoria, responderTelegram, sb, telegram, tokenTelegram } from "./core.ts";
 
 const textoDa = (r: any) => (r?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p.text ?? "").join("").trim();
 const DESCRICAO: Record<Anexo["tipo"], string> = { imagem: "uma imagem", pdf: "um PDF", audio: "um áudio", video: "um vídeo", word: "um documento do Word",
@@ -70,7 +70,7 @@ export async function receberArquivoTelegram(m: any, f: NonNullable<ReturnType<t
     const { bytes } = await baixarTelegram(f.fileId);
     const r = await atenderArquivo({ bytes, mime: f.mime, nome: f.nome, legenda: m.caption, canal: "telegram", sessao: String(m.chat.id), fileId: f.fileId });
     parar();
-    await telegram("sendMessage", { chat_id: m.chat.id, text: r.resposta.slice(0, 4000) || "…" });
+    await responderTelegram(m.chat.id, r as Parameters<typeof responderTelegram>[1]);
     await r.posResposta;
   } catch (e) {
     parar();

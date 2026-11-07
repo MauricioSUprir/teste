@@ -56,3 +56,13 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | Mensagem de voz (.ogg) | Transcreve e responde | ✅ 3,6 s |
 | Arquivo .doc antigo | Aviso simples: salvar como .docx ou PDF | ✅ (teste local) |
 | Falta: dono mandar pelo Telegram (foto, PDF e áudio de verdade) e conferir o resumo na memória | | ⬜ |
+
+## BASE: reserva, aprovações e botões (07/11/2026)
+| Teste | Esperado | Resultado |
+| --- | --- | --- |
+| Principal com nome inválido de propósito + pergunta simples | Reserva (`gemini-3.1-flash-lite`) responde e o registro anota o motivo | ✅ 1,3 s; principal restaurado logo depois |
+| "Cria um evento TESTE DO GIDEON amanhã às 10h" (canal telegram) | Pedido de aprovação com descrição clara, nada criado ainda | ✅ pedido nº 1 |
+| Negar o pedido nº 1 | "❌ Cancelado: …"; nada criado | ✅ |
+| Aprovar pedido de teste (ação só de leitura) | "✅ Feito: …" | ✅ |
+| Aprovar o mesmo pedido de novo | "Esse pedido já foi aprovado." (não repete) | ✅ |
+| Falta: dono tocar 👍/👎 e Aprovar/Negar no Telegram | | ⬜ |
