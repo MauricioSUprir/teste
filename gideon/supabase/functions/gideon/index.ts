@@ -10,11 +10,13 @@
 //   POST /gideon/whatsapp        ← WAHA entrega mensagens (cabeçalho x-gideon-whatsapp)
 //   POST /gideon/configurar-whatsapp ← cria a sessão no WAHA e gera o código de pareamento (x-gideon-chave)
 //   POST /gideon/home-sessao|home-ferramenta|home-conversa ← GIDEON Home (cabeçalho x-gideon-home)
+//   POST /gideon/nucleo-arquivo  ← teste de leitura de arquivo: { base64, mime, nome, legenda } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, config, dispararLembretes, relatorioSemanal, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
 import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 import { rotaHome, tokenHome } from "./home.ts";
+import { arquivoDaMensagem, atenderArquivo, receberArquivoTelegram } from "./arquivos.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -32,7 +34,9 @@ Deno.serve(async (req) => {
       const m = upd.message;
       const cfg = await config();
       if (!m || String(m.from?.id) !== cfg.dono_telegram_id) return json({ ok: true }); // só o dono
-      const texto = m.text || m.caption || "[O dono enviou algo sem texto (foto, áudio ou arquivo). Diga que ainda não consegue ler esse tipo de mensagem.]";
+      const arquivo = arquivoDaMensagem(m);
+      if (arquivo) { EdgeRuntime.waitUntil(receberArquivoTelegram(m, arquivo).catch((e) => console.error("arquivo:", e))); return json({ ok: true }); } // foto, PDF, áudio...
+      const texto = m.text || "[O dono enviou algo que não é texto nem arquivo (figurinha, localização ou contato). Diga que ainda não consegue ler esse tipo de mensagem.]";
       if (/^\/home\b/i.test(texto.trim())) { // link pessoal do GIDEON Home (vale 30 dias)
         const link = cfg.home_url ? `${cfg.home_url}#t=${await tokenHome()}` : "";
         EdgeRuntime.waitUntil(telegram("sendMessage", { chat_id: m.chat.id, text: link ? `🎙️ Seu GIDEON Home (link pessoal, vale 30 dias — não compartilhe):\n${link}` : "O GIDEON Home ainda não foi publicado." }).catch(() => {}));
@@ -58,6 +62,14 @@ Deno.serve(async (req) => {
       const r = await atender({ texto: String(b.texto ?? ""), canal: String(b.canal ?? "sistema"), sessao: String(b.sessao ?? "teste") });
       await r.posResposta;
       const { posResposta: _p, ...resto } = r;
+      return json(resto);
+    }
+    if (rota === "nucleo-arquivo") { // teste da leitura de arquivos sem passar pelo Telegram (não grava na memória)
+      const b = await req.json();
+      const bytes = Uint8Array.from(atob(String(b.base64 ?? "")), (c) => c.charCodeAt(0));
+      const r = await atenderArquivo({ bytes, mime: String(b.mime ?? ""), nome: String(b.nome ?? "arquivo"), legenda: b.legenda, canal: "sistema", sessao: String(b.sessao ?? "teste-arquivos"), guardar: false });
+      await r.posResposta;
+      const { posResposta: _p, ...resto } = r as Record<string, unknown>;
       return json(resto);
     }
     if (rota === "lembretes") return json(await dispararLembretes());

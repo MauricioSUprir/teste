@@ -3,6 +3,7 @@
 import { agoraBrasilia, chaveGemini, config, executar, FERRAMENTAS, guardarMemoria, PROMPT, sb, segredoCron } from "./core.ts";
 import { FERRAMENTAS_GOOGLE } from "./google.ts";
 import { FERRAMENTAS_WHATS } from "./whatsapp.ts";
+import { atenderArquivo } from "./arquivos.ts";
 
 export const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-gideon-home", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json", ...CORS } });
@@ -83,6 +84,15 @@ export async function rotaHome(rota: string, req: Request) {
       modelo, tempo_ms: Number(b.tempo_ms) || null, status: "sucesso", workflow: "supabase:gideon/home" });
     if (pedido && resposta) await guardarMemoria({ conteudo: `Dono (voz): ${pedido}\nGIDEON: ${resposta}`, resumo: pedido.slice(0, 200), tipo: "conversa", origem: "voz" }).catch(() => 0);
     return json({ ok: true });
+  }
+  if (rota === "home-arquivo") { // arquivo mandado pelo GIDEON Home: { base64, mime, nome, legenda, guardar? }
+    const b = await req.json();
+    const bytes = Uint8Array.from(atob(String(b.base64 ?? "")), (c) => c.charCodeAt(0));
+    const r = await atenderArquivo({ bytes, mime: String(b.mime ?? ""), nome: String(b.nome ?? "arquivo"), legenda: b.legenda, canal: "home", sessao: String(b.sessao ?? "home"), guardar: b.guardar !== false })
+      .catch((e) => ({ resposta: "Não consegui ler esse arquivo: " + String((e as Error).message ?? e).slice(0, 300), status: "erro", posResposta: Promise.resolve() }));
+    await r.posResposta;
+    const { posResposta: _p, ...resto } = r as Record<string, unknown>;
+    return json(resto);
   }
   if (rota === "home-diagnostico") {
     const b = await req.json().catch(() => ({}));

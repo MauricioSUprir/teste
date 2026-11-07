@@ -45,3 +45,14 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | Data | Falha | Teste que impede a volta |
 | --- | --- | --- |
 | 06/11/2026 | Disparador mandou "⏰ Lembrete:" vazio a cada minuto | Rodar o disparador sem lembretes vencidos: nada pode chegar ao Telegram |
+
+## Arquivos e áudios (07/11/2026) — testados ao vivo pela rota `home-arquivo` (sem gravar na memória)
+| Pedido | Esperado | Resultado |
+| --- | --- | --- |
+| Print de erro do React, sem legenda | Explica a causa e o próximo passo | ✅ 2,7 s |
+| PDF de aviso + "quando é a prova e o que cai?" | Data, hora, sala e conteúdo | ✅ 2,5 s |
+| Word sem legenda | Diz o que é, os pontos importantes e oferece ajuda | ✅ 1,4 s (ofereceu criar lembrete da entrega) |
+| Excel + "quanto gastei no total e qual o maior gasto?" | R$ 447,40; Mercado R$ 312,50 | ✅ 3,4 s |
+| Mensagem de voz (.ogg) | Transcreve e responde | ✅ 3,6 s |
+| Arquivo .doc antigo | Aviso simples: salvar como .docx ou PDF | ✅ (teste local) |
+| Falta: dono mandar pelo Telegram (foto, PDF e áudio de verdade) e conferir o resumo na memória | | ⬜ |
