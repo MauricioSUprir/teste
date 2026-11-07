@@ -48,7 +48,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ✅ Toda conversa vira memória
 
 **9.2 Fontes**
-- ⬜ PDFs, Word, Excel e fotos enviados no Telegram
+- 🟡 PDFs, Word, Excel, PowerPoint, textos, fotos e vídeos curtos enviados no Telegram: lê, responde e guarda um resumo na memória (`arquivos.ts`) — testado; falta o teste do dono pelo Telegram
 - ⬜ Pasta do Google Drive (indexar e vigiar mudanças)
 - ⬜ Gmail (e-mails importantes, posts do Classroom)
 - ⬜ Agenda (eventos passados e futuros)
@@ -159,10 +159,10 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 
 **7.1 Captura**
 - ⬜ Atalho de teclado tira print e manda ao GIDEON
-- ⬜ Print pelo Telegram (já dá para mandar foto)
+- 🟡 Print pelo Telegram: ela lê e explica (falta o teste do dono)
 
 **7.2 Entendimento** (visão do Gemini, grátis)
-- ⬜ Explicar mensagens de erro
+- 🟡 Explicar mensagens de erro (testado com print de erro do React)
 - ⬜ Interpretar gráficos
 - ⬜ Identificar botões e campos
 - ⬜ Analisar interfaces
@@ -182,7 +182,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 **8.1 Ouvir**
 - ⬜ Palavra de ativação "GIDEON" (openWakeWord, local, grátis)
 - ⬜ Transcrição local (whisper.cpp)
-- ⬜ Áudio do Telegram (transcrever mensagens de voz)
+- 🟡 Áudio do Telegram: transcreve a mensagem de voz e responde como se fosse texto (falta o teste do dono)
 
 **8.2 Falar**
 - ⬜ Voz local grátis (Kokoro); ElevenLabs quando houver orçamento
