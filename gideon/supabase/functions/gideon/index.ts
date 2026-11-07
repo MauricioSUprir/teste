@@ -11,10 +11,10 @@
 //   POST /gideon/configurar-whatsapp ← cria a sessão no WAHA e gera o código de pareamento (x-gideon-chave)
 //   POST /gideon/home-sessao|home-ferramenta|home-conversa ← GIDEON Home (cabeçalho x-gideon-home)
 //   POST /gideon/nucleo-arquivo  ← teste de leitura de arquivo: { base64, mime, nome, legenda } (x-gideon-chave)
-//   POST /gideon/aprovacao | modelos ← teste da fila de aprovações; lista de modelos do Gemini (x-gideon-chave)
+//   POST /gideon/aprovacao | modelos | modelo-teste ← fila de aprovações; lista de modelos; testa se modelos respondem { modelos: [...] } (x-gideon-chave)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { atender, chaveGemini, config, dispararLembretes, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
+import { atender, chaveGemini, config, dispararLembretes, gerar, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
 import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 import { rotaHome, tokenHome } from "./home.ts";
@@ -85,6 +85,16 @@ Deno.serve(async (req) => {
       const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": chaveGemini() } });
       const j = await r.json();
       return json((j.models ?? []).filter((x: any) => (x.supportedGenerationMethods ?? []).includes("generateContent")).map((x: any) => x.name));
+    }
+    if (rota === "modelo-teste") { // testa se cada modelo responde com esta chave (1 pedido pequeno por modelo)
+      const b = await req.json().catch(() => ({}));
+      const saida: Record<string, string> = {};
+      for (const m of (Array.isArray(b.modelos) ? b.modelos : []).map(String).slice(0, 10)) {
+        const t0 = Date.now();
+        saida[m] = await gerar({ contents: [{ role: "user", parts: [{ text: "Responda só: ok" }] }] }, [m])
+          .then(() => `ok ${Date.now() - t0} ms`).catch((e) => String((e as Error).message ?? e).slice(0, 160));
+      }
+      return json(saida);
     }
     if (rota === "indexar") { // pg_cron: lê Gmail, Agenda e Drive e guarda na memória ({ fontes, esperar })
       const b = await req.json().catch(() => ({}));

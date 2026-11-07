@@ -53,7 +53,7 @@ export async function embedding(texto: string): Promise<number[]> {
       body: JSON.stringify({ content: { parts: [{ text: texto.slice(0, 8000) }] }, outputDimensionality: 768 }),
     }));
     if (r.ok) return (await r.json()).embedding.values;
-    if (tentativa === 2) throw new Error(`embedding ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    if (tentativa === 2) throw Object.assign(new Error(`embedding ${r.status}: ${(await r.text()).slice(0, 200)}`), { status: r.status });
   }
   return [];
 }
@@ -66,9 +66,9 @@ async function chamarModelo(modelo: string, corpo: unknown, ms: number) {
   if (r.ok) return await r.json();
   throw Object.assign(new Error(`gemini ${modelo} ${r.status}: ${(await r.text()).slice(0, 300)}`), { status: r.status });
 }
-export async function gerar(corpo: unknown) {
+export async function gerar(corpo: unknown, so?: string[]) {
   const cfg = await config();
-  const modelos = [cfg.modelo_conversa, cfg.modelo_reserva].filter((m, i, l) => m && l.indexOf(m) === i);
+  const modelos = (so ?? [cfg.modelo_conversa, cfg.modelo_reserva]).filter((m, i, l) => m && l.indexOf(m) === i);
   let ultimo: Error | null = null;
   for (const [n, modelo] of modelos.entries()) {
     for (let tentativa = 1; tentativa <= 2; tentativa++) {
@@ -87,6 +87,31 @@ export async function gerar(corpo: unknown) {
   }
   throw ultimo ?? new Error("gemini: nenhum modelo configurado");
 }
+// Trabalho de fundo (resumos do indexador e dos arquivos): usa outro modelo (gideon_config.modelo_fundo), porque o limite grátis
+// do Google é por modelo e por dia; assim a leitura automática nunca gasta o limite das conversas. Sem reserva: se o limite acabar,
+// para e tenta de novo na próxima rodada.
+export async function gerarFundo(corpo: unknown) { // modelo_fundo pode ser uma lista separada por vírgula (o segundo é o reserva do fundo)
+  const cfg = await config();
+  return gerar(corpo, String(cfg.modelo_fundo || cfg.modelo_reserva).split(",").map((m) => m.trim()).filter(Boolean));
+}
+// Teto diário de itens lidos sozinho (gideon_config.fundo_limite_dia, padrão 60). O dia vira à meia-noite do Pacífico, como no Google.
+export async function usarCotaFundo() {
+  const cfg = await config();
+  const limite = Number(cfg.fundo_limite_dia || 60);
+  const dia = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+  const { data } = await sb.from("gideon_config").select("valor").eq("chave", "fundo_uso").maybeSingle();
+  const [d, n] = String(data?.valor ?? "").split(":");
+  const usados = d === dia ? Number(n) || 0 : 0;
+  if (usados >= limite) throw Object.assign(new Error(`teto diário da leitura automática atingido (${limite} itens)`), { pausa: true });
+  await sb.from("gideon_config").upsert({ chave: "fundo_uso", valor: `${dia}:${usados + 1}` }, { onConflict: "chave" });
+}
+// Erro passageiro (limite, servidor fora do ar, demora, modelo indisponível/configuração): não pula o item, só para a rodada e tenta depois
+export const passageiro = (e: unknown) => {
+  const x = e as { pausa?: boolean; status?: number; message?: string; name?: string };
+  const m = String(x.message ?? "");
+  return !!x.pausa || x.status === 429 || (x.status ?? 0) >= 500 || x.name === "AbortError" || /abort|timed? ?out/i.test(m) ||
+    ((x.status === 401 || x.status === 403 || x.status === 404) && /^(gemini|embedding) /.test(m));
+};
 
 // ---------- Telegram ----------
 export async function telegram(metodo: string, corpo: Record<string, unknown>) {

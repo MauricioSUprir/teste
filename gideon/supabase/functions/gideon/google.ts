@@ -72,14 +72,14 @@ async function acesso(): Promise<string> {
 async function g(url: string, init: RequestInit = {}) {
   const r = await fetch(url, { ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${await acesso()}`, "Content-Type": "application/json" } });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(`Google ${r.status}: ${j.error?.message ?? ""}`.slice(0, 200));
+  if (!r.ok) throw Object.assign(new Error(`Google ${r.status}: ${j.error?.message ?? ""}`.slice(0, 200)), { status: r.status });
   return j;
 }
 export { g as googleApi };
 // Baixa um arquivo (bytes) ou um texto exportado do Google (ex.: Google Docs como texto)
 export async function googleBytes(url: string) {
   const r = await fetch(url, { headers: { Authorization: `Bearer ${await acesso()}` } });
-  if (!r.ok) throw new Error(`Google ${r.status}: ${(await r.text()).slice(0, 150)}`);
+  if (!r.ok) throw Object.assign(new Error(`Google ${r.status}: ${(await r.text()).slice(0, 150)}`), { status: r.status });
   return new Uint8Array(await r.arrayBuffer());
 }
 export const googleTexto = async (url: string) => new TextDecoder().decode(await googleBytes(url));
