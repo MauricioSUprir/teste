@@ -49,16 +49,17 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 
 **9.2 Fontes**
 - 🟡 PDFs, Word, Excel, PowerPoint, textos, fotos e vídeos curtos enviados no Telegram: lê, responde e guarda um resumo na memória (`arquivos.ts`) — testado; falta o teste do dono pelo Telegram
-- ⬜ Pasta do Google Drive (indexar e vigiar mudanças)
-- ⬜ Gmail (e-mails importantes, posts do Classroom)
-- ⬜ Agenda (eventos passados e futuros)
+- ✅ Google Drive: documentos, planilhas, apresentações, PDFs, Word, Excel, PowerPoint e textos viram resumo com link; arquivo alterado é lido de novo (a cada 2 h, 4 por vez, começando pelos últimos 90 dias) — `indexador.ts`
+- ✅ Gmail: e-mails importantes, com estrela e avisos do Classroom dos últimos 3 dias (a cada 2 h). Códigos de verificação, links de confirmação, senhas e alertas de login nunca entram
+- ✅ Agenda: eventos de 2 dias atrás até 30 dias à frente (a cada 6 h); evento alterado substitui o antigo
 - ⬜ Projetos do GitHub (README e histórico)
-- ⬜ Anotações ("anota que...")
+- ✅ Anotações ("anota que...") com `guardar_nota`
 
 **9.3 Organização**
-- ⬜ Projeto, data e origem automáticos em cada item
+- 🟡 Data, origem, tipo e link automáticos em cada item ✅; projeto automático ⬜
+- ✅ Busca por tipo (conversa, nota, arquivo, email, evento) e por período
 - ⬜ Linha do tempo de cada projeto ("o que fiz no projeto X")
-- ⬜ Esquecer sob pedido ("apaga isso da memória")
+- ✅ Esquecer sob pedido: o GIDEON mostra exatamente os itens que vai apagar e só apaga depois do Aprovar/"sim"; fica registrado em `gideon_acoes`
 
 **9.4 Pronto quando**
 - ⬜ "Onde está aquele projeto que comecei em agosto?" → arquivo certo, com link e histórico

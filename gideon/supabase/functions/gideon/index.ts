@@ -12,6 +12,7 @@
 //   POST /gideon/home-sessao|home-ferramenta|home-conversa ← GIDEON Home (cabeçalho x-gideon-home)
 //   POST /gideon/nucleo-arquivo  ← teste de leitura de arquivo: { base64, mime, nome, legenda } (x-gideon-chave)
 //   POST /gideon/aprovacao | modelos ← teste da fila de aprovações; lista de modelos do Gemini (x-gideon-chave)
+//   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, chaveGemini, config, dispararLembretes, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
@@ -19,6 +20,7 @@ import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 import { rotaHome, tokenHome } from "./home.ts";
 import { arquivoDaMensagem, atenderArquivo, receberArquivoTelegram } from "./arquivos.ts";
 import { resolverAprovacao, tratarBotao } from "./botoes.ts";
+import { indexar } from "./indexador.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -83,6 +85,13 @@ Deno.serve(async (req) => {
       const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": chaveGemini() } });
       const j = await r.json();
       return json((j.models ?? []).filter((x: any) => (x.supportedGenerationMethods ?? []).includes("generateContent")).map((x: any) => x.name));
+    }
+    if (rota === "indexar") { // pg_cron: lê Gmail, Agenda e Drive e guarda na memória ({ fontes, esperar })
+      const b = await req.json().catch(() => ({}));
+      const fontes: string[] = Array.isArray(b.fontes) && b.fontes.length ? b.fontes.map(String) : ["gmail", "agenda", "drive"];
+      if (b.esperar) return json(await indexar(fontes));
+      EdgeRuntime.waitUntil(indexar(fontes).catch((e) => console.error("indexar:", e)));
+      return json({ ok: true, fontes });
     }
     if (rota === "lembretes") return json(await dispararLembretes());
     if (rota === "relatorio") {

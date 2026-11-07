@@ -122,10 +122,11 @@ export async function guardarMemoria(m: { conteudo: string; tipo: string; origem
   }
   return gravados;
 }
-export async function buscarMemoria(pergunta: string, qtd = 5, projeto?: string) {
+export async function buscarMemoria(pergunta: string, qtd = 5, projeto?: string, filtros: { tipo?: string; desde?: string; ate?: string } = {}) {
   const cfg = await config();
   const vetor = await embedding(`task: search result | query: ${pergunta}`);
-  const { data, error } = await sb.rpc("gideon_buscar_memoria", { consulta: JSON.stringify(vetor), qtd, filtro_projeto: projeto || null });
+  const { data, error } = await sb.rpc("gideon_buscar_memoria", { consulta: JSON.stringify(vetor), qtd, filtro_projeto: projeto || null,
+    filtro_tipo: filtros.tipo || null, desde: filtros.desde || null, ate: filtros.ate || null });
   if (error) throw new Error("busca: " + error.message);
   const limite = Number(cfg.limite_similaridade || 0.6);
   return (data ?? []).filter((t: { similaridade: number }) => Number(t.similaridade) >= limite);
@@ -145,8 +146,14 @@ export const FERRAMENTAS = [
   { name: "concluir_tarefa", description: "Marca uma tarefa como feita pelo id (use listar_tarefas antes).", parameters: { type: "object", properties: { id: { type: "integer" } }, required: ["id"] } },
   { name: "guardar_nota", description: "Guarda na memória de longo prazo algo que o dono pediu para anotar/lembrar.", parameters: { type: "object", properties: {
       texto: { type: "string" }, projeto: { type: "string" } }, required: ["texto"] } },
-  { name: "buscar_memoria", description: "Procura na memória de longo prazo (conversas, notas, arquivos) quando os trechos recebidos não bastam.", parameters: { type: "object", properties: {
-      pergunta: { type: "string" }, projeto: { type: "string" } }, required: ["pergunta"] } },
+  { name: "buscar_memoria", description: "Procura na memória de longo prazo (conversas, notas, arquivos, e-mails importantes, avisos do Classroom, eventos da agenda e arquivos do Drive) quando os trechos recebidos não bastam. Dá para filtrar por tipo e período.", parameters: { type: "object", properties: {
+      pergunta: { type: "string" }, projeto: { type: "string" },
+      tipo: { type: "string", description: "Opcional: conversa, nota, arquivo, email ou evento" },
+      desde: { type: "string", description: "Opcional: ISO 8601 com fuso -03:00" }, ate: { type: "string", description: "Opcional: ISO 8601 com fuso -03:00" } }, required: ["pergunta"] } },
+  { name: "esquecer_memoria", description: "Apaga da memória de longo prazo o que o dono pedir para esquecer, em 3 passos: (1) chame sem ids: devolve os candidatos; (2) escolha SÓ os ids que são mesmo sobre o que ele pediu e chame com ids e confirmado=false: mostra o que será apagado; (3) depois do sim, chame com os mesmos ids e confirmado=true. Nunca apaga sem ids.", parameters: { type: "object", properties: {
+      pergunta: { type: "string", description: "O que esquecer, com as palavras do dono" },
+      ids: { type: "array", items: { type: "integer" }, description: "Ids exatos dos itens a apagar (dos candidatos). Vazio no primeiro passo." },
+      confirmado: { type: "boolean" } }, required: ["pergunta", "confirmado"] } },
 ];
 type Args = Record<string, unknown>;
 export async function executar(nome: string, a: Args, canal: string): Promise<unknown> {
@@ -180,8 +187,26 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
       const n = await guardarMemoria({ conteudo: String(a.texto), tipo: "nota", origem: canal, projeto: a.projeto as string | undefined });
       return { guardado: true, trechos_novos: n };
     }
+    case "esquecer_memoria": { // só apaga ids escolhidos e mostrados ao dono; busca por semelhança nunca apaga sozinha
+      const ids = Array.isArray(a.ids) ? [...new Set((a.ids as unknown[]).map(Number).filter((n) => n > 0))].slice(0, 10) : [];
+      if (!ids.length) {
+        const achados = await buscarMemoria(String(a.pergunta), 8);
+        if (!achados.length) return { erro: "Não achei nada parecido na memória." };
+        return { candidatos: achados.map((x: Record<string, unknown>) => ({ id: x.id, tipo: x.tipo, data: String(x.data_ref ?? "").slice(0, 10),
+            trecho: String(x.conteudo).slice(0, 160), semelhanca: Number(Number(x.similaridade).toFixed(2)) })),
+          instrucao: "Nada foi apagado. Escolha SÓ os candidatos que são mesmo sobre o que o dono pediu (na dúvida, deixe de fora) e chame de novo com esses ids e confirmado=false. Se nenhum servir, diga que não achou." };
+      }
+      const { data: alvos } = await sb.from("gideon_memoria").select("id, tipo, conteudo").in("id", ids);
+      if (!alvos?.length) return { erro: "Esses itens não existem mais na memória." };
+      const itens = alvos.map((x) => ({ id: x.id, tipo: x.tipo, trecho: String(x.conteudo).slice(0, 120) }));
+      if (a.confirmado !== true) return { precisa_confirmacao: true, resumo: { pergunta: a.pergunta, itens }, argsAprovar: { pergunta: a.pergunta, ids: itens.map((i) => i.id), confirmado: true },
+        instrucao: "Mostre ao dono exatamente estes itens e pergunte se pode apagar." };
+      const { data } = await sb.from("gideon_memoria").delete().in("id", itens.map((i) => i.id)).select("id");
+      await sb.from("gideon_acoes").insert({ quem: "gideon/nucleo", acao: "esquecer_memoria", alvo: itens.map((i) => i.id).join(","), detalhes: { pergunta: a.pergunta, itens, apagados: data?.length ?? 0 }, reversivel: false });
+      return { apagados: data?.length ?? 0 };
+    }
     case "buscar_memoria": {
-      const t = await buscarMemoria(String(a.pergunta), 5, a.projeto as string | undefined);
+      const t = await buscarMemoria(String(a.pergunta), 5, a.projeto as string | undefined, { tipo: a.tipo as string, desde: a.desde as string, ate: a.ate as string });
       return { trechos: t.map((x: Record<string, unknown>) => ({ conteudo: x.resumo || x.conteudo, tipo: x.tipo, projeto: x.projeto, data: x.data_ref, link: x.link })) };
     }
   }
@@ -191,15 +216,19 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
 }
 
 // ---------- Aprovações (botões Aprovar/Negar no Telegram) ----------
-export const CONFIRMAVEIS = ["agenda_criar", "whatsapp_enviar"];
+export const CONFIRMAVEIS = ["agenda_criar", "whatsapp_enviar", "esquecer_memoria"];
 export function descreverAcao(nome: string, r: Record<string, any>) {
   if (nome === "agenda_criar") return `Criar evento "${r.titulo ?? ""}"${r.inicio ? " em " + r.inicio : ""}${r.local ? " — " + r.local : ""}`;
+  if (nome === "esquecer_memoria") {
+    const itens = Array.isArray(r.itens) ? r.itens : [];
+    return `Apagar da memória ${itens.length} item(ns): ` + itens.map((i: Record<string, unknown>) => `"${String(i.trecho ?? "").replace(/\s+/g, " ").slice(0, 70)}"`).join("; ").slice(0, 600);
+  }
   if (nome === "whatsapp_enviar") return `Enviar WhatsApp para ${r.para ?? r.numero ?? ""}: "${String(r.texto ?? "").slice(0, 200)}"`;
   return `${nome}: ${JSON.stringify(r).slice(0, 200)}`;
 }
 // O dono confirmou na conversa ("sim") em vez do botão: fecha o pedido pendente igual, para o botão não repetir a ação
 async function aprovadaPorConversa(nome: string, a: Record<string, unknown>, canal: string) {
-  const campo = a.titulo ? "titulo" : a.numero ? "numero" : "";
+  const campo = a.titulo ? "titulo" : a.numero ? "numero" : a.pergunta ? "pergunta" : "";
   let q = sb.from("gideon_aprovacoes").update({ status: "aprovada", decidido_em: new Date().toISOString(), decidido_via: "conversa:" + canal }).eq("acao", nome).eq("status", "pendente");
   if (campo) q = q.eq(`detalhes->args->>${campo}`, String(a[campo]));
   await q;
@@ -219,6 +248,8 @@ Memória:
 - Junto com a mensagem podem vir "Trechos da memória". Use-os só se forem relevantes e, quando houver link, cite o link.
 - Se a pergunta depende de algo que não está nos trechos nem na conversa, use buscar_memoria; se ainda assim não achar, diga que não encontrou. Nunca invente.
 - Tudo o que vocês conversam é guardado. Quando o dono pedir para anotar ou guardar algo, use guardar_nota.
+- A memória também recebe sozinha, a cada poucas horas: e-mails importantes e avisos do Classroom (tipo email), eventos da agenda (tipo evento) e arquivos do Google Drive (tipo arquivo, com link). Para "o que chegou do Classroom essa semana?", use buscar_memoria com tipo e período.
+- Para esquecer algo, use esquecer_memoria: primeiro veja os candidatos, escolha só os que são mesmo sobre o pedido, mostre exatamente o que será apagado e só apague depois do sim (no Telegram aparecem os botões Aprovar e Negar).
 
 Ferramentas:
 - Lembretes: converta datas relativas ("amanhã às 15h") em data e hora completas com fuso -03:00. Se faltar o horário, pergunte antes de criar.
@@ -287,7 +318,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
         if (res?.precisa_confirmacao && p.canal === "telegram") { // vira pedido de aprovação com botões
           const descricao = descreverAcao(nome, res.resumo ?? args);
           const { data } = await sb.from("gideon_aprovacoes").insert({ acao: nome, descricao, pedido_por: p.canal, expira_em: new Date(Date.now() + 2 * 3600_000).toISOString(),
-            detalhes: { nome, args: { ...args, confirmado: true }, canal: p.canal, sessao: p.sessao } }).select("id").single();
+            detalhes: { nome, args: res.argsAprovar ?? { ...args, confirmado: true }, canal: p.canal, sessao: p.sessao } }).select("id").single();
           if (data?.id) { aprovacoes.push({ id: data.id, descricao }); res.botoes = "Embaixo da sua resposta aparecem os botões Aprovar e Negar (vale por 2 horas)."; }
         }
         respostas.push({ functionResponse: { name: nome, response: { resultado: res } } });

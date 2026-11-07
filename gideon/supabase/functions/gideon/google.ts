@@ -75,7 +75,15 @@ async function g(url: string, init: RequestInit = {}) {
   if (!r.ok) throw new Error(`Google ${r.status}: ${j.error?.message ?? ""}`.slice(0, 200));
   return j;
 }
-const br = (iso?: string) => iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : null;
+export { g as googleApi };
+// Baixa um arquivo (bytes) ou um texto exportado do Google (ex.: Google Docs como texto)
+export async function googleBytes(url: string) {
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${await acesso()}` } });
+  if (!r.ok) throw new Error(`Google ${r.status}: ${(await r.text()).slice(0, 150)}`);
+  return new Uint8Array(await r.arrayBuffer());
+}
+export const googleTexto = async (url: string) => new TextDecoder().decode(await googleBytes(url));
+export const br = (iso?: string) => iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : null;
 
 // ---------- Ferramentas ----------
 export const FERRAMENTAS_GOOGLE = [
@@ -91,7 +99,7 @@ export const FERRAMENTAS_GOOGLE = [
       texto: { type: "string" }, maximo: { type: "integer", description: "Até 10; padrão 5" } }, required: ["texto"] } },
 ];
 const decodificar = (b64?: string) => { if (!b64) return ""; try { return new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0))); } catch { return ""; } };
-function textoDoEmail(p: Record<string, any>): string {
+export function textoDoEmail(p: Record<string, any>): string {
   if (p.mimeType === "text/plain" && p.body?.data) return decodificar(p.body.data);
   for (const sub of p.parts ?? []) { const t = textoDoEmail(sub); if (t) return t; }
   if (p.mimeType === "text/html" && p.body?.data) return decodificar(p.body.data).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");

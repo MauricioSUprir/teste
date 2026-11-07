@@ -45,6 +45,8 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | Data | Falha | Teste que impede a volta |
 | --- | --- | --- |
 | 06/11/2026 | Disparador mandou "⏰ Lembrete:" vazio a cada minuto | Rodar o disparador sem lembretes vencidos: nada pode chegar ao Telegram |
+| 07/11/2026 | Indexador guardou e-mail com código de verificação e link de confirmação | Rodar o Gmail de novo: e-mails de código/confirmação/senha não podem entrar na memória |
+| 07/11/2026 | "Esqueça X" ia apagar 5 itens (X + 4 só parecidos) | Pedir para esquecer uma nota de teste: o pedido de aprovação só pode ter os itens certos |
 
 ## Arquivos e áudios (07/11/2026) — testados ao vivo pela rota `home-arquivo` (sem gravar na memória)
 | Pedido | Esperado | Resultado |
@@ -66,3 +68,16 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | Aprovar pedido de teste (ação só de leitura) | "✅ Feito: …" | ✅ |
 | Aprovar o mesmo pedido de novo | "Esse pedido já foi aprovado." (não repete) | ✅ |
 | Falta: dono tocar 👍/👎 e Aprovar/Negar no Telegram | | ⬜ |
+
+## Memória: Gmail, Agenda, Drive e esquecer (07/11/2026)
+| Teste | Esperado | Resultado |
+| --- | --- | --- |
+| Ler Agenda, Gmail e Drive pela primeira vez | Itens novos com tipo, data, origem e link | ✅ 1 evento, 3 e-mails, 1 PDF |
+| Ler tudo de novo | Nada repetido; e-mails sensíveis não voltam | ✅ 0 novos |
+| "Quais e-mails importantes chegaram nos últimos dias?" | Usa buscar_memoria e devolve o link do e-mail | ✅ 2,3 s |
+| "Tem algum PDF do meu Drive na memória?" | Acha o PDF com link do Drive | ✅ 2,2 s |
+| "Anote: a cor favorita do robô de teste Zeta-4471 é laranja" | guardar_nota | ✅ 2,3 s |
+| "Esqueça o que eu disse sobre o robô Zeta-4471" (telegram) | Pedido de aprovação só com a nota certa | ❌ v20 (5 itens, negado) → ✅ v22 (1 item, 3,4 s) |
+| Negar | Nada apagado | ✅ |
+| Aprovar | Só a nota apagada; outras memórias intactas; registro em gideon_acoes | ✅ |
+| Falta: dono perguntar no Telegram sobre um e-mail, evento ou arquivo do Drive | | ⬜ |
