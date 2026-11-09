@@ -27,11 +27,13 @@ import { LOJA_ID } from "./loja";
  * a publicação diária do robô do catálogo, que não passa variáveis do Google.
  * Variável de ambiente, se houver, vale por cima.
  * GA4: uma propriedade só ("Beauty Now/Be2Beauty") para as duas lojas; nos
- * relatórios, separe pelo "Nome do host".
+ * relatórios, separe pelo "Nome do host". Tag Manager: um contêiner para as
+ * duas (sem a tag do GA4 dentro dele — o site já manda direto).
+ * Search Console: verificado pelo domínio (DNS), sem meta tag.
  */
 const POR_LOJA: Partial<Record<string, { ga?: string; gtm?: string; searchConsole?: string }>> = {
-  beautynow: { ga: "G-Z8D6GPPFYQ" },
-  be2beauty: { ga: "G-Z8D6GPPFYQ" },
+  beautynow: { ga: "G-Z8D6GPPFYQ", gtm: "GTM-TXHT6QRC" },
+  be2beauty: { ga: "G-Z8D6GPPFYQ", gtm: "GTM-TXHT6QRC" },
 };
 const DA_LOJA = POR_LOJA[LOJA_ID] ?? {};
 
