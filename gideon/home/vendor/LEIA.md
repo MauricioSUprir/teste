@@ -10,4 +10,4 @@ npx esbuild entrada.js --bundle --format=esm --minify --legal-comments=eof --out
 
 `entrada.js` (nesta pasta) lista o que é exportado.
 
-A malha do rosto (`../rosto-malha.js`) é o "canonical face model" do MediaPipe (Google), licença Apache 2.0: um rosto médio, que não é de nenhuma pessoa.
+A cabeça (`../rosto-cabeca.js`) vem do modelo base do [MakeHuman](http://www.makehumancommunity.org) (licença CC0: uso livre, sem pedir permissão), com os ajustes e as expressões do próprio MakeHuman (repositório `makehumancommunity/mpfb2`). Rosto original: mulher adulta jovem, mistura igual dos três tipos-base do MakeHuman, que não é de nenhuma pessoa real. Para gerar de novo ou mudar a forma do rosto: `ferramentas/gerar_cabeca.py` (os pesos ficam no topo do arquivo).
