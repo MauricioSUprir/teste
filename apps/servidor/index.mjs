@@ -221,6 +221,15 @@ async function enviarViaBrevo({ para, assunto, texto, html, remetente = "BeautyN
     const corpo = await resposta.text().catch(() => "");
     throw new Error(`Brevo respondeu ${resposta.status}: ${corpo.slice(0, 200)}`);
   }
+  // o id do Brevo deixa achar o e-mail no painel dele (Transacional → Logs)
+  const dados = await resposta.json().catch(() => ({}));
+  return { id: dados?.messageId ?? null };
+}
+
+/** e-mail mascarado para o log (dá para achar o envio sem expor o endereço inteiro) */
+function mascararEmail(email) {
+  const [nome, dominio] = String(email).split("@");
+  return `${nome.slice(0, 2)}***@${dominio ?? "?"}`;
 }
 
 /** envia por qualquer modo ativo (brevo → gmail → console) */
@@ -259,7 +268,8 @@ async function enviarEmailCodigo(email, codigo, marca = "beautynow") {
   }
   // visual "vidro claro" com a logo nova de cada loja (email-codigo.mjs)
   const { assunto, texto, html, remetente } = emailDoCodigo(codigo, marca);
-  await enviarEmail({ para: email, assunto, texto, html, remetente });
+  const enviado = await enviarEmail({ para: email, assunto, texto, html, remetente });
+  console.log(`[email] código enviado (${marca}) para ${mascararEmail(email)}${enviado?.id ? ` · brevo ${enviado.id}` : ""}`);
 }
 
 const formatarReais = (centavos) =>
