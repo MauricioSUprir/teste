@@ -6,6 +6,7 @@ import { ContaProvider } from "@/lib/conta/contexto";
 import { FavoritosProvider } from "@/lib/favoritos/contexto";
 import { LOJA, LOJA_ID } from "@/lib/loja";
 import { Analytics } from "@/components/layout/Analytics";
+import { GOOGLE_IDS } from "@/lib/google";
 import { Celebracao } from "@/components/efeitos/Vidro";
 import { AvisoCookies } from "@/components/rastreio/AvisoCookies";
 import { Rastreio } from "@/components/rastreio/Rastreio";
@@ -103,9 +104,7 @@ const dominioLoja =
 export const metadata: Metadata = {
   metadataBase: new URL(dominioLoja),
   // Google Search Console: código de verificação por loja (meta google-site-verification)
-  ...(process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO
-    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO } }
-    : {}),
+  ...(GOOGLE_IDS.searchConsole ? { verification: { google: GOOGLE_IDS.searchConsole } } : {}),
   title: {
     default: tituloLoja,
     template: `%s | ${LOJA.nome}`,

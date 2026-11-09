@@ -19,9 +19,24 @@
  * add_to_cart, begin_checkout, purchase…), para o Analytics e o Google Ads.
  */
 import type { Consentimento } from "./rastreio";
+import { LOJA_ID } from "./loja";
 
-const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID ?? "";
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "";
+/**
+ * Códigos do Google de cada loja. São públicos (aparecem no HTML de qualquer
+ * site que usa o Google) e ficam aqui para TODO build sair com eles — inclusive
+ * a publicação diária do robô do catálogo, que não passa variáveis do Google.
+ * Variável de ambiente, se houver, vale por cima.
+ * GA4: uma propriedade só ("Beauty Now/Be2Beauty") para as duas lojas; nos
+ * relatórios, separe pelo "Nome do host".
+ */
+const POR_LOJA: Partial<Record<string, { ga?: string; gtm?: string; searchConsole?: string }>> = {
+  beautynow: { ga: "G-Z8D6GPPFYQ" },
+  be2beauty: { ga: "G-Z8D6GPPFYQ" },
+};
+const DA_LOJA = POR_LOJA[LOJA_ID] ?? {};
+
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || DA_LOJA.gtm || "";
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || DA_LOJA.ga || "";
 
 type JanelaGoogle = Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
 
@@ -30,7 +45,11 @@ let carregado = false;
 export const googleConfigurado = () => Boolean(GTM_ID || GA_ID);
 
 /** IDs deste build (para o painel do admin mostrar o que está ligado) */
-export const GOOGLE_IDS = { ga: GA_ID, gtm: GTM_ID, searchConsole: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO ?? "" };
+export const GOOGLE_IDS = {
+  ga: GA_ID,
+  gtm: GTM_ID,
+  searchConsole: process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO || DA_LOJA.searchConsole || "",
+};
 
 function gtag(...args: unknown[]) {
   const w = window as JanelaGoogle;
