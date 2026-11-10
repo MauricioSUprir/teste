@@ -94,6 +94,13 @@ export async function rotaHome(rota: string, req: Request) {
     const { posResposta: _p, ...resto } = r as Record<string, unknown>;
     return json(resto);
   }
+  if (rota === "home-historico") { // últimas conversas (voz e Telegram) para a tela de histórico
+    const b = await req.json().catch(() => ({}));
+    const { data, error } = await sb.from("gideon_mensagens").select("papel, texto, canal, criado_em").in("canal", ["voz", "telegram"])
+      .order("criado_em", { ascending: false }).limit(Math.min(Math.max(Number(b.limite) || 40, 1), 100));
+    if (error) return json({ erro: error.message }, 500);
+    return json({ mensagens: (data ?? []).reverse() });
+  }
   if (rota === "home-diagnostico") {
     const b = await req.json().catch(() => ({}));
     await sb.from("gideon_execucoes").insert({ canal: "voz", pedido_resumo: ("diagnóstico: " + String(b.motivo ?? "")).slice(0, 200), ferramenta: "diagnostico",

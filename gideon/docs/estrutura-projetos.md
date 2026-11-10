@@ -62,7 +62,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ✅ Esquecer sob pedido: o GIDEON mostra exatamente os itens que vai apagar e só apaga depois do Aprovar/"sim"; fica registrado em `gideon_acoes`
 
 **9.4 Pronto quando**
-- ⬜ "Onde está aquele projeto que comecei em agosto?" → arquivo certo, com link e histórico
+- ✅ "Onde está aquele projeto que comecei em agosto?" → achou o projeto certo (nota de 10/08) com histórico e ofereceu criar o projeto oficial (5,7 s) — 10/11
 
 ---
 
@@ -78,8 +78,8 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 **★.2 Interface estilo Jarvis**
 - ✅ Rosto holográfico 3D no estilo do logo do GIDEON (cabeça de luz azul, pontos em grade, olhos que piscam e olham, boca que abre com a voz, cores por estado); se o aparelho não tiver 3D, volta o orbe (`home/rosto.js`)
 - ✅ Legenda ao vivo do que você diz e do que ela responde
-- ⬜ Cartões na tela: lembretes, tarefas, resultados de pesquisa, aprovações
-- ⬜ Histórico das conversas
+- ✅ Cartões na tela: o que ela consulta ou faz por voz (lembretes, tarefas, agenda, e-mails, Drive, memória, projetos) aparece em cartões com links; coluna à direita no PC, faixa deslizante no celular (resultados de pesquisa entram quando a pesquisa existir)
+- ✅ Histórico das conversas (voz e Telegram) no botão "Histórico"
 
 **★.3 Voz contínua** (Gemini Live: áudio direto, plano grátis com limites)
 - ✅ Fala e ouve ao mesmo tempo (Gemini Live `gemini-3.8-live`) — funcionando no PC do dono (Edge), com troca automática de microfone
@@ -95,7 +95,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 
 **★.5 Segurança**
 - ✅ A chave do Gemini nunca vai para o navegador: o Supabase entrega uma senha temporária de uso único por conversa
-- ⬜ Ações sensíveis pedem "confirma?" por voz e por botão na tela
+- ✅ Ações sensíveis pedem "confirma?" por voz e por botão na tela (Confirmar/Cancelar; o que foi confirmado num lugar não é repetido no outro)
 
 **★.6 Modo privado / sem internet (depois, com o Neural Core)**
 - ⬜ Whisper + Kokoro + modelo local para conversas que não podem sair de casa

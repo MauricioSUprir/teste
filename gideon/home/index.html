@@ -45,17 +45,53 @@
   #diag { position:fixed; left:12px; bottom:8px; font: 11px/1.4 ui-monospace, monospace; color:#4d6a82; white-space:pre; pointer-events:none; }
   #mics { position:fixed; right:12px; bottom:8px; max-width:min(60vw, 320px); background:#0a121c; color:var(--suave); border:1px solid #1c2a3a; border-radius:8px; padding:4px 6px; font-size:12px; }
   button.sair { background:none; border:1px solid #1c2a3a; color:var(--suave); border-radius:999px; padding:6px 12px; font-size:12px; }
+  /* cartões: o que ela consultou ou fez por voz aparece também na tela */
+  #topo-dir { display:flex; align-items:center; gap:10px; }
+  #btnHist { background:rgba(10,18,28,.7); border:1px solid #1c3a52; color:#8fd8ff; border-radius:999px; padding:5px 11px; font-size:12px; cursor:pointer; }
+  #cartoes { position:fixed; z-index:5; right:16px; top:56px; width:min(340px, 32vw); max-height:calc(100vh - 220px); overflow-y:auto; display:flex; flex-direction:column; gap:10px; scrollbar-width:thin; }
+  .cartao { background:rgba(6,14,24,.82); border:1px solid rgba(60,170,255,.35); border-radius:12px; padding:10px 12px; box-shadow:0 0 18px rgba(30,140,255,.15); backdrop-filter:blur(4px); animation:entra .35s ease; }
+  .cartao.some { opacity:0; transform:translateX(12px); transition:all .4s; }
+  @keyframes entra { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+  .cartao h3 { font-size:13px; font-weight:600; color:#bfe6ff; display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .cartao h3 button { background:none; border:none; color:var(--suave); cursor:pointer; font-size:13px; }
+  .cartao ul { list-style:none; display:grid; gap:6px; }
+  .cartao li { font-size:13px; line-height:1.35; color:var(--texto); }
+  .cartao li small { display:block; color:var(--suave); font-size:11.5px; }
+  .cartao a { color:var(--ciano); text-decoration:none; }
+  .cartao .vazio { color:var(--suave); font-size:12.5px; }
+  .cartao .acoes { display:flex; gap:8px; margin-top:10px; }
+  .cartao .acoes button { flex:1; border-radius:8px; padding:8px; font-size:13px; cursor:pointer; border:1px solid; }
+  .cartao .sim { background:rgba(39,196,255,.15); border-color:var(--ciano); color:#dff6ff; }
+  .cartao .nao { background:transparent; border-color:#3a4a5a; color:var(--suave); }
+  .cartao .situacao { margin-top:8px; font-size:12.5px; color:var(--suave); }
+  .cartao.pedido { border-color:rgba(255,181,71,.55); box-shadow:0 0 18px rgba(255,181,71,.18); }
+  @media (max-width: 760px) {
+    #cartoes { left:12px; right:12px; top:auto; bottom:150px; width:auto; max-height:none; flex-direction:row; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; }
+    .cartao { flex:0 0 82%; max-height:34vh; overflow-y:auto; scroll-snap-align:start; }
+  }
+  /* histórico das conversas */
+  #historico { position:fixed; z-index:20; top:0; right:0; bottom:0; width:min(440px, 100vw); background:rgba(4,8,14,.97); border-left:1px solid #13283a; transform:translateX(105%); transition:transform .3s; display:flex; flex-direction:column; }
+  #historico.on { transform:none; }
+  #historico header { padding:16px; border-bottom:1px solid #13283a; }
+  #historico header button { background:none; border:none; color:var(--suave); font-size:18px; cursor:pointer; }
+  #listaHist { overflow-y:auto; padding:12px 16px 24px; display:grid; gap:10px; align-content:start; }
+  .msg { font-size:14px; line-height:1.4; padding:8px 10px; border-radius:10px; background:#0a1520; white-space:pre-wrap; word-wrap:break-word; }
+  .msg.user { background:#0d1a26; color:#b9cfe0; }
+  .msg.model { border:1px solid #143247; }
+  .msg small { display:block; font-size:11px; color:#56738c; margin-bottom:3px; }
 </style>
 </head>
 <body>
 <main>
-  <header><h1>GIDEON</h1><div id="estado">desligado</div></header>
+  <header><h1>GIDEON</h1><div id="topo-dir"><button id="btnHist" aria-label="Ver histórico das conversas">🕘 Histórico</button><div id="estado">desligado</div></div></header>
   <div id="diag" hidden></div>
   <select id="mics" hidden aria-label="Microfone"></select>
   <section id="palco" role="button" aria-label="Toque para falar com o GIDEON"><canvas id="orbe" width="800" height="800" aria-hidden="true"></canvas><div id="dica">Toque para conversar</div><div id="barra"><i id="nivel"></i></div></section>
   <div id="marca" aria-hidden="true"><b>GIDEON</b><i></i></div>
   <section id="legendas"><div class="fala dono" id="ultDono" hidden></div><div class="fala gideon" id="ultGideon" hidden></div></section>
 </main>
+<aside id="cartoes" aria-live="polite"></aside>
+<aside id="historico" aria-label="Histórico das conversas"><header><h1>HISTÓRICO</h1><button id="fecharHist" aria-label="Fechar">✕</button></header><div id="listaHist"></div></aside>
 <div id="aviso"><p>Para abrir o GIDEON Home, mande <code>/home</code> para o GIDEON no Telegram e toque no link que ele enviar.<br><br>O link é pessoal e vale 30 dias.</p></div>
 <script>
 const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
@@ -138,6 +174,103 @@ function tocar(b64) {
 }
 function calar() { fontes.forEach((s) => { try { s.stop(); } catch {} }); fontes = []; proximo = 0; }
 function medirVoz() { if (!analisador) return; const d = new Uint8Array(analisador.fftSize); analisador.getByteTimeDomainData(d); let s = 0; for (const v of d) s += ((v - 128) / 128) ** 2; nivelVoz = Math.sqrt(s / d.length); requestAnimationFrame(medirVoz); }
+
+// ---------- cartões na tela: o que ela consultou ou fez por voz ----------
+const el = (tag, props = {}, ...filhos) => { const e = Object.assign(document.createElement(tag), props); for (const f of filhos) if (f != null) e.append(f); return e; };
+const linkSeguro = (u) => (typeof u === "string" && /^https:\/\//.test(u) ? u : null);
+const dataBR = (iso) => { try { return iso ? new Date(iso).toLocaleDateString("pt-BR") : ""; } catch { return ""; } };
+const CARTOES = { // ferramenta → { titulo, itens: [{ texto, sub, link }] } (null = não mostra)
+  listar_lembretes: (r) => ({ titulo: "⏰ Lembretes", itens: (r.lembretes || []).map((l) => ({ texto: l.texto, sub: [l.quando, l.recorrencia].filter(Boolean).join(" · ") })) }),
+  criar_lembrete: (r, a) => (r.erro ? null : { titulo: "⏰ Lembrete criado", itens: [{ texto: a.texto, sub: r.quando_brasilia }] }),
+  cancelar_lembrete: (r) => (r.cancelado ? { titulo: "⏰ Lembrete cancelado", itens: [{ texto: r.cancelado.texto }] } : null),
+  listar_tarefas: (r) => ({ titulo: "✔️ Tarefas abertas", itens: (r.tarefas || []).map((t) => ({ texto: t.titulo, sub: [t.prazo && "prazo " + t.prazo, t.projeto].filter(Boolean).join(" · ") })) }),
+  criar_tarefa: (r) => (r.erro ? null : { titulo: "✔️ Tarefa criada", itens: [{ texto: r.titulo }] }),
+  concluir_tarefa: (r) => (r.concluida ? { titulo: "✔️ Tarefa concluída", itens: [{ texto: r.concluida.titulo }] } : null),
+  agenda_listar: (r) => ({ titulo: "📅 Agenda", itens: (r.eventos || []).map((e) => ({ texto: e.titulo, sub: [e.inicio, e.local].filter(Boolean).join(" · "), link: e.link })) }),
+  agenda_criar: (r) => (r.criado ? { titulo: "📅 Evento criado", itens: [{ texto: r.criado.titulo, sub: r.criado.inicio, link: r.link }] } : null),
+  gmail_buscar: (r) => ({ titulo: "✉️ E-mails", itens: (r.emails || []).map((e) => ({ texto: e.assunto || "(sem assunto)", sub: e.de })) }),
+  gmail_ler: (r) => (r.erro ? null : { titulo: "✉️ " + (r.assunto || "E-mail"), itens: [{ texto: String(r.texto || "").slice(0, 280) + (String(r.texto || "").length > 280 ? "…" : ""), sub: r.de }] }),
+  drive_buscar: (r) => ({ titulo: "📁 Drive", itens: (r.arquivos || []).map((f) => ({ texto: f.nome, sub: f.modificado, link: f.link })) }),
+  buscar_memoria: (r) => ({ titulo: "🧠 Da memória", itens: (r.trechos || []).map((t) => ({ texto: String(t.conteudo || "").slice(0, 160), sub: [t.tipo, dataBR(t.data), t.projeto].filter(Boolean).join(" · "), link: t.link })) }),
+  guardar_nota: (r) => (r.guardado ? { titulo: "📝 Anotado na memória", itens: [] } : null),
+  listar_projetos: (r) => ({ titulo: "🗂️ Projetos", itens: (r.projetos || []).map((p) => ({ texto: p.nome, sub: `${p.itens} itens · última atividade ${p.ultima_atividade || "—"}` })) }),
+  criar_projeto: (r) => (r.erro ? null : { titulo: "🗂️ Projeto " + (r.criado ? "criado" : "atualizado"), itens: [{ texto: r.criado || r.atualizado, sub: `${r.itens_antigos_marcados ?? 0} itens antigos marcados` }] }),
+  linha_do_tempo: (r, a) => (r.erro ? null : { titulo: "🗂️ " + (a.projeto || "Projeto"), itens: (r.itens || []).map((i) => ({ texto: String(i.resumo || "").slice(0, 140), sub: [i.data, i.tipo].filter(Boolean).join(" · "), link: i.link })) }),
+};
+function cartao(titulo, itens, extra) {
+  const lista = el("ul");
+  for (const i of itens.slice(0, 8)) {
+    const lk = linkSeguro(i.link);
+    lista.append(el("li", {}, lk ? el("a", { href: lk, target: "_blank", rel: "noopener", textContent: i.texto || "(sem título)" }) : el("span", { textContent: i.texto || "" }), i.sub ? el("small", { textContent: i.sub }) : null));
+  }
+  if (itens.length > 8) lista.append(el("li", {}, el("small", { textContent: `e mais ${itens.length - 8}…` })));
+  const fechar = el("button", { textContent: "✕", ariaLabel: "Fechar cartão" });
+  const c = el("div", { className: "cartao" }, el("h3", {}, el("span", { textContent: titulo }), fechar), itens.length ? lista : (extra ? null : el("div", { className: "vazio", textContent: "Nada por aqui." })), extra);
+  fechar.onclick = () => tirar(c);
+  const caixa = $("cartoes"); caixa.prepend(c);
+  while (caixa.children.length > 5) caixa.lastChild.remove();
+  caixa.scrollTo({ left: 0, top: 0, behavior: "smooth" }); // mostra sempre o mais novo (no celular a faixa rola de lado)
+  if (!extra) setTimeout(() => tirar(c), 90_000); // some sozinho depois de um tempo (pedidos de confirmação ficam)
+  return c;
+}
+function tirar(c) { c.classList.add("some"); setTimeout(() => c.remove(), 400); }
+
+// ---------- confirmar na tela (criar evento, apagar da memória, mandar WhatsApp) ----------
+const pendentes = new Map(), feitos = new Map(); // chave da ação → cartão / resultado (evita fazer duas vezes)
+const chaveAcao = (nome, a) => nome + "|" + (nome === "agenda_criar" ? `${a.titulo}|${a.inicio}` : nome === "esquecer_memoria" ? (a.ids || []).join(",") : nome === "whatsapp_enviar" ? `${a.numero}|${a.texto}` : JSON.stringify(a));
+const PEDIDOS = {
+  agenda_criar: (r) => ({ titulo: "📅 Criar este evento?", itens: [{ texto: r.resumo?.titulo, sub: [r.resumo?.inicio, r.resumo?.local].filter(Boolean).join(" · ") }] }),
+  esquecer_memoria: (r) => ({ titulo: "🧠 Apagar da memória?", itens: (r.resumo?.itens || []).map((i) => ({ texto: i.trecho, sub: i.tipo })) }),
+  whatsapp_enviar: (r) => ({ titulo: "💬 Enviar WhatsApp?", itens: [{ texto: r.resumo?.texto, sub: "para " + (r.resumo?.para || "") }] }),
+};
+function avisarModelo(texto) { if (ws?.readyState === 1) ws.send(JSON.stringify({ clientContent: { turns: [{ role: "user", parts: [{ text: texto }] }], turnComplete: true } })); }
+function pedirConfirmacao(nome, args, r) {
+  const argsFazer = { ...(r.argsAprovar || args), confirmado: true }, chave = chaveAcao(nome, argsFazer), p = PEDIDOS[nome](r);
+  if (pendentes.has(chave)) return;
+  const situacao = el("div", { className: "situacao" }), sim = el("button", { className: "sim", textContent: "Confirmar" }), nao = el("button", { className: "nao", textContent: "Cancelar" });
+  const c = cartao(p.titulo, p.itens, el("div", {}, el("div", { className: "acoes" }, sim, nao), situacao)); c.classList.add("pedido");
+  const fim = (texto) => { pendentes.delete(chave); sim.disabled = nao.disabled = true; c.querySelector(".acoes").remove(); situacao.textContent = texto; setTimeout(() => tirar(c), 20_000); };
+  pendentes.set(chave, { fim });
+  sim.onclick = async () => {
+    sim.disabled = nao.disabled = true; situacao.textContent = "Fazendo…";
+    const res = await api("home-ferramenta", { nome, args: argsFazer }).then((j) => j.resultado).catch((e) => ({ erro: e.message }));
+    feitos.set(chave, res);
+    if (res?.erro) { fim("⚠️ Não consegui: " + res.erro); avisarModelo(`[Na tela, o dono tocou em Confirmar (${nome}), mas deu erro: ${res.erro}. Diga isso a ele em uma frase.]`); return; }
+    fim("✅ Feito"); const ok = CARTOES[nome]?.(res, argsFazer); if (ok) cartao(ok.titulo, ok.itens);
+    avisarModelo(`[Na tela, o dono tocou em Confirmar e a ação ${nome} já foi feita. Não chame a ferramenta de novo; confirme em uma frase.]`);
+  };
+  nao.onclick = () => { fim("❌ Cancelado"); avisarModelo(`[Na tela, o dono tocou em Cancelar: não faça a ação ${nome}. Diga em uma frase que cancelou.]`); };
+}
+async function rodarFerramenta(fc) { // chamada da voz: executa, mostra o cartão e devolve o resultado para ela
+  const args = fc.args || {};
+  if (args.confirmado === true) {
+    const chave = chaveAcao(fc.name, args);
+    if (feitos.has(chave)) return { ja_feito_pela_tela: true, resultado: feitos.get(chave) }; // já confirmado no botão: não repete
+    pendentes.get(chave)?.fim("✅ Confirmado por voz");
+  }
+  const r = await api("home-ferramenta", { nome: fc.name, args }).then((j) => j.resultado).catch((e) => ({ erro: e.message }));
+  try {
+    if (r?.precisa_confirmacao && PEDIDOS[fc.name]) pedirConfirmacao(fc.name, args, r);
+    else if (r && !r.erro && !r.candidatos) { const c = CARTOES[fc.name]?.(r, args); if (c) cartao(c.titulo, c.itens); }
+    if (args.confirmado === true && r && !r.erro) feitos.set(chaveAcao(fc.name, args), r);
+  } catch (e) { console.warn("cartão:", e); }
+  return r;
+}
+
+// ---------- histórico das conversas (voz e Telegram) ----------
+async function abrirHistorico() {
+  const lista = $("listaHist"); $("historico").classList.add("on"); lista.replaceChildren(el("div", { className: "vazio", textContent: "Carregando…" }));
+  try {
+    const { mensagens } = await api("home-historico", { limite: 60 });
+    lista.replaceChildren(...(mensagens || []).map((m) => el("div", { className: "msg " + m.papel },
+      el("small", { textContent: `${m.papel === "user" ? "Você" : "GIDEON"} · ${m.canal === "voz" ? "🎙️ voz" : "✈️ Telegram"} · ${new Date(m.criado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` }),
+      m.texto)));
+    if (!mensagens?.length) lista.replaceChildren(el("div", { className: "vazio", textContent: "Ainda não há conversas." }));
+    lista.scrollTop = lista.scrollHeight;
+  } catch (e) { lista.replaceChildren(el("div", { className: "vazio", textContent: "Não consegui carregar: " + e.message })); }
+}
+$("btnHist").addEventListener("click", (e) => { e.stopPropagation(); abrirHistorico(); });
+$("fecharHist").addEventListener("click", () => $("historico").classList.remove("on"));
 
 // ---------- conversa ----------
 let turno = { dono: "", gideon: "", ferramentas: [], inicio: 0 };
@@ -255,8 +388,8 @@ async function ligar() {
         const respostas = [];
         for (const fc of m.toolCall.functionCalls ?? []) {
           turno.ferramentas.push(fc.name);
-          const r = await api("home-ferramenta", { nome: fc.name, args: fc.args }).catch((e) => ({ resultado: { erro: e.message } }));
-          respostas.push({ id: fc.id, name: fc.name, response: { resultado: r.resultado } });
+          const resultado = await rodarFerramenta(fc); // também mostra o cartão na tela
+          respostas.push({ id: fc.id, name: fc.name, response: { resultado } });
         }
         ws?.send(JSON.stringify({ toolResponse: { functionResponses: respostas } }));
       }
