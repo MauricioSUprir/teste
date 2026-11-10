@@ -13,9 +13,11 @@
 //   POST /gideon/nucleo-arquivo  ← teste de leitura de arquivo: { base64, mime, nome, legenda } (x-gideon-chave)
 //   POST /gideon/aprovacao | modelos | modelo-teste ← fila de aprovações; lista de modelos; testa se modelos respondem { modelos: [...] } (x-gideon-chave)
 //   POST /gideon/pesquisa-teste  ← testa a busca na internet sem passar pelo modelo { pergunta, cache?, modelos?, modo? (google|tavily|livre) } ou { url } (x-gideon-chave)
+//   POST /gideon/pc-buscar | pc-resultado ← programa GIDEON PC busca ordens e devolve resultados (cabeçalho x-gideon-pc)
+//   POST /gideon/pc-teste        ← testa uma ferramenta do PC sem passar pelo modelo { nome, args } (x-gideon-chave)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { atender, chaveGemini, config, dispararLembretes, gerar, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
+import { atender, chaveGemini, config, dispararLembretes, executar, gerar, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
 import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 import { rotaHome, tokenHome } from "./home.ts";
@@ -23,6 +25,7 @@ import { arquivoDaMensagem, atenderArquivo, receberArquivoTelegram } from "./arq
 import { resolverAprovacao, tratarBotao } from "./botoes.ts";
 import { indexar } from "./indexador.ts";
 import { lerPagina, pesquisarWeb } from "./pesquisa.ts";
+import { rotaPC, tokenPC } from "./pc.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -52,6 +55,11 @@ Deno.serve(async (req) => {
         EdgeRuntime.waitUntil(telegram("sendMessage", { chat_id: m.chat.id, text: link ? `🎙️ Seu GIDEON Home (link pessoal, vale 30 dias — não compartilhe):\n${link}` : "O GIDEON Home ainda não foi publicado." }).catch(() => {}));
         return json({ ok: true });
       }
+      if (/^\/pc\b/i.test(texto.trim())) { // chave do programa GIDEON PC (vale 1 ano)
+        const chave = await tokenPC();
+        EdgeRuntime.waitUntil(telegram("sendMessage", { chat_id: m.chat.id, text: `💻 Chave do GIDEON PC (vale 1 ano — não compartilhe). Cole quando o programa pedir:\n\n${chave}` }).catch(() => {}));
+        return json({ ok: true });
+      }
       const trabalho = (async () => {
         await telegram("sendChatAction", { chat_id: m.chat.id, action: "typing" }).catch(() => {});
         const r = await atender({ texto, canal: "telegram", sessao: String(m.chat.id) });
@@ -64,6 +72,7 @@ Deno.serve(async (req) => {
     if (rota === "retorno") return await retorno(req); // o Google volta aqui (protegido pelo state assinado)
     if (rota === "whatsapp") return await receberWhatsapp(req); // WAHA (protegido pelo cabeçalho secreto)
     if (rota?.startsWith("home-")) return await rotaHome(rota, req); // GIDEON Home (protegido pela chave do Home)
+    if (rota === "pc-buscar" || rota === "pc-resultado") return await rotaPC(rota, req); // programa GIDEON PC (protegido pela chave do PC)
     if (!(await autorizado(req))) return json({ erro: "não autorizado" }, 401);
     if (rota === "conectar") return json(await linkConectar());
     if (rota === "configurar-whatsapp") { const b = await req.json().catch(() => ({})); return json(await configurarWhatsapp(b.numero)); }
@@ -102,6 +111,10 @@ Deno.serve(async (req) => {
       const b = await req.json().catch(() => ({}));
       const r = await (b.url ? lerPagina(String(b.url)) : pesquisarWeb(String(b.pergunta ?? ""), b.cache === true, { modelos: Array.isArray(b.modelos) ? b.modelos.map(String) : undefined, modo: b.modo ? String(b.modo) : undefined })).catch((e) => ({ erro: String((e as Error).message ?? e).slice(0, 1500) }));
       return json(r);
+    }
+    if (rota === "pc-teste") { // teste direto das ferramentas do PC: { nome, args }
+      const b = await req.json().catch(() => ({}));
+      return json(await executar(String(b.nome), b.args ?? {}, "sistema").catch((e) => ({ erro: String((e as Error).message ?? e) })));
     }
     if (rota === "indexar") { // pg_cron: lê Gmail, Agenda e Drive e guarda na memória ({ fontes, esperar })
       const b = await req.json().catch(() => ({}));

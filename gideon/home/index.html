@@ -199,6 +199,14 @@ const CARTOES = { // ferramenta → { titulo, itens: [{ texto, sub, link }] } (n
   ler_pagina: (r) => (r.erro ? null : { titulo: "🌐 " + (r.titulo || "Página"), itens: [{ texto: String(r.texto || "").slice(0, 280) + "…", link: r.link }] }),
   pesquisa_profunda: (r) => (r.iniciada ? { titulo: "🔎 Pesquisa profunda iniciada", itens: [{ texto: "O resumo e o relatório com as fontes chegam no Telegram em 1 a 3 minutos." }] } : null),
   linha_do_tempo: (r, a) => (r.erro ? null : { titulo: "🗂️ " + (a.projeto || "Projeto"), itens: (r.itens || []).map((i) => ({ texto: String(i.resumo || "").slice(0, 140), sub: [i.data, i.tipo].filter(Boolean).join(" · "), link: i.link })) }),
+  // GIDEON PC (computador do dono)
+  pc_status: (r) => ({ titulo: "💻 GIDEON PC", itens: [{ texto: r.ligado ? "Ligado" : "Desligado", sub: r.pasta || r.aviso || "" }] }),
+  pc_listar: (r) => ({ titulo: "💻 " + (r.pasta || "Pasta liberada"), itens: (r.itens || []).map((i) => ({ texto: (i.tipo === "pasta" ? "📁 " : "") + i.nome, sub: [i.tamanho, i.modificado].filter(Boolean).join(" · ") })) }),
+  pc_procurar: (r) => ({ titulo: "💻 Arquivos achados", itens: (r.achados || []).map((i) => ({ texto: i.nome, sub: i.caminho })) }),
+  pc_ler_arquivo: (r) => (r.erro ? null : { titulo: "💻 " + (r.caminho || "Arquivo"), itens: [{ texto: String(r.texto || "").slice(0, 280) + (String(r.texto || "").length > 280 ? "…" : "") }] }),
+  pc_comando: (r, a) => (r.precisa_confirmacao ? null : { titulo: "💻 " + (a.comando || "Comando"), itens: [{ texto: String(r.saida || r.descricao || "").slice(-400), sub: r.codigo_saida != null ? "saída " + r.codigo_saida : "" }] }),
+  ...Object.fromEntries(["pc_organizar", "pc_apagar", "pc_desfazer", "pc_escrever_arquivo", "pc_criar_projeto", "pc_abrir", "pc_fechar"].map((n) =>
+    [n, (r) => (r.precisa_confirmacao || !r.descricao ? null : { titulo: "💻 Feito no PC", itens: [{ texto: r.descricao }, ...(r.avisos || []).map((x) => ({ texto: "⚠️ " + x }))] })])),
 };
 function cartao(titulo, itens, extra) {
   const lista = el("ul");
@@ -218,13 +226,15 @@ function cartao(titulo, itens, extra) {
 }
 function tirar(c) { c.classList.add("some"); setTimeout(() => c.remove(), 400); }
 
-// ---------- confirmar na tela (criar evento, apagar da memória, mandar WhatsApp) ----------
+// ---------- confirmar na tela (criar evento, apagar da memória, mandar WhatsApp, apagar/organizar/instalar no PC) ----------
 const pendentes = new Map(), feitos = new Map(); // chave da ação → cartão / resultado (evita fazer duas vezes)
 const chaveAcao = (nome, a) => nome + "|" + (nome === "agenda_criar" ? `${a.titulo}|${a.inicio}` : nome === "esquecer_memoria" ? (a.ids || []).join(",") : nome === "whatsapp_enviar" ? `${a.numero}|${a.texto}` : JSON.stringify(a));
 const PEDIDOS = {
   agenda_criar: (r) => ({ titulo: "📅 Criar este evento?", itens: [{ texto: r.resumo?.titulo, sub: [r.resumo?.inicio, r.resumo?.local].filter(Boolean).join(" · ") }] }),
   esquecer_memoria: (r) => ({ titulo: "🧠 Apagar da memória?", itens: (r.resumo?.itens || []).map((i) => ({ texto: i.trecho, sub: i.tipo })) }),
   whatsapp_enviar: (r) => ({ titulo: "💬 Enviar WhatsApp?", itens: [{ texto: r.resumo?.texto, sub: "para " + (r.resumo?.para || "") }] }),
+  ...Object.fromEntries(["pc_organizar", "pc_apagar", "pc_escrever_arquivo", "pc_comando"].map((n) =>
+    [n, (r) => ({ titulo: "💻 " + (r.resumo?.titulo || "Fazer no PC?"), itens: [{ texto: r.resumo?.descricao }, ...(r.resumo?.itens || []).map((x) => ({ texto: x }))] })])),
 };
 function avisarModelo(texto) { if (ws?.readyState === 1) ws.send(JSON.stringify({ clientContent: { turns: [{ role: "user", parts: [{ text: texto }] }], turnComplete: true } })); }
 function pedirConfirmacao(nome, args, r) {
