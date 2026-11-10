@@ -515,6 +515,9 @@ function VerTela($a) {
     if ($t -match $TELA_SENSIVEL) { throw "tem uma janela de banco ou de senhas aberta na tela ('$($Matches[0].Trim())'). Por seguranca nao tiro print: minimize ou feche essa janela e peca de novo." }
   }
   Escrever "   $(Get-Date -Format 'HH:mm')  A GIDEON esta vendo sua tela agora (voce pediu). O print nao fica guardado." 'Magenta'
+  return CapturarTela
+}
+function CapturarTela { # separada: o PowerShell so prepara este trecho depois que as bibliotecas de imagem foram carregadas
   $area = [System.Windows.Forms.SystemInformation]::VirtualScreen # todos os monitores
   $img = New-Object System.Drawing.Bitmap $area.Width, $area.Height
   $g = [System.Drawing.Graphics]::FromImage($img)
