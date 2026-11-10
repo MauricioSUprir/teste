@@ -16,7 +16,7 @@
 # =====================================================================================================
 import base64, datetime, fnmatch, io, json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 
-VERSAO = "2.1"
+VERSAO = "2.2"
 URL = os.environ.get("GIDEON_PC_URL") or "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon"
 WINDOWS = os.name == "nt"
 CASA = os.path.expanduser("~")
@@ -918,7 +918,26 @@ def principal():
             time.sleep(min(60, 3 * falhas))
 
 
+def unica_janela():  # só um GIDEON PC por vez: dois abertos dividiriam as ordens (o 2º recebe metade e se perde)
+    import socket
+    trava = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        trava.bind(("127.0.0.1", 47321))  # porta só deste computador, nada fica aberto na internet
+        trava.listen(1)
+        return trava
+    except OSError:
+        return None
+
+
 if __name__ == "__main__":
+    _trava = unica_janela()
+    if _trava is None:
+        escrever("\n   O GIDEON PC já está aberto em outra janela. Use aquela (ou feche as duas e abra de novo).", "amarelo")
+        try:
+            input("   Aperte Enter para fechar esta ")
+        except Exception:
+            pass
+        sys.exit(0)
     try:
         if WINDOWS:
             preparar_controle()  # mouse e teclado (antes do print, para os dois usarem a mesma escala da tela)
