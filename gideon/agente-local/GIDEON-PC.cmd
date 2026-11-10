@@ -219,6 +219,15 @@ function Organizar($a) {
   $lote = GuardarLote 'organizar' $movs
   return [ordered]@{ ok = $true; alterou = $true; alvo = $nomePasta; descricao = "Organizei $($movs.Count) arquivo(s) de '$nomePasta' por $criterio`: $grupos."; desfazer = [ordered]@{ pc_desfazer = $lote } }
 }
+function Seguir([string]$relativo) { # o arquivo pode ter mudado de lugar depois da previa (ex.: organizar aprovado antes): segue pelo diario
+  $lotes = @(LerDiario)
+  for ($i = $lotes.Count - 1; $i -ge 0; $i--) {
+    foreach ($m in @($lotes[$i].movimentos)) {
+      if ([string]::Equals([string]$m.de, $relativo, $CMP) -and -not ([string]$m.para).StartsWith('.lixeira-gideon')) { $p = Join-Path $BASE $m.para; if (Test-Path -LiteralPath $p) { return $p } }
+    }
+  }
+  return $null
+}
 function Expandir($caminhos) {
   $lista = New-Object Collections.ArrayList
   foreach ($c in @($caminhos)) {
@@ -227,11 +236,16 @@ function Expandir($caminhos) {
     if ($nome -match '[\*\?]') {
       $pai = CaminhoLiberado (Split-Path ($c -replace '[\\/]', [string]$SEP) -Parent)
       Get-ChildItem -LiteralPath $pai -Filter $nome -Force -ErrorAction SilentlyContinue | Where-Object { -not (Interno $_.Name) } | ForEach-Object { [void]$lista.Add($_.FullName) }
+      $relPai = Rel $pai # e os que sairam dessa pasta numa organizacao recente
+      foreach ($l in @(LerDiario)) { foreach ($m in @($l.movimentos)) {
+        if ([string]::Equals((Split-Path ([string]$m.de) -Parent), $relPai, $CMP) -and ((Split-Path ([string]$m.de) -Leaf) -like $nome) -and -not ([string]$m.para).StartsWith('.lixeira-gideon')) {
+          $p = Join-Path $BASE $m.para; if (Test-Path -LiteralPath $p) { [void]$lista.Add($p) } }
+      } }
     } else {
       $x = CaminhoLiberado $c
       if ($x -eq $BASE) { throw 'nao apago a pasta liberada inteira' }
       if (Interno (Split-Path $x -Leaf)) { throw 'essa pasta e da propria GIDEON' }
-      if (-not (Test-Path -LiteralPath $x)) { throw "nao achei: $c" }
+      if (-not (Test-Path -LiteralPath $x)) { $novo = Seguir (Rel $x); if ($novo) { $x = $novo } else { throw "nao achei: $c" } }
       [void]$lista.Add($x)
     }
   }
@@ -259,6 +273,10 @@ function Desfazer($a) {
     if (-not (Test-Path -LiteralPath $de)) { [void]$avisos.Add("sumiu: $($m.para)"); continue }
     if (Test-Path -LiteralPath $para) { [void]$avisos.Add("ja existe outro em $($m.de)"); continue }
     Mover $de $para; $voltou++
+  }
+  foreach ($m in @($ultimo.movimentos)) { # tira as subpastas que ficaram vazias (ex.: Documentos, Imagens criadas pela organizacao)
+    $p = Split-Path (Join-Path $BASE $m.para) -Parent
+    while ($p -and (Dentro $p $BASE) -and $p.Length -gt $BASE.Length -and (Test-Path -LiteralPath $p) -and -not (Get-ChildItem -LiteralPath $p -Force | Select-Object -First 1)) { Remove-Item -LiteralPath $p; $p = Split-Path $p -Parent }
   }
   $resto = if ($lotes.Count -gt 1) { @($lotes[0..($lotes.Count - 2)]) } else { @() }
   [IO.File]::WriteAllText($DIARIO, (ConvertTo-Json -InputObject @($resto) -Depth 6), $UTF8)
@@ -334,7 +352,8 @@ function Comando($a) {
   if (-not (Test-Path -LiteralPath $pasta -PathType Container)) { throw "pasta nao encontrada: $($a.pasta)" }
   $t = @(Fatiar $c); $prog = ($t[0] -replace '\.exe$', '').ToLower(); $resto = @(if ($t.Count -gt 1) { $t[1..($t.Count - 1)] })
   $sub = if ($resto.Count) { ([string]$resto[0]).ToLower() } else { '' }
-  $arquivoDentro = { param($x) $f = CaminhoLiberado $x; if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "arquivo nao encontrado: $x" } }
+  $baseRel = Rel $pasta # arquivo do comando: relativo a pasta onde o comando roda
+  $arquivoDentro = { param($x) $r = if ([IO.Path]::IsPathRooted($x) -or -not $baseRel) { $x } else { Join-Path $baseRel $x }; $f = CaminhoLiberado $r; if (-not (Test-Path -LiteralPath $f -PathType Leaf)) { throw "arquivo nao encontrado: $x" } }
   switch -regex ($prog) {
     '^(dir|ls)$' { return Listar ([pscustomobject]@{ pasta = $a.pasta }) }
     '^git$' { if ($GIT_OK -notcontains $sub) { throw "git $sub nao esta na lista (permitidos: $($GIT_OK -join ', '))" } }

@@ -132,27 +132,27 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 ## 1. JARVIS PRIME — controla o computador
 
 **1.1 Ponte com o PC**
-- ⬜ Programa pequeno no seu PC que recebe ordens pelo Supabase (nada aberto na internet)
-- ⬜ Pasta liberada (só altera dentro dela)
-- ⬜ Aprovação no Telegram antes de apagar, enviar ou instalar
+- ✅ Programa pequeno no seu PC que recebe ordens pelo Supabase (nada aberto na internet): `agente-local/GIDEON-PC.cmd`, em PowerShell, sem instalar nada (decisão 014)
+- ✅ Pasta liberada (só altera dentro dela; fora só lê Documentos, Downloads e Área de Trabalho)
+- ✅ Aprovação no Telegram (e na tela do GIDEON Home) antes de apagar, organizar, sobrescrever, instalar ou git push; apagar vai para a lixeira da GIDEON e dá para desfazer
 
 **1.2 Arquivos**
-- ⬜ Organizar arquivos (por tipo, data, projeto)
-- ⬜ Procurar arquivos ("acha o PDF do contrato")
+- ✅ Organizar arquivos (por tipo e por data; por projeto = pedir à GIDEON para mover)
+- ✅ Procurar arquivos ("acha o PDF do contrato") e ler arquivos de texto/código
 
 **1.3 Aplicativos e terminal**
-- ⬜ Abrir e fechar aplicativos
-- ⬜ Rodar comandos do terminal (lista do que é permitido)
-- ⬜ Preparar ambiente de programação de um projeto
+- 🟡 Abrir e fechar aplicativos (lista de apps; falta testar no Windows do dono)
+- ✅ Rodar comandos do terminal (lista do que é permitido: git, python, pip, node, npm, npx, dotnet, java)
+- ✅ Preparar ambiente de programação de um projeto (README, .gitignore, Git, .venv do Python ou package.json do Node)
 
 **1.4 Código**
-- ⬜ Escrever e rodar código numa pasta de testes
-- ⬜ Criar e gerenciar projetos (pastas, Git, README)
+- ✅ Escrever e rodar código na pasta liberada
+- ✅ Criar e gerenciar projetos (pastas, Git, README)
 
 **1.5 Pronto quando**
-- ⬜ "Organiza os arquivos do meu projeto e prepara o ambiente" roda inteiro, pedindo OK antes de apagar
+- 🟡 "Organiza os arquivos do meu projeto e prepara o ambiente" roda inteiro, pedindo OK antes de apagar: ✅ na máquina de testes com o programa de verdade (10/11/2026); falta o dono instalar e repetir no PC dele
 
-*Depende de: saber se seu PC é Windows ou Mac. Primeiros testes numa máquina virtual.*
+*PC do dono: Windows. Primeiros testes feitos na máquina de testes (isolada, sem senhas), com o programa de verdade rodando no PowerShell 7.*
 
 ---
 
