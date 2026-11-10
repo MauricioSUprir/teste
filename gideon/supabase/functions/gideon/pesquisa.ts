@@ -177,7 +177,7 @@ export async function pesquisaProfunda(tema: string, foco = "") {
   const chave = await sha256("profunda|" + normalizar(tema + " " + foco));
   const { data: id } = await sb.from("gideon_pesquisas").insert({ chave, tipo: "profunda", pergunta: `${tema}${foco ? " — " + foco : ""}`, status: "andamento" }).select("id").single();
   try {
-    await enviarAoDono(`🔎 Comecei a pesquisa sobre "${tema}". Leva de 1 a 3 minutos; te aviso por aqui.`);
+    await enviarAoDono(`🔎 Comecei a pesquisa sobre "${tema}". Leva de 1 a 3 minutos; te aviso por aqui.`, false);
     // 1) plano: perguntas que, juntas, cobrem o tema
     const plano = textoDa(await gerar({ contents: [{ role: "user", parts: [{ text: `Planeje uma pesquisa completa sobre: ${tema}${foco ? `\nFoco pedido pelo dono: ${foco}` : ""}\nDevolva só JSON {"perguntas": [...]} com 5 perguntas de busca em português, cobrindo: o que é e contexto; situação atual com números e datas; vantagens e riscos; comparações com alternativas; divergências e tendências.` }] }],
       generationConfig: { temperature: 0.3, responseMimeType: "application/json" } }));
@@ -193,7 +193,7 @@ export async function pesquisaProfunda(tema: string, foco = "") {
         if (r.resposta) frentes.push({ pergunta: q, resposta: r.resposta, fontes: r.fontes ?? [] });
         feitas++;
       }));
-      if (!avisou && feitas < perguntas.length) { avisou = true; await enviarAoDono(`📚 Li ${feitas} de ${perguntas.length} frentes da pesquisa. Agora comparando as fontes…`).catch(() => {}); }
+      if (!avisou && feitas < perguntas.length) { avisou = true; await enviarAoDono(`📚 Li ${feitas} de ${perguntas.length} frentes da pesquisa. Agora comparando as fontes…`, false).catch(() => {}); }
     }
     if (!frentes.length) throw new Error("nenhuma busca trouxe resultado");
     // 3) fontes numeradas uma vez só e relatório

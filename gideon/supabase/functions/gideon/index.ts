@@ -16,9 +16,10 @@
 //   POST /gideon/pc-buscar | pc-resultado ← programa GIDEON PC busca ordens e devolve resultados (cabeçalho x-gideon-pc)
 //   POST /gideon/celular         ← atalho GIDEON do iPhone: { texto } → { fala, abrir } (cabeçalho x-gideon-celular)
 //   POST /gideon/pc-teste        ← testa uma ferramenta do PC sem passar pelo modelo { nome, args } (x-gideon-chave)
+//   POST /gideon/memoria-claude  ← o que o dono combinou com o Claude vira nota na memória { notas: [{ titulo, texto }], substituir? } (x-gideon-chave)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { atender, chaveGemini, config, dispararLembretes, executar, gerar, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
+import { atender, chaveGemini, config, dispararLembretes, executar, gerar, guardarMemoria, relatorioSemanal, responderTelegram, sb, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
 import { configurarWhatsapp, receberWhatsapp } from "./whatsapp.ts";
 import { rotaHome, tokenHome } from "./home.ts";
@@ -127,6 +128,18 @@ Deno.serve(async (req) => {
     if (rota === "pc-teste") { // teste direto das ferramentas do PC: { nome, args }
       const b = await req.json().catch(() => ({}));
       return json(await executar(String(b.nome), b.args ?? {}, "sistema").catch((e) => ({ erro: String((e as Error).message ?? e) })));
+    }
+    if (rota === "memoria-claude") { // resumo do que o dono combinou com o Claude (quem constrói o GIDEON); mesmo título = substitui a nota antiga
+      const b = await req.json().catch(() => ({}));
+      const notas = (Array.isArray(b.notas) ? b.notas : [b]).map((n: Record<string, unknown>) => ({ titulo: String(n.titulo ?? "").trim().slice(0, 200), texto: String(n.texto ?? "").trim() }))
+        .filter((n: { texto: string }) => n.texto);
+      let trechos = 0;
+      for (const n of notas) {
+        if (b.substituir !== false && n.titulo) await sb.from("gideon_memoria").delete().eq("origem", "claude").eq("resumo", n.titulo);
+        trechos += await guardarMemoria({ conteudo: `Combinado com o Claude (quem constrói o GIDEON)${n.titulo ? " — " + n.titulo : ""}:\n${n.texto}`, resumo: n.titulo || n.texto.slice(0, 200),
+          tipo: "nota", origem: "claude", projeto: "GIDEON", metadados: { fonte: "conversa com o Claude" } });
+      }
+      return json({ ok: true, notas: notas.length, trechos });
     }
     if (rota === "indexar") { // pg_cron: lê Gmail, Agenda e Drive e guarda na memória ({ fontes, esperar })
       const b = await req.json().catch(() => ({}));
