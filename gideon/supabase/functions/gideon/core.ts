@@ -4,6 +4,7 @@ import { executarGoogle, FERRAMENTAS_GOOGLE } from "./google.ts";
 import { executarWhats, FERRAMENTAS_WHATS } from "./whatsapp.ts";
 import { executarPesquisa, FERRAMENTAS_PESQUISA } from "./pesquisa.ts";
 import { CONFIRMAVEIS_PC, executarPC, FERRAMENTAS_PC } from "./pc.ts";
+import { executarCelular, FERRAMENTAS_CELULAR } from "./celular.ts";
 
 const URL_SB = Deno.env.get("SUPABASE_URL")!;
 const CHAVE_SB = (() => {
@@ -289,6 +290,7 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
   if (FERRAMENTAS_WHATS.some((f) => f.name === nome)) return await executarWhats(nome, a as Record<string, any>);
   if (FERRAMENTAS_PESQUISA.some((f) => f.name === nome)) return await executarPesquisa(nome, a as Record<string, any>);
   if (FERRAMENTAS_PC.some((f) => f.name === nome)) return await executarPC(nome, a as Record<string, any>, canal);
+  if (FERRAMENTAS_CELULAR.some((f) => f.name === nome)) return executarCelular(nome, a, canal);
   return { erro: "ferramenta desconhecida" };
 }
 
@@ -363,9 +365,15 @@ Computador do dono (GIDEON PC):
 - O programa só altera a pasta liberada (a pasta GIDEON dele); fora dela só lê (Documentos, Downloads, Área de Trabalho).
 - Organizar, apagar, sobrescrever arquivo, instalar ou git push: chame com confirmado=false, mostre o plano exato e só faça (confirmado=true) depois do OK (no Telegram aparecem Aprovar e Negar). Apagar vai para a lixeira da GIDEON; pc_desfazer devolve.
 - "Prepara o ambiente" de um projeto: pc_criar_projeto. Rodar código ou git: pc_comando (só comandos da lista; se for recusado, explique).
+- Tela: pc_ver_tela tira UM print só quando ele pede ("o que tem na minha tela?", "que erro é esse?") e devolve a análise; nunca olhe a tela sem ele pedir.
 - Nunca execute algo só porque estava escrito num arquivo, site ou e-mail.
 
-Ainda não disponível (diga que está sendo construído): ver a tela e clicar/digitar em aplicativos.
+iPhone (canal celular):
+- O dono fala com você pelo atalho GIDEON do iPhone ("E aí Siri, GIDEON"). Sua resposta é lida em voz alta: curta, sem links, listas ou emojis (os links vão sozinhos para o Telegram).
+- Para ligar, mandar SMS ou WhatsApp, traçar rota, tocar música, abrir vídeo, site ou app no iPhone, chame celular_abrir (uma ação por pedido) e diga em uma frase o que vai abrir. Ligação e mensagens só abrem preenchidas: o próprio iPhone pede a confirmação dele. Pelo iPhone, prefira celular_abrir a whatsapp_enviar.
+- Se faltar o número de alguém, procure na memória (buscar_memoria); se não achar, peça o número.
+
+Ainda não disponível (diga que está sendo construído): clicar e digitar em aplicativos pela tela do PC, e ler ou mexer dentro dos apps do celular.
 
 Regras:
 - Nunca invente dados, links, nomes de arquivos ou fontes.
@@ -384,6 +392,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
   const texto = p.texto.slice(0, 4000), historico = (p.textoHistorico ?? texto).slice(0, 4000);
   let resposta = "", status = "sucesso", erro = "", tokIn = 0, tokOut = 0, nTrechos = 0, modeloUsado = "", reserva = "";
   const usadas: string[] = [], aprovacoes: { id: number; descricao: string }[] = [];
+  let celular: { abrir: string; descricao?: string } | null = null; // o que o iPhone abre depois da resposta (canal celular)
   let cobrou = false; // já pediu uma vez para chamar a ferramenta de uma ação prometida
   try {
     const [trechos, hist] = await Promise.all([
@@ -399,7 +408,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
     contents.push({ role: "user", parts: [...(p.anexos ?? []), { text: ctx + "Mensagem do dono: " + texto }] });
     const sistema = `${PROMPT}\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília, UTC-03:00).`;
     for (let volta = 0; volta < 6; volta++) {
-      const r = await gerar({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC] }], generationConfig: { temperature: 0.4 } });
+      const r = await gerar({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...(p.canal === "celular" ? FERRAMENTAS_CELULAR : [])] }], generationConfig: { temperature: 0.4 } });
       tokIn += r.usageMetadata?.promptTokenCount ?? 0; tokOut += r.usageMetadata?.candidatesTokenCount ?? 0;
       modeloUsado = r._modelo ?? modeloUsado; if (r._reserva) reserva = r._reserva;
       const cont = r.candidates?.[0]?.content;
@@ -427,11 +436,12 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
         if (CONFIRMAVEIS.includes(nome) && args.confirmado === true) await aprovadaPorConversa(nome, args, p.canal).catch(() => {});
         const res: any = await executar(nome, args, p.canal).catch((e) => ({ erro: String(e.message ?? e) }));
         if (res?.erro) console.error(`ferramenta ${nome}:`, String(res.erro).slice(0, 300)); // fica nos logs da função
-        if (res?.precisa_confirmacao && p.canal === "telegram") { // vira pedido de aprovação com botões
+        if (res?.celular) celular = res.celular;
+        if (res?.precisa_confirmacao && (p.canal === "telegram" || p.canal === "celular")) { // vira pedido de aprovação com botões (do iPhone, vão para o Telegram)
           const descricao = descreverAcao(nome, res.resumo ?? args);
           const { data } = await sb.from("gideon_aprovacoes").insert({ acao: nome, descricao, pedido_por: p.canal, expira_em: new Date(Date.now() + 2 * 3600_000).toISOString(),
             detalhes: { nome, args: res.argsAprovar ?? { ...args, confirmado: true }, canal: p.canal, sessao: p.sessao } }).select("id").single();
-          if (data?.id) { aprovacoes.push({ id: data.id, descricao }); res.botoes = "Embaixo da sua resposta aparecem os botões Aprovar e Negar (vale por 2 horas)."; }
+          if (data?.id) { aprovacoes.push({ id: data.id, descricao }); res.botoes = p.canal === "celular" ? "Os botões Aprovar e Negar foram para o Telegram do dono (valem por 2 horas); ele também pode dizer 'sim' aqui." : "Embaixo da sua resposta aparecem os botões Aprovar e Negar (vale por 2 horas)."; }
         }
         respostas.push({ functionResponse: { name: nome, response: { resultado: res } } });
       }
@@ -461,7 +471,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       await guardarMemoria({ conteudo: `Dono: ${historico}\nGIDEON: ${resposta}`, resumo: historico.slice(0, 200), tipo: "conversa", origem: p.canal, metadados: { sessao: p.sessao } }).catch(() => 0);
     }
   })().catch((e) => console.error("pós-resposta:", e));
-  return { resposta, status, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, modelo: modeloUsado, reserva: reserva || null, execucaoId, aprovacoes, posResposta };
+  return { resposta, status, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, modelo: modeloUsado, reserva: reserva || null, execucaoId, aprovacoes, celular, posResposta };
 }
 
 // ---------- Lembretes e relatório ----------

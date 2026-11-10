@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GIDEON no iPhone</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="icone.svg">
+<style>
+  :root { --fundo: #0b0f17; --cartao: #131a26; --texto: #e7ecf3; --suave: #9aa7b8; --destaque: #5ec8ff; --borda: #243042; --ok: #6ee7a8; }
+  @media (prefers-color-scheme: light) { :root { --fundo: #f5f7fb; --cartao: #ffffff; --texto: #141a24; --suave: #566173; --destaque: #0a7bc2; --borda: #dbe2ec; --ok: #11804c; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 28px 0 8px; }
+  p, li { color: var(--texto); }
+  .suave { color: var(--suave); }
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 14px 16px; margin: 12px 0; }
+  ol { padding-left: 1.3rem; } li { margin: 8px 0; }
+  b { color: var(--destaque); font-weight: 600; }
+  code { background: var(--fundo); border: 1px solid var(--borda); border-radius: 6px; padding: 1px 6px; font-size: .92em; word-break: break-all; }
+  .copiar { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+  .copiar code { flex: 1; padding: 8px; }
+  button { background: var(--destaque); color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 600; }
+  .feito { color: var(--ok); font-size: .9rem; min-height: 1.2em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>📱 GIDEON no iPhone</h1>
+  <p class="suave">Você diz <b>"E aí Siri, GIDEON"</b>, fala o pedido, e ela responde em voz alta. Ela também liga, abre WhatsApp e SMS com a mensagem pronta, traça rota, toca música e abre apps. Uns 10 minutos, uma vez só.</p>
+
+  <div class="cartao">
+    <b>Antes de começar</b>
+    <ol>
+      <li>No Telegram, mande <code>/celular</code> para a GIDEON. Ela manda este link e, numa mensagem separada, a <b>chave do celular</b>.</li>
+      <li>Abra este guia no iPhone, para copiar e colar fácil.</li>
+    </ol>
+  </div>
+
+  <h2>Montar o atalho (app Atalhos)</h2>
+  <ol>
+    <li>Abra o app <b>Atalhos</b> → toque em <b>+</b> (em cima, à direita).</li>
+    <li>Toque no nome lá em cima e troque para <b>GIDEON</b>. É esse nome que você fala para a Siri.</li>
+    <li><b>Adicionar Ação</b> → busque <b>Ditar Texto</b>. Toque na setinha dela: Idioma <b>Português (Brasil)</b>, Parar de Ouvir <b>Após Pausa</b>.</li>
+    <li>Adicione <b>Obter Conteúdo da URL</b>. No campo URL, cole:
+      <div class="copiar"><code id="url">https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/celular</code><button data-copiar="url">Copiar</button></div>
+      <div class="feito" id="feito-url"></div>
+      Toque na setinha da ação e ajuste:
+      <ul>
+        <li><b>Método:</b> POST</li>
+        <li><b>Cabeçalhos</b> → Adicionar novo cabeçalho. Chave: <code>x-gideon-celular</code> · Texto: cole a <b>chave do celular</b> que veio no Telegram.</li>
+        <li><b>Corpo da Solicitação:</b> JSON → Adicionar novo campo → <b>Texto</b>. Chave: <code>texto</code> · Valor: toque e escolha a variável <b>Texto Ditado</b>.</li>
+      </ul>
+    </li>
+    <li>Adicione <b>Obter Valor do Dicionário</b>: "Obter <b>Valor</b> para <code>fala</code> em <b>Conteúdo da URL</b>".</li>
+    <li>Adicione <b>Falar Texto</b> com o <b>Valor do Dicionário</b>. Na setinha, escolha uma voz feminina em português (ex.: <b>Luciana</b>).</li>
+    <li>Adicione outro <b>Obter Valor do Dicionário</b>: "Obter <b>Valor</b> para <code>abrir</code> em <b>Conteúdo da URL</b>". (Toque em "Valor do Dicionário" e troque para a variável <b>Conteúdo da URL</b>.)</li>
+    <li>Adicione <b>Se</b>: "Se <b>Valor do Dicionário</b> <b>tem qualquer valor</b>".</li>
+    <li>Arraste para dentro do <b>Se</b> (antes de "Senão") a ação <b>Abrir URLs</b>, com o <b>Valor do Dicionário</b>. Pode apagar o "Senão" vazio.</li>
+    <li>Toque em <b>OK</b>. Pronto!</li>
+  </ol>
+
+  <div class="cartao">
+    <b>Como usar</b>
+    <ul>
+      <li>Diga <b>"E aí Siri, GIDEON"</b> (ou "Siri, GIDEON"), espere o sinal e fale o pedido.</li>
+      <li>Botão na tela: no atalho, toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b>.</li>
+      <li>iPhone 15 Pro ou mais novo: Ajustes → <b>Botão de Ação</b> → Atalho → GIDEON.</li>
+      <li>Na primeira vez o iPhone pergunta se o atalho pode usar o microfone e falar com o GIDEON: toque em <b>Permitir</b>.</li>
+    </ul>
+  </div>
+
+  <h2>Teste com estes pedidos</h2>
+  <ul>
+    <li>"Me lembra de beber água às 15h"</li>
+    <li>"O que eu tenho na agenda amanhã?"</li>
+    <li>"Abre o WhatsApp para 11 99999-9999 dizendo que chego em 10 minutos"</li>
+    <li>"Toca Coldplay no Spotify"</li>
+    <li>"Rota até o Shopping Ibirapuera no Waze"</li>
+    <li>"O GIDEON PC está ligado?"</li>
+  </ul>
+
+  <div class="cartao">
+    <b>Segurança</b>
+    <ul>
+      <li>Ligação, SMS e WhatsApp só <b>abrem preenchidos</b>: quem confirma a ligação ou toca em enviar é você.</li>
+      <li>O que precisa de OK (apagar, organizar arquivos no PC…) manda os botões <b>Aprovar / Negar</b> no Telegram.</li>
+      <li>Links que ela achar vão para o Telegram (não dá para ouvir link).</li>
+      <li>A chave vale 1 ano. Perdeu o celular? Dá para cancelar todas as chaves antigas trocando o segredo do GIDEON (peça ao Claude).</li>
+    </ul>
+  </div>
+  <p class="suave">Problema comum: a Siri responde "Minha chave do celular está errada ou venceu" → mande <code>/celular</code> no Telegram e troque a chave no cabeçalho do atalho.</p>
+</main>
+<script>
+  document.querySelectorAll("[data-copiar]").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.dataset.copiar, texto = document.getElementById(id).textContent.trim(), aviso = document.getElementById("feito-" + id);
+    try { await navigator.clipboard.writeText(texto); aviso.textContent = "Copiado ✓"; }
+    catch { const r = document.createRange(); r.selectNodeContents(document.getElementById(id)); const s = getSelection(); s.removeAllRanges(); s.addRange(r); aviso.textContent = "Selecionado: toque em Copiar no menu"; }
+  }));
+</script>
+</body>
+</html>

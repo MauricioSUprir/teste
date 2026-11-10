@@ -204,6 +204,7 @@ const CARTOES = { // ferramenta → { titulo, itens: [{ texto, sub, link }] } (n
   pc_listar: (r) => ({ titulo: "💻 " + (r.pasta || "Pasta liberada"), itens: (r.itens || []).map((i) => ({ texto: (i.tipo === "pasta" ? "📁 " : "") + i.nome, sub: [i.tamanho, i.modificado].filter(Boolean).join(" · ") })) }),
   pc_procurar: (r) => ({ titulo: "💻 Arquivos achados", itens: (r.achados || []).map((i) => ({ texto: i.nome, sub: i.caminho })) }),
   pc_ler_arquivo: (r) => (r.erro ? null : { titulo: "💻 " + (r.caminho || "Arquivo"), itens: [{ texto: String(r.texto || "").slice(0, 280) + (String(r.texto || "").length > 280 ? "…" : "") }] }),
+  pc_ver_tela: (r) => (r.erro ? null : { titulo: "🖥️ Sua tela", itens: [{ texto: String(r.descricao || "").slice(0, 600) + (String(r.descricao || "").length > 600 ? "…" : ""), sub: "print não guardado" }] }),
   pc_comando: (r, a) => (r.precisa_confirmacao ? null : { titulo: "💻 " + (a.comando || "Comando"), itens: [{ texto: String(r.saida || r.descricao || "").slice(-400), sub: r.codigo_saida != null ? "saída " + r.codigo_saida : "" }] }),
   ...Object.fromEntries(["pc_organizar", "pc_apagar", "pc_desfazer", "pc_escrever_arquivo", "pc_criar_projeto", "pc_abrir", "pc_fechar"].map((n) =>
     [n, (r) => (r.precisa_confirmacao || !r.descricao ? null : { titulo: "💻 Feito no PC", itens: [{ texto: r.descricao }, ...(r.avisos || []).map((x) => ({ texto: "⚠️ " + x }))] })])),

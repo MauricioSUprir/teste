@@ -17,11 +17,12 @@ goto :eof
 #  - Apagar vai para a lixeira da GIDEON (.lixeira-gideon) e da para desfazer.
 #  - Organizar, apagar, sobrescrever, instalar e git push so acontecem depois do seu OK (Telegram ou tela).
 #  - Comandos do terminal so de uma lista permitida; nada de comandos encadeados.
+#  - Tela: tira UM print so quando voce pede, avisa nesta janela e nao guarda. Com banco ou senhas aberto na tela, recusa.
 #  - Tudo o que muda fica anotado em <pasta liberada>\.gideon-pc.log e no registro da GIDEON.
 # Para fechar: feche esta janela. Para trocar a chave ou a pasta: apague o arquivo .gideon-pc.json da sua pasta de usuario.
 # =====================================================================================================
 $ErrorActionPreference = 'Stop'
-$VERSAO = '1.0'
+$VERSAO = '1.1'
 $URL = if ($env:GIDEON_PC_URL) { $env:GIDEON_PC_URL } else { 'https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon' }
 $ehWindows = ($PSVersionTable.PSEdition -eq 'Desktop') -or ($IsWindows -eq $true)
 $casa = if ($ehWindows) { $env:USERPROFILE } else { $HOME }
@@ -478,6 +479,62 @@ function Fechar($a) {
   return [ordered]@{ ok = $true; descricao = "Pedi para fechar $($a.app) ($n janela(s)). Se havia algo sem salvar, o proprio app pergunta." }
 }
 
+# ---------------- ver a tela (so quando o dono pede) ----------------
+# Janela visivel de banco ou de senhas = nao tira print (docs/seguranca.md: banco e senhas ficam fora da tela)
+$TELA_SENSIVEL = 'internet banking|banco do brasil|caixa econ|\bitau\b|ita[uú] |bradesco|santander|nubank|banco inter|\bsicoob\b|\bsicredi\b|banrisul|c6 bank|btg pactual|picpay|mercado pago|paypal|xp investimentos|bitwarden|1password|keepass|lastpass|dashlane|proton pass|gerenciador de senhas|password manager|\bsenhas?\b|\bpasswords?\b'
+function PrepararTela {
+  if ('GideonTela' -as [type]) { return }
+  Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+  Add-Type -TypeDefinition @'
+using System; using System.Text; using System.Collections.Generic; using System.Runtime.InteropServices;
+public static class GideonTela {
+  public delegate bool Cada(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+  [DllImport("user32.dll")] static extern bool EnumWindows(Cada f, IntPtr l);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  public static List<string> Titulos() { // janelas que aparecem na tela (sem as minimizadas)
+    var r = new List<string>();
+    EnumWindows(delegate (IntPtr h, IntPtr l) { if (IsWindowVisible(h) && !IsIconic(h)) { var s = new StringBuilder(512); if (GetWindowText(h, s, 512) > 0) r.Add(s.ToString()); } return true; }, IntPtr.Zero);
+    return r;
+  }
+}
+'@
+  [GideonTela]::SetProcessDPIAware() | Out-Null # para o print pegar a tela inteira em monitores com zoom (125%, 150%...)
+}
+function VerTela($a) {
+  if (-not $ehWindows) { # teste fora do Windows: manda uma imagem de exemplo no lugar do print
+    if (-not $env:GIDEON_PC_TELA_TESTE) { throw 'ver a tela so funciona no Windows' }
+    $bytes = [IO.File]::ReadAllBytes($env:GIDEON_PC_TELA_TESTE)
+    Escrever "   $(Get-Date -Format 'HH:mm')  (teste) a GIDEON esta vendo a tela agora, a seu pedido. O print nao fica guardado." 'Magenta'
+    return [ordered]@{ ok = $true; imagem_base64 = [Convert]::ToBase64String($bytes); mime = $(if ($env:GIDEON_PC_TELA_TESTE -match '\.png$') { 'image/png' } else { 'image/jpeg' }); descricao = '(teste fora do Windows) imagem de exemplo enviada' }
+  }
+  PrepararTela
+  foreach ($t in [GideonTela]::Titulos()) {
+    if ($t -match $TELA_SENSIVEL) { throw "tem uma janela de banco ou de senhas aberta na tela ('$($Matches[0].Trim())'). Por seguranca nao tiro print: minimize ou feche essa janela e peca de novo." }
+  }
+  Escrever "   $(Get-Date -Format 'HH:mm')  A GIDEON esta vendo sua tela agora (voce pediu). O print nao fica guardado." 'Magenta'
+  $area = [System.Windows.Forms.SystemInformation]::VirtualScreen # todos os monitores
+  $img = New-Object System.Drawing.Bitmap $area.Width, $area.Height
+  $g = [System.Drawing.Graphics]::FromImage($img)
+  try { $g.CopyFromScreen($area.Left, $area.Top, 0, 0, $img.Size) } finally { $g.Dispose() }
+  $max = $(if ([System.Windows.Forms.Screen]::AllScreens.Count -gt 1) { 2560 } else { 1920 })
+  if ($img.Width -gt $max) { # diminui para o envio ficar leve (a letra continua legivel)
+    $w = $max; $h = [int][Math]::Round($img.Height * $max / $img.Width)
+    $menor = New-Object System.Drawing.Bitmap $w, $h
+    $g = [System.Drawing.Graphics]::FromImage($menor)
+    try { $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic; $g.DrawImage($img, 0, 0, $w, $h) } finally { $g.Dispose() }
+    $img.Dispose(); $img = $menor
+  }
+  $jpeg = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' } | Select-Object -First 1
+  $param = New-Object System.Drawing.Imaging.EncoderParameters 1
+  $param.Param[0] = New-Object System.Drawing.Imaging.EncoderParameter ([System.Drawing.Imaging.Encoder]::Quality), ([long]70)
+  $ms = New-Object IO.MemoryStream
+  try { $img.Save($ms, $jpeg, $param); $larg = $img.Width; $alt = $img.Height } finally { $img.Dispose() }
+  return [ordered]@{ ok = $true; imagem_base64 = [Convert]::ToBase64String($ms.ToArray()); mime = 'image/jpeg'; largura = $larg; altura = $alt; descricao = "print da tela enviado ($larg x $alt), nao fica guardado" }
+}
+
 function Fazer([string]$acao, $a) {
   switch ($acao) {
     'pc_listar' { return Listar $a }
@@ -491,6 +548,7 @@ function Fazer([string]$acao, $a) {
     'pc_comando' { return Comando $a }
     'pc_abrir' { return Abrir $a }
     'pc_fechar' { return Fechar $a }
+    'pc_ver_tela' { return VerTela $a }
     default { throw "acao desconhecida: $acao" }
   }
 }

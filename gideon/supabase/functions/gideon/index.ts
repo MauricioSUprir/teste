@@ -14,6 +14,7 @@
 //   POST /gideon/aprovacao | modelos | modelo-teste ← fila de aprovações; lista de modelos; testa se modelos respondem { modelos: [...] } (x-gideon-chave)
 //   POST /gideon/pesquisa-teste  ← testa a busca na internet sem passar pelo modelo { pergunta, cache?, modelos?, modo? (google|tavily|livre) } ou { url } (x-gideon-chave)
 //   POST /gideon/pc-buscar | pc-resultado ← programa GIDEON PC busca ordens e devolve resultados (cabeçalho x-gideon-pc)
+//   POST /gideon/celular         ← atalho GIDEON do iPhone: { texto } → { fala, abrir } (cabeçalho x-gideon-celular)
 //   POST /gideon/pc-teste        ← testa uma ferramenta do PC sem passar pelo modelo { nome, args } (x-gideon-chave)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -26,6 +27,7 @@ import { resolverAprovacao, tratarBotao } from "./botoes.ts";
 import { indexar } from "./indexador.ts";
 import { lerPagina, pesquisarWeb } from "./pesquisa.ts";
 import { rotaPC, tokenPC } from "./pc.ts";
+import { rotaCelular, tokenCelular } from "./celular.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -60,6 +62,15 @@ Deno.serve(async (req) => {
         EdgeRuntime.waitUntil(telegram("sendMessage", { chat_id: m.chat.id, text: `💻 Chave do GIDEON PC (vale 1 ano — não compartilhe). Cole quando o programa pedir:\n\n${chave}` }).catch(() => {}));
         return json({ ok: true });
       }
+      if (/^\/celular\b/i.test(texto.trim())) { // chave do atalho GIDEON no iPhone (vale 1 ano)
+        const chave = await tokenCelular();
+        const guia = cfg.home_url ? `${cfg.home_url.replace(/\/+$/, "")}/celular.html` : "";
+        EdgeRuntime.waitUntil((async () => {
+          await telegram("sendMessage", { chat_id: m.chat.id, text: `📱 GIDEON no iPhone${guia ? `\nPasso a passo: ${guia}` : ""}\n\nNa próxima mensagem vai a chave do celular (vale 1 ano — não compartilhe). Copie e cole no atalho, no campo x-gideon-celular.` });
+          await telegram("sendMessage", { chat_id: m.chat.id, text: chave });
+        })().catch(() => {}));
+        return json({ ok: true });
+      }
       const trabalho = (async () => {
         await telegram("sendChatAction", { chat_id: m.chat.id, action: "typing" }).catch(() => {});
         const r = await atender({ texto, canal: "telegram", sessao: String(m.chat.id) });
@@ -73,6 +84,7 @@ Deno.serve(async (req) => {
     if (rota === "whatsapp") return await receberWhatsapp(req); // WAHA (protegido pelo cabeçalho secreto)
     if (rota?.startsWith("home-")) return await rotaHome(rota, req); // GIDEON Home (protegido pela chave do Home)
     if (rota === "pc-buscar" || rota === "pc-resultado") return await rotaPC(rota, req); // programa GIDEON PC (protegido pela chave do PC)
+    if (rota === "celular") return await rotaCelular(req); // atalho do iPhone (protegido pela chave do celular)
     if (!(await autorizado(req))) return json({ erro: "não autorizado" }, 401);
     if (rota === "conectar") return json(await linkConectar());
     if (rota === "configurar-whatsapp") { const b = await req.json().catch(() => ({})); return json(await configurarWhatsapp(b.numero)); }
