@@ -195,6 +195,9 @@ const CARTOES = { // ferramenta → { titulo, itens: [{ texto, sub, link }] } (n
   guardar_nota: (r) => (r.guardado ? { titulo: "📝 Anotado na memória", itens: [] } : null),
   listar_projetos: (r) => ({ titulo: "🗂️ Projetos", itens: (r.projetos || []).map((p) => ({ texto: p.nome, sub: `${p.itens} itens · última atividade ${p.ultima_atividade || "—"}` })) }),
   criar_projeto: (r) => (r.erro ? null : { titulo: "🗂️ Projeto " + (r.criado ? "criado" : "atualizado"), itens: [{ texto: r.criado || r.atualizado, sub: `${r.itens_antigos_marcados ?? 0} itens antigos marcados` }] }),
+  pesquisar_web: (r) => (r.erro ? null : { titulo: "🔎 Pesquisa na internet", itens: [{ texto: String(r.resposta || "").slice(0, 280) + (String(r.resposta || "").length > 280 ? "…" : "") }, ...(r.fontes || []).map((f) => ({ texto: f.titulo, link: f.link }))] }),
+  ler_pagina: (r) => (r.erro ? null : { titulo: "🌐 " + (r.titulo || "Página"), itens: [{ texto: String(r.texto || "").slice(0, 280) + "…", link: r.link }] }),
+  pesquisa_profunda: (r) => (r.iniciada ? { titulo: "🔎 Pesquisa profunda iniciada", itens: [{ texto: "O resumo e o relatório com as fontes chegam no Telegram em 1 a 3 minutos." }] } : null),
   linha_do_tempo: (r, a) => (r.erro ? null : { titulo: "🗂️ " + (a.projeto || "Projeto"), itens: (r.itens || []).map((i) => ({ texto: String(i.resumo || "").slice(0, 140), sub: [i.data, i.tipo].filter(Boolean).join(" · "), link: i.link })) }),
 };
 function cartao(titulo, itens, extra) {

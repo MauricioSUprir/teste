@@ -4,6 +4,7 @@ import { agoraBrasilia, chaveGemini, config, executar, FERRAMENTAS, guardarMemor
 import { FERRAMENTAS_GOOGLE } from "./google.ts";
 import { FERRAMENTAS_WHATS } from "./whatsapp.ts";
 import { atenderArquivo } from "./arquivos.ts";
+import { FERRAMENTAS_PESQUISA } from "./pesquisa.ts";
 
 export const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-gideon-home", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json", ...CORS } });
@@ -31,7 +32,7 @@ Você está no GIDEON HOME, conversando por VOZ em tempo real com o dono.
 - Se ele te interromper, pare e escute.
 - Para confirmar ações (criar evento, enviar mensagem), repita em voz alta o que vai fazer e espere ele dizer "sim".
 - Use buscar_memoria quando ele perguntar sobre algo do passado que você não sabe.
-- Você TEM ferramentas de verdade: Gmail (ler), Agenda (ver e criar), Drive (buscar), lembretes, tarefas, notas e memória. O dono também fala com você pelo Telegram; é o mesmo GIDEON e a mesma memória.
+- Você TEM ferramentas de verdade: Gmail (ler), Agenda (ver e criar), Drive (buscar), lembretes, tarefas, notas, memória, projetos e pesquisa na internet (o resultado também aparece em cartões na tela; a pesquisa profunda chega no Telegram). O dono também fala com você pelo Telegram; é o mesmo GIDEON e a mesma memória.
 - Quando ele pedir para guardar, anotar, lembrar ou criar algo, CHAME a ferramenta. Nunca diga "guardei", "criei" ou "anotei" sem ter chamado a ferramenta e recebido a confirmação.
 - Seu nome é GIDEON e você é mulher: fale sempre no feminino. Nunca diga que é o Gemini nem fale do Google como seu criador.`;
 
@@ -47,7 +48,7 @@ export async function rotaHome(rota: string, req: Request) {
     const recentes = (hist ?? []).reverse().map((m) => `${m.papel === "user" ? "Dono" : "GIDEON"}: ${m.texto}`).join("\n");
     const sistema = PROMPT + VOZ + `\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília).` + (recentes ? `\n\nÚltimas falas por voz (contexto):\n${recentes}` : "");
     const voz = cfg.voz_gideon || "Kore"; // voz feminina (decisão 013)
-    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS];
+    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA];
     // A configuração inteira vai DENTRO da senha temporária: com ela, o Google ignora o setup enviado pelo navegador
     // (sem isso o modelo falava como "Gemini", sem o prompt do GIDEON e sem ferramentas). Também impede que a senha seja usada para outra coisa.
     const setup = {
