@@ -8,6 +8,7 @@
 #  - Organizar, apagar, sobrescrever, instalar e git push só acontecem depois do seu OK (Telegram ou tela).
 #  - Comandos do terminal só de uma lista permitida; nada de comandos encadeados.
 #  - Tela: tira UM print só quando você pede, avisa nesta janela e não guarda a imagem.
+#  - Controle da tela (mouse e teclado): só quando você pede. Para PARAR na hora, leve o mouse ao canto de cima, à esquerda.
 #  - Tudo o que muda fica anotado em <pasta liberada>\.gideon-pc.log e no registro da GIDEON.
 # Como abrir: dois cliques neste arquivo (precisa do Python, grátis na Microsoft Store).
 # Para fechar: feche esta janela. Para trocar a chave ou a pasta: apague o arquivo .gideon-pc.json da sua pasta de usuário.
@@ -15,7 +16,7 @@
 # =====================================================================================================
 import base64, datetime, fnmatch, io, json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 
-VERSAO = "2.0"
+VERSAO = "2.1"
 URL = os.environ.get("GIDEON_PC_URL") or "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon"
 WINDOWS = os.name == "nt"
 CASA = os.path.expanduser("~")
@@ -732,8 +733,90 @@ def preparar_tela():  # o print usa a biblioteca Pillow; instala uma vez se falt
         return False
 
 
-def ver_tela(_a):
+def preparar_controle():  # mouse e teclado: biblioteca pyautogui (instala uma vez); importar cedo deixa o print e o clique na mesma escala
+    try:
+        import pyautogui, pyperclip  # noqa: F401
+        return True
+    except ImportError:
+        pass
+    if not WINDOWS:
+        return False
+    escrever("   Instalando a peça do mouse e teclado (só desta vez, uns segundos)...", "amarelo")
+    subprocess.run([sys.executable, "-m", "pip", "install", "--user", "--quiet", "pyautogui", "pyperclip"], timeout=300)
+    try:
+        import importlib, site
+        importlib.invalidate_caches()
+        if site.getusersitepackages() not in sys.path:
+            sys.path.append(site.getusersitepackages())
+        import pyautogui, pyperclip  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+TECLAS_PROIBIDAS = [{"win", "r"}, {"win", "x"}, {"ctrl", "shift", "esc"}, {"ctrl", "alt", "delete"}, {"win", "l"}]  # Executar, menu do sistema, gerenciador de tarefas
+
+
+def acao_tela(a):
+    acao, desc = str(a.get("acao") or ""), str(a.get("descricao") or a.get("acao") or "")
+    if not WINDOWS:
+        return {"ok": True, "descricao": f"(teste fora do Windows) faria: {desc}"}
+    if not preparar_controle():
+        raise Recusa("falta a peça do mouse e teclado (pyautogui)")
+    import pyautogui, pyperclip
+    pyautogui.FAILSAFE, pyautogui.PAUSE = True, 0.15
+    w, h = pyautogui.size()
+
+    def ponto():  # coordenadas de 0 a 1000 na tela; nunca no canto (lá é o botão de parar)
+        x, y = int(float(a.get("x") or 0) / 1000 * w), int(float(a.get("y") or 0) / 1000 * h)
+        return min(max(x, 2), w - 3), min(max(y, 2), h - 3)
+
+    escrever(f"   {agora()}  GIDEON: {desc}", "magenta")
+    try:
+        if acao in ("clicar", "duplo_clique", "clique_direito"):
+            x, y = ponto()
+            pyautogui.moveTo(x, y, duration=0.2)
+            {"clicar": pyautogui.click, "duplo_clique": pyautogui.doubleClick, "clique_direito": pyautogui.rightClick}[acao](x, y)
+        elif acao == "digitar":  # cola pelo Ctrl+V (aceita acentos) e devolve o que estava copiado antes
+            texto = str(a.get("texto") or "")
+            if len(texto) > 5000:
+                raise Recusa("texto grande demais para digitar (mais de 5 mil letras)")
+            try:
+                antes = pyperclip.paste()
+            except Exception:
+                antes = None
+            pyperclip.copy(texto)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.4)
+            if antes is not None:
+                pyperclip.copy(antes)
+        elif acao == "tecla":
+            mapa = {"control": "ctrl", "windows": "win", "escape": "esc", "return": "enter", "del": "delete", "pgdn": "pagedown", "pgup": "pageup"}
+            partes = [mapa.get(p, p) for p in str(a.get("tecla") or "").lower().replace(" ", "").split("+") if p]
+            if not partes or any(p not in pyautogui.KEYBOARD_KEYS for p in partes):
+                raise Recusa(f"tecla desconhecida: {a.get('tecla')}")
+            if set(partes) in TECLAS_PROIBIDAS:
+                raise Recusa("por segurança não uso esse atalho (abre comandos do sistema)")
+            pyautogui.hotkey(*partes)
+        elif acao == "rolar":
+            n = max(-30, min(30, int(float(a.get("quantidade") or -5))))
+            if a.get("x") is not None:
+                pyautogui.moveTo(*ponto(), duration=0.1)
+            pyautogui.scroll(n * 120)
+        elif acao == "esperar":
+            time.sleep(min(5.0, float(a.get("quantidade") or 2)))
+        else:
+            raise Recusa(f"ação de tela desconhecida: {acao}")
+    except pyautogui.FailSafeException:
+        escrever("   Controle da tela PARADO por você (mouse no canto).", "vermelho")
+        raise Recusa("o dono parou o controle da tela (levou o mouse ao canto)")
+    time.sleep(0.6)
+    return {"ok": True, "descricao": desc}
+
+
+def ver_tela(a):
     teste = os.environ.get("GIDEON_PC_TELA_TESTE")
+    controle = a.get("controle") is True
     if not WINDOWS:  # teste fora do Windows: manda uma imagem de exemplo no lugar do print
         if not teste:
             raise Recusa("ver a tela só funciona no Windows")
@@ -745,9 +828,14 @@ def ver_tela(_a):
     if not preparar_tela():
         raise Recusa("não consegui preparar o print da tela (falta a biblioteca Pillow)")
     from PIL import ImageGrab
-    escrever(f"   {agora()}  A GIDEON está vendo sua tela agora (você pediu). O print não fica guardado.", "magenta")
-    img = ImageGrab.grab(all_screens=True).convert("RGB")
-    maximo = 2560 if img.width > img.height * 2.2 else 1920  # vários monitores lado a lado: um pouco maior
+    if controle:  # controle da tela: só o monitor principal (onde o mouse clica pelas mesmas coordenadas)
+        preparar_controle()
+        img = ImageGrab.grab().convert("RGB")
+        maximo = 1600
+    else:
+        escrever(f"   {agora()}  A GIDEON está vendo sua tela agora (você pediu). O print não fica guardado.", "magenta")
+        img = ImageGrab.grab(all_screens=True).convert("RGB")
+        maximo = 2560 if img.width > img.height * 2.2 else 1920  # vários monitores lado a lado: um pouco maior
     if img.width > maximo:
         img = img.resize((maximo, round(img.height * maximo / img.width)))
     buf = io.BytesIO()
@@ -758,7 +846,7 @@ def ver_tela(_a):
 
 ACOES = {"pc_listar": listar, "pc_procurar": procurar, "pc_ler_arquivo": ler_arquivo, "pc_organizar": organizar, "pc_apagar": apagar,
          "pc_desfazer": desfazer, "pc_escrever_arquivo": escrever_arquivo, "pc_criar_projeto": criar_projeto, "pc_comando": comando,
-         "pc_abrir": abrir, "pc_fechar": fechar, "pc_ver_tela": ver_tela}
+         "pc_abrir": abrir, "pc_fechar": fechar, "pc_ver_tela": ver_tela, "pc_acao_tela": acao_tela}
 
 
 # ---------------- conversa com a GIDEON ----------------
@@ -788,6 +876,7 @@ def principal():
     escrever(f"   Ligado. Pasta liberada: {BASE}", "verde")
     escrever("   A GIDEON só altera arquivos dentro dessa pasta. Apagar, organizar e instalar pedem seu OK.")
     escrever("   Deixe esta janela aberta (pode minimizar). Para desligar, feche a janela.")
+    escrever("   Quando a GIDEON estiver usando o mouse e o teclado, para PARAR leve o mouse ao canto de cima, à esquerda.")
     escrever("")
     anotar(f"ligado (versão {VERSAO}, pasta {BASE})")
     falhas = 0
@@ -832,6 +921,7 @@ def principal():
 if __name__ == "__main__":
     try:
         if WINDOWS:
+            preparar_controle()  # mouse e teclado (antes do print, para os dois usarem a mesma escala da tela)
             preparar_tela()  # deixa o print pronto já na primeira vez
         principal()
     except Exception as e:
