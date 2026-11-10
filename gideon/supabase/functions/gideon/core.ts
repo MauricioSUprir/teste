@@ -133,19 +133,26 @@ export async function guardarMemoria(m: { conteudo: string; tipo: string; origem
   const txt = m.conteudo.trim(); if (!txt) return 0;
   const partes: string[] = [];
   if (txt.length <= 1200) partes.push(txt); else for (let i = 0; i < txt.length && partes.length < 50; i += 1050) partes.push(txt.slice(i, i + 1200));
-  let gravados = 0;
+  let gravados = 0, projeto = m.projeto || "";
   for (const [i, p] of partes.entries()) {
     const vetor = await embedding(`title: ${m.projeto || "none"} | text: ${p}`);
+    if (i === 0 && !projeto) projeto = await projetoParecido(vetor); // projeto automático: o mais parecido, se passar do limite
     const hash = await sha256(`${m.tipo}|${m.link ?? ""}|${m.data_ref ?? ""}|${p}`);
     const { data, error } = await sb.from("gideon_memoria").upsert({
       conteudo: p, resumo: m.resumo ?? null, embedding: JSON.stringify(vetor), tipo: m.tipo, origem: m.origem,
-      projeto: m.projeto || null, link: m.link || null, data_ref: m.data_ref ?? new Date().toISOString(),
+      projeto: projeto || null, link: m.link || null, data_ref: m.data_ref ?? new Date().toISOString(),
       metadados: { ...(m.metadados ?? {}), parte: i + 1, de: partes.length }, hash_trecho: hash,
     }, { onConflict: "hash_trecho", ignoreDuplicates: true }).select("id");
     if (error) throw new Error("memória: " + error.message);
     gravados += data?.length ?? 0;
   }
   return gravados;
+}
+// Projeto cujo significado mais se parece com o vetor (gideon_projetos), se passar de gideon_config.limite_projeto
+async function projetoParecido(vetor: number[]) {
+  const cfg = await config();
+  const { data } = await sb.rpc("gideon_projeto_do_vetor", { consulta: JSON.stringify(vetor), limite: Number(cfg.limite_projeto || 0.62) });
+  return String(data?.[0]?.nome ?? "");
 }
 export async function buscarMemoria(pergunta: string, qtd = 5, projeto?: string, filtros: { tipo?: string; desde?: string; ate?: string } = {}) {
   const cfg = await config();
@@ -175,6 +182,11 @@ export const FERRAMENTAS = [
       pergunta: { type: "string" }, projeto: { type: "string" },
       tipo: { type: "string", description: "Opcional: conversa, nota, arquivo, email ou evento" },
       desde: { type: "string", description: "Opcional: ISO 8601 com fuso -03:00" }, ate: { type: "string", description: "Opcional: ISO 8601 com fuso -03:00" } }, required: ["pergunta"] } },
+  { name: "listar_projetos", description: "Lista os projetos do dono: descrição, quantos itens cada um tem na memória e quando teve atividade (primeira e última). Use para 'quais são meus projetos' e para achar 'aquele projeto que comecei em agosto'.", parameters: { type: "object", properties: {} } },
+  { name: "criar_projeto", description: "Cria (ou atualiza) um projeto do dono: nome curto e descrição de 1 a 2 frases com o assunto e as palavras importantes. Depois disso, o que entra na memória e se parece com ele é marcado sozinho, inclusive o que já estava guardado.", parameters: { type: "object", properties: {
+      nome: { type: "string", description: "Nome curto, como o dono chama o projeto" }, descricao: { type: "string" } }, required: ["nome", "descricao"] } },
+  { name: "linha_do_tempo", description: "Mostra em ordem de data tudo o que a memória tem de um projeto (conversas, notas, e-mails, arquivos, eventos), com links. Use para 'o que fiz no projeto X', 'histórico do projeto X'.", parameters: { type: "object", properties: {
+      projeto: { type: "string" }, desde: { type: "string", description: "Opcional: ISO 8601 com fuso -03:00" }, ate: { type: "string", description: "Opcional: ISO 8601 com fuso -03:00" } }, required: ["projeto"] } },
   { name: "esquecer_memoria", description: "Apaga da memória de longo prazo o que o dono pedir para esquecer, em 3 passos: (1) chame sem ids: devolve os candidatos; (2) escolha SÓ os ids que são mesmo sobre o que ele pediu e chame com ids e confirmado=false: mostra o que será apagado; (3) depois do sim, chame com os mesmos ids e confirmado=true. Nunca apaga sem ids.", parameters: { type: "object", properties: {
       pergunta: { type: "string", description: "O que esquecer, com as palavras do dono" },
       ids: { type: "array", items: { type: "integer" }, description: "Ids exatos dos itens a apagar (dos candidatos). Vazio no primeiro passo." },
@@ -230,6 +242,31 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
       await sb.from("gideon_acoes").insert({ quem: "gideon/nucleo", acao: "esquecer_memoria", alvo: itens.map((i) => i.id).join(","), detalhes: { pergunta: a.pergunta, itens, apagados: data?.length ?? 0 }, reversivel: false });
       return { apagados: data?.length ?? 0 };
     }
+    case "listar_projetos": {
+      const { data, error } = await sb.rpc("gideon_listar_projetos");
+      if (error) return { erro: error.message };
+      return { projetos: (data ?? []).map((x: Record<string, any>) => ({ nome: x.nome, descricao: x.descricao, itens: Number(x.itens),
+        primeira_atividade: fmtBrasilia(x.primeira_atividade), ultima_atividade: fmtBrasilia(x.ultima_atividade), criado_em: fmtBrasilia(x.criado_em) })) };
+    }
+    case "criar_projeto": {
+      const nome = String(a.nome ?? "").trim().slice(0, 60), descricao = String(a.descricao ?? "").trim().slice(0, 500);
+      if (!nome) return { erro: "Falta o nome do projeto." };
+      const vetor = await embedding(`title: ${nome} | text: Projeto ${nome}: ${descricao}`);
+      const { data: ja } = await sb.from("gideon_projetos").select("id").ilike("nome", nome).maybeSingle();
+      const linha = { nome, descricao, embedding: JSON.stringify(vetor), ativo: true };
+      const { error } = ja ? await sb.from("gideon_projetos").update(linha).eq("id", ja.id) : await sb.from("gideon_projetos").insert(linha);
+      if (error) return { erro: error.message };
+      const cfg = await config();
+      const { data: n } = await sb.rpc("gideon_marcar_projeto", { p_nome: nome, limite: Number(cfg.limite_projeto || 0.62) });
+      await sb.from("gideon_acoes").insert({ quem: "gideon/nucleo", acao: "criar_projeto", alvo: nome, detalhes: { descricao, itens_marcados: n ?? 0 }, reversivel: true, como_desfazer: { desativar_projeto: nome } });
+      return { [ja ? "atualizado" : "criado"]: nome, itens_antigos_marcados: n ?? 0 };
+    }
+    case "linha_do_tempo": {
+      const { data, error } = await sb.rpc("gideon_linha_do_tempo", { p_nome: String(a.projeto ?? ""), desde: a.desde || null, ate: a.ate || null, qtd: 40 });
+      if (error) return { erro: error.message };
+      if (!data?.length) return { erro: "Nada na memória marcado com esse projeto. Veja os nomes com listar_projetos." };
+      return { projeto: a.projeto, itens: data.map((x: Record<string, any>) => ({ data: fmtBrasilia(x.data_ref), tipo: x.tipo, origem: x.origem, resumo: x.resumo, link: x.link })) };
+    }
     case "buscar_memoria": {
       const t = await buscarMemoria(String(a.pergunta), 5, a.projeto as string | undefined, { tipo: a.tipo as string, desde: a.desde as string, ate: a.ate as string });
       return { trechos: t.map((x: Record<string, unknown>) => ({ conteudo: x.resumo || x.conteudo, tipo: x.tipo, projeto: x.projeto, data: x.data_ref, link: x.link })) };
@@ -274,6 +311,7 @@ Memória:
 - Se a pergunta depende de algo que não está nos trechos nem na conversa, use buscar_memoria; se ainda assim não achar, diga que não encontrou. Nunca invente.
 - Tudo o que vocês conversam é guardado. Quando o dono pedir para anotar ou guardar algo, use guardar_nota.
 - A memória também recebe sozinha, a cada poucas horas: e-mails importantes e avisos do Classroom (tipo email), eventos da agenda (tipo evento) e arquivos do Google Drive (tipo arquivo, com link). Para "o que chegou do Classroom essa semana?", use buscar_memoria com tipo e período.
+- Projetos: o dono tem projetos (listar_projetos). Tudo o que entra na memória e se parece com um projeto é marcado sozinho. Quando ele disser que começou algo novo ou pedir para organizar algo como projeto, ofereça criar_projeto (nome curto + descrição de 1 a 2 frases). Para "o que fiz no projeto X?" use linha_do_tempo e responda em ordem de data, com links. Para "aquele projeto que comecei em agosto", use listar_projetos (primeira atividade) e depois linha_do_tempo.
 - Para esquecer algo, use esquecer_memoria: primeiro veja os candidatos, escolha só os que são mesmo sobre o pedido, mostre exatamente o que será apagado e só apague depois do sim (no Telegram aparecem os botões Aprovar e Negar).
 
 Ferramentas:

@@ -56,9 +56,9 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ✅ Anotações ("anota que...") com `guardar_nota`
 
 **9.3 Organização**
-- 🟡 Data, origem, tipo e link automáticos em cada item ✅; projeto automático ⬜
+- ✅ Data, origem, tipo, link e **projeto** automáticos em cada item (projeto pela margem acima de uma conversa neutra)
 - ✅ Busca por tipo (conversa, nota, arquivo, email, evento) e por período
-- ⬜ Linha do tempo de cada projeto ("o que fiz no projeto X")
+- ✅ Linha do tempo de cada projeto ("o que fiz no projeto X") e lista de projetos com primeira e última atividade
 - ✅ Esquecer sob pedido: o GIDEON mostra exatamente os itens que vai apagar e só apaga depois do Aprovar/"sim"; fica registrado em `gideon_acoes`
 
 **9.4 Pronto quando**
