@@ -528,8 +528,8 @@ function decifrarBackup(json) {
 const ADMINS_PAINEL = new Set(
   (
     process.env.PAINEL_ADMIN_EMAILS_SHA256 ??
-    // lojabeautynow@gmail.com, Fabiana (as mesmas do painel do site)
-    "3d398f24c18a478378ca799120bd933dba302008dac7fce2e8e9239bd17b67c9,45e590fc9272ca2a68b2a266e38590a7b389ef2af62051dc8cdee52caee53698"
+    // lojabeautynow@gmail.com, Fabiana, Sandro (as mesmas do painel do site)
+    "3d398f24c18a478378ca799120bd933dba302008dac7fce2e8e9239bd17b67c9,45e590fc9272ca2a68b2a266e38590a7b389ef2af62051dc8cdee52caee53698,8caaeefeb8310133359ce747b56079797de49ac37d09ca530a4750d98a830aa9"
   )
     .split(",")
     .map((h) => h.trim().toLowerCase())

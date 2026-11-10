@@ -27,6 +27,8 @@ export const ADMIN_PBKDF2_ITERACOES = 310000;
 export const ADMINS_POR_CODIGO: Readonly<Record<string, string>> = {
   // Fabiana (fabiana@gruposuprir.com)
   "45e590fc9272ca2a68b2a266e38590a7b389ef2af62051dc8cdee52caee53698": "Fabiana",
+  // Sandro (pedido do Mauricio, 10/11)
+  "8caaeefeb8310133359ce747b56079797de49ac37d09ca530a4750d98a830aa9": "Sandro",
 };
 
 /** Validade do código de verificação, em minutos. */
