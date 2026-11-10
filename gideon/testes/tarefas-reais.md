@@ -81,3 +81,12 @@ Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "N�
 | Negar | Nada apagado | ✅ |
 | Aprovar | Só a nota apagada; outras memórias intactas; registro em gideon_acoes | ✅ |
 | Falta: dono perguntar no Telegram sobre um e-mail, evento ou arquivo do Drive | | ⬜ |
+
+## Deep Research (10/11/2026) — testes do Claude pela rota `nucleo` e `pesquisa-teste` (sem gravar a conversa)
+| Pedido | Esperado | Resultado |
+|---|---|---|
+| "Pesquise na internet: versão mais recente do Deno" (v27) | chama `pesquisar_web` e responde com fontes | ❌ busca do Google no Gemini 3 sem cota grátis (429) e resposta quebrada "}}" → corrigido (fontes grátis + resposta quebrada pedida de novo) |
+| `pesquisa-teste`: "situação atual da energia nuclear no Brasil (Angra 3)" | resposta com fontes | ✅ Wikipédia + Google Notícias, cita [n] e diz o que as fontes não cobrem |
+| `pesquisa-teste`: "versão mais recente do Deno" | fontes técnicas | 🟡 fontes grátis não cobrem; respondeu honestamente que não achou (Tavily resolve) |
+| "Faça uma investigação completa sobre energia nuclear" (v30) | chama `pesquisa_profunda` | ❌ disse "Estou iniciando…" sem chamar a ferramenta → trava contra promessa sem ferramenta |
+| "Faça uma investigação completa sobre energia nuclear" (v31) | relatório com fontes em menos de 5 min | ✅ 55 s, 25 fontes, Telegram + memória |

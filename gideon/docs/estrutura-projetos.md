@@ -110,22 +110,22 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 ## 4. DEEP RESEARCH — pesquisador artificial
 
 **4.1 Busca**
-- ⬜ Busca na web grátis (Gemini com Google Search; SerpApi com 100 grátis por mês)
-- ⬜ Leitura de páginas e PDFs inteiros
-- ⬜ Cache de 24 h (pesquisa repetida não gasta)
+- ✅ Busca na web grátis: Wikipédia (pt e en) + manchetes do Google Notícias, sem cadastro; Tavily (1.000 grátis/mês) quando a chave `TAVILY_API_KEY` for cadastrada. A busca do Google dentro do Gemini 3 não tem cota grátis (429) e o DuckDuckGo, o Mojeek e o Bing bloqueiam ou falseiam resultados para servidores
+- ✅ Leitura de páginas e PDFs (`ler_pagina`, só https público)
+- ✅ Cache de 24 h (pesquisa repetida não gasta)
 
 **4.2 Análise**
-- ⬜ Planejar as perguntas antes de buscar
-- ⬜ Comparar fontes e apontar contradições
+- ✅ Planejar as perguntas antes de buscar (5 frentes)
+- ✅ Comparar fontes e apontar contradições (seções "concordam" e "divergem")
 - ⬜ Organizar as evidências por força
 
 **4.3 Entrega**
-- ⬜ Relatório com referências clicáveis
-- ⬜ Salvar no Drive e na memória
-- ⬜ Aviso de progresso no Telegram ("li 8 de 15 fontes")
+- ✅ Relatório com referências clicáveis (arquivo HTML no Telegram)
+- 🟡 Salvar na memória ✅; no Drive ainda não (o acesso ao Drive é só leitura)
+- ✅ Aviso de progresso no Telegram
 
 **4.4 Pronto quando**
-- ⬜ "Faça uma investigação completa sobre energia nuclear" → relatório com fontes em menos de 5 min
+- ✅ "Faça uma investigação completa sobre energia nuclear" → relatório com 25 fontes em 55 s (10/11/2026, função v31)
 
 ---
 
