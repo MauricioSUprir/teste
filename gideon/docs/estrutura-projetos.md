@@ -132,7 +132,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 ## 1. JARVIS PRIME — controla o computador
 
 **1.1 Ponte com o PC**
-- ✅ Programa pequeno no seu PC que recebe ordens pelo Supabase (nada aberto na internet): `agente-local/GIDEON-PC.cmd`, em PowerShell, sem instalar nada (decisão 014)
+- ✅ Programa pequeno no seu PC que recebe ordens pelo Supabase (nada aberto na internet): `agente-local/GIDEON-PC.ps1`, em PowerShell, sem instalar nada (decisão 014)
 - ✅ Pasta liberada (só altera dentro dela; fora só lê Documentos, Downloads e Área de Trabalho)
 - ✅ Aprovação no Telegram (e na tela do GIDEON Home) antes de apagar, organizar, sobrescrever, instalar ou git push; apagar vai para a lixeira da GIDEON e dá para desfazer
 
@@ -161,7 +161,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 **7.1 Captura**
 - ⬜ Atalho de teclado tira print e manda ao GIDEON
 - 🟡 Print pelo Telegram: ela lê e explica (falta o teste do dono)
-- 🟡 "O que tem na minha tela?": o GIDEON PC tira UM print só quando o dono pede, avisa na janela e não guarda; recusa se houver janela de banco ou de senhas (`pc_ver_tela`; testado na máquina de testes, falta o Windows do dono)
+- 🟡 "O que tem na minha tela?": o GIDEON PC tira UM print só quando o dono pede, avisa na janela e não guarda a imagem (`pc_ver_tela`; testado na máquina de testes, falta o Windows do dono)
 
 **7.2 Entendimento** (visão do Gemini, grátis)
 - 🟡 Explicar mensagens de erro (testado com print de erro do React e com a tela do PC: "ModuleNotFoundError" → "rode pip install requests")

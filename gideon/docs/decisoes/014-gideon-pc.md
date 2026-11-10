@@ -3,8 +3,10 @@
 **Data:** 10/11/2026 · **Fase:** 1 (Jarvis Prime) · **Situação:** aceita
 
 ## Decisão
-Um programa pequeno em **PowerShell** (`agente-local/GIDEON-PC.cmd`), que já vem no Windows: nada para instalar.
-O dono dá dois cliques, cola a chave que a GIDEON manda no Telegram (`/pc`) e escolhe a pasta liberada.
+Um programa pequeno em **PowerShell** (`agente-local/GIDEON-PC.ps1`), que já vem no Windows: nada para instalar.
+O dono clica com o botão direito → "Executar com o PowerShell", cola a chave que a GIDEON manda no Telegram (`/pc`) e escolhe a pasta liberada.
+
+**Atualização 10/11/2026 (versão 1.2):** a 1.1 era um `.cmd` que rodava o código pela memória e, antes do print da tela, procurava janelas com nome de banco. O Windows Defender bloqueou como "conteúdo mal-intencionado" (é o mesmo conjunto dos vírus de banco). Virou um `.ps1` comum, sem a lista de bancos; a proteção do print passa a ser: só quando o dono pede, aviso na janela, imagem não guardada e a IA não repete dados sensíveis. Nada de esconder código para passar pelo antivírus; se ainda bloquear, o caminho é mandar o arquivo para a Microsoft analisar (falso positivo).
 
 ## Como funciona
 - O programa **só faz pedidos para fora**: pergunta à função `gideon` (rota `pc-buscar`) se há ordem, esperando até 20 s por pedido, e devolve o resultado (`pc-resultado`). Nada no PC fica aberto na internet; não precisa abrir porta nem mexer no roteador.

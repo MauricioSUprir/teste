@@ -4,10 +4,9 @@ Programa pequeno que deixa a GIDEON organizar arquivos, criar projetos, rodar c�
 Decisão e regras completas: `docs/decisoes/014-gideon-pc.md`.
 
 ## Instalar (uns 5 minutos, só uma vez)
-1. No PC, baixe o programa: https://gideon-home.onrender.com/pc/GIDEON-PC.cmd
-   (é o mesmo arquivo desta pasta, `GIDEON-PC.cmd`). Guarde num lugar fixo, por exemplo `Documentos`.
-2. Dê dois cliques no arquivo.
-   - Se o Windows mostrar "O Windows protegeu o computador": clique em **Mais informações** e depois em **Executar assim mesmo**. Isso aparece porque o arquivo veio da internet e não tem assinatura de empresa.
+1. No PC, baixe o programa: https://gideon-home.onrender.com/pc/GIDEON-PC.ps1
+   (é o mesmo arquivo desta pasta, `GIDEON-PC.ps1`). Se o navegador avisar, escolha **Manter**. Guarde num lugar fixo, por exemplo `Documentos`.
+2. Clique com o **botão direito** no arquivo e escolha **Executar com o PowerShell** (no Windows 11, pode estar em **Mostrar mais opções**).
 3. No Telegram, mande **/pc** para a GIDEON. Ela responde com a **chave do PC**. Copie a chave e cole na janela do programa (clique com o botão direito para colar), depois aperte Enter.
 4. **Pasta liberada:** aperte Enter para usar `C:\Users\<você>\GIDEON` (recomendado). É a única pasta onde a GIDEON pode criar, mover e apagar.
 5. Responda **S** para o GIDEON PC abrir sozinho quando o Windows ligar.
@@ -27,17 +26,18 @@ No Telegram ou por voz no GIDEON Home:
 - **Pede seu OK antes:** apagar (vai para a lixeira da GIDEON, `.lixeira-gideon`), organizar, sobrescrever arquivo, instalar pacotes, `git push`.
 - **Não pode:** mexer fora da pasta GIDEON, rodar comandos fora da lista, criar ou abrir programas e scripts (.exe, .bat, .ps1…).
 - **Desfazer:** "desfaz a última organização" devolve tudo para onde estava.
-- **Tela:** ela só tira print quando você pede, avisa na janela e não guarda a imagem. Se houver janela de banco ou de senhas aberta, ela recusa: minimize ou feche e peça de novo.
+- **Tela:** ela só tira print quando você pede, avisa na janela e não guarda a imagem. Antes de pedir, feche ou minimize janelas de banco e de senhas (o print vai para a IA do Google analisar).
 
 ## Problemas comuns
-- **"O GIDEON PC não está ligado":** a janela do programa foi fechada ou o PC dormiu. Abra o `GIDEON-PC.cmd` de novo.
+- **"O GIDEON PC não está ligado":** a janela do programa foi fechada ou o PC dormiu. Abra o `GIDEON-PC.ps1` de novo (botão direito → Executar com o PowerShell).
 - **Chave errada ou vencida:** mande /pc no Telegram, apague o arquivo `.gideon-pc.json` da sua pasta de usuário (`C:\Users\<você>`) e abra o programa de novo.
 - **Trocar a pasta liberada:** apague `.gideon-pc.json` e abra o programa de novo.
 - **Desligar de vez:** feche a janela e apague o atalho "GIDEON PC" em `shell:startup` (Win+R, digite `shell:startup`, Enter).
 - O que ela fez fica anotado em `C:\Users\<você>\GIDEON\.gideon-pc.log`.
 
 ## Para quem mexe no código
-- `GIDEON-PC.cmd`: arquivo único. A parte de cima é um `.cmd` que chama o PowerShell, e o resto é o programa (compatível com Windows PowerShell 5.1 e PowerShell 7). Precisa de finais de linha CRLF e UTF-8 sem BOM.
-- `../home/pc/GIDEON-PC.cmd` é uma **cópia** para download pelo site do GIDEON Home. Ao alterar o programa, copie de novo.
-- Teste fora do Windows: `GIDEON_PC_CHAVE`, `GIDEON_PC_PASTA` e `GIDEON_PC_LEITURA` como variáveis de ambiente, e `pwsh -Command 'iex ([IO.File]::ReadAllText("GIDEON-PC.cmd"))'`.
+- `GIDEON-PC.ps1`: arquivo único em PowerShell (Windows PowerShell 5.1 e PowerShell 7), finais de linha CRLF e UTF-8 **com** BOM (o PowerShell 5 precisa do BOM para os acentos).
+- Até a versão 1.1 era um `.cmd` que rodava o código pela memória (`iex`) e procurava janelas com nome de banco antes do print. O antivírus do Windows bloqueou ("conteúdo mal-intencionado"): esse conjunto é o mesmo dos vírus de banco. A versão 1.2 é um `.ps1` comum, sem `iex` e sem ler títulos de janelas. Nada de esconder ou embaralhar código para passar pelo antivírus.
+- `../home/pc/GIDEON-PC.ps1` é uma **cópia** para download pelo site do GIDEON Home. Ao alterar o programa, copie de novo.
+- Teste fora do Windows: `GIDEON_PC_CHAVE`, `GIDEON_PC_PASTA`, `GIDEON_PC_LEITURA` (e `GIDEON_PC_TELA_TESTE` com uma imagem) como variáveis de ambiente, e `pwsh -NoProfile -File GIDEON-PC.ps1`.
 - Ferramentas e rotas do servidor: `supabase/functions/gideon/pc.ts`. Fila: migração `011_pc.sql`.
