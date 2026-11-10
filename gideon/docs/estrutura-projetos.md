@@ -170,6 +170,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Analisar interfaces
 
 **7.3 Ajuda guiada**
+- 🟡 Ela mesma clica e digita: `pc_controlar` (abas, botões, campos, rolar), com OK antes de enviar/comprar/apagar e parada pelo canto da tela (falta o teste do dono)
 - ⬜ Orientar passo a passo ("clique em X, depois em Y")
 - ⬜ Ajudar a preencher formulários (sugere, você confirma)
 - ⬜ Virar os olhos do Jarvis Prime
