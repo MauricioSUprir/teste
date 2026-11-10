@@ -1,4 +1,4 @@
-// GIDEON PC (fase 1) — o GIDEON mexe no computador do dono por um programa pequeno instalado lá (agente-local/GIDEON-PC.ps1).
+// GIDEON PC (fase 1) — o GIDEON mexe no computador do dono por um programa pequeno instalado lá (agente-local/gideon_pc.py).
 // O programa só faz pedidos para fora: busca ordens aqui (rota pc-buscar, com a chave do PC) e devolve o resultado (pc-resultado).
 // Nada no PC fica aberto na internet. O programa só altera arquivos dentro da pasta liberada e só roda comandos de uma lista.
 // Apagar (vai para a lixeira da GIDEON, dá para desfazer), reorganizar, sobrescrever arquivo e instalar pedem OK do dono.

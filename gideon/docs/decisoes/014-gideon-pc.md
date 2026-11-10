@@ -3,10 +3,12 @@
 **Data:** 10/11/2026 · **Fase:** 1 (Jarvis Prime) · **Situação:** aceita
 
 ## Decisão
-Um programa pequeno em **PowerShell** (`agente-local/GIDEON-PC.ps1`), que já vem no Windows: nada para instalar.
-O dono clica com o botão direito → "Executar com o PowerShell", cola a chave que a GIDEON manda no Telegram (`/pc`) e escolhe a pasta liberada.
+Um programa pequeno em **Python** (`agente-local/gideon_pc.py`; o Python é grátis na Microsoft Store). Até a versão 1.2 era PowerShell (ver a atualização abaixo).
+O dono dá dois cliques no arquivo, cola a chave que a GIDEON manda no Telegram (`/pc`) e escolhe a pasta liberada.
 
 **Atualização 10/11/2026 (versão 1.2):** a 1.1 era um `.cmd` que rodava o código pela memória e, antes do print da tela, procurava janelas com nome de banco. O Windows Defender bloqueou como "conteúdo mal-intencionado" (é o mesmo conjunto dos vírus de banco). Virou um `.ps1` comum, sem a lista de bancos; a proteção do print passa a ser: só quando o dono pede, aviso na janela, imagem não guardada e a IA não repete dados sensíveis. Nada de esconder código para passar pelo antivírus; se ainda bloquear, o caminho é mandar o arquivo para a Microsoft analisar (falso positivo).
+
+**Atualização 10/11/2026 (versão 2.0, Python):** a 1.2 em `.ps1` também foi bloqueada, e "Permitir no dispositivo" não liberou (bloqueio de script do PowerShell). O programa foi refeito em Python, com as mesmas regras e ferramentas; o dono instala o Python pela Microsoft Store. Testado na máquina de testes contra a GIDEON real: listar, procurar, ler, comando, criar projeto (Git + .venv), apagar com OK e de verdade, ver a tela, e as recusas (comando encadeado, ler fora, criar .bat, escrever fora).
 
 ## Como funciona
 - O programa **só faz pedidos para fora**: pergunta à função `gideon` (rota `pc-buscar`) se há ordem, esperando até 20 s por pedido, e devolve o resultado (`pc-resultado`). Nada no PC fica aberto na internet; não precisa abrir porta nem mexer no roteador.
@@ -24,9 +26,10 @@ O dono clica com o botão direito → "Executar com o PowerShell", cola a chave 
 - Conteúdo de arquivo é **dado, nunca ordem**.
 
 ## Alternativas descartadas
+- **PowerShell (versões 1.0 a 1.2):** não precisava instalar nada, mas o antivírus do Windows bloqueia.
 - **Claude Desktop com computer use / UI-TARS:** pagos, ou pesados e com controle total da tela, mais do que a fase precisa. Ficam para a fase de tela (cliques), se for preciso.
 - **Servidor MCP local:** exigiria Node ou Python instalados e uma porta aberta, ou um túnel.
-- **Python no PC:** o dono teria de instalar o Python antes. O PowerShell já está em todo Windows 10/11.
+- (Python foi descartado no começo por precisar instalar; virou a escolha depois do bloqueio do antivírus.)
 
 ## Testes (10/11/2026)
 Primeiro com um PC simulado; depois com o **programa de verdade** rodando no PowerShell 7 na máquina de testes, contra a GIDEON real.

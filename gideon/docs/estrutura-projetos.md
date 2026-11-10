@@ -132,7 +132,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 ## 1. JARVIS PRIME — controla o computador
 
 **1.1 Ponte com o PC**
-- ✅ Programa pequeno no seu PC que recebe ordens pelo Supabase (nada aberto na internet): `agente-local/GIDEON-PC.ps1`, em PowerShell, sem instalar nada (decisão 014)
+- ✅ Programa pequeno no seu PC que recebe ordens pelo Supabase (nada aberto na internet): `agente-local/gideon_pc.py`, em Python, sem instalar nada (decisão 014)
 - ✅ Pasta liberada (só altera dentro dela; fora só lê Documentos, Downloads e Área de Trabalho)
 - ✅ Aprovação no Telegram (e na tela do GIDEON Home) antes de apagar, organizar, sobrescrever, instalar ou git push; apagar vai para a lixeira da GIDEON e dá para desfazer
 
