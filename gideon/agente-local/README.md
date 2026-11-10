@@ -20,12 +20,14 @@ No Telegram ou por voz no GIDEON Home:
 - "Cria um projeto Python chamado teste"
 - "Abre o VS Code no projeto teste"
 - Coloque uns arquivos bagunçados na pasta GIDEON e peça: "Organiza minha pasta GIDEON por tipo". Ela mostra o plano e espera seu **Aprovar**.
+- Com um erro aberto na tela, pergunte: "Que erro é esse na minha tela?". A janela do programa avisa que ela está vendo a tela.
 
 ## O que ela pode e não pode
 - **Pode:** listar, procurar e ler arquivos (pasta GIDEON, Documentos, Downloads, Área de Trabalho); criar e editar arquivos de texto e código na pasta GIDEON; organizar; preparar projetos (Git e ambiente Python/Node); rodar git, python, node, npm; abrir e fechar aplicativos da lista.
 - **Pede seu OK antes:** apagar (vai para a lixeira da GIDEON, `.lixeira-gideon`), organizar, sobrescrever arquivo, instalar pacotes, `git push`.
 - **Não pode:** mexer fora da pasta GIDEON, rodar comandos fora da lista, criar ou abrir programas e scripts (.exe, .bat, .ps1…).
 - **Desfazer:** "desfaz a última organização" devolve tudo para onde estava.
+- **Tela:** ela só tira print quando você pede, avisa na janela e não guarda a imagem. Se houver janela de banco ou de senhas aberta, ela recusa: minimize ou feche e peça de novo.
 
 ## Problemas comuns
 - **"O GIDEON PC não está ligado":** a janela do programa foi fechada ou o PC dormiu. Abra o `GIDEON-PC.cmd` de novo.

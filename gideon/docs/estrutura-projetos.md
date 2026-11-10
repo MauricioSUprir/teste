@@ -161,9 +161,10 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 **7.1 Captura**
 - ⬜ Atalho de teclado tira print e manda ao GIDEON
 - 🟡 Print pelo Telegram: ela lê e explica (falta o teste do dono)
+- 🟡 "O que tem na minha tela?": o GIDEON PC tira UM print só quando o dono pede, avisa na janela e não guarda; recusa se houver janela de banco ou de senhas (`pc_ver_tela`; testado na máquina de testes, falta o Windows do dono)
 
 **7.2 Entendimento** (visão do Gemini, grátis)
-- 🟡 Explicar mensagens de erro (testado com print de erro do React)
+- 🟡 Explicar mensagens de erro (testado com print de erro do React e com a tela do PC: "ModuleNotFoundError" → "rode pip install requests")
 - ⬜ Interpretar gráficos
 - ⬜ Identificar botões e campos
 - ⬜ Analisar interfaces
@@ -189,6 +190,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Voz local grátis (Kokoro); ElevenLabs quando houver orçamento
 
 **8.3 Agir**
+- 🟡 iPhone: "E aí Siri, GIDEON" → atalho do app Atalhos manda o pedido ao Núcleo e fala a resposta; abre ligação, SMS, WhatsApp, rota, música, vídeo, site ou app (decisão 015; testado no servidor, falta o dono montar o atalho)
 - ⬜ Comandos de voz viram pedidos ao Núcleo
 - ⬜ Ações no PC só as permitidas (via Jarvis Prime)
 
