@@ -1,15 +1,4 @@
-<# :
-@echo off
-setlocal
-set "GIDEON_PC_ARQUIVO=%~f0"
-title GIDEON PC
-powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText($env:GIDEON_PC_ARQUIVO, [Text.Encoding]::UTF8))"
-echo.
-echo O GIDEON PC fechou. Aperte uma tecla para sair.
-pause >nul
-goto :eof
-#>
-# =====================================================================================================
+﻿# =====================================================================================================
 # GIDEON PC - o programa que deixa a GIDEON mexer no seu computador, com seguranca.
 #  - So faz pedidos PARA FORA (busca ordens na GIDEON); nada no seu PC fica aberto na internet.
 #  - So ALTERA arquivos dentro da "pasta liberada" (padrao: C:\Users\<voce>\GIDEON).
@@ -17,12 +6,16 @@ goto :eof
 #  - Apagar vai para a lixeira da GIDEON (.lixeira-gideon) e da para desfazer.
 #  - Organizar, apagar, sobrescrever, instalar e git push so acontecem depois do seu OK (Telegram ou tela).
 #  - Comandos do terminal so de uma lista permitida; nada de comandos encadeados.
-#  - Tela: tira UM print so quando voce pede, avisa nesta janela e nao guarda. Com banco ou senhas aberto na tela, recusa.
+#  - Tela: tira UM print so quando voce pede, avisa nesta janela e nao guarda a imagem.
 #  - Tudo o que muda fica anotado em <pasta liberada>\.gideon-pc.log e no registro da GIDEON.
+# Como abrir: clique com o botao direito neste arquivo e escolha "Executar com o PowerShell".
 # Para fechar: feche esta janela. Para trocar a chave ou a pasta: apague o arquivo .gideon-pc.json da sua pasta de usuario.
 # =====================================================================================================
 $ErrorActionPreference = 'Stop'
-$VERSAO = '1.1'
+trap { Write-Host ("`n   ERRO: " + $_.Exception.Message) -ForegroundColor Red; Read-Host '   Aperte Enter para fechar'; exit 1 }
+$VERSAO = '1.2'
+$ARQUIVO = $PSCommandPath
+try { $Host.UI.RawUI.WindowTitle = 'GIDEON PC' } catch {}
 $URL = if ($env:GIDEON_PC_URL) { $env:GIDEON_PC_URL } else { 'https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon' }
 $ehWindows = ($PSVersionTable.PSEdition -eq 'Desktop') -or ($IsWindows -eq $true)
 $casa = if ($ehWindows) { $env:USERPROFILE } else { $HOME }
@@ -45,12 +38,13 @@ function PastasLeituraPadrao {
   return @((Join-Path $HOME 'Documents'), (Join-Path $HOME 'Downloads'), (Join-Path $HOME 'Desktop'))
 }
 function CriarAtalhoInicio {
-  if (-not $ehWindows -or -not $env:GIDEON_PC_ARQUIVO) { return }
+  if (-not $ehWindows -or -not $ARQUIVO) { return }
   $inicio = [Environment]::GetFolderPath('Startup')
   $ws = New-Object -ComObject WScript.Shell
   $lnk = $ws.CreateShortcut((Join-Path $inicio 'GIDEON PC.lnk'))
-  $lnk.TargetPath = $env:GIDEON_PC_ARQUIVO
-  $lnk.WorkingDirectory = Split-Path $env:GIDEON_PC_ARQUIVO -Parent
+  $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+  $lnk.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $ARQUIVO + '"'
+  $lnk.WorkingDirectory = Split-Path $ARQUIVO -Parent
   $lnk.WindowStyle = 7
   $lnk.Save()
   Escrever "   Pronto: o GIDEON PC vai abrir sozinho (minimizado) quando o Windows iniciar." 'Green'
@@ -480,29 +474,7 @@ function Fechar($a) {
 }
 
 # ---------------- ver a tela (so quando o dono pede) ----------------
-# Janela visivel de banco ou de senhas = nao tira print (docs/seguranca.md: banco e senhas ficam fora da tela)
-$TELA_SENSIVEL = 'internet banking|banco do brasil|caixa econ|\bitau\b|ita[uú] |bradesco|santander|nubank|banco inter|\bsicoob\b|\bsicredi\b|banrisul|c6 bank|btg pactual|picpay|mercado pago|paypal|xp investimentos|bitwarden|1password|keepass|lastpass|dashlane|proton pass|gerenciador de senhas|password manager|\bsenhas?\b|\bpasswords?\b'
-function PrepararTela {
-  if ('GideonTela' -as [type]) { return }
-  Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-  Add-Type -TypeDefinition @'
-using System; using System.Text; using System.Collections.Generic; using System.Runtime.InteropServices;
-public static class GideonTela {
-  public delegate bool Cada(IntPtr h, IntPtr l);
-  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
-  [DllImport("user32.dll")] static extern bool EnumWindows(Cada f, IntPtr l);
-  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
-  [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
-  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
-  public static List<string> Titulos() { // janelas que aparecem na tela (sem as minimizadas)
-    var r = new List<string>();
-    EnumWindows(delegate (IntPtr h, IntPtr l) { if (IsWindowVisible(h) && !IsIconic(h)) { var s = new StringBuilder(512); if (GetWindowText(h, s, 512) > 0) r.Add(s.ToString()); } return true; }, IntPtr.Zero);
-    return r;
-  }
-}
-'@
-  [GideonTela]::SetProcessDPIAware() | Out-Null # para o print pegar a tela inteira em monitores com zoom (125%, 150%...)
-}
+function PrepararTela { Add-Type -AssemblyName System.Windows.Forms, System.Drawing }
 function VerTela($a) {
   if (-not $ehWindows) { # teste fora do Windows: manda uma imagem de exemplo no lugar do print
     if (-not $env:GIDEON_PC_TELA_TESTE) { throw 'ver a tela so funciona no Windows' }
@@ -511,9 +483,6 @@ function VerTela($a) {
     return [ordered]@{ ok = $true; imagem_base64 = [Convert]::ToBase64String($bytes); mime = $(if ($env:GIDEON_PC_TELA_TESTE -match '\.png$') { 'image/png' } else { 'image/jpeg' }); descricao = '(teste fora do Windows) imagem de exemplo enviada' }
   }
   PrepararTela
-  foreach ($t in [GideonTela]::Titulos()) {
-    if ($t -match $TELA_SENSIVEL) { throw "tem uma janela de banco ou de senhas aberta na tela ('$($Matches[0].Trim())'). Por seguranca nao tiro print: minimize ou feche essa janela e peca de novo." }
-  }
   Escrever "   $(Get-Date -Format 'HH:mm')  A GIDEON esta vendo sua tela agora (voce pediu). O print nao fica guardado." 'Magenta'
   return CapturarTela
 }
@@ -600,3 +569,4 @@ while ($true) {
     Start-Sleep -Seconds ([Math]::Min(60, 3 * $falhas))
   }
 }
+Read-Host '   O GIDEON PC parou. Aperte Enter para fechar'
