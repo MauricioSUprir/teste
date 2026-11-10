@@ -12,7 +12,7 @@
 //   POST /gideon/home-sessao|home-ferramenta|home-conversa ← GIDEON Home (cabeçalho x-gideon-home)
 //   POST /gideon/nucleo-arquivo  ← teste de leitura de arquivo: { base64, mime, nome, legenda } (x-gideon-chave)
 //   POST /gideon/aprovacao | modelos | modelo-teste ← fila de aprovações; lista de modelos; testa se modelos respondem { modelos: [...] } (x-gideon-chave)
-//   POST /gideon/pesquisa-teste  ← testa a busca na internet sem passar pelo modelo { pergunta, cache?, modelos? } ou { url } (x-gideon-chave)
+//   POST /gideon/pesquisa-teste  ← testa a busca na internet sem passar pelo modelo { pergunta, cache?, modelos?, modo? (google|tavily|livre) } ou { url } (x-gideon-chave)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, chaveGemini, config, dispararLembretes, gerar, relatorioSemanal, responderTelegram, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     }
     if (rota === "pesquisa-teste") { // teste direto da busca: { pergunta, cache? } ou { url }
       const b = await req.json().catch(() => ({}));
-      const r = await (b.url ? lerPagina(String(b.url)) : pesquisarWeb(String(b.pergunta ?? ""), b.cache === true, Array.isArray(b.modelos) ? b.modelos.map(String) : undefined)).catch((e) => ({ erro: String((e as Error).message ?? e).slice(0, 1500) }));
+      const r = await (b.url ? lerPagina(String(b.url)) : pesquisarWeb(String(b.pergunta ?? ""), b.cache === true, { modelos: Array.isArray(b.modelos) ? b.modelos.map(String) : undefined, modo: b.modo ? String(b.modo) : undefined })).catch((e) => ({ erro: String((e as Error).message ?? e).slice(0, 1500) }));
       return json(r);
     }
     if (rota === "indexar") { // pg_cron: lê Gmail, Agenda e Drive e guarda na memória ({ fontes, esperar })
