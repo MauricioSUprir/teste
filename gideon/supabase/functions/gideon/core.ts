@@ -65,12 +65,20 @@ async function chamarModelo(modelo: string, corpo: unknown, ms: number) {
     method: "POST", signal, headers: { "Content-Type": "application/json", "x-goog-api-key": chaveGemini() }, body: JSON.stringify(corpo),
   }));
   if (r.ok) return await r.json();
-  throw Object.assign(new Error(`gemini ${modelo} ${r.status}: ${(await r.text()).slice(0, 300)}`), { status: r.status });
+  const txt = await r.text();
+  let det = txt.slice(0, 300);
+  try { // mensagem curta + qual cota acabou (o Google manda no fim, em details)
+    const e = JSON.parse(txt).error ?? {};
+    const cotas = (e.details ?? []).flatMap((d: any) => d.violations ?? []).map((v: any) => `${v.quotaId ?? v.quotaMetric ?? "?"}=${v.quotaValue ?? "?"}`).join(", ");
+    det = `${String(e.message ?? "").replace(/\s+/g, " ").slice(0, 160)}${cotas ? ` [cota: ${cotas}]` : ""}`;
+  } catch { /* resposta sem JSON */ }
+  throw Object.assign(new Error(`gemini ${modelo} ${r.status}: ${det}`), { status: r.status });
 }
 export async function gerar(corpo: unknown, so?: string[]) {
   const cfg = await config();
   const modelos = (so ?? [cfg.modelo_conversa, cfg.modelo_reserva]).filter((m, i, l) => m && l.indexOf(m) === i);
   let ultimo: Error | null = null;
+  const falhas: string[] = []; // erro de cada modelo tentado (vai junto no erro final, para o diagnóstico)
   for (const [n, modelo] of modelos.entries()) {
     for (let tentativa = 1; tentativa <= 2; tentativa++) {
       try {
@@ -80,12 +88,14 @@ export async function gerar(corpo: unknown, so?: string[]) {
         return j;
       } catch (e) {
         ultimo = e as Error;
+        falhas.push(String(ultimo.message ?? e).replace(/\s+/g, " ").slice(0, 400));
         const st = Number((e as { status?: number }).status ?? 0);
         if (st >= 500 && tentativa === 1) { await new Promise((ok) => setTimeout(ok, 1200)); continue; } // fora do ar: tenta de novo uma vez
         break; // limite (429), demora ou erro do pedido: vai para a reserva
       }
     }
   }
+  if (ultimo && falhas.length > 1) throw Object.assign(new Error(falhas.join(" | ")), { status: (ultimo as { status?: number }).status, name: ultimo.name });
   throw ultimo ?? new Error("gemini: nenhum modelo configurado");
 }
 // Trabalho de fundo (resumos do indexador e dos arquivos): usa outro modelo (gideon_config.modelo_fundo), porque o limite grátis
@@ -379,13 +389,21 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       if (!cont?.parts?.length) throw new Error("resposta vazia do modelo: " + JSON.stringify(r).slice(0, 200));
       contents.push(cont);
       const chamadas = cont.parts.filter((x: Record<string, unknown>) => x.functionCall);
-      if (!chamadas.length) { resposta = cont.parts.map((x: Record<string, unknown>) => x.text ?? "").join("").trim(); break; }
+      if (!chamadas.length) {
+        resposta = cont.parts.map((x: Record<string, unknown>) => x.text ?? "").join("").trim();
+        if (!/[\p{L}\p{N}]/u.test(resposta) && volta < 5) { // resposta vazia ou quebrada (ex.: "}}"): pede de novo uma vez
+          resposta = ""; contents.push({ role: "user", parts: [{ text: "(sistema) Sua última resposta veio quebrada. Responda ao dono em português, em texto normal, com o que conseguiu ou não conseguiu fazer." }] });
+          continue;
+        }
+        break;
+      }
       const respostas = [];
       for (const c of chamadas) {
         const nome = c.functionCall.name, args = c.functionCall.args ?? {};
         usadas.push(nome);
         if (CONFIRMAVEIS.includes(nome) && args.confirmado === true) await aprovadaPorConversa(nome, args, p.canal).catch(() => {});
         const res: any = await executar(nome, args, p.canal).catch((e) => ({ erro: String(e.message ?? e) }));
+        if (res?.erro) console.error(`ferramenta ${nome}:`, String(res.erro).slice(0, 300)); // fica nos logs da função
         if (res?.precisa_confirmacao && p.canal === "telegram") { // vira pedido de aprovação com botões
           const descricao = descreverAcao(nome, res.resumo ?? args);
           const { data } = await sb.from("gideon_aprovacoes").insert({ acao: nome, descricao, pedido_por: p.canal, expira_em: new Date(Date.now() + 2 * 3600_000).toISOString(),

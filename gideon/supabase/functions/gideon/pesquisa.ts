@@ -21,7 +21,7 @@ async function linkFinal(u: string) {
 }
 
 // ---------- busca rápida (Gemini + Google Search) ----------
-export async function pesquisarWeb(pergunta: string, usarCache = true) {
+export async function pesquisarWeb(pergunta: string, usarCache = true, so?: string[]) {
   const p = pergunta.trim().slice(0, 500);
   if (!p) return { erro: "Falta o que pesquisar." };
   const chave = await sha256("rapida|" + normalizar(p));
@@ -31,7 +31,7 @@ export async function pesquisarWeb(pergunta: string, usarCache = true) {
     if (data?.[0]?.resposta) return { resposta: data[0].resposta, fontes: data[0].fontes, do_cache: true };
   }
   const cfg = await config(), inicio = Date.now();
-  const modelos = [cfg.modelo_pesquisa || cfg.modelo_conversa, cfg.modelo_reserva].filter(Boolean);
+  const modelos = so?.length ? so : [cfg.modelo_pesquisa || cfg.modelo_conversa, cfg.modelo_reserva].filter(Boolean);
   const r = await gerar({
     contents: [{ role: "user", parts: [{ text: `Pesquise na web e responda em português do Brasil, de forma objetiva e completa, com números, datas e nomes quando houver. Se as fontes discordarem, diga. Pergunta: ${p}` }] }],
     tools: [{ google_search: {} }], generationConfig: { temperature: 0.2 },
@@ -44,7 +44,7 @@ export async function pesquisarWeb(pergunta: string, usarCache = true) {
   }
   const finais = await Promise.all(fontes.slice(0, 8).map(async (f) => ({ ...f, link: await linkFinal(f.link) })));
   const resposta = textoDa(r);
-  if (!resposta) return { erro: "A busca não trouxe resposta." };
+  if (!resposta) return { erro: `A busca não trouxe resposta (${r?.candidates?.[0]?.finishReason ?? r?.promptFeedback?.blockReason ?? "sem texto"}).` };
   await sb.from("gideon_pesquisas").insert({ chave, tipo: "rapida", pergunta: p, resposta, fontes: finais, modelo: r._modelo, tempo_ms: Date.now() - inicio });
   return { resposta, fontes: finais, buscas: gm.webSearchQueries ?? [] };
 }
