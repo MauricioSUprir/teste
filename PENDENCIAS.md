@@ -1,23 +1,50 @@
-# BeautyNow — Estado do projeto (21/08/2026)
+# BeautyNow — Estado do projeto (11/11/2026)
 
-## ✅ LOJA COMPLETA E NO AR: https://www.beautynowstore.com.br
+## No ar
 
-- Domínio próprio com https ativo (GitHub Pages + registro.br)
-- 1.219 produtos reais do Hub, 28 marcas todas com logo oficial
-- Pagamento real Mercado Pago (Pix aprovado em produção; cartão e boleto testados)
-- Pedido aprovado fatura automaticamente no Bling (OAuth conectado)
-- Contas com código por e-mail (Brevo) — senha e Google
-- Avaliações com estrelas: pós-compra + página pública (/avaliacoes)
-- Admin: visão geral (saldo só de pedido pago), pedidos, cupons, catálogo manual,
-  esgotar/repor
-- Ícone de instalação no celular + prévia com logo no WhatsApp
-- Despertador do servidor a cada 10 min (sem espera de cold start)
+- BeautyNow: https://www.beautynowstore.com.br, com os espelhos /pro (Be2Beauty),
+  /pulse e /bradeco. Publicado pela branch gh-pages deste repositório.
+- Be2Beauty: https://www.be2beauty.com.br. Publicado pela branch gh-pages do
+  repositório MauricioSUprir/Be2Beauty, com o mesmo código daqui.
+- Servidor: Render (plano gratuito), branch claude/beauty-now-ecommerce-fbfxh2,
+  pasta apps/servidor.
+- Catálogo do Hub sincronizado por robô diário (estoque também ao vivo pelo servidor).
+- Pagamento pelo Mercado Pago, faturamento no Bling e e-mail pelo Brevo.
+- Dados no Supabase, com backup versionado neste repositório.
+- Google: Analytics e Tag Manager (só depois do aceite de cookies), Search Console
+  dos dois domínios e feed do Merchant Center.
+- Build sem depender do Google Fonts: as fontes estão em
+  apps/storefront/src/app/fontes, sob licença OFL.
 
-## Pendências leves (quando quiser)
-- [ ] Regenerar o Client Secret do Bling (passou pelo chat) e atualizar no Render
-- [ ] Estornar a compra-teste no painel do Mercado Pago
+## Revisão da agência (em andamento)
+
+- [x] Fase 0: raio-x do projeto (11/11/2026, relatório entregue em particular)
+- [ ] Fase 1: auditoria de backend, frontend, infraestrutura e segurança (aguardando OK)
+- [ ] Fase 2: seção de creators na home (proposta em docs/12-creators.md antes de programar)
+- [ ] Fase 3: frete real (proposta em docs/13-frete.md antes de programar)
+
+## Pendências operacionais
+
+- [ ] 1 pedido pago aguardando entrada no Bling por endereço com estado inválido
+      (correção proposta, aguardando aprovação)
+- [ ] Merchant Center: confirmar o site, configurar frete e devolução, cadastrar
+      o feed (BeautyNow), e criar a conta da Be2Beauty
+- [ ] Google Meu Negócio: verificação e preenchimento do perfil
+- [ ] Acesso da agência às ferramentas do Google
+- [ ] Documentação desatualizada. O CLAUDE.md (seção 3) e os arquivos docs/02, 04,
+      05, 06 e 09 descrevem a arquitetura planejada (Medusa, Postgres,
+      Meilisearch, n8n, Melhor Envio, VPS), não a que está no ar.
+- [ ] .env.example sem algumas variáveis que o servidor usa
+
+## Pendências que precisam do responsável pelas contas
+
+- [ ] Regenerar o Client Secret do Bling e atualizar no Render
+- [ ] Estornar a compra-teste no painel do Mercado Pago (conferir se ainda está aberta)
 - [ ] Atualizar a URL da loja no cadastro do app do Mercado Pago
-- [ ] Google Search Console (adiado a pedido do Mauricio)
+- [ ] Decidir o plano do servidor (hoje é o gratuito)
+
+## Conteúdo
+
 - [ ] Logos maiores de Batiste, Latika, Mawwal e Reyou (página /enviar-logos)
 - [ ] Descrições completas dos produtos (exportador ?modo=completo)
-- [ ] Revisão dos textos legais (privacidade/trocas/termos) — docs/08
+- [ ] Revisão dos textos legais (privacidade, trocas, termos): docs/08
