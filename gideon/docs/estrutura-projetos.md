@@ -183,7 +183,7 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 ## 8. VOICE OS — controle por voz
 
 **8.1 Ouvir**
-- ⬜ Palavra de ativação "GIDEON" (openWakeWord, local, grátis)
+- 🟡 Palavra de ativação "GIDEON" no GIDEON Home: botão "🎙️ Mãos livres" (reconhecimento de voz do Chrome/Edge, grátis; o que vem depois do nome já vai como pedido; 15 s sem fala volta a esperar o nome). Falta o teste do dono. Versão 100% local (openWakeWord) fica para depois
 - ⬜ Transcrição local (whisper.cpp)
 - 🟡 Áudio do Telegram: transcreve a mensagem de voz e responde como se fosse texto (falta o teste do dono)
 

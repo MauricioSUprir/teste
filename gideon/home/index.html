@@ -47,7 +47,8 @@
   button.sair { background:none; border:1px solid #1c2a3a; color:var(--suave); border-radius:999px; padding:6px 12px; font-size:12px; }
   /* cartões: o que ela consultou ou fez por voz aparece também na tela */
   #topo-dir { display:flex; align-items:center; gap:10px; }
-  #btnHist { background:rgba(10,18,28,.7); border:1px solid #1c3a52; color:#8fd8ff; border-radius:999px; padding:5px 11px; font-size:12px; cursor:pointer; }
+  #btnMaos[aria-pressed="true"] { background:#0d3a52; border-color:#27c4ff; color:#fff; }
+  #btnHist, #btnMaos { background:rgba(10,18,28,.7); border:1px solid #1c3a52; color:#8fd8ff; border-radius:999px; padding:5px 11px; font-size:12px; cursor:pointer; }
   #cartoes { position:fixed; z-index:5; right:16px; top:56px; width:min(340px, 32vw); max-height:calc(100vh - 220px); overflow-y:auto; display:flex; flex-direction:column; gap:10px; scrollbar-width:thin; }
   .cartao { background:rgba(6,14,24,.82); border:1px solid rgba(60,170,255,.35); border-radius:12px; padding:10px 12px; box-shadow:0 0 18px rgba(30,140,255,.15); backdrop-filter:blur(4px); animation:entra .35s ease; }
   .cartao.some { opacity:0; transform:translateX(12px); transition:all .4s; }
@@ -83,7 +84,7 @@
 </head>
 <body>
 <main>
-  <header><h1>GIDEON</h1><div id="topo-dir"><button id="btnHist" aria-label="Ver histórico das conversas">🕘 Histórico</button><div id="estado">desligado</div></div></header>
+  <header><h1>GIDEON</h1><div id="topo-dir"><button id="btnMaos" aria-pressed="false" title="Ligado: diga &quot;GIDEON&quot; para chamar, sem tocar na tela. O reconhecimento de voz do navegador ouve até você chamar.">🎙️ Mãos livres</button><button id="btnHist" aria-label="Ver histórico das conversas">🕘 Histórico</button><div id="estado">desligado</div></div></header>
   <div id="diag" hidden></div>
   <select id="mics" hidden aria-label="Microfone"></select>
   <section id="palco" role="button" aria-label="Toque para falar com o GIDEON"><canvas id="orbe" width="800" height="800" aria-hidden="true"></canvas><div id="dica">Toque para conversar</div><div id="barra"><i id="nivel"></i></div></section>
@@ -387,10 +388,14 @@ async function ligar() {
         setTimeout(() => { if (sessao === sessaoAtual && !diag.falaReconhecida) { evento("nenhuma fala reconhecida em 25s"); enviarDiag("nenhuma fala reconhecida"); } }, 25000);
         noMic.port.onmessage = (e) => { nivelMic = e.data.nivel; diag.nivelMax = Math.max(diag.nivelMax, nivelMic); $("nivel").style.width = Math.min(100, nivelMic * 900) + "%"; if (ws?.readyState === 1) { diag.enviado += e.data.pcm.byteLength; ws.send(JSON.stringify({ realtimeInput: { audio: { data: paraBase64(e.data.pcm), mimeType: "audio/pcm;rate=16000" } } })); } };
         mudar("ouvindo", "Pode falar · toque para encerrar");
+        ultimaAtividade = Date.now();
+        if (pedidoInicial) { const p = pedidoInicial; pedidoInicial = ""; diag.falaReconhecida = true; turno.inicio = Date.now(); turno.dono = p; legenda("ultDono", p); mudar("pensando", "Pensando…"); avisarModelo(p); } // "GIDEON, que horas são?": o resto da frase vai direto
+        else if (porChamado) mudar("ouvindo", "Sim? Pode falar");
         try { travaTela = await navigator.wakeLock?.request("screen"); } catch {}
       }
       const sc = m.serverContent;
       if (sc) {
+        if (sc.inputTranscription?.text || sc.outputTranscription?.text || sc.modelTurn) ultimaAtividade = Date.now();
         if (sc.interrupted) { calar(); mudar("ouvindo", "Pode falar"); }
         if (sc.inputTranscription?.text) { if (!diag.falaReconhecida) evento("fala reconhecida"); diag.falaReconhecida = true; if (!turno.inicio) turno.inicio = Date.now(); turno.dono += sc.inputTranscription.text; legenda("ultDono", turno.dono.trim()); }
         if (sc.outputTranscription?.text) { turno.gideon += sc.outputTranscription.text; legenda("ultGideon", turno.gideon.trim()); }
@@ -398,7 +403,7 @@ async function ligar() {
         if (sc.turnComplete) { diag.respostas++; evento("resposta completa"); if (diag.respostas === 1) enviarDiag("primeira resposta ok", true); guardarTurno(); }
       }
       if (m.toolCall) {
-        mudar("pensando", "Pensando…");
+        mudar("pensando", "Pensando…"); ultimaAtividade = Date.now();
         const respostas = [];
         for (const fc of m.toolCall.functionCalls ?? []) {
           turno.ferramentas.push(fc.name);
@@ -424,15 +429,71 @@ function desligar(dica) {
   ctxMic = ctxVoz = analisador = noMic = fluxo = fonteMic = null; nivelMic = nivelVoz = 0;
   try { travaTela?.release(); } catch {} travaTela = null;
   mudar("desligado", dica ?? "Toque para conversar");
+  porChamado = false; pedidoInicial = ""; // pedido que não chegou a ser enviado não fica guardado para depois
+  if (maosLivres) setTimeout(ouvirChamado, 700); // volta a esperar o "GIDEON"
+}
+function comecar() {
+  pararChamado();
+  // O Chrome só libera áudio criado no momento do toque (ou depois de um toque na página): crie e retome aqui, antes de qualquer espera.
+  ctxVoz = new AudioContext({ sampleRate: 24000 }); ctxMic = new AudioContext();
+  ctxVoz.resume(); ctxMic.resume();
+  ligar();
 }
 $("palco").addEventListener("click", () => {
-  if (estado === "desligado" || estado === "erro") {
-    // O Chrome só libera áudio criado no momento do toque: crie e retome aqui, antes de qualquer espera.
-    ctxVoz = new AudioContext({ sampleRate: 24000 }); ctxMic = new AudioContext();
-    ctxVoz.resume(); ctxMic.resume();
-    ligar();
-  } else desligar();
+  if (estado === "desligado" || estado === "erro" || estado === "esperando") { porChamado = false; comecar(); }
+  else desligar();
 });
+
+// ---------- mãos livres: diga "GIDEON" para chamar (reconhecimento de voz do próprio navegador; Chrome e Edge) ----------
+// Só ouve o nome; a conversa continua pela voz da GIDEON. Desligado, nada fica ouvindo. Sem fala por 15 s, volta a esperar o nome.
+const Reconhecedor = window.SpeechRecognition || window.webkitSpeechRecognition;
+const CHAMADO = /\b(gideon|guideon|gidion|guidion|gideao|gedeao|gidiom|gideom|gidean|guidean|jideon|gedeon|guedeon|gidon)\b/;
+let maosLivres = false, rec = null, recAtivo = false, pedidoInicial = "", porChamado = false, ultimaAtividade = 0, falhasRec = 0;
+const semAcento = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+function salvarMaos() { try { localStorage.setItem("gideon_maos", maosLivres ? "1" : "0"); } catch {} }
+function botaoMaos() { const b = $("btnMaos"); b.setAttribute("aria-pressed", String(maosLivres)); b.textContent = maosLivres ? "🎙️ Mãos livres: ligado" : "🎙️ Mãos livres"; }
+function pararChamado() { const r = rec; rec = null; recAtivo = false; try { r?.abort(); } catch {} }
+function ouvirChamado() {
+  if (!maosLivres || recAtivo || !Reconhecedor || !["desligado", "erro", "esperando"].includes(estado)) return;
+  const r = new Reconhecedor(); rec = r;
+  r.lang = "pt-BR"; r.continuous = true; r.interimResults = false;
+  r.onresult = (e) => {
+    falhasRec = 0;
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      const original = e.results[i][0].transcript, m = semAcento(original).match(CHAMADO);
+      if (!m) continue;
+      pedidoInicial = original.slice(m.index + m[0].length).replace(/^[\s,.!?:;-]+/, "").trim();
+      pararChamado(); porChamado = true; ultimaAtividade = Date.now(); comecar(); return;
+    }
+  };
+  r.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") { maosLivres = false; salvarMaos(); botaoMaos(); mudar("desligado", "O navegador bloqueou o microfone para o mãos livres: permita no cadeado ao lado do endereço"); }
+    else if (e.error === "network") falhasRec++;
+  };
+  r.onend = () => { if (rec !== r) return; recAtivo = false; rec = null; if (maosLivres && estado === "esperando") setTimeout(ouvirChamado, Math.min(10000, 300 + falhasRec * 2000)); }; // o navegador para sozinho de tempos em tempos: recomeça
+  try { r.start(); recAtivo = true; mudar("esperando", 'Diga "GIDEON" para chamar · ou toque'); } catch { recAtivo = false; rec = null; }
+}
+setInterval(() => { // conversa aberta pelo nome e ninguém falou por 15 s: fecha e volta a esperar o "GIDEON"
+  if (maosLivres && porChamado && ws && estado === "ouvindo" && !fontes.length && Date.now() - ultimaAtividade > 15000) desligar('Diga "GIDEON" para chamar');
+}, 2000);
+$("btnMaos").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!Reconhecedor) { mudar(estado, "Este navegador não reconhece voz: use o Chrome ou o Edge"); return; }
+  maosLivres = !maosLivres; salvarMaos(); botaoMaos();
+  if (maosLivres) ouvirChamado();
+  else { pararChamado(); if (estado === "esperando") mudar("desligado", "Toque para conversar"); }
+});
+try { // estava ligado da última vez: liga de novo no primeiro toque (o navegador só libera o som depois de um toque)
+  if (Reconhecedor && localStorage.getItem("gideon_maos") === "1") {
+    $("dica").textContent = "Toque em qualquer lugar para voltar ao mãos livres";
+    document.addEventListener("pointerdown", function primeiroToque(ev) {
+      document.removeEventListener("pointerdown", primeiroToque);
+      if (ev.target.closest("#btnMaos, #palco")) return; // o próprio botão ou o palco decidem
+      maosLivres = true; botaoMaos(); ouvirChamado();
+    });
+  }
+} catch {}
 </script>
 <script type="module">
 import { iniciarRosto } from "./rosto.js";
