@@ -17,6 +17,7 @@
 //   POST /gideon/celular         ← atalho GIDEON do iPhone: { texto } → { fala, abrir } (cabeçalho x-gideon-celular)
 //   POST /gideon/pc-teste        ← testa uma ferramenta do PC sem passar pelo modelo { nome, args } (x-gideon-chave)
 //   POST /gideon/memoria-claude  ← o que o dono combinou com o Claude vira nota na memória { notas: [{ titulo, texto }], substituir? } (x-gideon-chave)
+//   POST /gideon/equipe-passo    ← equipe de agentes: roda a próxima tarefa ou fecha a missão { esperar? } (x-gideon-chave; o agendador chama a cada minuto se há missão andando)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, chaveGemini, config, dispararLembretes, executar, gerar, guardarMemoria, relatorioSemanal, responderTelegram, sb, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
@@ -29,6 +30,7 @@ import { indexar } from "./indexador.ts";
 import { lerPagina, pesquisarWeb } from "./pesquisa.ts";
 import { responderPrivado, rotaPC, tokenPC } from "./pc.ts";
 import { rotaCelular, tokenCelular } from "./celular.ts";
+import { equipePasso, textoPainel } from "./equipe.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -70,6 +72,19 @@ Deno.serve(async (req) => {
           await telegram("sendMessage", { chat_id: m.chat.id, text: `📱 GIDEON no iPhone${guia ? `\nPasso a passo: ${guia}` : ""}\n\nNa próxima mensagem vai a chave do celular (vale 1 ano — não compartilhe). Copie e cole no atalho, no campo x-gideon-celular.` });
           await telegram("sendMessage", { chat_id: m.chat.id, text: chave });
         })().catch(() => {}));
+        return json({ ok: true });
+      }
+      if (/^\/equipe\b/i.test(texto.trim())) { // painel da equipe de agentes: o que cada um está fazendo
+        EdgeRuntime.waitUntil((async () => {
+          const { data: ms } = await sb.from("gideon_equipe_missoes").select("*").neq("canal", "sistema").order("id", { ascending: false }).limit(3);
+          const ativas = (ms ?? []).filter((x) => ["aguardando_ok", "executando", "revisando"].includes(x.status));
+          const mostrar = ativas.length ? ativas : (ms ?? []).slice(0, 1);
+          if (!mostrar.length) { await telegram("sendMessage", { chat_id: m.chat.id, text: "👥 A equipe ainda não fez nenhum trabalho. Peça algo grande, por exemplo: \"chama a equipe para comparar 3 notebooks até 4 mil reais e me recomendar um\"." }); return; }
+          for (const x of mostrar.reverse()) {
+            const { data: t } = await sb.from("gideon_equipe_tarefas").select("ordem, agente, titulo, status").eq("missao_id", x.id).order("ordem");
+            await telegram("sendMessage", { chat_id: m.chat.id, text: textoPainel(x, t ?? []) + (cfg.home_url ? `\n\nPainel: ${cfg.home_url.replace(/\/+$/, "")}/equipe.html` : "") });
+          }
+        })().catch((e) => console.error("/equipe:", e)));
         return json({ ok: true });
       }
       const privado = texto.trim().match(/^\/?privad[oa]\b[\s:,.-]*/i);
@@ -130,7 +145,13 @@ Deno.serve(async (req) => {
       const r = await (b.url ? lerPagina(String(b.url)) : pesquisarWeb(String(b.pergunta ?? ""), b.cache === true, { modelos: Array.isArray(b.modelos) ? b.modelos.map(String) : undefined, modo: b.modo ? String(b.modo) : undefined })).catch((e) => ({ erro: String((e as Error).message ?? e).slice(0, 1500) }));
       return json(r);
     }
-    if (rota === "pc-teste") { // teste direto das ferramentas do PC: { nome, args }
+    if (rota === "equipe-passo") { // um passo da equipe; responde já e trabalha em segundo plano (esperar=true só nos testes)
+      const b = await req.json().catch(() => ({}));
+      if (b.esperar) return json(await equipePasso());
+      EdgeRuntime.waitUntil(equipePasso().catch((e) => console.error("equipe:", e)));
+      return json({ ok: true });
+    }
+    if (rota === "pc-teste" || rota === "ferramenta-teste") { // teste direto das ferramentas do PC: { nome, args }
       const b = await req.json().catch(() => ({}));
       return json(await executar(String(b.nome), b.args ?? {}, "sistema").catch((e) => ({ erro: String((e as Error).message ?? e) })));
     }

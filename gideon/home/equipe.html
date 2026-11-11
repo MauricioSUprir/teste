@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipe da GIDEON</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="icone.svg">
+<style>
+  :root { --fundo:#04060c; --cartao:#0a111c; --borda:#1d2a3c; --texto:#d8f3ff; --suave:#6f8ba3; --destaque:#8fd8ff; --link:#27c4ff; --ok:#6ee7a8; --aviso:#ffcf6e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fundo); color:var(--texto); font:16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:20px 16px 64px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:22px; color:var(--destaque); margin:0; letter-spacing:.04em; }
+  a { color:var(--link); }
+  .suave { color:var(--suave); font-size:14px; }
+  .missao { background:var(--cartao); border:1px solid var(--borda); border-radius:14px; padding:14px 16px; margin:14px 0; }
+  .missao h2 { font-size:17px; margin:0 0 2px; color:var(--texto); }
+  .chip { display:inline-block; font-size:12px; border:1px solid var(--borda); border-radius:999px; padding:1px 9px; margin-left:6px; color:var(--destaque); vertical-align:middle; }
+  .chip.ativa { border-color:var(--aviso); color:var(--aviso); }
+  .chip.pronta { border-color:var(--ok); color:var(--ok); }
+  ol.tarefas { list-style:none; padding:0; margin:10px 0 6px; }
+  ol.tarefas li { display:flex; gap:8px; padding:5px 0; border-top:1px solid #111c2b; }
+  ol.tarefas li:first-child { border-top:0; }
+  .agente { color:var(--destaque); white-space:nowrap; }
+  .executando { animation:pisca 1.2s ease-in-out infinite; }
+  @keyframes pisca { 50% { opacity:.45; } }
+  button { background:#10314a; color:var(--texto); border:1px solid #1c3a52; border-radius:10px; padding:7px 12px; font:inherit; font-size:14px; cursor:pointer; }
+  #detalhe { margin-top:8px; }
+  #detalhe h1 { font-size:20px; } #detalhe h2, #detalhe h3, #detalhe h4 { color:var(--destaque); margin-top:22px; }
+  #detalhe pre { background:#0b1320; border:1px solid var(--borda); border-radius:8px; padding:12px; overflow-x:auto; font-size:13px; }
+  #detalhe details { background:var(--cartao); border:1px solid var(--borda); border-radius:10px; padding:8px 12px; margin:10px 0; }
+  #detalhe summary { cursor:pointer; font-weight:600; }
+  #detalhe .tab { overflow-x:auto; } #detalhe table { border-collapse:collapse; } #detalhe td, #detalhe th { border:1px solid var(--borda); padding:6px 8px; text-align:left; }
+  #detalhe a { word-break:break-all; }
+  .vazio { color:var(--suave); padding:24px 0; }
+  .erro { color:var(--aviso); }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>👥 EQUIPE DA GIDEON</h1><a href="./" class="suave">← voltar ao GIDEON Home</a></header>
+  <p class="suave">O que cada agente está fazendo. Para chamar a equipe, peça à GIDEON (Telegram, voz ou iPhone): "chama a equipe para…". Ela mostra o plano e só começa depois do seu OK.</p>
+  <div id="lista"><div class="vazio">Carregando…</div></div>
+  <section id="detalhe" hidden></section>
+</main>
+<script>
+const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, filhos = []) => { const e = Object.assign(document.createElement(tag), props); e.append(...filhos); return e; };
+const STATUS = { aguardando_ok: "esperando seu OK", executando: "trabalhando", revisando: "revisor conferindo", pronta: "pronta", erro: "parou com erro", cancelada: "cancelada" };
+const ICONE = { pendente: "⬜", executando: "⏳", feita: "✅", erro: "⚠️" };
+let chave = null;
+try {
+  const h = new URLSearchParams(location.hash.slice(1)).get("t");
+  if (h) { localStorage.setItem("gideon_home", h); history.replaceState(null, "", location.pathname); }
+  chave = localStorage.getItem("gideon_home");
+} catch { chave = new URLSearchParams(location.hash.slice(1)).get("t"); }
+
+async function api(rota, corpo) {
+  const r = await fetch(FUNC + rota, { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave || "" }, body: JSON.stringify(corpo ?? {}) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error("Acesso negado: mande /home no Telegram e abra o link pessoal uma vez neste aparelho.");
+  if (!r.ok) throw new Error(j.erro || ("erro " + r.status));
+  return j;
+}
+const quando = (iso) => iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+let aberta = null, timer = null;
+
+function cartao(m, agentes) {
+  const ativa = ["executando", "revisando"].includes(m.status);
+  const chip = el("span", { className: "chip" + (ativa || m.status === "aguardando_ok" ? " ativa" : m.status === "pronta" ? " pronta" : ""), textContent: STATUS[m.status] || m.status });
+  const tarefas = el("ol", { className: "tarefas" }, m.tarefas.map((t) => el("li", { className: t.status === "executando" ? "executando" : "" }, [
+    el("span", { textContent: ICONE[t.status] || "⬜" }),
+    el("span", { className: "agente", textContent: `${agentes[t.agente]?.icone || ""} ${agentes[t.agente]?.nome || t.agente}` }),
+    el("span", { textContent: t.titulo }),
+  ])));
+  const rev = m.status === "revisando" ? "⏳" : m.status === "pronta" ? "✅" : "⬜";
+  tarefas.append(el("li", { className: m.status === "revisando" ? "executando" : "" }, [el("span", { textContent: rev }), el("span", { className: "agente", textContent: "🧐 Revisor final" }),
+    el("span", { textContent: m.nota != null ? `nota ${m.nota}/10` : "confere tudo no fim" })]));
+  const info = `missão #${m.id} · pedida ${quando(m.criado_em)}${m.concluido_em ? " · terminou " + quando(m.concluido_em) : ""}${m.rodadas ? " · o revisor pediu uma correção" : ""}`;
+  const botao = el("button", { textContent: aberta === m.id ? "Fechar o trabalho" : "Ver o trabalho completo", onclick: () => abrir(m.id) });
+  return el("div", { className: "missao" }, [el("h2", {}, [m.titulo || "Missão", chip]), el("div", { className: "suave", textContent: info }), tarefas, botao]);
+}
+
+async function carregar() {
+  clearTimeout(timer);
+  try {
+    const { missoes, agentes } = await api("home-equipe");
+    const lista = $("lista");
+    lista.replaceChildren(...(missoes.length ? missoes.map((m) => cartao(m, agentes)) : [el("div", { className: "vazio", textContent: "A equipe ainda não fez nenhum trabalho." })]));
+    const algumaAtiva = missoes.some((m) => ["executando", "revisando"].includes(m.status));
+    if (aberta && missoes.some((m) => m.id === aberta && ["executando", "revisando"].includes(m.status))) mostrar(aberta);
+    timer = setTimeout(carregar, algumaAtiva ? 5000 : 30000);
+  } catch (e) {
+    $("lista").replaceChildren(el("div", { className: "vazio erro", textContent: e.message }));
+    timer = setTimeout(carregar, 30000);
+  }
+}
+async function mostrar(id) {
+  try {
+    const r = await api("home-equipe", { missao_id: id });
+    $("detalhe").innerHTML = r.html; // HTML montado pela GIDEON com o texto já escapado
+  } catch (e) { $("detalhe").replaceChildren(el("p", { className: "erro", textContent: e.message })); }
+}
+async function abrir(id) {
+  if (aberta === id) { aberta = null; $("detalhe").hidden = true; carregar(); return; }
+  aberta = id; $("detalhe").hidden = false; $("detalhe").replaceChildren(el("p", { className: "suave", textContent: "Carregando o trabalho…" }));
+  await mostrar(id);
+  carregar();
+  $("detalhe").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+if (!chave || Number(chave.split(".")[0]) < Date.now()) $("lista").replaceChildren(el("div", { className: "vazio erro", textContent: "Para ver o painel, mande /home no Telegram e abra o link pessoal uma vez neste aparelho; depois volte aqui." }));
+else carregar();
+</script>
+</body>
+</html>

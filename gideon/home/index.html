@@ -48,7 +48,8 @@
   /* cartões: o que ela consultou ou fez por voz aparece também na tela */
   #topo-dir { display:flex; align-items:center; gap:10px; }
   #btnMaos[aria-pressed="true"] { background:#0d3a52; border-color:#27c4ff; color:#fff; }
-  #btnHist, #btnMaos { background:rgba(10,18,28,.7); border:1px solid #1c3a52; color:#8fd8ff; border-radius:999px; padding:5px 11px; font-size:12px; cursor:pointer; }
+  #btnEquipe { text-decoration:none; }
+  #btnHist, #btnMaos, #btnEquipe { background:rgba(10,18,28,.7); border:1px solid #1c3a52; color:#8fd8ff; border-radius:999px; padding:5px 11px; font-size:12px; cursor:pointer; }
   #cartoes { position:fixed; z-index:5; right:16px; top:56px; width:min(340px, 32vw); max-height:calc(100vh - 220px); overflow-y:auto; display:flex; flex-direction:column; gap:10px; scrollbar-width:thin; }
   .cartao { background:rgba(6,14,24,.82); border:1px solid rgba(60,170,255,.35); border-radius:12px; padding:10px 12px; box-shadow:0 0 18px rgba(30,140,255,.15); backdrop-filter:blur(4px); animation:entra .35s ease; }
   .cartao.some { opacity:0; transform:translateX(12px); transition:all .4s; }
@@ -84,7 +85,7 @@
 </head>
 <body>
 <main>
-  <header><h1>GIDEON</h1><div id="topo-dir"><button id="btnMaos" aria-pressed="false" title="Ligado: diga &quot;GIDEON&quot; para chamar, sem tocar na tela. O reconhecimento de voz do navegador ouve até você chamar.">🎙️ Mãos livres</button><button id="btnHist" aria-label="Ver histórico das conversas">🕘 Histórico</button><div id="estado">desligado</div></div></header>
+  <header><h1>GIDEON</h1><div id="topo-dir"><button id="btnMaos" aria-pressed="false" title="Ligado: diga &quot;GIDEON&quot; para chamar, sem tocar na tela. O reconhecimento de voz do navegador ouve até você chamar.">🎙️ Mãos livres</button><button id="btnHist" aria-label="Ver histórico das conversas">🕘 Histórico</button><a id="btnEquipe" href="equipe.html" title="O que a equipe de agentes está fazendo">👥 Equipe</a><div id="estado">desligado</div></div></header>
   <div id="diag" hidden></div>
   <select id="mics" hidden aria-label="Microfone"></select>
   <section id="palco" role="button" aria-label="Toque para falar com o GIDEON"><canvas id="orbe" width="800" height="800" aria-hidden="true"></canvas><div id="dica">Toque para conversar</div><div id="barra"><i id="nivel"></i></div></section>
@@ -285,6 +286,7 @@ async function abrirHistorico() {
   } catch (e) { lista.replaceChildren(el("div", { className: "vazio", textContent: "Não consegui carregar: " + e.message })); }
 }
 $("btnHist").addEventListener("click", (e) => { e.stopPropagation(); abrirHistorico(); });
+$("btnEquipe").addEventListener("click", (e) => e.stopPropagation()); // só abre o painel, não liga a conversa
 $("fecharHist").addEventListener("click", () => $("historico").classList.remove("on"));
 
 // ---------- conversa ----------

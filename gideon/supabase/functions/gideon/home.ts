@@ -6,6 +6,7 @@ import { FERRAMENTAS_WHATS } from "./whatsapp.ts";
 import { atenderArquivo } from "./arquivos.ts";
 import { FERRAMENTAS_PESQUISA } from "./pesquisa.ts";
 import { FERRAMENTAS_PC } from "./pc.ts";
+import { AGENTES, corpoEquipe, FERRAMENTAS_EQUIPE } from "./equipe.ts";
 
 export const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-gideon-home", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json", ...CORS } });
@@ -49,7 +50,7 @@ export async function rotaHome(rota: string, req: Request) {
     const recentes = (hist ?? []).reverse().map((m) => `${m.papel === "user" ? "Dono" : "GIDEON"}: ${m.texto}`).join("\n");
     const sistema = PROMPT + VOZ + `\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília).` + (recentes ? `\n\nÚltimas falas por voz (contexto):\n${recentes}` : "");
     const voz = cfg.voz_gideon || "Kore"; // voz feminina (decisão 013)
-    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC];
+    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...FERRAMENTAS_EQUIPE];
     // A configuração inteira vai DENTRO da senha temporária: com ela, o Google ignora o setup enviado pelo navegador
     // (sem isso o modelo falava como "Gemini", sem o prompt do GIDEON e sem ferramentas). Também impede que a senha seja usada para outra coisa.
     const setup = {
@@ -102,6 +103,20 @@ export async function rotaHome(rota: string, req: Request) {
       .order("criado_em", { ascending: false }).limit(Math.min(Math.max(Number(b.limite) || 40, 1), 100));
     if (error) return json({ erro: error.message }, 500);
     return json({ mensagens: (data ?? []).reverse() });
+  }
+  if (rota === "home-equipe") { // painel da equipe: missões recentes e o que cada agente está fazendo; com missao_id, o trabalho completo em HTML
+    const b = await req.json().catch(() => ({}));
+    if (b.missao_id) {
+      const { data: m } = await sb.from("gideon_equipe_missoes").select("*").eq("id", Number(b.missao_id)).maybeSingle();
+      if (!m) return json({ erro: "missão não encontrada" }, 404);
+      const { data: t } = await sb.from("gideon_equipe_tarefas").select("*").eq("missao_id", m.id).order("ordem");
+      return json({ id: m.id, status: m.status, html: corpoEquipe(m, t ?? []) });
+    }
+    const { data: ms } = await sb.from("gideon_equipe_missoes").select("id, titulo, objetivo, status, rodadas, revisao, criado_em, aprovado_em, concluido_em, tokens_entrada, tokens_saida")
+      .neq("canal", "sistema").order("id", { ascending: false }).limit(10);
+    const ids = (ms ?? []).map((x) => x.id);
+    const { data: ts } = ids.length ? await sb.from("gideon_equipe_tarefas").select("missao_id, ordem, agente, titulo, status, inicio, fim").in("missao_id", ids).order("ordem") : { data: [] };
+    return json({ agentes: AGENTES, missoes: (ms ?? []).map((x) => ({ ...x, nota: x.revisao?.nota ?? null, revisao: undefined, tarefas: (ts ?? []).filter((t) => t.missao_id === x.id) })) });
   }
   if (rota === "home-diagnostico") {
     const b = await req.json().catch(() => ({}));
