@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Inter, Jost, Michroma, Saira } from "next/font/google";
+import localFont from "next/font/local";
 import { B2BProvider } from "@/lib/b2b/contexto";
 import { CarrinhoProvider } from "@/lib/carrinho/contexto";
 import { ContaProvider } from "@/lib/conta/contexto";
@@ -13,27 +13,37 @@ import { Rastreio } from "@/components/rastreio/Rastreio";
 import { SincronizaEstoque } from "@/components/layout/SincronizaEstoque";
 import "./globals.css";
 
+// As fontes ficam DENTRO do projeto (pasta fontes/, licença OFL): o build não
+// depende mais do Google Fonts, que às vezes devolve resposta quebrada para o
+// robô de sincronização e derrubava a publicação diária. São os mesmos
+// arquivos (subconjunto latin) que o next/font/google baixava.
+
 // fonte do design system (BeautyNow e Be2Beauty): 400 corpo, 500 nav/botão,
 // 700 marca e preço, 900 display. Pulse e Bradeco usam a própria.
-const jost = Jost({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
+// os pesos ficam separados (e não "400 900") como o Google entregava: assim o
+// semibold (600) continua saindo como 700, igual ao que está no ar
+const jost = localFont({
+  src: [
+    { path: "./fontes/jost-latin.woff2", weight: "400", style: "normal" },
+    { path: "./fontes/jost-latin.woff2", weight: "500", style: "normal" },
+    { path: "./fontes/jost-latin.woff2", weight: "700", style: "normal" },
+    { path: "./fontes/jost-latin.woff2", weight: "900", style: "normal" },
+  ],
   variable: "--font-jost",
   display: "swap",
   // pré-carregada: é a fonte da loja principal (o next/font só aceita valor
   // literal aqui, então não dá para ligar só na BeautyNow)
 });
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: [{ path: "./fontes/inter-latin.woff2", weight: "100 900", style: "normal" }],
   variable: "--font-inter",
   display: "swap",
 });
 
 // fonte display da PULSE (geométrica, minimalista) — as outras lojas não a usam
-const archivo = Archivo({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const archivo = localFont({
+  src: [{ path: "./fontes/archivo-latin.woff2", weight: "500 700", style: "normal" }],
   variable: "--font-archivo",
   display: "swap",
   // só a loja dona dessa fonte a usa: sem preload nas outras
@@ -42,9 +52,8 @@ const archivo = Archivo({
 
 // fonte display da BRADECO — larga, geométrica e técnica, como o logo da
 // distribuidora; serve também para os preços
-const saira = Saira({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const saira = localFont({
+  src: [{ path: "./fontes/saira-latin.woff2", weight: "500 700", style: "normal" }],
   variable: "--font-saira",
   display: "swap",
   // só a loja dona dessa fonte a usa: sem preload nas outras
@@ -52,9 +61,8 @@ const saira = Saira({
 });
 
 // fonte do logo da BRADECO: larga e quadrada, como o wordmark da marca
-const michroma = Michroma({
-  subsets: ["latin"],
-  weight: ["400"],
+const michroma = localFont({
+  src: [{ path: "./fontes/michroma-latin.woff2", weight: "400", style: "normal" }],
   variable: "--font-michroma",
   display: "swap",
   // só a loja dona dessa fonte a usa: sem preload nas outras
