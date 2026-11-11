@@ -18,6 +18,7 @@
 //   POST /gideon/pc-teste        ← testa uma ferramenta do PC sem passar pelo modelo { nome, args } (x-gideon-chave)
 //   POST /gideon/memoria-claude  ← o que o dono combinou com o Claude vira nota na memória { notas: [{ titulo, texto }], substituir? } (x-gideon-chave)
 //   POST /gideon/equipe-passo    ← equipe de agentes: roda a próxima tarefa ou fecha a missão { esperar? } (x-gideon-chave; o agendador chama a cada minuto se há missão andando)
+//   POST /gideon/testes-rodar | testes-passo ← bateria de testes automáticos { motivo? } e um passo dela { esperar? } (x-gideon-chave; agendador)
 //   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, chaveGemini, config, dispararLembretes, executar, gerar, guardarMemoria, relatorioSemanal, responderTelegram, sb, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
@@ -31,6 +32,7 @@ import { lerPagina, pesquisarWeb } from "./pesquisa.ts";
 import { responderPrivado, rotaPC, tokenPC } from "./pc.ts";
 import { rotaCelular, tokenCelular } from "./celular.ts";
 import { equipePasso, textoPainel } from "./equipe.ts";
+import { testesPasso, testesRodar } from "./testes.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
 const segredoWebhook = async () => (await sha256(tokenTelegram() + ":gideon-webhook")).slice(0, 64);
@@ -149,6 +151,16 @@ Deno.serve(async (req) => {
       const b = await req.json().catch(() => ({}));
       if (b.esperar) return json(await equipePasso());
       EdgeRuntime.waitUntil(equipePasso().catch((e) => console.error("equipe:", e)));
+      return json({ ok: true });
+    }
+    if (rota === "testes-rodar") { // pg_cron (domingo) ou manual: começa uma bateria de testes
+      const b = await req.json().catch(() => ({}));
+      return json(await testesRodar(b.motivo === "manual" ? "manual" : "semanal"));
+    }
+    if (rota === "testes-passo") { // roda os próximos testes (responde já; esperar=true só nos testes)
+      const b = await req.json().catch(() => ({}));
+      if (b.esperar) return json(await testesPasso());
+      EdgeRuntime.waitUntil(testesPasso().catch((e) => console.error("testes:", e)));
       return json({ ok: true });
     }
     if (rota === "pc-teste" || rota === "ferramenta-teste") { // teste direto das ferramentas do PC: { nome, args }

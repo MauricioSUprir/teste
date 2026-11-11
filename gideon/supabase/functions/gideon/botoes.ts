@@ -1,6 +1,7 @@
 // GIDEON — botões do Telegram: 👍/👎 (a resposta ajudou?) e ✅ Aprovar / ❌ Negar (ações que pedem OK do dono).
 import { executar, sb, telegram } from "./core.ts";
 import { cancelarMissao } from "./equipe.ts";
+import { recusarMelhoria } from "./testes.ts";
 
 // Aprovar ou negar um pedido da fila (gideon_aprovacoes). Só executa uma vez, mesmo com dois toques.
 export async function resolverAprovacao(id: number, aprovar: boolean, via: string) {
@@ -17,6 +18,7 @@ export async function resolverAprovacao(id: number, aprovar: boolean, via: strin
   if (!aprovar) {
     const det = (ap.detalhes ?? {}) as { args?: Record<string, unknown> };
     if (ap.acao === "equipe_iniciar" && det.args?.missao_id) await cancelarMissao(Number(det.args.missao_id), via).catch(() => {}); // plano negado: a missão não fica esperando
+    if (ap.acao === "melhoria_ativar" && det.args?.melhoria_id) await recusarMelhoria(Number(det.args.melhoria_id), via).catch(() => {});
     return { texto: `❌ Cancelado: ${ap.descricao}` };
   }
   const d = (ap.detalhes ?? {}) as { nome?: string; args?: Record<string, unknown>; canal?: string };

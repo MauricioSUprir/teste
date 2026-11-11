@@ -6,6 +6,7 @@ import { executarPesquisa, FERRAMENTAS_PESQUISA } from "./pesquisa.ts";
 import { CONFIRMAVEIS_PC, executarPC, FERRAMENTAS_PC } from "./pc.ts";
 import { executarCelular, FERRAMENTAS_CELULAR } from "./celular.ts";
 import { executarEquipe, FERRAMENTAS_EQUIPE } from "./equipe.ts";
+import { executarTestes, FERRAMENTAS_TESTES, marcarRelatorioEnviado, regrasAtivas, secaoTestesRelatorio, simularTeste } from "./testes.ts";
 
 const URL_SB = Deno.env.get("SUPABASE_URL")!;
 const CHAVE_SB = (() => {
@@ -220,6 +221,7 @@ export const FERRAMENTAS = [
 ];
 type Args = Record<string, unknown>;
 export async function executar(nome: string, a: Args, canal: string): Promise<unknown> {
+  if (canal === "teste") { const s = simularTeste(nome, a); if (s) return s; } // testes automáticos: nada sai do banco
   switch (nome) {
     case "criar_lembrete": {
       const { data, error } = await sb.from("gideon_lembretes").insert({ texto: a.texto, quando: a.quando, recorrencia: a.recorrencia || null, canal: "telegram" }).select("id, quando, recorrencia").single();
@@ -324,11 +326,12 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
   if (FERRAMENTAS_PC.some((f) => f.name === nome)) return await executarPC(nome, a as Record<string, any>, canal);
   if (FERRAMENTAS_CELULAR.some((f) => f.name === nome)) return executarCelular(nome, a, canal);
   if (FERRAMENTAS_EQUIPE.some((f) => f.name === nome)) return await executarEquipe(nome, a as Record<string, any>, canal);
+  if (FERRAMENTAS_TESTES.some((f) => f.name === nome)) return await executarTestes(nome, a as Record<string, any>);
   return { erro: "ferramenta desconhecida" };
 }
 
 // ---------- Aprovações (botões Aprovar/Negar no Telegram) ----------
-export const CONFIRMAVEIS = ["agenda_criar", "whatsapp_enviar", "esquecer_memoria", "equipe_iniciar", ...CONFIRMAVEIS_PC];
+export const CONFIRMAVEIS = ["agenda_criar", "whatsapp_enviar", "esquecer_memoria", "equipe_iniciar", "melhoria_ativar", ...CONFIRMAVEIS_PC];
 export function descreverAcao(nome: string, r: Record<string, any>) {
   if (nome === "agenda_criar") return `Criar evento "${r.titulo ?? ""}"${r.inicio ? " em " + r.inicio : ""}${r.local ? " — " + r.local : ""}`;
   if (nome === "equipe_iniciar") {
@@ -339,7 +342,7 @@ export function descreverAcao(nome: string, r: Record<string, any>) {
     const itens = Array.isArray(r.itens) ? r.itens : [];
     return `Apagar da memória ${itens.length} item(ns): ` + itens.map((i: Record<string, unknown>) => `"${String(i.trecho ?? "").replace(/\s+/g, " ").slice(0, 70)}"`).join("; ").slice(0, 600);
   }
-  if (nome.startsWith("pc_") && r.descricao) return String(r.descricao).slice(0, 700);
+  if ((nome.startsWith("pc_") || nome === "melhoria_ativar") && r.descricao) return String(r.descricao).slice(0, 700);
   if (nome === "whatsapp_enviar") return `Enviar WhatsApp para ${r.para ?? r.numero ?? ""}: "${String(r.texto ?? "").slice(0, 200)}"`;
   return `${nome}: ${JSON.stringify(r).slice(0, 200)}`;
 }
@@ -413,6 +416,10 @@ Equipe de agentes (AI Company):
 - Só pesquisar um tema: pesquisa_profunda. Pergunta simples: responda você mesma, sem a equipe.
 - "Como está a equipe?" ou "o que a equipe entregou?": equipe_status. Cancelar: equipe_cancelar.
 
+Testes e melhorias (você se testa toda semana):
+- Domingo às 17h30 roda uma bateria de testes com pedidos do dia a dia; a nota vai no relatório de domingo. "Como foram os testes?": testes_status. "Roda os testes agora": testes_rodar.
+- Quando os testes acham um problema, você propõe uma regra nova, testa antes e só ativa com o OK do dono (melhoria_ativar: primeiro confirmado=false, depois do sim confirmado=true). "Desfaz a melhoria": melhoria_reverter. Se a nota cair na semana seguinte, a regra é desfeita sozinha.
+
 Histórico e Telegram:
 - ver_conversa lê as conversas antigas com o dono (Telegram, iPhone, voz, WhatsApp) com data e hora; use quando ele perguntar o que pediu ou conversou, ou pedir para mandar de novo algo que você já mandou.
 - enviar_telegram manda uma mensagem por escrito no Telegram dele (só para ele); use quando ele pedir "me manda no Telegram", de qualquer canal. Pelo Telegram você não consegue mandar mensagem para outras pessoas (para outras pessoas: WhatsApp ou, no iPhone, SMS).
@@ -440,11 +447,11 @@ const INTENCAO_CELULAR = /\b(abr[aei]\w*|lig(a|ar|ue)|toc(a|ar|que)|bot[ae]|p[o�
 // ---------- Atender um pedido (qualquer canal) ----------
 // anexos: partes extras para o Gemini (arquivo); rotulo: vai para o registro (ex.: "pdf"); textoHistorico: o que fica no histórico no lugar do texto;
 // buscarNaMemoria=false pula a busca (ex.: arquivo sem legenda); guardar=false não grava conversa nem memória (testes).
-export async function atender(p: { texto: string; canal: string; sessao: string; anexos?: Record<string, unknown>[]; rotulo?: string; textoHistorico?: string; buscarNaMemoria?: boolean; guardar?: boolean }) {
+export async function atender(p: { texto: string; canal: string; sessao: string; anexos?: Record<string, unknown>[]; rotulo?: string; textoHistorico?: string; buscarNaMemoria?: boolean; guardar?: boolean; regraExtra?: string }) {
   const inicio = Date.now();
   const texto = p.texto.slice(0, 4000), historico = (p.textoHistorico ?? texto).slice(0, 4000);
   let resposta = "", status = "sucesso", erro = "", tokIn = 0, tokOut = 0, nTrechos = 0, modeloUsado = "", reserva = "";
-  const usadas: string[] = [], aprovacoes: { id: number; descricao: string }[] = [];
+  const usadas: string[] = [], aprovacoes: { id: number; descricao: string }[] = [], chamadasFeitas: { nome: string; args: unknown }[] = [];
   let celular: { abrir: string; descricao?: string } | null = null; // o que o iPhone abre depois da resposta (canal celular)
   let cobrou = false; // já pediu uma vez para chamar a ferramenta de uma ação prometida
   try {
@@ -459,8 +466,9 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       : "";
     const contents: Record<string, unknown>[] = (hist.data ?? []).reverse().map((m) => ({ role: m.papel, parts: [{ text: m.texto }] }));
     contents.push({ role: "user", parts: [...(p.anexos ?? []), { text: ctx + "Mensagem do dono: " + texto }] });
-    const sistema = `${PROMPT}\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília, UTC-03:00).`;
-    const declaracoes = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...FERRAMENTAS_EQUIPE, ...(p.canal === "celular" ? FERRAMENTAS_CELULAR : [])];
+    const regras = [await regrasAtivas().catch(() => ""), p.regraExtra ? `- ${p.regraExtra}` : ""].filter(Boolean).join("\n"); // regras aprendidas nos testes (aprovadas pelo dono)
+    const sistema = `${PROMPT}${regras ? `\n\nRegras aprendidas com os testes (aprovadas pelo dono):\n${regras}` : ""}\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília, UTC-03:00).`;
+    const declaracoes = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...FERRAMENTAS_EQUIPE, ...FERRAMENTAS_TESTES, ...(p.canal === "celular" ? FERRAMENTAS_CELULAR : [])];
     const forcar = p.canal === "celular" && INTENCAO_CELULAR.test(texto);
     for (let volta = 0; volta < 6; volta++) {
       const r = await gerar({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: declaracoes }], generationConfig: { temperature: 0.4 },
@@ -490,8 +498,8 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       const respostas = [];
       for (const c of chamadas) {
         const nome = c.functionCall.name, args = c.functionCall.args ?? {};
-        usadas.push(nome);
-        if (CONFIRMAVEIS.includes(nome) && args.confirmado === true) await aprovadaPorConversa(nome, args, p.canal).catch(() => {});
+        usadas.push(nome); chamadasFeitas.push({ nome, args });
+        if (CONFIRMAVEIS.includes(nome) && args.confirmado === true && p.canal !== "teste") await aprovadaPorConversa(nome, args, p.canal).catch(() => {});
         const res: any = await executar(nome, args, p.canal).catch((e) => ({ erro: String(e.message ?? e) }));
         if (res?.erro) console.error(`ferramenta ${nome}:`, String(res.erro).slice(0, 300)); // fica nos logs da função
         if (res?.celular) celular = res.celular;
@@ -529,7 +537,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       await guardarMemoria({ conteudo: `Dono: ${historico}\nGIDEON: ${resposta}`, resumo: historico.slice(0, 200), tipo: "conversa", origem: p.canal, metadados: { sessao: p.sessao } }).catch(() => 0);
     }
   })().catch((e) => console.error("pós-resposta:", e));
-  return { resposta, status, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, modelo: modeloUsado, reserva: reserva || null, execucaoId, aprovacoes, celular, posResposta };
+  return { resposta, status, erro: erro || null, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, chamadas: chamadasFeitas, modelo: modeloUsado, reserva: reserva || null, execucaoId, aprovacoes, celular, posResposta };
 }
 
 // ---------- Lembretes e relatório ----------
@@ -552,7 +560,14 @@ export async function relatorioSemanal(enviar = true) {
   if (tot === 0) sug = "Quase não houve uso: teste o GIDEON com pedidos do dia a dia.";
   else if (taxa < 95) sug = "Taxa de sucesso abaixo de 95%: corrigir o erro mais frequente.";
   else if (Number(r.tempo_medio_ms) > 5000) sug = "Respostas acima de 5 s: revisar o contexto enviado ao modelo.";
-  const txt = `📊 GIDEON — relatório da semana\n\nPedidos: ${tot} (sucesso ${taxa}%)\nTempo médio: ${(Number(r.tempo_medio_ms) / 1000).toFixed(1)} s\nTokens: ${r.tokens_entrada} de entrada, ${r.tokens_saida} de saída\nMarcados como "não útil": ${r.nao_util}\nMemórias novas: ${r.memorias_novas}\nLembretes enviados: ${r.lembretes_enviados}\nTarefas abertas: ${r.tarefas_abertas}\n\nErros mais frequentes:\n${erros}\n\nSugestão: ${sug}`;
-  if (enviar) await enviarAoDono(txt);
-  return { texto: txt };
+  const testes = await secaoTestesRelatorio().catch((e) => ({ texto: `🧪 Testes automáticos: não consegui ler (${String((e as Error).message ?? e).slice(0, 80)}).`, aprovacoes: [] as { id: number; descricao: string }[] }));
+  const txt = `📊 GIDEON — relatório da semana\n\nPedidos: ${tot} (sucesso ${taxa}%)\nTempo médio: ${(Number(r.tempo_medio_ms) / 1000).toFixed(1)} s\nTokens: ${r.tokens_entrada} de entrada, ${r.tokens_saida} de saída\nMarcados como "não útil": ${r.nao_util}\nMemórias novas: ${r.memorias_novas}\nLembretes enviados: ${r.lembretes_enviados}\nTarefas abertas: ${r.tarefas_abertas}\n\nErros mais frequentes:\n${erros}\n\nSugestão: ${sug}${testes.texto ? `\n\n${testes.texto}` : ""}`;
+  if (enviar) {
+    if (testes.aprovacoes.length) { // melhoria testada: vai com os botões Aprovar/Negar
+      const cfg = await config();
+      await responderTelegram(cfg.dono_telegram_id, { resposta: txt, aprovacoes: testes.aprovacoes });
+    } else await enviarAoDono(txt);
+    await marcarRelatorioEnviado();
+  }
+  return { texto: txt, aprovacoes: testes.aprovacoes };
 }
