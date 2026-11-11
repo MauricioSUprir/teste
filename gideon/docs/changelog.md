@@ -96,4 +96,14 @@
     - revisor: aprovado=false e nota ≤ 6 se o código não corrigiu o que o testador apontou;
     - diretor: escreve "conferido", nunca "testado", e lista o que ainda tem problema;
     - fontes com link.
+- Testes da equipe (função v38, missões silenciosas com canal `sistema`):
+  - **Missão 2** (mesmo pedido): pesquisador → programador → testador "aprovado" → revisor 10/10 → entrega, em ~1,5 min.
+    - **Rodado de verdade na máquina de testes:** os 10 testes do testador passaram (`10 passed`).
+    - O programa calculou certo: Português 7,5; Química 4,5, marcada abaixo de 6; média geral 6,00.
+  - **Missão 3** (cópia da missão 1, em que o testador tinha dito "com problemas"):
+    - o programador refez sozinho (rodada 1) e as 4 funções que os testes usam agora existem no código;
+    - o testador conferiu de novo e aprovou;
+    - a entrega diz "conferido", não "testado".
+  - **Painel:** a rota `home-equipe` devolve o trabalho completo em HTML (código, parecer, sem scripts); `https://gideon-home.onrender.com/equipe.html` no ar.
+  - **Custo:** missão de 3 tarefas ≈ 26 mil tokens de entrada e 7 mil de saída, dentro do plano grátis.
 

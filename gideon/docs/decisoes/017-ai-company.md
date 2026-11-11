@@ -39,3 +39,16 @@
 - **CrewAI / LangGraph / AutoGen:** precisam de um servidor Python sempre ligado; o Render grátis dorme e corta processos longos.
 - **Rodar tudo numa chamada só:** passa dos ~150 s do plano grátis.
 - **Tarefas em paralelo:** estoura o limite de pedidos por minuto do Gemini grátis.
+
+## Testes (11/11/2026)
+- **Missão 1:** o testador achou problemas, mas o revisor deu 10/10 e a entrega disse "corrigido e testado". Era falso.
+  - **Correções (v38):**
+    - testador "com problemas" → o programador corrige sozinho;
+    - revisor reprova código não corrigido;
+    - diretor escreve "conferido", nunca "testado".
+- **Missão 2:** os testes do testador, rodados de verdade, passaram (10 de 10). O programa calculou certo.
+- **Missão 3** (repete o caso da missão 1):
+  - o programador corrigiu sozinho, os testes e o código batem, e o testador aprovou;
+  - a entrega diz "conferido".
+- **Falta:** o dono pedir uma missão de verdade pelo Telegram, para ver o plano com Aprovar/Negar, a mensagem de andamento e o arquivo final.
+
