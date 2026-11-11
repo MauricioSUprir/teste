@@ -225,23 +225,26 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 
 ## 3. AI COMPANY — equipe de agentes
 
-**3.1 Estrutura**
-- ⬜ Diretor (recebe o objetivo, divide em tarefas, pede seu OK no plano)
-- ⬜ Painel de quem está fazendo o quê
+**3.1 Estrutura** (decisão 017)
+- ✅ Diretor: recebe o objetivo, divide em 2 a 6 tarefas e pede seu OK no plano (Aprovar/Negar no Telegram, ou "sim" por voz/iPhone). No fim, escreve a entrega
+- ✅ Painel de quem está fazendo o quê:
+  - mensagem no Telegram que se atualiza sozinha a cada passo, com botão ⛔ Cancelar;
+  - comando `/equipe`;
+  - página https://gideon-home.onrender.com/equipe.html
 
 **3.2 Equipe inicial (5 agentes)**
-- ⬜ Pesquisador (usa o Deep Research)
-- ⬜ Programador
-- ⬜ Analista
-- ⬜ Testador
-- ⬜ Revisor final
+- ✅ Pesquisador (internet + memória, com fontes)
+- ✅ Programador (código inteiro + como rodar)
+- ✅ Analista (compara, faz contas, recomenda)
+- ✅ Testador (confere o código lendo e escreve os testes; achou problema → o programador corrige sozinho)
+- ✅ Revisor final (nota de 0 a 10; pode mandar refazer)
 
 **3.3 Equipe completa (até 20)**
 - ⬜ Engenheiro, Designer, Escritor e outros, um de cada vez, só quando os 5 primeiros passarem nos testes
 - *Cada agente a mais multiplica o uso de tokens; com orçamento zero, crescer devagar.*
 
 **3.4 Pronto quando**
-- ⬜ Tarefa complexa entregue com plano aprovado, execução e revisão registradas
+- 🟡 Tarefa complexa entregue com plano aprovado, execução e revisão registradas. Já passou no teste da máquina de testes (missões 1 e 2); falta o dono pedir uma de verdade.
 
 ---
 

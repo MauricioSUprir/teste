@@ -81,4 +81,19 @@
 - **GIDEON PC 2.0 em Python:** o `.ps1` também foi bloqueado pelo antivírus, e liberar no Windows não adiantou. Programa refeito em Python (`gideon_pc.py`, mesmas ferramentas e regras). Download: `https://gideon-home.onrender.com/pc/gideon_pc.py`. Testes na máquina de testes ✅ (11 ordens, incluindo 4 recusas de segurança).
 - **GIDEON no iPhone** (decisão 015): rota `celular` (chave `/celular` no Telegram, vale 1 ano) e ferramenta `celular_abrir` (ligar, SMS, WhatsApp, rota, música, vídeo, site, app; só aparece no canal celular). O atalho do app Atalhos dita o pedido, a Siri fala a resposta e o iPhone abre o link; ligação e mensagem só abrem preenchidas (quem confirma é o dono). Links da resposta vão para o Telegram; pedidos que precisam de OK mandam Aprovar/Negar no Telegram. Guia: `https://gideon-home.onrender.com/celular.html`. Funções v33 e v34.
 - **Falhas achadas no teste do iPhone:** (1) o modelo dizia "estou abrindo o Spotify" sem chamar a ação (5 de 6 pedidos). Correção: pedido do iPhone para abrir/ligar/tocar/rota obriga uma chamada de ferramenta na primeira volta, e a trava de promessa agora pega "abrindo", "ligar", "tocar", "traçar" e nome de ferramenta escrito como texto. Depois: Spotify, Waze, Instagram, WhatsApp, pergunta e hora ✅. (2) O registro não aceitava os canais `celular` e `home` (migração 012). (3) 6 pedidos ao mesmo tempo estouram o limite grátis de 15 por minuto do modelo (só em teste).
+- Função **v36** publicada (modo privado `privado:` e `pc_ia_local`). Teste: com o PC desligado/antigo, devolve "o programa do PC está desatualizado: baixe o GIDEON PC 2.3" ✅.
+- **Fase 3 (AI Company), decisão 017.** Equipe de agentes dentro da função:
+  - **Quem:** diretor, pesquisador, analista, programador, testador e revisor.
+  - **Como roda:** o plano só roda depois do OK do dono. Cada tarefa roda numa chamada separada da função (rota `equipe-passo`, limite de tempo do plano grátis). O agendador `gideon-equipe` só chama quando há missão andando (migração 013).
+  - **Painel:** mensagem de andamento no Telegram, com Cancelar, e `/equipe`. Página `equipe.html` no GIDEON Home, com botão "👥 Equipe" no topo.
+  - **Entrega:** resumo + arquivo HTML com o trabalho de cada agente, fontes e parecer do revisor, guardado na memória.
+  - **Publicação:** função v37.
+- **Falha achada no teste da missão 1 (programa de médias escolares):**
+  - O testador deu "com problemas": matérias repetidas sobrescreviam a nota, e os testes dele chamavam funções que o código não tinha.
+  - Mesmo assim, o revisor deu 10/10 e a entrega dizia "código corrigido e testado". **Era falso:** o arquivo entregue era a versão sem correção.
+  - **Correção (v38):**
+    - testador "com problemas" → o programador refaz sozinho com o relatório dele e o testador confere de novo (até 2 rodadas por missão);
+    - revisor: aprovado=false e nota ≤ 6 se o código não corrigiu o que o testador apontou;
+    - diretor: escreve "conferido", nunca "testado", e lista o que ainda tem problema;
+    - fontes com link.
 
