@@ -9,6 +9,7 @@
 #  - Comandos do terminal só de uma lista permitida; nada de comandos encadeados.
 #  - Tela: tira UM print só quando você pede, avisa nesta janela e não guarda a imagem.
 #  - Controle da tela (mouse e teclado): só quando você pede. Para PARAR na hora, leve o mouse ao canto de cima, à esquerda.
+#  - IA local (Ollama, opcional): perguntas "privado:" são respondidas pela IA do próprio PC, sem passar pelo Google.
 #  - Tudo o que muda fica anotado em <pasta liberada>\.gideon-pc.log e no registro da GIDEON.
 # Como abrir: dois cliques neste arquivo (precisa do Python, grátis na Microsoft Store).
 # Para fechar: feche esta janela. Para trocar a chave ou a pasta: apague o arquivo .gideon-pc.json da sua pasta de usuário.
@@ -16,7 +17,7 @@
 # =====================================================================================================
 import base64, datetime, fnmatch, io, json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 
-VERSAO = "2.2"
+VERSAO = "2.3"
 URL = os.environ.get("GIDEON_PC_URL") or "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon"
 WINDOWS = os.name == "nt"
 CASA = os.path.expanduser("~")
@@ -844,9 +845,118 @@ def ver_tela(a):
             "descricao": f"print da tela enviado ({img.width} x {img.height}), não fica guardado"}
 
 
+# ---------------- IA local (Ollama, no próprio PC) ----------------
+OLLAMA = os.environ.get("GIDEON_OLLAMA") or "http://127.0.0.1:11434"
+LOCAL = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # conversa com o Ollama sem passar por proxy
+
+
+def hardware():  # memória, placa de vídeo e disco livre: para escolher o modelo de IA local que cabe no PC
+    hw = {}
+    try:
+        hw["disco_livre_gb"] = round(shutil.disk_usage(CASA).free / 2**30, 1)
+    except Exception:
+        pass
+    if not WINDOWS:
+        try:
+            hw["memoria_gb"] = round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 2**30, 1)
+        except Exception:
+            pass
+        return hw
+    try:
+        import ctypes
+
+        class Memoria(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong)] + [(n, ctypes.c_ulonglong) for n in (
+                "total", "livre", "pagina_total", "pagina_livre", "virtual_total", "virtual_livre", "extendida")]
+        m = Memoria()
+        m.dwLength = ctypes.sizeof(Memoria)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m)):
+            hw["memoria_gb"] = round(m.total / 2**30, 1)
+    except Exception:
+        pass
+    try:  # placas de vídeo: nome e memória (registro do Windows, só leitura)
+        import winreg
+        placas, chave = [], r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, chave) as k:
+            for i in range(30):
+                try:
+                    sub_ = winreg.EnumKey(k, i)
+                except OSError:
+                    break
+                if not sub_.isdigit():
+                    continue
+                try:
+                    with winreg.OpenKey(k, sub_) as s:
+                        nome = winreg.QueryValueEx(s, "DriverDesc")[0]
+                        vram = None
+                        for campo in ("HardwareInformation.qwMemorySize", "HardwareInformation.MemorySize"):
+                            try:
+                                v = winreg.QueryValueEx(s, campo)[0]
+                                vram = int.from_bytes(v[:8], "little") if isinstance(v, bytes) else int(v)
+                                break
+                            except OSError:
+                                continue
+                        placas.append({"nome": nome, "vram_gb": round(vram / 2**30, 1) if vram else None})
+                except OSError:
+                    continue
+        hw["placas_de_video"] = placas
+    except Exception:
+        pass
+    return hw
+
+
+def ollama_info():
+    try:
+        with LOCAL.open(f"{OLLAMA}/api/tags", timeout=2) as r:
+            j = json.loads(r.read().decode("utf-8"))
+        return {"ligado": True, "modelos": [m.get("name") for m in j.get("models", []) if m.get("name")][:30]}
+    except Exception:
+        return {"ligado": False}
+
+
+def escolher_modelo(modelos):
+    preferido = os.environ.get("GIDEON_MODELO_LOCAL") or (cfg_local().get("modelo_local") if not os.environ.get("GIDEON_PC_CHAVE") else "")
+    if preferido and preferido in modelos:
+        return preferido
+    return next((m for m in modelos if "embed" not in m.lower()), "")
+
+
+def cfg_local():
+    try:
+        with open(ARQ_CONFIG, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def ia_local(a):  # pergunta respondida pela IA do próprio PC; nada vai para o Google
+    pergunta = str(a.get("pergunta") or "").strip()
+    if not pergunta:
+        raise Recusa("falta a pergunta")
+    o = ollama_info()
+    if not o.get("ligado"):
+        raise Recusa("a IA local (Ollama) não está aberta neste PC: instale em https://ollama.com e deixe o programa aberto")
+    modelo = str(a.get("modelo") or "") if a.get("modelo") in o["modelos"] else escolher_modelo(o["modelos"])
+    if not modelo:
+        raise Recusa("nenhum modelo de IA foi baixado no Ollama ainda")
+    msgs = ([{"role": "system", "content": str(a["sistema"])}] if a.get("sistema") else []) + [{"role": "user", "content": pergunta}]
+    corpo = json.dumps({"model": modelo, "messages": msgs, "stream": False, "options": {"temperature": 0.4}}).encode("utf-8")
+    inicio = time.time()
+    escrever(f"   {agora()}  IA local ({modelo}) pensando num pedido privado...", "verde")
+    req = urllib.request.Request(f"{OLLAMA}/api/chat", data=corpo, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with LOCAL.open(req, timeout=110) as r:
+            j = json.loads(r.read().decode("utf-8"))
+    except Exception as e:
+        raise Recusa(f"a IA local não respondeu a tempo ({e.__class__.__name__}); modelos menores respondem mais rápido")
+    resposta = re.sub(r"<think>.*?</think>", "", str((j.get("message") or {}).get("content") or ""), flags=re.S).strip()
+    return {"ok": True, "resposta": resposta[:8000] or "(a IA local não respondeu nada)", "modelo": modelo, "tempo_ms": int((time.time() - inicio) * 1000),
+            "descricao": f"IA local ({modelo}) respondeu"}
+
+
 ACOES = {"pc_listar": listar, "pc_procurar": procurar, "pc_ler_arquivo": ler_arquivo, "pc_organizar": organizar, "pc_apagar": apagar,
          "pc_desfazer": desfazer, "pc_escrever_arquivo": escrever_arquivo, "pc_criar_projeto": criar_projeto, "pc_comando": comando,
-         "pc_abrir": abrir, "pc_fechar": fechar, "pc_ver_tela": ver_tela, "pc_acao_tela": acao_tela}
+         "pc_abrir": abrir, "pc_fechar": fechar, "pc_ver_tela": ver_tela, "pc_acao_tela": acao_tela, "pc_ia_local": ia_local}
 
 
 # ---------------- conversa com a GIDEON ----------------
@@ -868,7 +978,8 @@ def chamar(rota, corpo, tempo=30):
 
 def principal():
     info = {"versao": VERSAO, "sistema": "Windows" if WINDOWS else sys.platform, "computador": os.environ.get("COMPUTERNAME") or os.uname().nodename,
-            "pasta": BASE, "pastas_leitura": RAIZES_LEITURA[1:], "programa": "python"}
+            "pasta": BASE, "pastas_leitura": RAIZES_LEITURA[1:], "programa": "python", "hardware": hardware(), "ia_local": ollama_info()}
+    conferido = time.time()
     if WINDOWS:
         os.system("cls")
     escrever("")
@@ -882,6 +993,8 @@ def principal():
     falhas = 0
     while True:
         try:
+            if time.time() - conferido > 120:  # a cada 2 min: o Ollama foi aberto ou fechado? baixou modelo novo?
+                info["ia_local"], conferido = ollama_info(), time.time()
             r = chamar("pc-buscar", {"info": info, "esperar_ms": 20000}, 45)
             if falhas:
                 escrever(f"   {agora()}  conexão de volta", "verde")
@@ -899,7 +1012,7 @@ def principal():
                 res, ok = {"erro": str(e) or e.__class__.__name__}, False
             txt = ("ERRO: " + res["erro"]) if not ok else ("esperando seu OK: " + res["resumo"]["descricao"]) if res.get("precisa_confirmacao") else res.get("descricao") or "ok"
             escrever(f"   {agora()}  {o.get('acao')}  {txt}", "vermelho" if not ok else "amarelo" if res.get("alterou") else "cinza")
-            anotar(f"{o.get('acao')} {json.dumps(a, ensure_ascii=False)[:500]} => {txt}")
+            anotar(f"{o.get('acao')} {'(pedido privado)' if o.get('acao') == 'pc_ia_local' else json.dumps(a, ensure_ascii=False)[:500]} => {txt}")
             try:
                 chamar("pc-resultado", {"id": o.get("id"), "ok": ok, "resultado": res}, 30)
             except Exception as e:

@@ -27,7 +27,7 @@ import { arquivoDaMensagem, atenderArquivo, receberArquivoTelegram } from "./arq
 import { resolverAprovacao, tratarBotao } from "./botoes.ts";
 import { indexar } from "./indexador.ts";
 import { lerPagina, pesquisarWeb } from "./pesquisa.ts";
-import { rotaPC, tokenPC } from "./pc.ts";
+import { responderPrivado, rotaPC, tokenPC } from "./pc.ts";
 import { rotaCelular, tokenCelular } from "./celular.ts";
 
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json" } });
@@ -70,6 +70,11 @@ Deno.serve(async (req) => {
           await telegram("sendMessage", { chat_id: m.chat.id, text: `📱 GIDEON no iPhone${guia ? `\nPasso a passo: ${guia}` : ""}\n\nNa próxima mensagem vai a chave do celular (vale 1 ano — não compartilhe). Copie e cole no atalho, no campo x-gideon-celular.` });
           await telegram("sendMessage", { chat_id: m.chat.id, text: chave });
         })().catch(() => {}));
+        return json({ ok: true });
+      }
+      const privado = texto.trim().match(/^\/?privad[oa]\b[\s:,.-]*/i);
+      if (privado) { // "privado: ..." vai direto para a IA do PC do dono: não passa pelo Google nem fica guardado
+        EdgeRuntime.waitUntil(responderPrivado(m.chat.id, texto.trim().slice(privado[0].length).trim()).catch((e) => console.error("privado:", e)));
         return json({ ok: true });
       }
       const trabalho = (async () => {

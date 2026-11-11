@@ -2,7 +2,7 @@
 // O programa só faz pedidos para fora: busca ordens aqui (rota pc-buscar, com a chave do PC) e devolve o resultado (pc-resultado).
 // Nada no PC fica aberto na internet. O programa só altera arquivos dentro da pasta liberada e só roda comandos de uma lista.
 // Apagar (vai para a lixeira da GIDEON, dá para desfazer), reorganizar, sobrescrever arquivo e instalar pedem OK do dono.
-import { config, enviarAoDono, gerar, responderTelegram, sb, segredoCron } from "./core.ts";
+import { config, enviarAoDono, gerar, responderTelegram, sb, segredoCron, telegram } from "./core.ts";
 
 const JSON_UTF8 = { "Content-Type": "application/json; charset=utf-8" }; // o PowerShell 5 do Windows precisa do charset para os acentos
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: JSON_UTF8 });
@@ -33,6 +33,8 @@ export async function rotaPC(rota: string, req: Request) {
     await sb.from("gideon_pc_ordens").update({ status: "expirada" }).eq("status", "pendente").lt("criado_em", new Date(Date.now() - 120_000).toISOString());
     await sb.from("gideon_pc_ordens").update({ resultado: { ok: true, tela: "apagada" } }).eq("acao", "pc_ver_tela") // print que chegou atrasado: não fica no banco
       .not("resultado->>imagem_base64", "is", null).lt("feito_em", new Date(Date.now() - 60_000).toISOString());
+    await sb.from("gideon_pc_ordens").update({ args: { privado: true }, resultado: { privado: true } }).eq("acao", "pc_ia_local") // pedido privado atrasado: não fica no banco
+      .is("args->>privado", null).in("status", ["feita", "erro", "expirada"]).lt("criado_em", new Date(Date.now() - 30_000).toISOString());
     const fim = Date.now() + Math.min(Math.max(Number(b.esperar_ms) || 20000, 0), 25000);
     do {
       const { data } = await sb.from("gideon_pc_ordens").select("id").eq("status", "pendente").order("criado_em").limit(1);
@@ -88,6 +90,8 @@ export const FERRAMENTAS_PC = [
   { name: "pc_controlar", description: "Usa o mouse e o teclado do PC do dono para fazer uma tarefa DENTRO de apps e sites abertos: trocar ou abrir abas, clicar em botões e links, digitar textos, preencher campos, rolar a página, mudar de janela. Roda sozinha (até 15 passos, uns 2 minutos) e manda o resultado no Telegram. Ações que enviam, compram, pagam, apagam ou publicam param e pedem OK. Não mexe em banco, pagamento nem senhas.", parameters: { type: "object", properties: {
       objetivo: { type: "string", description: "O que fazer, completo e com os textos exatos a digitar (ex.: 'no Chrome, abra uma aba nova e pesquise preço do iPhone 16')" },
       confirmado: { type: "boolean", description: "true só quando o dono já aprovou a ação sensível" } }, required: ["objetivo"] } },
+  { name: "pc_ia_local", description: "Pergunta à IA que roda no PC do dono (Ollama), sem passar pelo Google. Use quando ele pedir 'pergunta pra IA local', 'usa a IA do meu PC'. Pode demorar até 2 minutos.", parameters: { type: "object", properties: {
+      pergunta: { type: "string", description: "A pergunta completa, com o contexto necessário" }, modelo: { type: "string", description: "Opcional: nome do modelo no Ollama" } }, required: ["pergunta"] } },
   { name: "pc_fechar", description: "Fecha um aplicativo da lista (pede para fechar normalmente; se houver algo sem salvar, o próprio app pergunta).", parameters: { type: "object", properties: {
       app: { type: "string" } }, required: ["app"] } },
 ];
@@ -174,7 +178,31 @@ async function controlarTela(objetivo: string, confirmado: boolean, canal: strin
   await enviarAoDono(`🖱️ ${sucesso ? "Pronto" : "Controle da tela"}: "${objetivo.slice(0, 200)}"\n\n${final}${passos.length ? "\n\nPassos:\n" + passos.join("\n").slice(0, 2500) : ""}`).catch(() => {});
 }
 
+// ---------- IA local (Neural Core): o Ollama do PC do dono responde; o texto não passa pelo Google e não fica guardado ----------
+const versaoMinima = (info: unknown, minimo: number) => { const [ma, me] = String((info as Record<string, unknown>)?.versao ?? "0").split(".").map(Number); return ma * 100 + (me || 0) >= minimo; };
+export async function responderPrivado(chatId: number | string, pergunta: string) {
+  if (!pergunta) {
+    await telegram("sendMessage", { chat_id: chatId, text: "🔒 Modo privado: escreva \"privado:\" e a pergunta (ex.: privado: me ajuda a escrever uma carta para minha mãe). Quem responde é a IA do seu PC (Ollama): não passa pelo Google e não fica guardado. O GIDEON PC e o Ollama precisam estar abertos." });
+    return;
+  }
+  const inicio = Date.now();
+  await telegram("sendChatAction", { chat_id: chatId, action: "typing" }).catch(() => {});
+  const r = await executarPC("pc_ia_local", { pergunta }, "privado") as Record<string, unknown>;
+  const ok = !r.erro;
+  await telegram("sendMessage", { chat_id: chatId, text: ok ? `🔒 ${String(r.resposta).slice(0, 3800)}\n\n— IA do seu PC (${r.modelo}) · nada foi guardado` : `🔒 Não consegui usar a IA do seu PC: ${r.erro}` });
+  await sb.from("gideon_execucoes").insert({ canal: "telegram", pedido_resumo: "(pedido privado)", ferramenta: "ia_local", modelo: ok ? `local:${r.modelo}` : "local",
+    tempo_ms: Date.now() - inicio, status: ok ? "sucesso" : "erro", erro_mensagem: ok ? null : String(r.erro).slice(0, 300), workflow: "supabase:gideon/privado" });
+}
+
 export async function executarPC(nome: string, a: Record<string, any>, canal: string): Promise<unknown> {
+  if (nome === "pc_ia_local") {
+    const { data: disp } = await sb.from("gideon_dispositivos").select("info").eq("nome", "pc").maybeSingle();
+    if (disp && !versaoMinima(disp.info, 203)) return { erro: "o programa do PC está desatualizado: o dono precisa baixar o GIDEON PC 2.3 ou mais novo para usar a IA local." };
+    const r = await pedirAoPC(nome, { pergunta: String(a.pergunta ?? "").slice(0, 8000), ...(a.modelo ? { modelo: String(a.modelo) } : {}) }, canal, 120000) as Record<string, unknown>;
+    delete r._ordem;
+    await sb.from("gideon_pc_ordens").update({ args: { privado: true }, resultado: { privado: true } }).eq("acao", "pc_ia_local").in("status", ["feita", "erro", "expirada"]);
+    return r;
+  }
   if (nome === "pc_controlar") {
     const objetivo = String(a.objetivo ?? "").trim().slice(0, 600);
     if (!objetivo) return { erro: "Falta dizer o que fazer na tela." };

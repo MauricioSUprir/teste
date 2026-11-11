@@ -203,8 +203,8 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 ## 2. NEURAL CORE — cérebro de IA próprio
 
 **2.1 Modelos locais**
-- ⬜ Ollama no PC com modelos que cabem na sua placa de vídeo
-- ⬜ Chat próprio (Open WebUI)
+- 🟡 Ollama no PC com modelos que cabem na sua placa de vídeo (GIDEON PC 2.3 informa memória, placa de vídeo e modelos; falta o dono instalar — decisão 016)
+- 🟡 Chat próprio: a janela de chat do próprio Ollama (no lugar do Open WebUI)
 
 **2.2 Capacidades**
 - ⬜ Memória de longo prazo (a mesma da categoria 9)
@@ -215,8 +215,8 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 - ⬜ Ferramentas personalizadas
 
 **2.3 Integração**
-- ⬜ Núcleo manda assuntos "privados" para o modelo local
-- ⬜ Funcionar sem internet para o básico
+- 🟡 Assuntos "privados": mensagem que começa com `privado:` no Telegram vai direto para a IA do PC (não passa pelo Google, não fica guardada); ferramenta `pc_ia_local`
+- 🟡 Funcionar sem internet para o básico: o chat do Ollama funciona offline
 
 **2.4 Pronto quando**
 - ⬜ Pedido privado respondido sem sair do PC, registrado como `modelo = local`

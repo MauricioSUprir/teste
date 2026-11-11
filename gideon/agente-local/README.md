@@ -23,6 +23,13 @@ No Telegram ou por voz no GIDEON Home:
 - Coloque uns arquivos bagunçados na pasta GIDEON e peça: "Organiza minha pasta GIDEON por tipo". Ela mostra o plano e espera seu **Aprovar**.
 - Com um erro aberto na tela, pergunte: "Que erro é esse na minha tela?". A janela do programa avisa que ela está vendo a tela.
 
+## IA local (opcional, grátis): modo privado
+1. Baixe e instale o **Ollama**: https://ollama.com/download (Windows).
+2. Abra o Ollama e, na janela de chat, escolha e baixe o modelo que a GIDEON indicar (ex.: `qwen3:4b`).
+3. Deixe o Ollama e o GIDEON PC (2.3 ou mais novo) abertos.
+4. No Telegram, comece a mensagem com **`privado:`** (ex.: `privado: me ajuda a escrever uma carta`). Quem responde é a IA do seu PC; não passa pelo Google e não fica guardado.
+Para sigilo total, use a própria janela de chat do Ollama (nada sai do PC). Detalhes: `docs/decisoes/016-neural-core-ollama.md`.
+
 ## O que ela pode e não pode
 - **Pode:** listar, procurar e ler arquivos (pasta GIDEON, Documentos, Downloads, Área de Trabalho); criar e editar arquivos de texto e código na pasta GIDEON; organizar; preparar projetos (Git e ambiente Python/Node); rodar git, python, node, npm; abrir e fechar aplicativos da lista.
 - **Pede seu OK antes:** apagar (vai para a lixeira da GIDEON, `.lixeira-gideon`), organizar, sobrescrever arquivo, instalar pacotes, `git push`.
