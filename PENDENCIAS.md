@@ -18,10 +18,17 @@
 
 ## Revisão da agência (em andamento)
 
-- [x] Fase 0: raio-x do projeto (11/11/2026, relatório entregue em particular)
-- [ ] Fase 1: auditoria de backend, frontend, infraestrutura e segurança (aguardando OK)
-- [ ] Fase 2: seção de creators na home (proposta em docs/12-creators.md antes de programar)
-- [ ] Fase 3: frete real (proposta em docs/13-frete.md antes de programar)
+Relatórios entregues em particular; o detalhe não fica neste repositório.
+
+- [x] Raio-x do projeto (11/11/2026)
+- [x] Etapa 0: preparação (11/11/2026); aguardando decisões e ações do responsável pelas contas
+- [ ] Etapa 1: pedidos (cálculo e pagamento)
+- [ ] Etapa 2: login e sessões
+- [ ] Etapa 3: dados e hospedagem
+- [ ] Etapa 4: frete real (proposta em docs/13-frete.md antes de programar)
+- [ ] Etapa 5: vitrine de creators na home (proposta em docs/12-creators.md antes de programar)
+- [ ] Etapa 6: preço por loja e desempenho
+- [ ] Etapa 7: demais ajustes
 
 ## Pendências operacionais
 
