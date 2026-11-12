@@ -8,6 +8,7 @@ import { FERRAMENTAS_PESQUISA } from "./pesquisa.ts";
 import { FERRAMENTAS_PC } from "./pc.ts";
 import { AGENTES, corpoEquipe, FERRAMENTAS_EQUIPE } from "./equipe.ts";
 import { FERRAMENTAS_TESTES, regrasAtivas } from "./testes.ts";
+import { FERRAMENTAS_GITHUB } from "./github.ts";
 
 export const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-gideon-home", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (d: unknown, s = 200) => new Response(JSON.stringify(d), { status: s, headers: { "Content-Type": "application/json", ...CORS } });
@@ -52,7 +53,7 @@ export async function rotaHome(rota: string, req: Request) {
     const regras = await regrasAtivas().catch(() => "");
     const sistema = PROMPT + (regras ? `\n\nRegras aprendidas com os testes (aprovadas pelo dono):\n${regras}` : "") + VOZ + `\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília).` + (recentes ? `\n\nÚltimas falas por voz (contexto):\n${recentes}` : "");
     const voz = cfg.voz_gideon || "Kore"; // voz feminina (decisão 013)
-    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...FERRAMENTAS_EQUIPE, ...FERRAMENTAS_TESTES];
+    const ferramentas = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...FERRAMENTAS_EQUIPE, ...FERRAMENTAS_TESTES, ...FERRAMENTAS_GITHUB];
     // A configuração inteira vai DENTRO da senha temporária: com ela, o Google ignora o setup enviado pelo navegador
     // (sem isso o modelo falava como "Gemini", sem o prompt do GIDEON e sem ferramentas). Também impede que a senha seja usada para outra coisa.
     const setup = {

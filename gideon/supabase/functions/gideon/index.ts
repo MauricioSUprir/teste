@@ -19,7 +19,7 @@
 //   POST /gideon/memoria-claude  ← o que o dono combinou com o Claude vira nota na memória { notas: [{ titulo, texto }], substituir? } (x-gideon-chave)
 //   POST /gideon/equipe-passo    ← equipe de agentes: roda a próxima tarefa ou fecha a missão { esperar? } (x-gideon-chave; o agendador chama a cada minuto se há missão andando)
 //   POST /gideon/testes-rodar | testes-passo ← bateria de testes automáticos { motivo? } e um passo dela { esperar? } (x-gideon-chave; agendador)
-//   POST /gideon/indexar         ← pg_cron: Gmail, Agenda e Drive viram memória { fontes?, esperar? } (x-gideon-chave)
+//   POST /gideon/indexar         ← pg_cron: Gmail, Agenda, Drive e GitHub viram memória { fontes?, esperar? } (x-gideon-chave)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { atender, chaveGemini, config, dispararLembretes, executar, gerar, guardarMemoria, relatorioSemanal, responderTelegram, sb, segredoCron, sha256, telegram, tokenTelegram } from "./core.ts";
 import { linkConectar, retorno } from "./google.ts";
