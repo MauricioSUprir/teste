@@ -1,6 +1,6 @@
 # 018 — Self-Improving: a GIDEON se testa e propõe melhorias
 
-**Data:** 12/11/2026 · **Fase:** 5 (Self-Improving) · **Situação:** aceita (falta o dono aprovar a primeira melhoria pelo Telegram)
+**Data:** 12/11/2026 · **Fase:** 5 (Self-Improving) · **Situação:** aceita, no ar (nenhuma melhoria passou no filtro até agora, então ainda não houve nada para o dono aprovar)
 
 ## Decisão
 - **Tudo dentro da própria função `gideon`** (arquivo `testes.ts`) e do banco (migração 014). Nada de servidor novo.
@@ -38,3 +38,12 @@
 - **A IA mudar o próprio código sozinha:** arriscado demais. Código só muda pelo Claude, com o pedido que ela mesma escreve.
 - **Ativar a regra sem OK:** contra a regra do projeto ("OK antes de mexer em produção").
 - **Comparar só uma rodada:** a primeira bateria mostrou que o modelo varia. Uma regra boa consertou o teste 25, mas na mesma rodada o teste 2 falhou por acaso. Por isso existe a confirmação.
+
+## Testes
+- **1ª bateria (11/11/2026, rodada 1):** nota **9,3** (28 de 30). Regra proposta: "pc_controlar sempre avisa que o resultado chega no Telegram". Ela consertou o teste 25, mas na mesma rodada o teste 2 falhou por acaso (rodada 2). Por isso nasceu a **confirmação** (o que mudou roda mais uma vez).
+- **2ª bateria (12/11/2026, rodada 3):** nota **9,7** (29 de 30).
+  - A única falha foi o teste 14 ("procura no meu Drive o trabalho de história"). O juiz achou que ela tinha inventado o arquivo, mas o juiz não via o que a ferramenta devolveu. **Juiz corrigido:** agora ele recebe o resultado de cada ferramenta. Na rodada 6, o teste 14 passou.
+  - Regra proposta: "em buscas, responder só com o que a ferramenta devolveu". Na rodada 4 consertou o alvo; na confirmação (rodada 5), quebrou 2 testes que passavam. Ficou **sem ganho** e não foi proposta. Era mesmo desnecessária: o problema estava no juiz.
+- **Relatório de domingo conferido** (rota `relatorio` com `enviar:false`, sem mandar nada): traz a nota (9,7, antes 9,3), a falha e as duas tentativas "sem ganho", sem botões (nada a aprovar).
+- **Achado para depois:** na parte "Erros mais frequentes" do relatório aparecem os diagnósticos da voz do GIDEON Home em formato técnico (texto com chaves). Melhorar quando mexer no relatório.
+

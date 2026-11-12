@@ -142,3 +142,5 @@
   - **Migração 017:** tabela `gideon_cache_respostas`, função `gideon_cache_buscar` e `gideon_config` (`cache`, `cache_limite`, `cache_dias`). Desliga com `cache = nao`.
   - **Relatório de domingo:** linha nova "Respondidos pelo cache (sem gastar IA)".
   - **No ar:** **v43 = commit `e3e9700`** (antes: v42 = commit `9ee6f93`). Testado na `gideon-teste` e conferido em produção: Telegram ligado, lembretes respondem, pergunta repetida veio do cache em 0,55 s.
+- **Self-Improving, 2ª bateria conferida (rodada 3, 12/11 às 7h):** nota 9,7 (29 de 30; antes 9,3). A falha (teste 14) era engano do juiz, já corrigido; passou na rodada 6. A regra testada ficou sem ganho (quebrou 2 testes na confirmação) e não foi proposta. Relatório de domingo conferido sem enviar. Detalhes na decisão 018, seção Testes.
+
