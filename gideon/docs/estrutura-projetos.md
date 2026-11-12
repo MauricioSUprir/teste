@@ -31,7 +31,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ✅ Registro de cada pedido, alerta de erro, relatório semanal
 - ✅ Regra "testar o caso vazio" (incidente dos lembretes)
 - ✅ Contar tokens por pedido (registro de cada execução; vai para o relatório semanal)
-- ⬜ Cache por significado (pergunta repetida não gasta o modelo)
+- ✅ Cache por significado: pergunta geral repetida, mesmo escrita de outro jeito, responde em menos de 1 s sem gastar o modelo; pessoal, de agora ou com ação nunca vem do cache — decisão 023, no ar desde a versão 43
 - 🟡 Botões 👍 / 👎 em cada resposta do Telegram (grava em `gideon_execucoes.nota_usuario`) — falta o teste do dono
 
 **0.5 Segurança**

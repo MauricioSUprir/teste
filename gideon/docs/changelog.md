@@ -136,4 +136,9 @@
   - **Testes na `gideon-teste`:** listar, ler projeto, pasta e arquivo; projeto sem README; as duas conversas chamaram a ferramenta certa em menos de 4 s.
   - **Resumo sem segredos:** o primeiro resumo copiou um PIN escrito no README do projeto `teste`. Agora o resumo é instruído a nunca copiar senha, PIN, chave ou token, e o filtro `semSegredos` apaga o que escapar. O resumo antigo foi trocado.
   - **No ar:** **v42 = commit `9ee6f93`** (antes: v41 = commit `453e7fe`). Conferido em produção: Telegram ligado, lembretes respondem, conversa sobre o Be2Beauty chamou `github_ler` (3 s).
-
+- **Cache por significado (decisão 023, Base 0.4):** pergunta geral repetida, mesmo escrita de outro jeito, é respondida com a resposta guardada, sem chamar o modelo (menos de 1 s, 0 tokens).
+  - **Nunca vem do cache:** pergunta pessoal, de agora (hoje, preço, notícia, clima...), com ação (lembrete, manda, pesquisa...) ou no meio de uma conversa; resposta que usou ferramenta ou a memória; bateria de testes.
+  - **Segurança contra resposta errada:** além do significado (≥ 0,90), as palavras importantes e os números precisam ser os mesmos ("Austrália" ≠ "Áustria"). Mudou o prompt ou entrou regra nova, o cache antigo deixa de valer. 👎 tira a resposta do cache. Vale 3 dias.
+  - **Migração 017:** tabela `gideon_cache_respostas`, função `gideon_cache_buscar` e `gideon_config` (`cache`, `cache_limite`, `cache_dias`). Desliga com `cache = nao`.
+  - **Relatório de domingo:** linha nova "Respondidos pelo cache (sem gastar IA)".
+  - **No ar:** **v43 = commit `e3e9700`** (antes: v42 = commit `9ee6f93`). Testado na `gideon-teste` e conferido em produção: Telegram ligado, lembretes respondem, pergunta repetida veio do cache em 0,55 s.
