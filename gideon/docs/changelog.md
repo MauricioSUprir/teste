@@ -134,4 +134,6 @@
   - **Migração 016:** usuário do GitHub em `gideon_config`, agendador e 2 testes novos na bateria (área `github`).
   - **Sem chave:** só os 5 projetos públicos e 60 pedidos por hora. Os 2 privados entram quando o dono cadastrar a chave grátis `GITHUB_TOKEN`.
   - **Testes na `gideon-teste`:** listar, ler projeto, pasta e arquivo; projeto sem README; as duas conversas chamaram a ferramenta certa em menos de 4 s.
+  - **Resumo sem segredos:** o primeiro resumo copiou um PIN escrito no README do projeto `teste`. Agora o resumo é instruído a nunca copiar senha, PIN, chave ou token, e o filtro `semSegredos` apaga o que escapar. O resumo antigo foi trocado.
+  - **No ar:** **v42 = commit `9ee6f93`** (antes: v41 = commit `453e7fe`). Conferido em produção: Telegram ligado, lembretes respondem, conversa sobre o Be2Beauty chamou `github_ler` (3 s).
 
