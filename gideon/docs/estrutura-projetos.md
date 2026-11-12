@@ -23,7 +23,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 **0.3 Conexões do GIDEON** (fazer antes de começar os projetos)
 - ✅ Google (gui.drodrigues21@gmail.com): Agenda (ler e criar com confirmação), Gmail (só leitura) e Drive (busca) — conectado e testado em 06/11
 - ⏸ WhatsApp: código pronto, em espera (controle parental impede conectar aparelhos — decisão 012)
-- ⬜ GitHub (para o Self-Improving e para o GIDEON ler seus projetos)
+- ✅ GitHub, só leitura: `github_listar` e `github_ler` em todos os canais e na equipe (decisão 022). Sem chave, só os projetos públicos (5 de 7); os privados entram quando o dono cadastrar a chave grátis `GITHUB_TOKEN`
 - ⬜ Notion (opcional: anotações e projetos)
 - ⬜ Outras que você usa no dia a dia (lista com você)
 
@@ -52,7 +52,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 - ✅ Google Drive: documentos, planilhas, apresentações, PDFs, Word, Excel, PowerPoint e textos viram resumo com link; arquivo alterado é lido de novo (a cada 2 h, 4 por vez, começando pelos últimos 90 dias) — `indexador.ts`
 - ✅ Gmail: e-mails importantes, com estrela e avisos do Classroom dos últimos 3 dias (a cada 2 h). Códigos de verificação, links de confirmação, senhas e alertas de login nunca entram
 - ✅ Agenda: eventos de 2 dias atrás até 30 dias à frente (a cada 6 h); evento alterado substitui o antigo
-- ⬜ Projetos do GitHub (README e histórico)
+- ✅ Projetos do GitHub: README e últimas mudanças de cada projeto viram um resumo com link, 1 vez por dia (07h43; projeto que mudou é resumido de novo) — decisão 022
 - ✅ Anotações ("anota que...") com `guardar_nota`
 
 **9.3 Organização**

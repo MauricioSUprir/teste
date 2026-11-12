@@ -128,3 +128,10 @@
 - **Nexus:** ação que pede OK feita pela conversa do Nexus (canal `home`) vira pedido no sino 🔔.
 - **Publicação pelo Git (decisão 021):** a função `gideon` agora é uma linha que importa o código do GitHub preso a um commit. Função de teste `gideon-teste` para provar antes.
   - Versões no ar: **v41 = commit `453e7fe`**. Antes: v39 = commit `4e6da54` (para voltar atrás, publicar com esse commit).
+- **GitHub na GIDEON (decisão 022), só leitura:**
+  - **Ferramentas novas:** `github_listar` (os projetos de código do dono) e `github_ler` (README, arquivos e últimas mudanças, ou um arquivo/pasta). Valem no Telegram, no iPhone, na voz, no Nexus e na equipe; o pesquisador e o programador leem o código de verdade antes de escrever.
+  - **Memória:** agendador `gideon-indexar-github` (07h43): o projeto que mudou vira um resumo com link (até 3 por dia).
+  - **Migração 016:** usuário do GitHub em `gideon_config`, agendador e 2 testes novos na bateria (área `github`).
+  - **Sem chave:** só os 5 projetos públicos e 60 pedidos por hora. Os 2 privados entram quando o dono cadastrar a chave grátis `GITHUB_TOKEN`.
+  - **Testes na `gideon-teste`:** listar, ler projeto, pasta e arquivo; projeto sem README; as duas conversas chamaram a ferramenta certa em menos de 4 s.
+

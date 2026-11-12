@@ -56,6 +56,9 @@ async function acharRepo(nome: string): Promise<Linha> {
   throw Object.assign(new Error(`não achei o projeto "${nome}". Os projetos são: ${lista.map((r) => r.name).join(", ")}`), { status: 404 });
 }
 
+// Tira senhas, PINs, chaves e tokens de um texto antes de guardar na memória (mesmo que estejam num README público)
+export const semSegredos = (t: string) => t.replace(/\b(PIN|senha|password|passcode|token|api[ _-]?key|chave(?: de (?:api|acesso))?|secret)\b(\s*(?:\(|:|=|é|e)?\s*)\**([A-Za-z0-9_\-]{3,})\**\)?/gi,
+  (m, nome, _sep, valor) => /\d/.test(valor) || valor.length >= 16 ? `${nome} (omitido)` : m);
 export const resumoRepo = (r: Linha) => ({ projeto: r.name, descricao: r.description ?? null, privado: !!r.private, linguagem: r.language ?? null,
   ultima_mudanca: quando(r.pushed_at), link: r.html_url });
 
