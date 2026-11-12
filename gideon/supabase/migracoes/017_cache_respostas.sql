@@ -17,7 +17,7 @@ create table if not exists public.gideon_cache_respostas (
 alter table public.gideon_cache_respostas enable row level security; -- só a função (chave de serviço) lê e grava
 create index if not exists gideon_cache_embedding_idx on public.gideon_cache_respostas using hnsw (embedding extensions.vector_cosine_ops);
 
-create or replace function public.gideon_cache_buscar(consulta extensions.vector, p_canal text, p_versao text, limite double precision default 0.93)
+create or replace function public.gideon_cache_buscar(consulta extensions.vector, p_canal text, p_versao text, limite double precision default 0.90)
 returns table (id bigint, pergunta text, resposta text, usos int, similaridade double precision)
 language sql stable set search_path to 'public', 'extensions' as $$
   select c.id, c.pergunta, c.resposta, c.usos, 1 - (c.embedding <=> consulta)
@@ -29,5 +29,5 @@ language sql stable set search_path to 'public', 'extensions' as $$
 $$;
 revoke execute on function public.gideon_cache_buscar(extensions.vector, text, text, double precision) from public, anon, authenticated;
 
-insert into public.gideon_config (chave, valor) values ('cache', 'sim'), ('cache_limite', '0.93'), ('cache_dias', '3')
+insert into public.gideon_config (chave, valor) values ('cache', 'sim'), ('cache_limite', '0.90'), ('cache_dias', '3')
   on conflict (chave) do nothing;

@@ -4,7 +4,7 @@
 //  - pergunta sem palavras pessoais, de tempo ou de ação (meu, hoje, agora, lembrete, manda, pesquisa...);
 //  - começo de conversa (nada na mesma conversa nos últimos 20 min; senão pode ser continuação);
 //  - resposta feita sem ferramenta e sem trecho forte da memória.
-// Para usar a resposta guardada: mesmo canal, mesma versão do prompt, significado ≥ cache_limite (0,93)
+// Para usar a resposta guardada: mesmo canal, mesma versão do prompt, significado ≥ cache_limite (0,90)
 // e as mesmas palavras importantes e os mesmos números (assim "capital da Austrália" não responde "capital da Áustria").
 // Vale cache_dias (3). 👎 na resposta apaga do cache. gideon_config.cache = "nao" desliga.
 import { config, sb } from "./core.ts";
@@ -36,7 +36,7 @@ export async function cacheLigado() { return (await config()).cache !== "nao"; }
 // Resposta guardada para uma pergunta com o mesmo significado (ou null)
 export async function buscarNoCache(texto: string, vetor: number[], canal: string, versao: string): Promise<Achado | null> {
   const cfg = await config();
-  const { data, error } = await sb.rpc("gideon_cache_buscar", { consulta: JSON.stringify(vetor), p_canal: canal, p_versao: versao, limite: Number(cfg.cache_limite || 0.93) });
+  const { data, error } = await sb.rpc("gideon_cache_buscar", { consulta: JSON.stringify(vetor), p_canal: canal, p_versao: versao, limite: Number(cfg.cache_limite || 0.9) });
   if (error) throw new Error("cache: " + error.message);
   const alvo = palavras(texto), nums = numeros(texto);
   for (const c of (data ?? []) as Achado[]) {
