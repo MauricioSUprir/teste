@@ -2,6 +2,8 @@
 
 Pedidos reais feitos ao GIDEON + a resposta esperada. Toda falha real e todo "Não útil" vira uma linha aqui.
 
+> **Desde 12/11/2026 (decisão 018):** a lista oficial de testes fica no banco, na tabela `gideon_testes` (30 pedidos + os marcados 👎, que entram sozinhos). Ela roda toda semana, domingo às 17h30, com nota de 0 a 10. Os resultados ficam em `gideon_testes_rodadas` e `gideon_testes_resultados`; a nota e as melhorias propostas aparecem no relatório de domingo. Esta página fica como histórico dos primeiros testes manuais.
+
 > **Status:** os 10 pedidos abaixo são **rascunhos baseados nas capacidades listadas no kickoff**, não pedidos reais do histórico. O dono deve substituí-los/confirmá-los com os pedidos que realmente fez (histórico do Telegram e do WhatsApp).
 
 | # | Pedido | Resposta esperada | Área | Confirmado pelo dono |

@@ -250,21 +250,21 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 
 ## 5. SELF-IMPROVING — testa e melhora o próprio código
 
-**5.1 Testes**
-- 🟡 Lista de pedidos reais com resposta esperada (`testes/tarefas-reais.md`)
-- ⬜ Bateria automática toda semana com nota
+**5.1 Testes** (decisão 018)
+- ✅ Lista de pedidos com resposta esperada: tabela `gideon_testes` (30 do dia a dia; pedido marcado 👎 vira teste sozinho)
+- ✅ Bateria automática toda semana (domingo 17h30) com nota de 0 a 10; um juiz confere cada resposta. Ações reais são simuladas no teste
 
 **5.2 Melhorias**
-- ⬜ Achar os erros mais frequentes (do registro de execuções)
-- ⬜ Propor correção no GitHub (Claude Code)
-- ⬜ Rodar os testes na correção
+- ✅ Achar os problemas: falhas da bateria + erros mais frequentes da semana + pedidos 👎
+- ✅ Propor correção: regra nova no prompt (testada antes) ou pedido de código pronto para o Claude
+- ✅ Rodar os testes na correção, duas vezes (o modelo varia); só propõe se consertar e não quebrar nada
 
 **5.3 Aprovação**
-- ⬜ Você aprova no Telegram; só então entra em produção
-- ⬜ Volta automática se piorar
+- 🟡 Você aprova no Telegram (Aprovar/Negar no relatório de domingo); só então a regra entra. Falta o dono aprovar a primeira
+- ✅ Volta automática se a nota cair na bateria seguinte; "desfaz a melhoria" também funciona
 
 **5.4 Pronto quando**
-- ⬜ Relatório semanal traz nota + correção proposta, aplicada só após OK
+- 🟡 Relatório semanal traz nota + correção proposta, aplicada só após OK. Testado sem enviar; falta o primeiro domingo
 
 ---
 
