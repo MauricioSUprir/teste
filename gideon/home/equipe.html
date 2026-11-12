@@ -40,7 +40,7 @@
 </head>
 <body>
 <main>
-  <header><h1>👥 EQUIPE DA GIDEON</h1><a href="./" class="suave">← voltar ao GIDEON Home</a></header>
+  <header><h1>👥 EQUIPE DA GIDEON</h1><a href="./" class="suave" id="voltar">← voltar ao GIDEON Home</a></header>
   <p class="suave">O que cada agente está fazendo. Para chamar a equipe, peça à GIDEON (Telegram, voz ou iPhone): "chama a equipe para…". Ela mostra o plano e só começa depois do seu OK.</p>
   <div id="lista"><div class="vazio">Carregando…</div></div>
   <section id="detalhe" hidden></section>
@@ -48,6 +48,7 @@
 <script>
 const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
 const $ = (id) => document.getElementById(id);
+if (window.top !== window) $("voltar").hidden = true; // aberto dentro do Nexus: a janela já tem o fechar
 const el = (tag, props = {}, filhos = []) => { const e = Object.assign(document.createElement(tag), props); e.append(...filhos); return e; };
 const STATUS = { aguardando_ok: "esperando seu OK", executando: "trabalhando", revisando: "revisor conferindo", pronta: "pronta", erro: "parou com erro", cancelada: "cancelada" };
 const ICONE = { pendente: "⬜", executando: "⏳", feita: "✅", erro: "⚠️" };

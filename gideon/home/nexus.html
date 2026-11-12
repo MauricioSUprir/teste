@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GIDEON Nexus</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#04060c">
+<link rel="icon" href="icone.svg">
+<style>
+  :root { --fundo:#04060c; --vidro:rgba(8,16,26,.9); --cartao:#0a111c; --borda:#1d2a3c; --borda2:#24405a; --texto:#d8f3ff; --suave:#7d97ad; --destaque:#8fd8ff;
+    --link:#27c4ff; --ok:#6ee7a8; --aviso:#ffcf6e; --ruim:#ff8a8a; --barra:50px; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--fundo); color:var(--texto); font:15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color:var(--link); }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  button { cursor:pointer; }
+  input, select, textarea { background:#07101a; border:1px solid var(--borda2); border-radius:8px; padding:6px 9px; min-width:0; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid rgba(39,196,255,.6); outline-offset:1px; }
+  .btn { background:#10314a; border:1px solid #1c4a6a; border-radius:8px; padding:6px 12px; color:var(--texto); white-space:nowrap; }
+  .btn:hover { background:#14405f; } .btn:disabled { opacity:.5; cursor:default; }
+  .btn.sim { background:rgba(110,231,168,.14); border-color:rgba(110,231,168,.6); }
+  .btn.nao { background:transparent; border-color:#3a4a5a; color:var(--suave); }
+  .vazio { color:var(--suave); padding:14px; margin:0; }
+  .erro { color:var(--aviso); }
+  .chip { display:inline-block; font-size:11.5px; border:1px solid var(--borda2); border-radius:999px; padding:0 8px; color:var(--destaque); white-space:nowrap; }
+  .chip.ok { border-color:rgba(110,231,168,.6); color:var(--ok); } .chip.aviso { border-color:rgba(255,207,110,.6); color:var(--aviso); } .chip.ruim { border-color:rgba(255,138,138,.6); color:var(--ruim); }
+  small, .meta { color:var(--suave); font-size:12px; }
+
+  /* área de trabalho */
+  #mesa { position:fixed; inset:0 0 var(--barra) 0; overflow:hidden;
+    background: radial-gradient(ellipse at 72% 18%, rgba(39,196,255,.11), transparent 55%), radial-gradient(ellipse at 15% 95%, rgba(120,90,255,.09), transparent 50%),
+      linear-gradient(rgba(143,216,255,.025) 1px, transparent 1px) 0 0/44px 44px, linear-gradient(90deg, rgba(143,216,255,.025) 1px, transparent 1px) 0 0/44px 44px, var(--fundo); }
+  #icones { position:absolute; top:14px; left:14px; bottom:14px; display:grid; grid-auto-flow:column; grid-template-rows:repeat(auto-fill, 94px); grid-auto-columns:88px; gap:6px; }
+  .icone { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; border-radius:12px; border:1px solid transparent; background:none; color:var(--texto); font-size:12px; text-align:center; padding:4px; text-decoration:none; }
+  .icone:hover, .icone:focus-visible { background:rgba(39,196,255,.09); border-color:var(--borda2); }
+  .icone .sim { font-size:30px; line-height:1; filter:drop-shadow(0 0 10px rgba(39,196,255,.25)); position:relative; }
+  .icone .sim b { position:absolute; top:-6px; right:-10px; background:var(--aviso); color:#1a1200; font-size:11px; border-radius:999px; min-width:18px; padding:0 5px; }
+  #painelMesa { position:absolute; right:30px; bottom:24px; text-align:right; max-width:min(440px, 60vw); }
+  #painelMesa .hora { font-size:64px; font-weight:200; line-height:1; color:rgba(143,216,255,.75); letter-spacing:.02em; }
+  #painelMesa .data { color:var(--suave); margin:4px 0 10px; text-transform:capitalize; }
+  #resumoMesa { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+  #resumoMesa button { background:rgba(8,16,26,.7); border:1px solid var(--borda2); border-radius:999px; padding:3px 11px; font-size:12.5px; color:var(--texto); }
+  #resumoMesa button.alerta { border-color:rgba(255,207,110,.7); color:var(--aviso); }
+
+  /* janelas */
+  .janela { position:absolute; display:flex; flex-direction:column; min-width:300px; min-height:200px; background:var(--vidro); border:1px solid var(--borda2); border-radius:12px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55); backdrop-filter:blur(10px); resize:both; overflow:hidden; animation:abre .16s ease-out; }
+  @keyframes abre { from { opacity:0; transform:scale(.98); } to { opacity:1; transform:none; } }
+  .janela.ativa { border-color:rgba(39,196,255,.55); box-shadow:0 18px 50px rgba(0,0,0,.6), 0 0 22px rgba(39,196,255,.12); }
+  .janela.max { inset:0 !important; width:auto !important; height:auto !important; border-radius:0; resize:none; }
+  .titulo { display:flex; align-items:center; gap:8px; padding:5px 5px 5px 12px; background:rgba(16,40,60,.6); border-bottom:1px solid var(--borda); cursor:grab; user-select:none; touch-action:none; }
+  .titulo h2 { flex:1; margin:0; font-size:13px; font-weight:600; color:var(--destaque); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .titulo button { width:30px; height:26px; border:0; background:none; color:var(--suave); border-radius:6px; font-size:15px; line-height:1; }
+  .titulo button:hover { background:rgba(255,255,255,.08); color:var(--texto); }
+  .titulo button.fechar:hover { background:#7a2030; color:#fff; }
+  .corpo { flex:1; min-height:0; overflow:auto; }
+  .barraApp { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:8px; border-bottom:1px solid var(--borda); background:rgba(6,12,20,.5); }
+  .barraApp form { display:flex; gap:6px; flex:1; min-width:180px; } .barraApp form input { flex:1; }
+  .barraApp .rotulo { flex:1; min-width:120px; color:var(--suave); font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .abas { display:flex; gap:4px; padding:8px 8px 0; border-bottom:1px solid var(--borda); }
+  .abas button { background:none; border:1px solid transparent; border-bottom:0; border-radius:8px 8px 0 0; padding:6px 12px; color:var(--suave); }
+  .abas button.on { background:rgba(16,40,60,.6); border-color:var(--borda); color:var(--texto); }
+  .lista { padding:4px 0; }
+  .linha { display:flex; align-items:center; gap:10px; width:100%; padding:7px 12px; border:0; border-bottom:1px solid rgba(29,42,60,.6); background:none; text-align:left; color:var(--texto); text-decoration:none; }
+  button.linha:hover, a.linha:hover { background:rgba(39,196,255,.07); }
+  .linha .nome { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .linha .meta { white-space:nowrap; }
+  .card { margin:10px; padding:10px 12px; background:var(--cartao); border:1px solid var(--borda); border-radius:10px; }
+  .card h4 { margin:0 0 4px; font-size:14px; } .card p { margin:4px 0 0; font-size:13.5px; white-space:pre-wrap; word-break:break-word; }
+
+  /* conversa */
+  .corpo.conversa { display:flex; flex-direction:column; overflow:hidden; }
+  .msgs { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:86%; padding:8px 12px; border-radius:12px; font-size:14px; word-break:break-word; }
+  .msg.gideon { align-self:flex-start; background:#0d1a28; border:1px solid var(--borda); }
+  .msg.dono { align-self:flex-end; background:#10314a; border:1px solid #1c4a6a; }
+  .msg.pensando { color:var(--suave); animation:pisca 1.2s ease-in-out infinite; }
+  .msg.erro { border-color:rgba(255,207,110,.5); }
+  .msg .ferr { display:block; margin-top:4px; font-size:11.5px; color:var(--suave); }
+  @keyframes pisca { 50% { opacity:.45; } }
+  form.enviar { display:flex; gap:8px; padding:8px; border-top:1px solid var(--borda); }
+  form.enviar textarea { flex:1; resize:none; max-height:140px; }
+
+  /* terminal e editor */
+  .corpo.terminal { display:flex; flex-direction:column; background:#03070c; overflow:hidden; }
+  .saida { flex:1; margin:0; padding:10px 12px; overflow:auto; font:13px/1.45 ui-monospace, Consolas, monospace; white-space:pre-wrap; word-break:break-word; color:#bfe6ff; }
+  .saida .cmd { color:var(--ok); } .saida .erro { color:var(--aviso); } .saida .info { color:var(--suave); }
+  form.linhaCmd { display:flex; align-items:center; gap:6px; padding:8px; border-top:1px solid var(--borda); font:13px ui-monospace, Consolas, monospace; }
+  form.linhaCmd .pasta { width:30%; max-width:200px; } form.linhaCmd .cmd { flex:1; }
+  .corpo.editor { display:flex; flex-direction:column; overflow:hidden; }
+  .area { flex:1; min-height:0; display:flex; background:#03070c; }
+  .numeros { margin:0; padding:10px 8px; min-width:44px; text-align:right; color:#3d5a72; overflow:hidden; user-select:none; border-right:1px solid var(--borda); }
+  .numeros, .area textarea { font:13px/1.5 ui-monospace, Consolas, monospace; }
+  .area textarea { flex:1; border:0; border-radius:0; resize:none; padding:10px; background:transparent; white-space:pre; overflow:auto; tab-size:2; }
+  .estado { font-size:12.5px; color:var(--suave); }
+  .quadro { width:100%; height:100%; border:0; display:block; background:var(--fundo); }
+  .corpo.semRolagem { overflow:hidden; }
+
+  /* tarefas */
+  .colunas { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+  .colunas section { min-width:0; }
+  .colunas h3 { margin:12px 12px 6px; font-size:14px; color:var(--destaque); }
+  form.nova { display:flex; flex-wrap:wrap; gap:6px; padding:0 12px 8px; } form.nova input[name="titulo"], form.nova input[name="texto"] { flex:1 1 100%; } form.nova input[type="datetime-local"] { flex:1; }
+  .mini { border:1px solid var(--borda2); background:none; border-radius:6px; padding:1px 8px; color:var(--suave); }
+  .mini:hover { color:var(--texto); border-color:var(--link); }
+  table.tab { width:100%; border-collapse:collapse; font-size:13px; }
+  table.tab td, table.tab th { padding:6px 10px; border-bottom:1px solid rgba(29,42,60,.7); text-align:left; vertical-align:top; }
+  table.tab th { color:var(--suave); font-weight:500; font-size:12px; }
+  .secao { margin:14px 12px 4px; font-size:14px; color:var(--destaque); }
+
+  /* barra de tarefas, menu, central, avisos */
+  #barra { position:fixed; left:0; right:0; bottom:0; height:var(--barra); z-index:10000; display:flex; align-items:center; gap:6px; padding:0 8px; background:rgba(6,12,20,.94); border-top:1px solid var(--borda); backdrop-filter:blur(8px); }
+  #btnInicio { width:38px; height:38px; border-radius:10px; border:1px solid var(--borda2); background:radial-gradient(circle at 50% 40%, rgba(39,196,255,.35), rgba(16,40,60,.6)); color:#fff; font-weight:700; letter-spacing:.02em; }
+  #abertas { flex:1; display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
+  #abertas button { display:flex; align-items:center; gap:6px; max-width:180px; padding:6px 10px; border-radius:8px; border:1px solid transparent; background:rgba(16,40,60,.35); color:var(--suave); font-size:13px; white-space:nowrap; overflow:hidden; }
+  #abertas button.ativa { border-color:var(--borda2); color:var(--texto); background:rgba(16,40,60,.8); box-shadow:inset 0 -2px 0 var(--link); }
+  #bandeja { display:flex; align-items:center; gap:8px; color:var(--suave); font-size:12.5px; }
+  #bandeja .pc { display:flex; align-items:center; gap:5px; } #bandeja .ponto { width:8px; height:8px; border-radius:50%; background:#4a5a6a; } #bandeja .ponto.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  #sino { position:relative; width:38px; height:38px; border-radius:10px; border:1px solid transparent; background:none; font-size:18px; }
+  #sino:hover { border-color:var(--borda2); }
+  #sino b { position:absolute; top:2px; right:0; background:var(--aviso); color:#1a1200; font-size:11px; border-radius:999px; min-width:18px; padding:0 5px; line-height:18px; }
+  #menu { position:fixed; left:8px; bottom:calc(var(--barra) + 8px); z-index:10002; width:min(300px, calc(100vw - 16px)); padding:8px; background:var(--vidro); border:1px solid var(--borda2); border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.6); backdrop-filter:blur(10px); }
+  #menu h3 { margin:6px 8px 8px; font-size:13px; color:var(--suave); font-weight:500; }
+  #menu .linha { border-radius:8px; border-bottom:0; }
+  #menu hr { border:0; border-top:1px solid var(--borda); margin:6px 0; }
+  #central { position:fixed; top:0; right:0; bottom:var(--barra); z-index:10001; width:min(400px, 100vw); overflow-y:auto; background:var(--vidro); border-left:1px solid var(--borda2); backdrop-filter:blur(12px);
+    transform:translateX(105%); transition:transform .2s ease; box-shadow:-18px 0 50px rgba(0,0,0,.45); }
+  #central.on { transform:none; }
+  #central header { display:flex; align-items:center; justify-content:space-between; padding:12px 12px 4px; }
+  #central header h2 { margin:0; font-size:16px; color:var(--destaque); }
+  .pedido { border-color:rgba(255,207,110,.5); }
+  .pedido .acoes { display:flex; gap:8px; margin-top:10px; } .pedido .acoes .btn { flex:1; }
+  .aviso p { max-height:5.6em; overflow:hidden; } .aviso.aberto p { max-height:none; } .aviso.novo { border-color:rgba(39,196,255,.55); }
+  #toasts { position:fixed; right:12px; bottom:calc(var(--barra) + 12px); z-index:10003; display:flex; flex-direction:column; gap:8px; width:min(360px, calc(100vw - 24px)); }
+  .toast { background:var(--vidro); border:1px solid var(--borda2); border-radius:10px; padding:10px 12px; font-size:13.5px; box-shadow:0 10px 30px rgba(0,0,0,.5); animation:abre .2s ease-out; cursor:pointer; }
+  .toast.erro { border-color:rgba(255,207,110,.6); }
+  #semChave { position:fixed; inset:0; z-index:20000; display:grid; place-items:center; padding:24px; background:rgba(4,6,12,.96); }
+  #semChave > div { max-width:440px; text-align:center; }
+  #semChave h2 { color:var(--destaque); letter-spacing:.06em; }
+  #semChave form { display:flex; gap:8px; margin-top:14px; } #semChave input { flex:1; }
+
+  @media (max-width: 720px) {
+    .janela { inset:0 !important; width:auto !important; height:auto !important; border-radius:0; resize:none; min-width:0; }
+    .titulo { cursor:default; } .titulo .maxi { display:none; }
+    #icones { right:14px; bottom:auto; grid-auto-flow:row; grid-template-rows:none; grid-template-columns:repeat(auto-fill, 80px); grid-auto-columns:auto; justify-content:center; }
+    #painelMesa { left:16px; right:16px; bottom:16px; max-width:none; text-align:center; }
+    #painelMesa .hora { font-size:46px; } #resumoMesa { justify-content:center; }
+    #bandeja .relogio, #bandeja .pc span { display:none; }
+    #abertas button { max-width:120px; }
+  }
+</style>
+</head>
+<body>
+<main id="mesa" aria-label="Área de trabalho do GIDEON Nexus">
+  <nav id="icones" aria-label="Aplicativos"></nav>
+  <div id="painelMesa"><div class="hora" id="horaGrande">--:--</div><div class="data" id="dataGrande"></div><div id="resumoMesa"></div></div>
+</main>
+
+<div id="barra" role="toolbar" aria-label="Barra de tarefas">
+  <button id="btnInicio" aria-haspopup="true" aria-expanded="false" title="Aplicativos">G</button>
+  <div id="abertas" aria-label="Janelas abertas"></div>
+  <div id="bandeja">
+    <div class="pc" title="GIDEON PC"><i class="ponto" id="pontoPC"></i><span id="textoPC">PC</span></div>
+    <button id="sino" aria-label="Notificações" title="Notificações">🔔<b id="contador" hidden>0</b></button>
+    <span class="relogio" id="relogio">--:--</span>
+  </div>
+</div>
+
+<div id="menu" hidden role="menu"></div>
+
+<aside id="central" aria-label="Central de notificações" aria-hidden="true">
+  <header><h2>🔔 Notificações</h2><button class="mini" id="fecharCentral" aria-label="Fechar notificações">fechar</button></header>
+  <div id="centralCorpo"><p class="vazio">Carregando…</p></div>
+</aside>
+
+<div id="toasts" aria-live="polite"></div>
+
+<div id="semChave" hidden>
+  <div>
+    <h2>GIDEON NEXUS</h2>
+    <p id="semChaveMsg">Para entrar, mande <b>/home</b> para a GIDEON no Telegram e abra o link neste navegador uma vez. Depois o Nexus abre direto.</p>
+    <p class="meta">Ou cole aqui o link que chegou no Telegram:</p>
+    <form id="formChave"><input id="campoChave" placeholder="https://gideon-home.onrender.com/#t=…" aria-label="Link do GIDEON Home"><button class="btn">Entrar</button></form>
+  </div>
+</div>
+
+<script>
+"use strict";
+const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
+const NEXUS = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/nexus/";
+const FUSO = "America/Sao_Paulo";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ler = (k, padrao = null) => { try { const v = localStorage.getItem(k); return v == null ? padrao : v; } catch { return padrao; } };
+const lerJSON = (k, padrao) => { try { return JSON.parse(localStorage.getItem(k)) ?? padrao; } catch { return padrao; } };
+const guardar = (k, v) => { try { localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); } catch {} };
+const esperar = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const celular = () => matchMedia("(max-width: 720px)").matches;
+
+// ---------- chave de acesso: a mesma do GIDEON Home (link /home do Telegram) ----------
+let chave = "";
+function pegarChave(texto) {
+  const m = String(texto ?? "").match(/[#&?]t=([0-9]+\.[0-9a-f]{40})/i) || String(texto ?? "").trim().match(/^([0-9]+\.[0-9a-f]{40})$/i);
+  return m ? m[1] : "";
+}
+(() => {
+  const h = pegarChave(location.hash);
+  if (h) { guardar("gideon_home", h); history.replaceState(null, "", location.pathname); }
+  chave = ler("gideon_home", "") || "";
+})();
+function semAcesso(msg) {
+  if (msg) $("#semChaveMsg").textContent = msg;
+  $("#semChave").hidden = false;
+}
+$("#formChave").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const k = pegarChave($("#campoChave").value);
+  if (!k) { $("#semChaveMsg").textContent = "Esse não parece o link do GIDEON Home. Mande /home no Telegram e copie o link inteiro."; return; }
+  guardar("gideon_home", k); chave = k; location.reload();
+});
+
+// ---------- falar com o servidor ----------
+async function pedir(url, corpo) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave }, body: JSON.stringify(corpo ?? {}) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { semAcesso("Sua chave venceu ou é inválida. Mande /home para a GIDEON no Telegram e abra o link novo neste navegador."); throw new Error("acesso negado"); }
+  if (!r.ok) throw new Error(j.erro || `o servidor respondeu ${r.status}`);
+  return j;
+}
+const nx = (rota, corpo) => pedir(NEXUS + rota, corpo);
+async function ferramenta(nome, args) { return (await pedir(FUNC + "home-ferramenta", { nome, args: args ?? {} })).resultado ?? {}; }
+// Ações que pedem OK (sobrescrever arquivo, instalar, git push...): o OK é dado aqui mesmo, numa caixa de confirmação
+async function comOK(nome, args) {
+  let r = await ferramenta(nome, { ...args, confirmado: false });
+  if (r && r.precisa_confirmacao) {
+    const d = r.resumo?.descricao || r.resumo?.titulo || r.instrucao || nome;
+    if (!confirm(`${d}\n\nPode fazer?`)) return { cancelado: true };
+    r = await ferramenta(nome, { ...args, confirmado: true });
+  }
+  return r ?? {};
+}
+
+// ---------- datas e textos ----------
+const fmt = (iso, op = { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) => iso ? new Intl.DateTimeFormat("pt-BR", { timeZone: FUSO, ...op }).format(new Date(iso)) : "";
+function rel(iso) {
+  if (!iso) return "";
+  const s = Math.round((new Date(iso).getTime() - Date.now()) / 1000), a = Math.abs(s);
+  if (a < 60) return "agora";
+  const t = a < 3600 ? `${Math.round(a / 60)} min` : a < 86400 ? `${Math.round(a / 3600)} h` : `${Math.round(a / 86400)} d`;
+  return s < 0 ? `há ${t}` : `em ${t}`;
+}
+const textoRico = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+  .replace(/(https?:\/\/[^\s<]+?)(?=[.,;:!?)\]]*(\s|$|<))/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>");
+function aviso(texto, tipo = "", aoClicar) {
+  const d = document.createElement("div");
+  d.className = "toast " + tipo; d.innerHTML = textoRico(texto);
+  d.addEventListener("click", () => { d.remove(); aoClicar?.(); });
+  $("#toasts").appendChild(d);
+  setTimeout(() => d.remove(), tipo === "erro" ? 9000 : 6000);
+}
+const msgErro = (e) => String(e?.message ?? e).slice(0, 300);
+
+// ---------- aplicativos ----------
+const APPS = {
+  conversa:   { titulo: "Conversa com a GIDEON", icone: "💬", nome: "Conversa", w: 460, h: 580, montar: appConversa },
+  arquivos:   { titulo: "Arquivos", icone: "🗂️", nome: "Arquivos", w: 660, h: 480, montar: appArquivos },
+  terminal:   { titulo: "Terminal do PC", icone: "⌨️", nome: "Terminal", w: 660, h: 420, montar: appTerminal },
+  editor:     { titulo: "Editor de código", icone: "📝", nome: "Editor", w: 760, h: 540, montar: appEditor },
+  memoria:    { titulo: "Memória", icone: "🧠", nome: "Memória", w: 580, h: 540, montar: appMemoria },
+  tarefas:    { titulo: "Tarefas e lembretes", icone: "✅", nome: "Tarefas", w: 620, h: 560, montar: appTarefas },
+  equipe:     { titulo: "Equipe de agentes", icone: "👥", nome: "Equipe", w: 780, h: 580, montar: appEquipe },
+  automacoes: { titulo: "Automações e sistema", icone: "⚙️", nome: "Automações", w: 680, h: 560, montar: appAutomacoes },
+};
+
+// ---------- janelas ----------
+const janelas = new Map();
+let zTopo = 10, focada = null;
+function abrir(id, opcoes) {
+  fecharMenus();
+  let j = janelas.get(id);
+  if (j) { j.el.hidden = false; focar(id); j.app.aoAbrir?.(opcoes); return j; }
+  const a = APPS[id]; if (!a) return null;
+  const el = document.createElement("section");
+  el.className = "janela"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", a.titulo);
+  el.innerHTML = `<div class="titulo"><span aria-hidden="true">${a.icone}</span><h2>${esc(a.titulo)}</h2><button class="min" aria-label="Minimizar" title="Minimizar">–</button><button class="maxi" aria-label="Maximizar" title="Maximizar">▢</button><button class="fechar" aria-label="Fechar" title="Fechar">×</button></div><div class="corpo"></div>`;
+  const pos = lerJSON("nx_pos_" + id, null), n = janelas.size, W = innerWidth, H = innerHeight - 50;
+  const w = Math.min(pos?.w ?? a.w, W - 16), h = Math.min(pos?.h ?? a.h, H - 16);
+  const x = Math.max(0, Math.min(pos?.x ?? 215 + n * 30, W - w)), y = Math.max(0, Math.min(pos?.y ?? 20 + n * 26, H - h));
+  Object.assign(el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+  $("#mesa").appendChild(el);
+  j = { id, el, app: {} };
+  janelas.set(id, j);
+  const tit = $(".titulo", el);
+  tit.addEventListener("pointerdown", (e) => { // arrastar pela barra de título
+    if (e.target.closest("button") || el.classList.contains("max") || celular()) return;
+    const ox = e.clientX - el.offsetLeft, oy = e.clientY - el.offsetTop;
+    tit.setPointerCapture(e.pointerId); tit.style.cursor = "grabbing";
+    const mover = (ev) => {
+      el.style.left = Math.max(80 - el.offsetWidth, Math.min(ev.clientX - ox, innerWidth - 80)) + "px";
+      el.style.top = Math.max(0, Math.min(ev.clientY - oy, innerHeight - 50 - 34)) + "px";
+    };
+    const soltar = () => { tit.removeEventListener("pointermove", mover); tit.removeEventListener("pointerup", soltar); tit.style.cursor = ""; salvarPos(j); };
+    tit.addEventListener("pointermove", mover); tit.addEventListener("pointerup", soltar);
+  });
+  tit.addEventListener("dblclick", (e) => { if (!e.target.closest("button")) maximizar(id); });
+  el.addEventListener("pointerdown", () => focar(id), true);
+  $(".min", el).addEventListener("click", () => minimizar(id));
+  $(".maxi", el).addEventListener("click", () => maximizar(id));
+  $(".fechar", el).addEventListener("click", () => fechar(id));
+  new ResizeObserver(esperar(() => salvarPos(j), 400)).observe(el);
+  try { j.app = a.montar($(".corpo", el), j, opcoes) || {}; }
+  catch (e) { $(".corpo", el).innerHTML = `<p class="vazio erro">Não consegui abrir: ${esc(msgErro(e))}</p>`; }
+  focar(id); salvarAbertas();
+  return j;
+}
+function salvarPos(j) {
+  if (!janelas.has(j.id) || j.el.hidden || j.el.classList.contains("max") || celular()) return;
+  guardar("nx_pos_" + j.id, { x: j.el.offsetLeft, y: j.el.offsetTop, w: j.el.offsetWidth, h: j.el.offsetHeight });
+}
+function focar(id) {
+  const j = janelas.get(id); if (!j) return;
+  if (zTopo > 9000) { zTopo = 10; [...janelas.values()].sort((a, b) => a.el.style.zIndex - b.el.style.zIndex).forEach((x) => x.el.style.zIndex = ++zTopo); }
+  j.el.style.zIndex = ++zTopo; focada = id;
+  for (const x of janelas.values()) x.el.classList.toggle("ativa", x.id === id);
+  desenharBarra();
+}
+function minimizar(id) {
+  const j = janelas.get(id); if (!j) return;
+  j.el.hidden = true; j.el.classList.remove("ativa");
+  if (focada === id) focada = null;
+  desenharBarra();
+}
+function maximizar(id) { janelas.get(id)?.el.classList.toggle("max"); }
+function fechar(id) {
+  const j = janelas.get(id); if (!j) return;
+  if (j.app.antesDeFechar && !j.app.antesDeFechar()) return;
+  j.app.aoFechar?.();
+  j.el.remove(); janelas.delete(id);
+  if (focada === id) focada = null;
+  salvarAbertas(); desenharBarra();
+}
+const salvarAbertas = () => guardar("nx_abertas", [...janelas.keys()]);
+function desenharBarra() {
+  const b = $("#abertas"); b.innerHTML = "";
+  for (const j of janelas.values()) {
+    const a = APPS[j.id], bt = document.createElement("button");
+    bt.className = j.id === focada && !j.el.hidden ? "ativa" : "";
+    bt.innerHTML = `<span aria-hidden="true">${a.icone}</span>${esc(a.nome)}`;
+    bt.title = a.titulo;
+    bt.addEventListener("click", () => { if (j.el.hidden || focada !== j.id) { j.el.hidden = false; focar(j.id); } else minimizar(j.id); });
+    b.appendChild(bt);
+  }
+}
+
+// ---------- área de trabalho, menu e relógio ----------
+function desenharIcones() {
+  const nav = $("#icones"); nav.innerHTML = "";
+  for (const [id, a] of Object.entries(APPS)) {
+    const b = document.createElement("button");
+    b.className = "icone"; b.dataset.app = id;
+    b.innerHTML = `<span class="sim" aria-hidden="true">${a.icone}</span><span>${esc(a.nome)}</span>`;
+    b.addEventListener("click", () => abrir(id));
+    nav.appendChild(b);
+  }
+  const n = document.createElement("button");
+  n.className = "icone"; n.innerHTML = `<span class="sim" aria-hidden="true">🔔<b id="contadorMesa" hidden></b></span><span>Notificações</span>`;
+  n.addEventListener("click", () => alternarCentral(true));
+  nav.appendChild(n);
+  const v = document.createElement("a");
+  v.className = "icone"; v.href = "./"; v.innerHTML = `<span class="sim" aria-hidden="true">🎙️</span><span>Voz (Home)</span>`;
+  nav.appendChild(v);
+}
+function desenharMenu() {
+  const m = $("#menu");
+  m.innerHTML = `<h3>GIDEON Nexus</h3>` + Object.entries(APPS).map(([id, a]) => `<button class="linha" role="menuitem" data-app="${id}"><span aria-hidden="true">${a.icone}</span><span class="nome">${esc(a.titulo)}</span></button>`).join("") +
+    `<hr><button class="linha" role="menuitem" data-acao="central"><span aria-hidden="true">🔔</span><span class="nome">Notificações</span></button>` +
+    `<a class="linha" role="menuitem" href="./"><span aria-hidden="true">🎙️</span><span class="nome">GIDEON Home (voz)</span></a>` +
+    `<button class="linha" role="menuitem" data-acao="sair"><span aria-hidden="true">🚪</span><span class="nome">Sair deste navegador</span></button>`;
+  m.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.app) abrir(b.dataset.app);
+    else if (b.dataset.acao === "central") { fecharMenus(); alternarCentral(true); }
+    else if (b.dataset.acao === "sair" && confirm("Sair do Nexus neste navegador? Para voltar, abra de novo o link /home do Telegram.")) {
+      try { localStorage.removeItem("gideon_home"); } catch {}
+      location.reload();
+    }
+  });
+}
+function fecharMenus() { $("#menu").hidden = true; $("#btnInicio").setAttribute("aria-expanded", "false"); }
+$("#btnInicio").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const m = $("#menu"); m.hidden = !m.hidden;
+  $("#btnInicio").setAttribute("aria-expanded", String(!m.hidden));
+});
+document.addEventListener("click", (e) => { if (!e.target.closest("#menu")) fecharMenus(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { fecharMenus(); alternarCentral(false); } });
+function relogio() {
+  const d = new Date();
+  $("#relogio").textContent = fmt(d.toISOString(), { hour: "2-digit", minute: "2-digit" });
+  $("#horaGrande").textContent = $("#relogio").textContent;
+  $("#dataGrande").textContent = new Intl.DateTimeFormat("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" }).format(d);
+}
+
+// ---------- central de notificações (aprovações, avisos, erros, lembretes) ----------
+const estado = { painel: null, ouvintes: new Set(), aprovacoesVistas: null, avisoTopo: null };
+function alternarCentral(abrirOuNao) {
+  const c = $("#central"), abrirAgora = abrirOuNao ?? !c.classList.contains("on");
+  c.classList.toggle("on", abrirAgora); c.setAttribute("aria-hidden", String(!abrirAgora));
+  if (abrirAgora && estado.painel) { // ao abrir, os avisos contam como vistos
+    const topo = Math.max(0, ...estado.painel.avisos.map((a) => a.id));
+    guardar("nx_aviso_visto", String(topo));
+    setTimeout(() => desenharContador(estado.painel), 1500);
+  }
+}
+$("#sino").addEventListener("click", () => alternarCentral());
+$("#fecharCentral").addEventListener("click", () => alternarCentral(false));
+function desenharContador(p) {
+  const visto = Number(ler("nx_aviso_visto", "0")) || 0;
+  const n = p.aprovacoes.length + p.avisos.filter((a) => a.id > visto).length;
+  for (const el of [$("#contador"), $("#contadorMesa")]) { if (!el) continue; el.hidden = !n; el.textContent = n > 99 ? "99+" : String(n); }
+  document.title = (n ? `(${n}) ` : "") + "GIDEON Nexus";
+}
+function desenharCentral(p) {
+  const visto = Number(ler("nx_aviso_visto", "0")) || 0, partes = [];
+  partes.push(`<h3 class="secao">Esperando seu OK (${p.aprovacoes.length})</h3>`);
+  partes.push(p.aprovacoes.length ? p.aprovacoes.map((a) => `<div class="card pedido" data-id="${a.id}"><h4>${esc(a.descricao)}</h4>
+    <div class="meta">pedido por ${esc(a.pedido_por || "GIDEON")} · ${esc(rel(a.criado_em))}${a.expira_em ? ` · vale até ${esc(fmt(a.expira_em))}` : ""}</div>
+    <div class="acoes"><button class="btn sim" data-decidir="1">✅ Aprovar</button><button class="btn nao" data-decidir="0">❌ Negar</button></div></div>`).join("")
+    : `<p class="vazio">Nada esperando. Quando a GIDEON precisar do seu OK (agenda, WhatsApp, PC, equipe, melhorias), aparece aqui e no Telegram.</p>`);
+  if (p.erros.total_24h) partes.push(`<h3 class="secao">Erros nas últimas 24 h (${p.erros.total_24h})</h3>` + p.erros.ultimos.map((e) =>
+    `<div class="card"><h4>${esc(e.pedido_resumo || e.ferramenta || "erro")}</h4><div class="meta">${esc(e.canal)} · ${esc(rel(e.data_hora))}</div><p>${esc(e.erro_mensagem)}</p></div>`).join(""));
+  partes.push(`<h3 class="secao">Avisos da GIDEON</h3>`);
+  partes.push(p.avisos.length ? p.avisos.map((a) => `<div class="card aviso${a.id > visto ? " novo" : ""}" tabindex="0" title="Toque para ver tudo"><div class="meta">${esc(fmt(a.criado_em))} · ${esc(rel(a.criado_em))}</div><p>${textoRico(a.texto)}</p></div>`).join("")
+    : `<p class="vazio">Sem avisos recentes.</p>`);
+  partes.push(`<h3 class="secao">Próximos lembretes</h3>`);
+  partes.push(p.lembretes.length ? p.lembretes.slice(0, 5).map((l) => `<div class="card"><h4>⏰ ${esc(l.texto)}</h4><div class="meta">${esc(fmt(l.quando))} · ${esc(rel(l.quando))}${l.recorrencia ? " · " + esc(l.recorrencia) : ""}</div></div>`).join("")
+    : `<p class="vazio">Nenhum lembrete marcado.</p>`);
+  $("#centralCorpo").innerHTML = partes.join("");
+}
+$("#centralCorpo").addEventListener("click", async (e) => {
+  const av = e.target.closest(".aviso"); if (av && !e.target.closest("a")) av.classList.toggle("aberto");
+  const b = e.target.closest("[data-decidir]"); if (!b) return;
+  const card = b.closest(".pedido"), id = Number(card.dataset.id), aprovar = b.dataset.decidir === "1";
+  const descricao = $("h4", card).textContent;
+  if (aprovar && !confirm(`Aprovar e fazer agora?\n\n${descricao}`)) return;
+  card.querySelectorAll("button").forEach((x) => x.disabled = true);
+  b.textContent = aprovar ? "Fazendo…" : "Negando…";
+  try {
+    const r = await nx("aprovar", { id, aprovar });
+    aviso(r.texto || (aprovar ? "Aprovado." : "Negado."), /⚠️/.test(r.texto ?? "") ? "erro" : "");
+  } catch (err) { aviso("Não consegui: " + msgErro(err), "erro"); }
+  atualizarPainel();
+});
+function desenharMesa(p) {
+  const r = [];
+  if (p.aprovacoes.length) r.push(`<button class="alerta" data-ir="central">🔔 ${p.aprovacoes.length} esperando seu OK</button>`);
+  r.push(`<button data-ir="tarefas">✅ ${p.tarefas.length} tarefa${p.tarefas.length === 1 ? "" : "s"}</button>`);
+  if (p.lembretes[0]) r.push(`<button data-ir="tarefas">⏰ ${esc(rel(p.lembretes[0].quando))}: ${esc(String(p.lembretes[0].texto).slice(0, 40))}</button>`);
+  if (p.equipe.length) r.push(`<button data-ir="equipe">👥 equipe: ${p.equipe.length} trabalho${p.equipe.length === 1 ? "" : "s"}</button>`);
+  if (p.testes?.nota != null) r.push(`<button data-ir="automacoes">🧪 nota ${String(p.testes.nota).replace(".", ",")}/10</button>`);
+  if (p.erros.total_24h) r.push(`<button class="alerta" data-ir="central">⚠️ ${p.erros.total_24h} erro${p.erros.total_24h === 1 ? "" : "s"} em 24 h</button>`);
+  r.push(`<button data-ir="automacoes">💻 PC ${p.pc.ligado ? "ligado" : "desligado"}</button>`);
+  $("#resumoMesa").innerHTML = r.join("");
+  $("#pontoPC").classList.toggle("on", !!p.pc.ligado);
+  $("#textoPC").textContent = p.pc.ligado ? "PC ligado" : "PC desligado";
+  $(".pc", $("#bandeja")).title = p.pc.ligado ? `GIDEON PC ${p.pc.versao ?? ""} ligado` : `GIDEON PC desligado${p.pc.visto_ha_segundos != null ? " (visto " + rel(new Date(Date.now() - p.pc.visto_ha_segundos * 1000).toISOString()) + ")" : ""}`;
+}
+$("#resumoMesa").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-ir]"); if (!b) return;
+  if (b.dataset.ir === "central") alternarCentral(true); else abrir(b.dataset.ir);
+});
+let atualizando = false;
+async function atualizarPainel() {
+  if (atualizando || !chave) return;
+  atualizando = true;
+  try {
+    const p = await nx("painel");
+    const primeira = !estado.painel;
+    estado.painel = p;
+    const ids = new Set(p.aprovacoes.map((a) => a.id));
+    if (primeira && p.aprovacoes.length) aviso(`🔔 ${p.aprovacoes.length} pedido(s) esperando seu OK. Toque aqui para ver.`, "", () => alternarCentral(true));
+    if (!primeira) for (const a of p.aprovacoes) if (!estado.aprovacoesVistas.has(a.id)) aviso(`🔔 Esperando seu OK: ${a.descricao}`, "", () => alternarCentral(true));
+    const topo = Math.max(0, ...p.avisos.map((a) => a.id));
+    if (!primeira && topo > estado.avisoTopo) aviso(String(p.avisos[0].texto).split("\n")[0].slice(0, 160), "", () => alternarCentral(true));
+    estado.aprovacoesVistas = ids; estado.avisoTopo = topo;
+    desenharCentral(p); desenharContador(p); desenharMesa(p);
+    for (const f of estado.ouvintes) { try { f(p); } catch (e) { console.error(e); } }
+  } catch (e) {
+    if (!$("#semChave").hidden) return;
+    $("#centralCorpo").innerHTML = `<p class="vazio erro">Não consegui atualizar: ${esc(msgErro(e))}</p>`;
+  } finally { atualizando = false; }
+}
+
+// ---------- app: conversa ----------
+function appConversa(corpo) {
+  corpo.classList.add("conversa");
+  corpo.innerHTML = `<div class="msgs" aria-live="polite"></div><form class="enviar"><textarea rows="1" placeholder="Fale com a GIDEON…  (Enter envia)" aria-label="Mensagem para a GIDEON"></textarea><button class="btn">Enviar</button></form>`;
+  const msgs = $(".msgs", corpo), ta = $("textarea", corpo), form = $("form", corpo);
+  let ocupado = false;
+  const bolha = (quem, texto, extra = "") => {
+    const d = document.createElement("div");
+    d.className = `msg ${quem} ${extra}`; d.innerHTML = textoRico(texto);
+    msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+    return d;
+  };
+  nx("historico").then((r) => {
+    msgs.innerHTML = "";
+    if (!r.mensagens.length) bolha("gideon", "Oi! Aqui no Nexus você conversa comigo, vê no sino 🔔 o que espera seu OK e abre arquivos, terminal e editor do seu PC.");
+    for (const m of r.mensagens) bolha(m.papel === "user" ? "dono" : "gideon", m.texto);
+  }).catch((e) => bolha("gideon", "Não consegui carregar a conversa: " + msgErro(e), "erro"));
+  const crescer = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px"; };
+  ta.addEventListener("input", crescer);
+  ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const t = ta.value.trim(); if (!t || ocupado) return;
+    ocupado = true; ta.value = ""; crescer();
+    bolha("dono", t);
+    const espera = bolha("gideon", "pensando…", "pensando");
+    try {
+      const r = await nx("conversa", { texto: t });
+      espera.remove();
+      const b = bolha("gideon", r.resposta || "…", r.status === "erro" ? "erro" : "");
+      if (r.ferramentas?.length) { const s = document.createElement("span"); s.className = "ferr"; s.textContent = "usou: " + r.ferramentas.join(", "); b.appendChild(s); }
+      atualizarPainel(); // a conversa pode ter criado tarefa, lembrete ou pedido de OK
+    } catch (err) { espera.remove(); bolha("gideon", "Não consegui responder: " + msgErro(err), "erro"); }
+    ocupado = false; ta.focus();
+  });
+  setTimeout(() => ta.focus(), 50);
+  return { aoAbrir() { ta.focus(); } };
+}
+
+// ---------- app: arquivos (PC e Google Drive) ----------
+const TEXTO = /\.(txt|md|csv|json|py|js|mjs|ts|tsx|jsx|html?|css|sql|log|ini|ya?ml|xml|java|c|cpp|h|cs|go|rs|php|rb|sh|toml|cfg|env\.example|gitignore)$/i;
+function iconeArquivo(nome, pasta) {
+  if (pasta) return "📁";
+  if (/\.(png|jpe?g|gif|webp|svg|heic)$/i.test(nome)) return "🖼️";
+  if (/\.pdf$/i.test(nome)) return "📕";
+  if (/\.(docx?|odt)$/i.test(nome)) return "📄";
+  if (/\.(xlsx?|csv|ods)$/i.test(nome)) return "📊";
+  if (/\.(pptx?|odp)$/i.test(nome)) return "📽️";
+  if (/\.(mp3|wav|ogg|m4a|mp4|mov|webm)$/i.test(nome)) return "🎞️";
+  if (/\.(zip|rar|7z)$/i.test(nome)) return "🗜️";
+  return TEXTO.test(nome) ? "📝" : "📎";
+}
+function appArquivos(corpo) {
+  corpo.innerHTML = `<div class="abas" role="tablist"><button class="on" data-aba="pc" role="tab">💻 PC</button><button data-aba="drive" role="tab">☁️ Google Drive</button></div>
+  <div data-painel="pc"><div class="barraApp"><button class="btn subir" aria-label="Pasta de cima" title="Pasta de cima">⬆</button><span class="rotulo caminho">GIDEON</span><button class="btn recarregar" aria-label="Atualizar" title="Atualizar">⟳</button>
+    <form class="buscaPC"><input type="search" placeholder="Procurar no PC (nome do arquivo)" aria-label="Procurar no PC"><button class="btn">Procurar</button></form></div><div class="lista"></div></div>
+  <div data-painel="drive" hidden><div class="barraApp"><form class="buscaDrive"><input type="search" placeholder="Procurar no Drive (nome ou conteúdo)" aria-label="Procurar no Drive"><button class="btn">Procurar</button></form></div><div class="lista"><p class="vazio">Escreva o que procurar no seu Google Drive.</p></div></div>`;
+  let atual = "";
+  const listaPC = $('[data-painel="pc"] .lista', corpo), listaDrive = $('[data-painel="drive"] .lista', corpo);
+  $(".abas", corpo).addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    corpo.querySelectorAll(".abas button").forEach((x) => x.classList.toggle("on", x === b));
+    corpo.querySelectorAll("[data-painel]").forEach((p) => p.hidden = p.dataset.painel !== b.dataset.aba);
+  });
+  function linha(it, aoClicar) {
+    const b = document.createElement("button");
+    b.className = "linha";
+    b.innerHTML = `<span aria-hidden="true">${iconeArquivo(it.nome, it.tipo === "pasta")}</span><span class="nome" title="${esc(it.caminho ?? it.nome)}">${esc(it.nome)}</span><span class="meta">${esc(it.tamanho ?? "")}</span><span class="meta">${esc(it.modificado ?? "")}</span>`;
+    b.addEventListener("click", aoClicar);
+    return b;
+  }
+  async function abrirArquivo(it) {
+    if (TEXTO.test(it.nome)) { abrir("editor", { caminho: it.caminho }); return; }
+    if (!confirm(`"${it.nome}" não é um arquivo de texto. Abrir no PC com o programa padrão?`)) return;
+    try { const r = await ferramenta("pc_abrir", { caminho: it.caminho }); aviso(r.erro ? "Não consegui: " + r.erro : (r.descricao || "Abri no PC."), r.erro ? "erro" : ""); }
+    catch (e) { aviso("Não consegui: " + msgErro(e), "erro"); }
+  }
+  async function listar(pasta) {
+    listaPC.innerHTML = `<p class="vazio">Abrindo…</p>`;
+    try {
+      const r = await ferramenta("pc_listar", { pasta });
+      if (r.erro) throw new Error(r.erro);
+      atual = pasta;
+      $(".caminho", corpo).textContent = ["GIDEON", ...String(pasta).split(/[\\/]/).filter(Boolean)].join(" › ");
+      listaPC.innerHTML = r.itens?.length ? "" : `<p class="vazio">Pasta vazia.</p>`;
+      for (const it of r.itens ?? []) listaPC.appendChild(linha(it, () => it.tipo === "pasta" ? listar(it.caminho) : abrirArquivo(it)));
+      if (r.total >= 300) listaPC.insertAdjacentHTML("beforeend", `<p class="vazio">Mostrando os primeiros 300 itens.</p>`);
+    } catch (e) { listaPC.innerHTML = `<p class="vazio erro">${esc(msgErro(e))}</p>`; }
+  }
+  $(".subir", corpo).addEventListener("click", () => {
+    if (!atual) return;
+    const sep = atual.includes("\\") ? "\\" : "/";
+    listar(atual.split(/[\\/]/).filter(Boolean).slice(0, -1).join(sep));
+  });
+  $(".recarregar", corpo).addEventListener("click", () => listar(atual));
+  $(".buscaPC", corpo).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const t = $("input", e.target).value.trim(); if (!t) return listar(atual);
+    listaPC.innerHTML = `<p class="vazio">Procurando "${esc(t)}" na pasta GIDEON, Documentos, Downloads e Área de Trabalho…</p>`;
+    try {
+      const r = await ferramenta("pc_procurar", { texto: t });
+      if (r.erro) throw new Error(r.erro);
+      $(".caminho", corpo).textContent = `Resultado: "${t}" (${r.total ?? 0})`;
+      listaPC.innerHTML = r.achados?.length ? "" : `<p class="vazio">Nada encontrado.</p>`;
+      for (const it of r.achados ?? []) listaPC.appendChild(linha({ ...it, tipo: "arquivo" }, () => abrirArquivo(it)));
+    } catch (err) { listaPC.innerHTML = `<p class="vazio erro">${esc(msgErro(err))}</p>`; }
+  });
+  $(".buscaDrive", corpo).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const t = $("input", e.target).value.trim(); if (!t) return;
+    listaDrive.innerHTML = `<p class="vazio">Procurando no Drive…</p>`;
+    try {
+      const r = await ferramenta("drive_buscar", { texto: t, maximo: 10 });
+      if (r.erro) throw new Error(r.erro);
+      listaDrive.innerHTML = r.arquivos?.length ? "" : `<p class="vazio">Nada encontrado no Drive.</p>`;
+      for (const f of r.arquivos ?? []) listaDrive.insertAdjacentHTML("beforeend",
+        `<a class="linha" href="${esc(f.link)}" target="_blank" rel="noopener"><span aria-hidden="true">${iconeArquivo(f.nome, false)}</span><span class="nome">${esc(f.nome)}</span><span class="meta">${esc(f.modificado ?? "")}</span></a>`);
+    } catch (err) { listaDrive.innerHTML = `<p class="vazio erro">${esc(msgErro(err))}</p>`; }
+  });
+  listar("");
+  return {};
+}
+
+// ---------- app: terminal do PC ----------
+function appTerminal(corpo) {
+  corpo.classList.add("terminal");
+  corpo.innerHTML = `<pre class="saida" aria-live="polite"></pre><form class="linhaCmd"><input class="pasta" placeholder="pasta (vazio = GIDEON)" aria-label="Pasta onde rodar" spellcheck="false"><span aria-hidden="true">›</span><input class="cmd" placeholder="git status" aria-label="Comando" autocomplete="off" spellcheck="false" autocapitalize="off"><button class="btn">Rodar</button></form>`;
+  const saida = $(".saida", corpo), cmd = $(".cmd", corpo), pasta = $(".pasta", corpo);
+  const hist = lerJSON("nx_terminal", []); let pos = hist.length, ocupado = false;
+  const escrever = (t, cls = "") => {
+    const s = document.createElement("span"); if (cls) s.className = cls; s.textContent = t;
+    saida.appendChild(s);
+    while (saida.textContent.length > 60000 && saida.firstChild) saida.firstChild.remove();
+    saida.scrollTop = saida.scrollHeight;
+  };
+  escrever("Terminal do GIDEON PC. Roda dentro da pasta GIDEON, só comandos da lista:\ngit, python/py, pip, node, npm, npx, dotnet, java/javac, dir/ls, where.\nInstalar e git push pedem seu OK. \"limpar\" limpa a tela.\n", "info");
+  $("form", corpo).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const c = cmd.value.trim(); if (!c || ocupado) return;
+    cmd.value = "";
+    if (/^(limpar|clear|cls)$/i.test(c)) { saida.textContent = ""; return; }
+    hist.push(c); if (hist.length > 50) hist.shift(); pos = hist.length; guardar("nx_terminal", hist);
+    const p = pasta.value.trim();
+    escrever(`\n${p || "GIDEON"}> ${c}\n`, "cmd");
+    ocupado = true; cmd.disabled = true;
+    try {
+      const r = await comOK("pc_comando", { comando: c, pasta: p });
+      if (r.cancelado) escrever("(cancelado)\n", "info");
+      else if (r.erro) escrever(r.erro + "\n", "erro");
+      else escrever(`${r.saida || "(sem saída)"}\n[código de saída ${r.codigo_saida ?? "?"}]\n`, r.codigo_saida ? "erro" : "");
+    } catch (err) { escrever(msgErro(err) + "\n", "erro"); }
+    ocupado = false; cmd.disabled = false; cmd.focus();
+  });
+  cmd.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" && pos > 0) { cmd.value = hist[--pos]; e.preventDefault(); }
+    if (e.key === "ArrowDown") { pos = Math.min(hist.length, pos + 1); cmd.value = hist[pos] ?? ""; e.preventDefault(); }
+  });
+  setTimeout(() => cmd.focus(), 50);
+  return { aoAbrir() { cmd.focus(); } };
+}
+
+// ---------- app: editor de código ----------
+function appEditor(corpo, j, opcoes) {
+  corpo.classList.add("editor");
+  corpo.innerHTML = `<div class="barraApp"><form class="abrirArq"><input class="caminhoArq" placeholder="caminho do arquivo, ex.: Projetos/site/index.html" aria-label="Caminho do arquivo" spellcheck="false"><button class="btn">Abrir</button></form>
+    <button class="btn salvar" title="Salvar (Ctrl+S)">💾 Salvar</button><span class="estado" aria-live="polite"></span></div>
+    <div class="area"><pre class="numeros" aria-hidden="true">1</pre><textarea spellcheck="false" autocapitalize="off" aria-label="Conteúdo do arquivo" placeholder="Abra um arquivo de texto do PC, ou escreva um novo, coloque o caminho em cima e salve."></textarea></div>`;
+  const ta = $("textarea", corpo), num = $(".numeros", corpo), campo = $(".caminhoArq", corpo), est = $(".estado", corpo), btSalvar = $(".salvar", corpo);
+  let original = "", somenteLeitura = false, ocupado = false;
+  const sujo = () => ta.value !== original;
+  const numerar = () => { const n = ta.value.split("\n").length; if (num.dataset.n !== String(n)) { num.dataset.n = n; num.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n"); } };
+  const marcar = () => { est.textContent = somenteLeitura ? "só leitura (arquivo grande demais para salvar daqui)" : sujo() ? "● não salvo" : est.dataset.ok || ""; };
+  ta.addEventListener("input", () => { numerar(); marcar(); });
+  ta.addEventListener("scroll", () => { num.scrollTop = ta.scrollTop; });
+  ta.addEventListener("keydown", (e) => {
+    if (e.key === "Tab" && !e.ctrlKey && !e.altKey) { e.preventDefault(); ta.setRangeText("  ", ta.selectionStart, ta.selectionEnd, "end"); numerar(); marcar(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); salvar(); }
+  });
+  async function abrirArq(c) {
+    if (!c || ocupado) return;
+    if (sujo() && !confirm("Há mudanças não salvas neste arquivo. Abrir outro mesmo assim?")) return;
+    ocupado = true; est.dataset.ok = ""; est.textContent = "Abrindo…";
+    try {
+      const r = await ferramenta("pc_ler_arquivo", { caminho: c });
+      if (r.erro) throw new Error(r.erro);
+      ta.value = original = String(r.texto ?? "");
+      campo.value = r.caminho || c;
+      somenteLeitura = !!r.cortado; btSalvar.disabled = somenteLeitura; ta.readOnly = somenteLeitura;
+      est.dataset.ok = `aberto ${fmt(new Date().toISOString(), { hour: "2-digit", minute: "2-digit" })}`;
+      numerar(); marcar(); ta.scrollTop = 0; ta.focus();
+    } catch (e) { est.textContent = "⚠️ " + msgErro(e); }
+    ocupado = false;
+  }
+  async function salvar() {
+    const c = campo.value.trim();
+    if (somenteLeitura || ocupado) return;
+    if (!c) { est.textContent = "⚠️ escreva o caminho do arquivo (dentro da pasta GIDEON)"; campo.focus(); return; }
+    ocupado = true; est.textContent = "Salvando…";
+    try {
+      const r = await comOK("pc_escrever_arquivo", { caminho: c, conteudo: ta.value });
+      if (r.cancelado) est.textContent = "não salvo (cancelado)";
+      else if (r.erro) est.textContent = "⚠️ " + r.erro;
+      else { original = ta.value; est.dataset.ok = "✅ " + (r.descricao || "salvo"); marcar(); }
+    } catch (e) { est.textContent = "⚠️ " + msgErro(e); }
+    ocupado = false;
+  }
+  $("form", corpo).addEventListener("submit", (e) => { e.preventDefault(); abrirArq(campo.value.trim()); });
+  btSalvar.addEventListener("click", salvar);
+  if (opcoes?.caminho) abrirArq(opcoes.caminho);
+  return {
+    aoAbrir(op) { if (op?.caminho) abrirArq(op.caminho); },
+    antesDeFechar: () => !sujo() || confirm("Há mudanças não salvas. Fechar mesmo assim?"),
+  };
+}
+
+// ---------- app: memória ----------
+function appMemoria(corpo) {
+  corpo.innerHTML = `<div class="barraApp"><form class="busca"><input type="search" placeholder="Procurar na memória (ex.: o que combinei sobre o TCC)" aria-label="Procurar na memória"><button class="btn">Procurar</button></form>
+    <button class="btn recentes">🕘 Recentes</button><button class="btn projetos">📁 Projetos</button></div><div class="lista"><p class="vazio">Carregando…</p></div>`;
+  const lista = $(".lista", corpo);
+  const cartao = (x) => `<div class="card"><div class="meta"><span class="chip">${esc(x.tipo)}</span> ${esc(x.origem ?? "")}${x.projeto ? ` · ${esc(x.projeto)}` : ""} · ${esc(fmt(x.data ?? x.data_ref) || String(x.data ?? "").slice(0, 10))}</div>
+    ${x.resumo ? `<h4>${esc(x.resumo)}</h4>` : ""}<p>${esc(String(x.trecho ?? x.conteudo ?? "").slice(0, 600))}</p>${x.link ? `<p><a href="${esc(x.link)}" target="_blank" rel="noopener">abrir link</a></p>` : ""}</div>`;
+  async function recentes() {
+    lista.innerHTML = `<p class="vazio">Carregando…</p>`;
+    try { const r = await nx("memoria"); lista.innerHTML = `<h3 class="secao">O que entrou por último na memória</h3>` + (r.itens.map(cartao).join("") || `<p class="vazio">A memória está vazia.</p>`); }
+    catch (e) { lista.innerHTML = `<p class="vazio erro">${esc(msgErro(e))}</p>`; }
+  }
+  $(".busca", corpo).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const t = $("input", e.target).value.trim(); if (!t) return recentes();
+    lista.innerHTML = `<p class="vazio">Procurando…</p>`;
+    try {
+      const r = await ferramenta("buscar_memoria", { pergunta: t });
+      if (r.erro) throw new Error(r.erro);
+      lista.innerHTML = `<h3 class="secao">Mais parecidos com "${esc(t)}"</h3>` + ((r.trechos ?? []).map(cartao).join("") || `<p class="vazio">Nada parecido na memória.</p>`);
+    } catch (err) { lista.innerHTML = `<p class="vazio erro">${esc(msgErro(err))}</p>`; }
+  });
+  $(".recentes", corpo).addEventListener("click", recentes);
+  $(".projetos", corpo).addEventListener("click", async () => {
+    lista.innerHTML = `<p class="vazio">Carregando projetos…</p>`;
+    try {
+      const r = await ferramenta("listar_projetos");
+      if (r.erro) throw new Error(r.erro);
+      lista.innerHTML = `<h3 class="secao">Projetos</h3>` + ((r.projetos ?? []).map((p) => `<div class="card"><h4>📁 ${esc(p.nome)} <span class="chip">${esc(p.itens)} itens</span></h4>
+        <p>${esc(p.descricao ?? "")}</p><div class="meta">primeira atividade ${esc(p.primeira_atividade ?? "—")} · última ${esc(p.ultima_atividade ?? "—")}</div>
+        <p><button class="mini" data-linha="${esc(p.nome)}">ver linha do tempo</button></p></div>`).join("") || `<p class="vazio">Nenhum projeto ainda. Peça à GIDEON: "cria o projeto X".</p>`);
+    } catch (err) { lista.innerHTML = `<p class="vazio erro">${esc(msgErro(err))}</p>`; }
+  });
+  lista.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-linha]"); if (!b) return;
+    const nome = b.dataset.linha;
+    lista.innerHTML = `<p class="vazio">Montando a linha do tempo…</p>`;
+    try {
+      const r = await ferramenta("linha_do_tempo", { projeto: nome });
+      if (r.erro) throw new Error(r.erro);
+      lista.innerHTML = `<h3 class="secao">Linha do tempo: ${esc(nome)}</h3>` + (r.itens ?? []).map((x) => `<div class="card"><div class="meta">${esc(x.data ?? "")} · <span class="chip">${esc(x.tipo)}</span> ${esc(x.origem ?? "")}</div>
+        <h4>${esc(x.resumo ?? "")}</h4>${x.link ? `<p><a href="${esc(x.link)}" target="_blank" rel="noopener">abrir link</a></p>` : ""}</div>`).join("");
+    } catch (err) { lista.innerHTML = `<p class="vazio erro">${esc(msgErro(err))}</p>`; }
+  });
+  recentes();
+  return {};
+}
+
+// ---------- app: tarefas e lembretes ----------
+const isoBrasilia = (v) => v ? `${v}:00-03:00` : ""; // campo de data e hora do navegador → horário de Brasília
+function appTarefas(corpo) {
+  corpo.innerHTML = `<div class="colunas">
+    <section><h3>Tarefas abertas</h3><form class="nova" data-tipo="tarefa"><input name="titulo" placeholder="Nova tarefa" required aria-label="Nova tarefa"><input name="prazo" type="datetime-local" aria-label="Prazo (opcional)" title="Prazo (opcional)"><button class="btn">Criar</button></form><div class="lista tarefas"></div></section>
+    <section><h3>Próximos lembretes</h3><form class="nova" data-tipo="lembrete"><input name="texto" placeholder="Me lembrar de…" required aria-label="Lembrete"><input name="quando" type="datetime-local" required aria-label="Quando" title="Quando">
+      <select name="recorrencia" aria-label="Repetir"><option value="">uma vez</option><option value="diaria">todo dia</option><option value="semanal">toda semana</option><option value="mensal">todo mês</option></select><button class="btn">Criar</button></form><div class="lista lembretes"></div></section></div>`;
+  function desenhar(p) {
+    $(".tarefas", corpo).innerHTML = p.tarefas.length ? p.tarefas.map((t) => `<div class="linha"><button class="mini" data-concluir="${t.id}" aria-label="Concluir ${esc(t.titulo)}" title="Marcar como feita">✓</button>
+      <span class="nome" title="${esc(t.descricao ?? "")}">${esc(t.titulo)}</span><span class="meta">${t.prazo ? esc(fmt(t.prazo)) : ""}${t.projeto ? " · " + esc(t.projeto) : ""}</span></div>`).join("")
+      : `<p class="vazio">Nenhuma tarefa aberta.</p>`;
+    $(".lembretes", corpo).innerHTML = p.lembretes.length ? p.lembretes.map((l) => `<div class="linha"><span aria-hidden="true">⏰</span><span class="nome">${esc(l.texto)}</span>
+      <span class="meta">${esc(fmt(l.quando))}${l.recorrencia ? " · " + esc(l.recorrencia) : ""}</span><button class="mini" data-cancelar="${l.id}" aria-label="Cancelar lembrete ${esc(l.texto)}" title="Cancelar">✕</button></div>`).join("")
+      : `<p class="vazio">Nenhum lembrete marcado.</p>`;
+  }
+  corpo.addEventListener("click", async (e) => {
+    const c = e.target.closest("[data-concluir]"), x = e.target.closest("[data-cancelar]");
+    if (!c && !x) return;
+    if (x && !confirm("Cancelar este lembrete?")) return;
+    (c || x).disabled = true;
+    try {
+      const r = c ? await ferramenta("concluir_tarefa", { id: Number(c.dataset.concluir) }) : await ferramenta("cancelar_lembrete", { id: Number(x.dataset.cancelar) });
+      aviso(r.erro ? "Não consegui: " + r.erro : c ? `✅ Feita: ${r.concluida?.titulo ?? ""}` : `Lembrete cancelado: ${r.cancelado?.texto ?? ""}`, r.erro ? "erro" : "");
+    } catch (err) { aviso("Não consegui: " + msgErro(err), "erro"); }
+    atualizarPainel();
+  });
+  corpo.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.target, d = Object.fromEntries(new FormData(f)), bt = $("button", f);
+    bt.disabled = true;
+    try {
+      const r = f.dataset.tipo === "tarefa"
+        ? await ferramenta("criar_tarefa", { titulo: d.titulo.trim(), prazo: isoBrasilia(d.prazo) })
+        : await ferramenta("criar_lembrete", { texto: d.texto.trim(), quando: isoBrasilia(d.quando), recorrencia: d.recorrencia });
+      if (r.erro) throw new Error(r.erro);
+      aviso(f.dataset.tipo === "tarefa" ? `Tarefa criada: ${r.titulo ?? d.titulo}` : `⏰ Lembrete marcado para ${r.quando_brasilia ?? d.quando}`);
+      f.reset();
+    } catch (err) { aviso("Não consegui: " + msgErro(err), "erro"); }
+    bt.disabled = false;
+    atualizarPainel();
+  });
+  if (estado.painel) desenhar(estado.painel); else $(".tarefas", corpo).innerHTML = `<p class="vazio">Carregando…</p>`;
+  estado.ouvintes.add(desenhar);
+  return { aoFechar() { estado.ouvintes.delete(desenhar); } };
+}
+
+// ---------- app: equipe de agentes (o painel equipe.html dentro da janela) ----------
+function appEquipe(corpo) {
+  corpo.classList.add("semRolagem");
+  corpo.innerHTML = `<iframe class="quadro" src="equipe.html" title="Equipe de agentes"></iframe>`;
+  return {};
+}
+
+// ---------- app: automações e sistema ----------
+const ROTINAS = { "gideon-lembretes": "Disparar lembretes", "gideon-relatorio": "Relatório de domingo", "gideon-limpeza": "Limpeza diária", "gideon-indexar-gmail": "Ler o Gmail",
+  "gideon-indexar-drive": "Ler o Google Drive", "gideon-indexar-agenda": "Ler a Agenda", "gideon-equipe": "Equipe de agentes (passo)", "gideon-testes-semanal": "Testes automáticos (bateria)", "gideon-testes-passo": "Testes automáticos (passo)" };
+const DIAS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+function quando(cron) { // agenda do pg_cron (UTC) em palavras, no horário de Brasília
+  const [mi, h, , , ds] = String(cron).split(/\s+/);
+  if (mi === "*") return "a cada minuto";
+  if (/^\*\/\d+$/.test(h ?? "")) return `a cada ${h.slice(2)} h`;
+  if (/^\d+$/.test(h ?? "") && /^\d+$/.test(mi)) {
+    let hb = Number(h) - 3, dia = ds === "*" ? null : Number(ds);
+    if (hb < 0) { hb += 24; if (dia != null) dia = (dia + 6) % 7; }
+    return `${dia == null ? "todo dia" : DIAS[dia] ?? ds} ${hb}h${mi === "0" ? "" : String(mi).padStart(2, "0")}`;
+  }
+  return cron;
+}
+const situacao = { executando: "trabalhando", revisando: "revisor conferindo", aguardando_ok: "esperando OK", pronta: "pronta", erro: "erro", cancelada: "cancelada", rodando: "rodando",
+  testando: "testando", sem_ganho: "não ajudou", para_o_claude: "para o Claude", ativa: "ativa", recusada: "recusada", revertida: "desfeita" };
+const corSit = (s) => ["pronta", "ativa"].includes(s) ? "ok" : ["erro", "revertida", "sem_ganho", "recusada"].includes(s) ? "ruim" : ["executando", "revisando", "aguardando_ok", "rodando", "testando", "para_o_claude"].includes(s) ? "aviso" : "";
+function appAutomacoes(corpo) {
+  corpo.innerHTML = `<div class="barraApp"><span class="rotulo">Rotinas que rodam sozinhas, testes, melhorias e o computador.</span><button class="btn recarregar">⟳ Atualizar</button></div><div class="conteudo"><p class="vazio">Carregando…</p></div>`;
+  const alvo = $(".conteudo", corpo);
+  async function carregar() {
+    try {
+      const a = await nx("automacoes"), p = estado.painel;
+      const pc = p?.pc ?? {};
+      alvo.innerHTML = `<h3 class="secao">💻 GIDEON PC</h3><div class="card">${pc.ligado ? `<span class="chip ok">ligado</span>` : `<span class="chip ruim">desligado</span>`}
+          ${pc.versao ? ` versão ${esc(pc.versao)}` : ""}${pc.visto_ha_segundos != null ? ` · visto ${esc(rel(new Date(Date.now() - pc.visto_ha_segundos * 1000).toISOString()))}` : ""}
+          ${pc.pasta ? `<div class="meta">pasta liberada: ${esc(pc.pasta)}</div>` : ""}${pc.ligado ? "" : `<div class="meta">Arquivos, terminal e editor só funcionam com o programa GIDEON PC aberto no computador.</div>`}</div>
+        <h3 class="secao">⏱️ Rotinas automáticas</h3>
+        <div class="card" style="padding:0;overflow-x:auto"><table class="tab"><tr><th>Rotina</th><th>Quando</th><th>Última vez</th><th>24 h</th></tr>${a.agendador.map((r) => `<tr>
+          <td>${r.ativo ? "" : "⏸️ "}${esc(ROTINAS[r.nome] ?? r.nome)}</td><td>${esc(quando(r.agenda))}</td>
+          <td>${r.ultima_execucao ? `${r.ultimo_status === "succeeded" ? "✅" : "⚠️"} ${esc(rel(r.ultima_execucao))}` : `<span class="meta">sem registro recente</span>`}</td>
+          <td>${r.execucoes_24h}${r.falhas_24h ? ` <span class="chip ruim">${r.falhas_24h} falha(s)</span>` : ""}</td></tr>`).join("")}</table></div>
+        ${a.erro_agendador ? `<p class="vazio erro">${esc(a.erro_agendador)}</p>` : ""}
+        <h3 class="secao">🧪 Testes automáticos</h3>${a.testes.map((t) => `<div class="card"><h4>${t.motivo === "semanal" ? "Bateria semanal" : "Bateria pedida"} · ${esc(fmt(t.criado_em))}
+          <span class="chip ${corSit(t.status)}">${esc(situacao[t.status] ?? t.status)}</span></h4>${t.nota != null ? `<div>nota <b>${String(t.nota).replace(".", ",")}/10</b> (${t.passou} de ${t.total} passaram)</div>` : ""}</div>`).join("") || `<p class="vazio">Nenhuma bateria ainda (roda domingo às 17h30).</p>`}
+        <h3 class="secao">💡 Melhorias</h3>${a.melhorias.map((m) => `<div class="card"><h4><span class="chip ${corSit(m.status)}">${esc(situacao[m.status] ?? m.status)}</span> ${m.tipo === "regra" ? "regra" : "código"} · ${esc(fmt(m.criado_em))}</h4>
+          <p>${esc(m.proposta)}</p>${m.motivo_fim ? `<div class="meta">${esc(m.motivo_fim)}</div>` : ""}</div>`).join("") || `<p class="vazio">Nenhuma melhoria proposta ainda.</p>`}
+        <h3 class="secao">👥 Missões da equipe</h3>${a.equipe.map((m) => `<div class="card"><h4>#${m.id} ${esc(m.titulo)} <span class="chip ${corSit(m.status)}">${esc(situacao[m.status] ?? m.status)}</span></h4>
+          <div class="meta">${esc(fmt(m.criado_em))}${m.nota != null ? ` · nota do revisor ${m.nota}/10` : ""}</div></div>`).join("") || `<p class="vazio">A equipe ainda não fez nenhum trabalho.</p>`}`;
+    } catch (e) { alvo.innerHTML = `<p class="vazio erro">${esc(msgErro(e))}</p>`; }
+  }
+  $(".recarregar", corpo).addEventListener("click", carregar);
+  carregar();
+  const t = setInterval(() => { if (document.visibilityState === "visible") carregar(); }, 60000);
+  return { aoFechar() { clearInterval(t); } };
+}
+
+// ---------- começar ----------
+desenharIcones(); desenharMenu(); relogio(); setInterval(relogio, 15000);
+if (!chave) semAcesso();
+else {
+  atualizarPainel();
+  setInterval(() => { if (document.visibilityState === "visible") atualizarPainel(); }, 20000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") atualizarPainel(); });
+  const abertas = lerJSON("nx_abertas", celular() ? [] : ["conversa"]).filter((id) => APPS[id]);
+  for (const id of abertas) abrir(id);
+}
+</script>
+</body>
+</html>
