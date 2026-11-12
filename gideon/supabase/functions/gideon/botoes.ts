@@ -2,6 +2,7 @@
 import { executar, sb, telegram } from "./core.ts";
 import { cancelarMissao } from "./equipe.ts";
 import { recusarMelhoria } from "./testes.ts";
+import { esquecerDoCache } from "./cache.ts";
 
 // Aprovar ou negar um pedido da fila (gideon_aprovacoes). Só executa uma vez, mesmo com dois toques.
 export async function resolverAprovacao(id: number, aprovar: boolean, via: string) {
@@ -40,6 +41,7 @@ export async function tratarBotao(q: any) {
     await telegram("answerCallbackQuery", { callback_query_id: q.id, text: util ? "Obrigada! 💙" : "Anotei. Vou melhorar." }).catch(() => {});
     await sb.from("gideon_execucoes").update({ nota_usuario: util ? "util" : "nao_util" }).eq("id", id);
     await tirarBotoes([[{ text: util ? "👍 Útil" : "👎 Não ajudou", callback_data: "ok" }]]);
+    if (!util) await esquecerDoCache(id).catch(() => {}); // resposta ruim não fica no cache
     if (!util) await telegram("sendMessage", { chat_id: chat, text: "Anotei que essa resposta não ajudou. Se quiser, me diga o que faltou que eu corrijo." }).catch(() => {});
     return;
   }
