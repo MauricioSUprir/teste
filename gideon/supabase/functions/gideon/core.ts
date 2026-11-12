@@ -425,6 +425,9 @@ Histórico e Telegram:
 - enviar_telegram manda uma mensagem por escrito no Telegram dele (só para ele); use quando ele pedir "me manda no Telegram", de qualquer canal. Pelo Telegram você não consegue mandar mensagem para outras pessoas (para outras pessoas: WhatsApp ou, no iPhone, SMS).
 - O que o dono combinou com o Claude (quem constrói o GIDEON) fica na memória como nota de origem claude: links (GIDEON Home, programa do PC, guia do iPhone), como instalar, o que já funciona e o que falta. Para isso use buscar_memoria; nunca invente link.
 
+Nexus (canal home):
+- O dono também fala com você pelo Nexus, a área de trabalho da GIDEON no navegador: https://gideon-home.onrender.com/nexus.html (entra com o link do /home do Telegram). Ali, ações que pedem OK aparecem no sino 🔔 com Aprovar e Negar.
+
 iPhone (canal celular):
 - O dono fala com você pelo atalho GIDEON do iPhone ("E aí Siri, GIDEON"). Sua resposta é lida em voz alta: curta, sem links, listas ou emojis (os links vão sozinhos para o Telegram).
 - Para ligar, mandar SMS ou WhatsApp, traçar rota, tocar música, abrir vídeo, site ou app no iPhone, CHAME celular_abrir (uma ação por pedido; sem a chamada nada abre) e depois diga em uma frase o que vai abrir. Ligação e mensagens só abrem preenchidas: o próprio iPhone pede a confirmação dele. Pelo iPhone, prefira celular_abrir a whatsapp_enviar.
@@ -444,6 +447,17 @@ const PROMESSA = /\b(vou|irei|estou|já estou|vamos|estamos)\s+(te\s+|lhe\s+)?(f
 // Pedido do iPhone que é para abrir algo (ligar, mensagem, rota, música, app): na primeira volta o modelo é obrigado a chamar uma ferramenta
 const INTENCAO_CELULAR = /\b(abr[aei]\w*|lig(a|ar|ue)|toc(a|ar|que)|bot[ae]|p[oõ]e|rota|leva|naveg\w*|whats\w*|zap|sms|mensagem|instagram|spotify|youtube|waze|maps?|mapas|app|aplicativo)\b/i;
 
+// ---------- Roteador de modelos (decisão 020) ----------
+// Pedido difícil (analisar, comparar, programar, planejar, calcular, escrever um texto, arquivo anexado ou mensagem longa) vai para o modelo
+// forte (gideon_config.modelo_dificil, senão modelo_relatorio); o resto vai para o rápido (modelo_conversa). "privado:" já vai para a IA do PC.
+// No iPhone fica sempre o rápido (a Siri espera a resposta). gideon_config.roteador = "nao" desliga o roteador.
+const DIFICIL = /\b(an[aá]lis\w*|analis\w*|compar\w*|avali\w*|vantage|desvantage|pr[oó]s e contras|diferen[cç]a entre|melhor op[cç]|recomend\w*|como funciona|c[oó]digo|program[ae]r\b|programa[cç]|script|algoritm|bug\b|planej\w*|plano (de|para)|estrat[eé]gi|calcul\w*|matem[aá]tic|equa[cç]|demonstr\w*|redij\w*|reda[cç]|escrev\w* (um|uma) (texto|artigo|e-?mail|carta|relat[oó]rio|post|roteiro|hist[oó]ria)|resum[aeio]\w* (esse|este|essa|esta|o|a|um|uma) |traduz\w*|explic\w* (em detalhes|passo a passo|melhor|direito))/i;
+export function nivelDoPedido(texto: string, anexos = 0) {
+  if (anexos > 0 || texto.length > 600) return "dificil";
+  return DIFICIL.test(texto) ? "dificil" : "simples";
+}
+const resumoResultado = (r: unknown) => { const t = JSON.stringify(r ?? null) ?? "null"; return t.length > 1500 ? t.slice(0, 1500) + "…" : t; };
+
 // ---------- Atender um pedido (qualquer canal) ----------
 // anexos: partes extras para o Gemini (arquivo); rotulo: vai para o registro (ex.: "pdf"); textoHistorico: o que fica no histórico no lugar do texto;
 // buscarNaMemoria=false pula a busca (ex.: arquivo sem legenda); guardar=false não grava conversa nem memória (testes).
@@ -451,9 +465,10 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
   const inicio = Date.now();
   const texto = p.texto.slice(0, 4000), historico = (p.textoHistorico ?? texto).slice(0, 4000);
   let resposta = "", status = "sucesso", erro = "", tokIn = 0, tokOut = 0, nTrechos = 0, modeloUsado = "", reserva = "";
-  const usadas: string[] = [], aprovacoes: { id: number; descricao: string }[] = [], chamadasFeitas: { nome: string; args: unknown }[] = [];
+  const usadas: string[] = [], aprovacoes: { id: number; descricao: string }[] = [], chamadasFeitas: { nome: string; args: unknown; resultado: string }[] = [];
   let celular: { abrir: string; descricao?: string } | null = null; // o que o iPhone abre depois da resposta (canal celular)
   let cobrou = false; // já pediu uma vez para chamar a ferramenta de uma ação prometida
+  let nivel = "simples"; // roteador de modelos
   try {
     const [trechos, hist] = await Promise.all([
       p.buscarNaMemoria === false ? Promise.resolve([]) : buscarMemoria(texto, 5).catch(() => []),
@@ -470,9 +485,12 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
     const sistema = `${PROMPT}${regras ? `\n\nRegras aprendidas com os testes (aprovadas pelo dono):\n${regras}` : ""}\n\nData e hora atuais: ${agoraBrasilia()} (horário de Brasília, UTC-03:00).`;
     const declaracoes = [...FERRAMENTAS, ...FERRAMENTAS_GOOGLE, ...FERRAMENTAS_WHATS, ...FERRAMENTAS_PESQUISA, ...FERRAMENTAS_PC, ...FERRAMENTAS_EQUIPE, ...FERRAMENTAS_TESTES, ...(p.canal === "celular" ? FERRAMENTAS_CELULAR : [])];
     const forcar = p.canal === "celular" && INTENCAO_CELULAR.test(texto);
+    const cfgM = await config();
+    nivel = p.canal === "celular" || cfgM.roteador === "nao" ? "simples" : nivelDoPedido(texto, p.anexos?.length ?? 0);
+    const modelos = nivel === "dificil" ? [cfgM.modelo_dificil || cfgM.modelo_relatorio || "gemini-3.5-flash", cfgM.modelo_conversa, cfgM.modelo_reserva] : undefined;
     for (let volta = 0; volta < 6; volta++) {
       const r = await gerar({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: declaracoes }], generationConfig: { temperature: 0.4 },
-        ...(forcar && volta === 0 ? { toolConfig: { functionCallingConfig: { mode: "ANY" } } } : {}) });
+        ...(forcar && volta === 0 ? { toolConfig: { functionCallingConfig: { mode: "ANY" } } } : {}) }, modelos);
       tokIn += r.usageMetadata?.promptTokenCount ?? 0; tokOut += r.usageMetadata?.candidatesTokenCount ?? 0;
       modeloUsado = r._modelo ?? modeloUsado; if (r._reserva) reserva = r._reserva;
       const cont = r.candidates?.[0]?.content;
@@ -498,17 +516,21 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       const respostas = [];
       for (const c of chamadas) {
         const nome = c.functionCall.name, args = c.functionCall.args ?? {};
-        usadas.push(nome); chamadasFeitas.push({ nome, args });
+        const chamada = { nome, args, resultado: "" };
+        usadas.push(nome); chamadasFeitas.push(chamada);
         if (CONFIRMAVEIS.includes(nome) && args.confirmado === true && p.canal !== "teste") await aprovadaPorConversa(nome, args, p.canal).catch(() => {});
         const res: any = await executar(nome, args, p.canal).catch((e) => ({ erro: String(e.message ?? e) }));
         if (res?.erro) console.error(`ferramenta ${nome}:`, String(res.erro).slice(0, 300)); // fica nos logs da função
         if (res?.celular) celular = res.celular;
-        if (res?.precisa_confirmacao && (p.canal === "telegram" || p.canal === "celular")) { // vira pedido de aprovação com botões (do iPhone, vão para o Telegram)
+        if (res?.precisa_confirmacao && ["telegram", "celular", "home"].includes(p.canal)) { // vira pedido de aprovação com botões (do iPhone, vão para o Telegram; do Nexus, para o sino)
           const descricao = descreverAcao(nome, res.resumo ?? args);
           const { data } = await sb.from("gideon_aprovacoes").insert({ acao: nome, descricao, pedido_por: p.canal, expira_em: new Date(Date.now() + 2 * 3600_000).toISOString(),
             detalhes: { nome, args: res.argsAprovar ?? { ...args, confirmado: true }, canal: p.canal, sessao: p.sessao } }).select("id").single();
-          if (data?.id) { aprovacoes.push({ id: data.id, descricao }); res.botoes = p.canal === "celular" ? "Os botões Aprovar e Negar foram para o Telegram do dono (valem por 2 horas); ele também pode dizer 'sim' aqui." : "Embaixo da sua resposta aparecem os botões Aprovar e Negar (vale por 2 horas)."; }
+          if (data?.id) { aprovacoes.push({ id: data.id, descricao }); res.botoes = p.canal === "celular" ? "Os botões Aprovar e Negar foram para o Telegram do dono (valem por 2 horas); ele também pode dizer 'sim' aqui."
+            : p.canal === "home" ? "Os botões Aprovar e Negar aparecem no sino 🔔 do Nexus (valem por 2 horas); ele também pode responder 'sim' aqui."
+            : "Embaixo da sua resposta aparecem os botões Aprovar e Negar (vale por 2 horas)."; }
         }
+        chamada.resultado = resumoResultado(res); // o juiz dos testes confere o que a ferramenta devolveu
         respostas.push({ functionResponse: { name: nome, response: { resultado: res } } });
       }
       contents.push({ role: "user", parts: respostas });
@@ -537,7 +559,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
       await guardarMemoria({ conteudo: `Dono: ${historico}\nGIDEON: ${resposta}`, resumo: historico.slice(0, 200), tipo: "conversa", origem: p.canal, metadados: { sessao: p.sessao } }).catch(() => 0);
     }
   })().catch((e) => console.error("pós-resposta:", e));
-  return { resposta, status, erro: erro || null, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, chamadas: chamadasFeitas, modelo: modeloUsado, reserva: reserva || null, execucaoId, aprovacoes, celular, posResposta };
+  return { resposta, status, erro: erro || null, tempo_ms: tempo, tokens_entrada: tokIn, tokens_saida: tokOut, ferramentas: usadas, chamadas: chamadasFeitas, modelo: modeloUsado, nivel, reserva: reserva || null, execucaoId, aprovacoes, celular, posResposta };
 }
 
 // ---------- Lembretes e relatório ----------

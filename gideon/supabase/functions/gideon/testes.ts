@@ -88,7 +88,8 @@ async function julgar(t: Linha, a: Linha) {
 Hoje é ${agoraBrasilia()}.
 Pedido do dono: ${t.pedido}
 O que se espera: ${t.esperado}
-Ferramentas que ela chamou, com os argumentos: ${JSON.stringify(a.chamadas ?? []).slice(0, 3000) || "nenhuma"}
+Ferramentas que ela chamou, com os argumentos e o que cada uma devolveu (resultado): ${JSON.stringify(a.chamadas ?? []).slice(0, 7000) || "nenhuma"}
+Nomes, links e dados que aparecem no resultado de uma ferramenta vieram de verdade e NÃO são invenção dela.
 Atenção: no teste, ações como mandar mensagem, criar lembrete ou mexer no PC são simuladas. Não reprove por isso.
 Resposta da GIDEON: """${String(a.resposta ?? "").slice(0, 3000)}"""
 A resposta cumpre o esperado? Seja justo: não exija o que o esperado não pede. Reprove se ela inventou dados, prometeu sem fazer, disse que fez algo que ainda precisava de confirmação, ou não cumpriu o esperado.
@@ -98,6 +99,9 @@ Responda só JSON: {"passou": true, "nota": 0, "motivo": "curto"}` }] }], genera
   try { j = JSON.parse(textoDa(r)); } catch { throw Object.assign(new Error("o juiz não devolveu JSON"), { status: 503 }); }
   return { passou: j.passou === true, nota: Math.max(0, Math.min(10, Math.round(Number(j.nota) || 0))), motivo: String(j.motivo ?? "").slice(0, 300) };
 }
+
+// O registro do teste guarda só o nome e os argumentos das ferramentas (o resultado pode ter dados pessoais; ele vai só para o juiz)
+const semResultado = (c: { nome: string; args: unknown }[] = []) => c.map(({ nome, args }) => ({ nome, args }));
 
 // Roda um teste. Devolve false quando bateu no limite do Google (o teste volta para a fila e a rodada pausa até o próximo minuto).
 async function rodarTeste(r: Linha) {
@@ -110,7 +114,7 @@ async function rodarTeste(r: Linha) {
     if (a.status !== "sucesso") {
       if (/\b(429|5\d\d)\b|abort|timed? ?out|quota|RESOURCE_EXHAUSTED/i.test(a.erro ?? "") && r.tentativas < 1) return await voltarParaFila();
       await sb.from("gideon_testes_resultados").update({ status: "feito", passou: false, nota: 0, motivo: `erro: ${String(a.erro ?? "").slice(0, 250)}`, resposta: a.resposta,
-        ferramentas: a.chamadas, tempo_ms: a.tempo_ms, fim: agora() }).eq("id", r.id);
+        ferramentas: semResultado(a.chamadas), tempo_ms: a.tempo_ms, fim: agora() }).eq("id", r.id);
       return true;
     }
     const usadas: string[] = a.ferramentas ?? [];
@@ -121,7 +125,7 @@ async function rodarTeste(r: Linha) {
     const juiz = await julgar(t, a);
     const passou = !problemas.length && juiz.passou;
     await sb.from("gideon_testes_resultados").update({ status: "feito", passou, nota: problemas.length ? Math.min(juiz.nota, 4) : juiz.nota,
-      motivo: [...problemas, juiz.motivo].filter(Boolean).join("; ").slice(0, 500), resposta: String(a.resposta).slice(0, 4000), ferramentas: a.chamadas, tempo_ms: a.tempo_ms, fim: agora() }).eq("id", r.id);
+      motivo: [...problemas, juiz.motivo].filter(Boolean).join("; ").slice(0, 500), resposta: String(a.resposta).slice(0, 4000), ferramentas: semResultado(a.chamadas), tempo_ms: a.tempo_ms, fim: agora() }).eq("id", r.id);
     return true;
   } catch (e) {
     if (passageiro(e) && r.tentativas < 1) return await voltarParaFila();

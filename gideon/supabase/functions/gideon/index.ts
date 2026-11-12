@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       const { posResposta: _p, ...resto } = r as Record<string, unknown>;
       return json(resto);
     }
-    if (rota === "aprovacao") { const b = await req.json(); return json(await resolverAprovacao(Number(b.id), b.aprovar === true, "teste")); } // teste da fila de aprovações
+    if (rota === "aprovacao") { const b = await req.json(); return json(await resolverAprovacao(Number(b.id), b.aprovar === true, b.via ? String(b.via).slice(0, 40) : "teste")); } // fila de aprovações (testes e o Nexus)
     if (rota === "modelos") { // modelos do Gemini disponíveis para esta chave (para escolher o reserva)
       const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": chaveGemini() } });
       const j = await r.json();
