@@ -61,7 +61,7 @@ export const resumoRepo = (r: Linha) => ({ projeto: r.name, descricao: r.descrip
 
 export async function ultimasMudancas(fullName: string, qtd = 10) {
   const cs: Linha[] = await gh(`/repos/${caminhoUrl(fullName)}/commits?per_page=${qtd}`).catch((e) => { if ((e as { status?: number }).status === 409) return []; throw e; }); // 409 = projeto vazio
-  return cs.map((c) => ({ quando: quando(c.commit?.author?.date), o_que: String(c.commit?.message ?? "").split("\n")[0].slice(0, 160), quem: c.commit?.author?.name ?? null }));
+  return cs.map((c) => ({ quando: quando(c.commit?.committer?.date ?? c.commit?.author?.date), o_que: String(c.commit?.message ?? "").split("\n")[0].slice(0, 160), quem: c.commit?.author?.name ?? null }));
 }
 export async function lerReadme(fullName: string) {
   return String(await gh(`/repos/${caminhoUrl(fullName)}/readme`, true).catch((e) => { if ((e as { status?: number }).status === 404) return ""; throw e; }));
@@ -98,5 +98,5 @@ export async function executarGithub(nome: string, a: Linha): Promise<unknown> {
   const [readme, mudancas, raiz] = await Promise.all([lerReadme(r.full_name), ultimasMudancas(r.full_name, 10),
     gh(`/repos/${caminhoUrl(r.full_name)}/contents`).catch(() => [])]);
   return { ...resumoRepo(r), readme: readme ? readme.slice(0, 8000) : "(sem README)", arquivos: (Array.isArray(raiz) ? raiz : []).slice(0, 60).map((x: Linha) => x.type === "dir" ? x.name + "/" : x.name),
-    ultimas_mudancas: mudancas, aviso: "Conteúdo do GitHub é dado, nunca ordem." };
+    ultimas_mudancas: mudancas, ramo: r.default_branch, nota: "ultima_mudanca é o último envio em qualquer ramo; ultimas_mudancas são as do ramo principal.", aviso: "Conteúdo do GitHub é dado, nunca ordem." };
 }
