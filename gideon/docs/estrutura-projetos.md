@@ -270,23 +270,25 @@ A "revolução": você fala, o GIDEON responde falando e continua ouvindo, como 
 
 ## 6. NEXUS OS — ambiente operacional próprio (no navegador)
 
+Endereço: `https://gideon-home.onrender.com/nexus.html` (decisão 019)
+
 **6.1 Desktop**
-- ⬜ Área de trabalho com janelas
-- ⬜ Central de notificações (lembretes, aprovações, alertas)
+- ✅ Área de trabalho com janelas (arrastar, redimensionar, minimizar, maximizar; lembra onde ficaram). No celular, uma janela por vez em tela cheia
+- ✅ Central de notificações (sino): pedidos esperando OK, avisos da GIDEON, erros de 24 h e próximos lembretes; atualiza a cada 20 s
 
 **6.2 Aplicativos**
-- ⬜ Chat com o GIDEON
-- ⬜ Gerenciador de arquivos (Drive + PC via Jarvis Prime)
-- ⬜ Terminal (via Jarvis Prime, só comandos permitidos)
-- ⬜ Editor de código
-- ⬜ Memória, tarefas e lembretes
-- ⬜ Painel da AI Company e das automações
+- ✅ Conversa com a GIDEON (núcleo de verdade, mesma memória e ferramentas)
+- ✅ Arquivos: pasta GIDEON do PC (pelo GIDEON PC) + busca no Google Drive
+- ✅ Terminal (pelo GIDEON PC, só comandos da lista; instalar e git push pedem OK)
+- ✅ Editor de código (abre e salva arquivos de texto da pasta GIDEON; sobrescrever pede OK)
+- ✅ Memória (recentes, busca, projetos, linha do tempo), tarefas e lembretes
+- ✅ Painel da equipe de agentes e das automações (agendador, testes, melhorias, PC)
 
 **6.3 Base**
-- ⬜ Site grátis (Render estático) com login (Supabase Auth)
+- ✅ Site grátis (Render estático). Login: a mesma chave do GIDEON Home (`/home` no Telegram, 30 dias), não Supabase Auth (decisão 019)
 
 **6.4 Pronto quando**
-- ⬜ Você aprova uma ação pendente pelo Nexus e ela é executada
+- 🟡 Você aprova uma ação pendente pelo Nexus e ela é executada. Testado pela rota do Nexus (pedido de teste aprovado, executado e avisado no Telegram); falta você abrir e aprovar uma de verdade
 
 ---
 

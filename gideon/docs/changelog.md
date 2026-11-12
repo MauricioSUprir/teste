@@ -107,3 +107,20 @@
   - **Painel:** a rota `home-equipe` devolve o trabalho completo em HTML (código, parecer, sem scripts); `https://gideon-home.onrender.com/equipe.html` no ar.
   - **Custo:** missão de 3 tarefas ≈ 26 mil tokens de entrada e 7 mil de saída, dentro do plano grátis.
 
+## 2026-11-12
+- **Fase 5 (Self-Improving), decisão 018:** primeira bateria completa, **nota 9,7** (29 de 30). A falha foi o teste 14 ("procura no meu Drive o trabalho de história"): ela inventou um arquivo e um link. Duas regras foram propostas e testadas antes (pc_controlar avisar o Telegram; não inventar resultado de busca). Nenhuma virou proposta, porque consertavam o alvo mas quebravam testes que passavam. É o filtro funcionando: nada é proposto ao dono sem ganho limpo.
+- **Fase 6 (Nexus OS), decisão 019:** área de trabalho da GIDEON no navegador, `https://gideon-home.onrender.com/nexus.html`.
+  - **Janelas:** conversa, arquivos (PC e Drive), terminal, editor de código, memória, tarefas e lembretes, equipe, automações.
+  - **Sino:** pedidos esperando OK com Aprovar/Negar, avisos, erros e lembretes. Aprovar pelo Nexus executa igual ao botão do Telegram, e o dono recebe "🖥️ Pelo Nexus: …" no Telegram.
+  - **Servidor:** função nova `nexus` (pequena; a `gideon` não foi mexida) e migração 015 (`gideon_nexus_automacoes`). Entra com a chave do GIDEON Home (`/home`).
+  - **Testes:**
+    - as rotas responderam 200 e a chave errada deu 401;
+    - um pedido de teste foi aprovado pelo Nexus e executado;
+    - a conversa usou as ferramentas certas em 12 s;
+    - na página (navegador automático), as 8 janelas, arrastar, aprovar e a conversa funcionaram, sem erro no console; no celular, sem rolagem para o lado.
+  - **Achado e corrigido:**
+    - as janelas abriam em cima dos ícones;
+    - o topo do GIDEON Home passava da tela em celulares de 360 px (agora os botões quebram de linha);
+    - o painel da equipe dentro do Nexus não mostra mais "voltar".
+  - **No GIDEON Home:** botão "🖥️ Nexus" no topo.
+
