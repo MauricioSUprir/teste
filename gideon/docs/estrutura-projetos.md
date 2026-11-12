@@ -17,7 +17,7 @@ Ordem de construção: **0 → 9 → ★ → 4 → 1 → 7 → 8 → 2 → 3 →
 **0.2 Núcleo (o cérebro único)**
 - ✅ Núcleo: memória → agente Gemini → guarda conversa → registra execução
 - ✅ Telegram ligado ao Núcleo, só responde ao dono
-- ⬜ Roteador de modelos (simples → Flash-Lite; difícil → Flash; privado → local)
+- ✅ Roteador de modelos (simples → Flash-Lite; difícil → Flash; privado → local) — decisão 020, no ar desde a versão 41
 - ✅ Reserva automática quando o Gemini falhar ou bater o limite grátis (`gemini-3.1-flash-lite`; fica anotado no registro) — testado em 07/11
 
 **0.3 Conexões do GIDEON** (fazer antes de começar os projetos)

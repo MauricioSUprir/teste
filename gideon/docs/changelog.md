@@ -123,4 +123,8 @@
     - o topo do GIDEON Home passava da tela em celulares de 360 px (agora os botões quebram de linha);
     - o painel da equipe dentro do Nexus não mostra mais "voltar".
   - **No GIDEON Home:** botão "🖥️ Nexus" no topo.
-
+- **Roteador de modelos (decisão 020):** pedido difícil (comparar, analisar, programar, planejar, calcular, escrever um texto, arquivo ou mensagem longa) vai para o `gemini-3.5-flash`; o resto para o `gemini-3.5-flash-lite`. iPhone sempre no rápido. Desliga com `gideon_config.roteador = nao`.
+- **Juiz dos testes corrigido:** o teste 14 tinha reprovado por engano. O arquivo "Revisão de história" existe no Drive; o juiz não via o que a ferramenta devolveu e achou que era invenção. Agora o juiz recebe o resultado de cada ferramenta (o registro do teste continua guardando só o nome e os argumentos).
+- **Nexus:** ação que pede OK feita pela conversa do Nexus (canal `home`) vira pedido no sino 🔔.
+- **Publicação pelo Git (decisão 021):** a função `gideon` agora é uma linha que importa o código do GitHub preso a um commit. Função de teste `gideon-teste` para provar antes.
+  - Versões no ar: **v41 = commit `453e7fe`**. Antes: v39 = commit `4e6da54` (para voltar atrás, publicar com esse commit).
