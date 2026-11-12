@@ -258,14 +258,23 @@ Responda só JSON: {"tipo": "regra", "diagnostico": "1 a 2 frases", "regra": "",
   return null;
 }
 
-// A rodada que testou a regra terminou: compara com a rodada de origem
+// A rodada que testou a regra terminou: compara com a rodada de origem. O modelo varia de uma vez para outra, então
+// o que melhorou ou piorou roda mais uma vez (confirmação): só conta o que se repetir nas duas vezes.
 async function concluirMelhoria(d: Linha, res: Linha[]) {
   const { data: m } = await sb.from("gideon_melhorias").select("*").eq("id", d.melhoria_id).maybeSingle();
   if (!m || m.status !== "testando") return;
-  const origem = new Map((await resultadosDa(m.rodada_origem)).map((x) => [x.teste_id, !!x.passou]));
+  const origem = new Map((await resultadosDa(m.rodada_origem)).map((x) => [Number(x.teste_id), !!x.passou]));
   const alvo = new Set((m.testes_alvo ?? []).map(Number));
-  const ganho = res.filter((x) => alvo.has(Number(x.teste_id)) && x.passou).length;
-  const regressao = res.filter((x) => !alvo.has(Number(x.teste_id)) && origem.get(x.teste_id) && !x.passou).length;
+  const { data: antes } = await sb.from("gideon_testes_rodadas").select("id").eq("melhoria_id", m.id).lt("id", d.id).order("id").limit(1);
+  const primeira = antes?.length ? new Map((await resultadosDa(antes[0].id)).map((x) => [Number(x.teste_id), !!x.passou])) : null;
+  const conserta = (x: Linha) => alvo.has(Number(x.teste_id)) && !!x.passou && (!primeira || primeira.get(Number(x.teste_id)) === true);
+  const quebra = (x: Linha) => !alvo.has(Number(x.teste_id)) && !!origem.get(Number(x.teste_id)) && !x.passou && (!primeira || primeira.get(Number(x.teste_id)) === false);
+  const ganho = res.filter(conserta).length, regressao = res.filter(quebra).length;
+  if (!primeira && ganho >= 1) { // 1ª vez promissora: confirma rodando de novo só o que consertou e o que quebrou
+    const rod = await testesRodar("melhoria", { melhoriaId: m.id, regraExtra: m.proposta, testes: res.filter((x) => conserta(x) || quebra(x)).map((x) => Number(x.teste_id)) });
+    await sb.from("gideon_melhorias").update({ rodada_teste: (rod as Linha).rodada ?? null, ganho, regressao }).eq("id", m.id);
+    return;
+  }
   if (ganho < 1 || regressao > 0) {
     await sb.from("gideon_melhorias").update({ status: "sem_ganho", ganho, regressao, motivo_fim: regressao ? `quebrou ${regressao} teste(s) que passavam` : "não consertou nenhum teste" }).eq("id", m.id);
     return;
@@ -297,7 +306,7 @@ export async function secaoTestesRelatorio() {
   else if (ult.status === "rodando") linhas.push("🧪 Testes automáticos: ainda rodando; o resultado chega depois.");
   else {
     const ant = semanais?.[1]?.status === "pronta" ? semanais[1] : null;
-    linhas.push(`🧪 Testes automáticos: nota ${fmtNota(ult.nota)}/10 (${ult.passou} de ${ult.total} passaram)${ant ? `; semana passada ${fmtNota(ant.nota)}` : ""}.`);
+    linhas.push(`🧪 Testes automáticos: nota ${fmtNota(ult.nota)}/10 (${ult.passou} de ${ult.total} passaram)${ant ? `; na bateria anterior ${fmtNota(ant.nota)}` : ""}.`);
     const falhas = (ult.resumo?.falhas ?? []).slice(0, 3);
     if (falhas.length) linhas.push(falhas.map((f: Linha) => `• "${String(f.pedido).slice(0, 80)}" — ${String(f.motivo ?? "").slice(0, 120)}`).join("\n"));
     for (const r of ult.resumo?.revertidas ?? []) linhas.push(`↩️ Desfiz a regra "${r.regra}": a nota caiu de ${fmtNota(r.de)} para ${fmtNota(r.para)}.`);

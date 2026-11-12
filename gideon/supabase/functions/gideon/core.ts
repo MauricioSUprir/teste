@@ -490,7 +490,7 @@ export async function atender(p: { texto: string; canal: string; sessao: string;
         const nomeComoTexto = declaracoes.some((f) => resposta.toLowerCase().includes(f.name));
         if (!usadas.length && !cobrou && !p.anexos?.length && volta < 5 && (PROMESSA.test(resposta) || nomeComoTexto)) {
           cobrou = true; resposta = "";
-          contents.push({ role: "user", parts: [{ text: "(sistema) Você disse que fez ou vai fazer uma ação, mas não chamou nenhuma ferramenta, então nada aconteceu. Se a ação é possível, chame a ferramenta agora; se não, responda sem prometer." }] });
+          contents.push({ role: "user", parts: [{ text: "(sistema) Você disse que fez ou vai fazer uma ação, mas não chamou nenhuma ferramenta, então nada aconteceu. Se a ação é possível, chame a ferramenta agora. Se não era preciso fazer nada (ex.: só explicar ou dizer o que você sabe fazer), escreva de novo a resposta ao dono sem nomes técnicos de ferramentas, sem pedir desculpas e sem citar este aviso." }] });
           continue;
         }
         break;
