@@ -17,7 +17,7 @@
 # =====================================================================================================
 import base64, datetime, fnmatch, io, json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.request
 
-VERSAO = "2.3"
+VERSAO = "2.4"
 URL = os.environ.get("GIDEON_PC_URL") or "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon"
 WINDOWS = os.name == "nt"
 CASA = os.path.expanduser("~")
@@ -672,6 +672,14 @@ def achar_app(n):
 
 
 def abrir(a):
+    if a.get("url"):  # 2.4: a GIDEON abre uma tela dela (GIDEON Core, Nexus...) no navegador padrão; só https
+        url = str(a["url"]).strip()
+        if not re.match(r"^https://[^\s\"'<>]+$", url):
+            raise Recusa("só abro endereços https")
+        if not WINDOWS:
+            return {"ok": True, "descricao": "(teste fora do Windows) abriria a página no navegador"}
+        os.startfile(url)
+        return {"ok": True, "descricao": f"Abri {a.get('descricao') or 'a página'} no navegador."}  # sem o endereço: ele leva a chave do Home
     app = None
     if a.get("app"):
         app = achar_app(a["app"])

@@ -524,6 +524,10 @@ function appConversa(corpo) {
       espera.remove();
       const b = bolha("gideon", r.resposta || "…", r.status === "erro" ? "erro" : "");
       if (r.ferramentas?.length) { const s = document.createElement("span"); s.className = "ferr"; s.textContent = "usou: " + r.ferramentas.join(", "); b.appendChild(s); }
+      if (r.abrir) { // "abre o Core / a equipe": a equipe abre numa janela; o resto, na página
+        const u = new URL(r.abrir, location.href), pag = u.pathname.split("/").pop();
+        if (pag === "equipe.html") abrir("equipe"); else if (pag !== "nexus.html") setTimeout(() => { location.href = u.href; }, 1200);
+      }
       atualizarPainel(); // a conversa pode ter criado tarefa, lembrete ou pedido de OK
     } catch (err) { espera.remove(); bolha("gideon", "Não consegui responder: " + msgErro(err), "erro"); }
     ocupado = false; ta.focus();

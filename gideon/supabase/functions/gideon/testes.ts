@@ -22,6 +22,7 @@ const SEMPRE_SIMULAR = new Set(["enviar_telegram", "pesquisa_profunda", "guardar
   "criar_projeto", "equipe_iniciar", "equipe_cancelar", "testes_rodar", "melhoria_ativar", "melhoria_reverter"]);
 const COM_CONFIRMACAO = new Set(["agenda_criar", "whatsapp_enviar", "esquecer_memoria", "pc_organizar", "pc_apagar", "pc_escrever_arquivo", "pc_comando"]);
 export function simularTeste(nome: string, a: Record<string, unknown>): Record<string, unknown> | null {
+  if (nome === "abrir_na_tela" && a.no_pc === true) return { ok: true, simulado: true, aberto_no_pc: true, aviso: SIM };
   if (nome === "pc_ver_tela") return { ok: true, simulado: true, descricao: "A tela mostra o navegador Chrome aberto na página inicial do YouTube.", aviso: SIM };
   if (COM_CONFIRMACAO.has(nome)) {
     if (a.confirmado === true) return { ok: true, simulado: true, feito: nome, args: a, aviso: SIM };

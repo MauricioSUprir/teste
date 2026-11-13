@@ -81,10 +81,12 @@ function criarUI() {
 }
 
 // ---------- abrir e fechar ----------
-export function abrirMapa(deps) {
+export function abrirMapa(deps, opcoes = {}) {
   d = deps; ui ??= criarUI();
   ui.raiz.hidden = false; aberto = true;
-  if (!mapa) carregarLista(true); else desenhar();
+  if (opcoes.id) abrirPorId(Number(opcoes.id));
+  else if (opcoes.assunto) { ui.campo.value = opcoes.assunto; novoMapa(opcoes.assunto); }
+  else if (!mapa) carregarLista(true); else desenhar();
   setTimeout(() => (mapa ? ui.palco : ui.campo).focus?.({ preventScroll: true }), 50);
 }
 export function fecharMapa() { if (!ui) return; ui.raiz.hidden = true; aberto = false; ui.acoes.hidden = true; ui.lista.hidden = true; }

@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
       const texto = String(b.texto ?? "").trim().slice(0, 4000);
       if (!texto) return json({ erro: "mensagem vazia" }, 400);
       const r = await chamarGideon("nucleo", { texto, canal: "home", sessao: "nexus" });
-      return json({ resposta: r.resposta, status: r.status, ferramentas: r.ferramentas ?? [], tempo_ms: r.tempo_ms });
+      return json({ resposta: r.resposta, status: r.status, ferramentas: r.ferramentas ?? [], tempo_ms: r.tempo_ms, abrir: r.abrir ?? null }); // abrir: tela que a GIDEON pediu para abrir
     }
     if (rota === "aprovar") {
       const id = Number(b.id), aprovar = b.aprovar === true;

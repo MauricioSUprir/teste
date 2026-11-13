@@ -165,6 +165,7 @@ const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/";
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, filhos = []) => { const e = Object.assign(document.createElement(tag), props); e.append(...filhos.filter((f) => f != null)); return e; };
 let chave = null;
+const pedidoAbrir = (() => { const h = new URLSearchParams(location.hash.slice(1)); return h.get("abrir") ? { alvo: h.get("abrir"), mapa: h.get("mapa"), assunto: h.get("assunto") } : null; })();
 try {
   const h = new URLSearchParams(location.hash.slice(1)).get("t");
   if (h) { localStorage.setItem("gideon_home", h); history.replaceState(null, "", location.pathname); }
@@ -457,10 +458,10 @@ async function alternarGestos() {
 $("btnGestos").addEventListener("click", alternarGestos);
 // Thought Map (módulo 72): core-mapa.js, carregado na primeira vez que abre
 let mapaMod = null;
-async function abrirMapa() {
+async function abrirMapa(opcoes = {}) {
   if (!chave) { semAcesso(); return; }
   fechar();
-  try { mapaMod ??= await import("./core-mapa.js"); mapaMod.abrirMapa({ nexus }); }
+  try { mapaMod ??= await import("./core-mapa.js"); mapaMod.abrirMapa({ nexus }, opcoes); }
   catch (e) { console.warn("mapa:", e); }
 }
 $("btnMapa").addEventListener("click", abrirMapa);
@@ -645,7 +646,7 @@ async function painelGideon(c) {
   const mandar = async () => {
     const texto = caixa.value.trim(); if (!texto) return;
     caixa.value = ""; msg("eu", texto); const espera = msg("ela", ""); espera.classList.add("carregando"); enviar.disabled = true;
-    try { const r = await nexus("conversa", { texto }); espera.classList.remove("carregando"); espera.replaceChildren(...linkar(r.resposta || "…")); }
+    try { const r = await nexus("conversa", { texto }); espera.classList.remove("carregando"); espera.replaceChildren(...linkar(r.resposta || "…")); if (r.abrir) seguirAbrir(r.abrir); }
     catch (e) { espera.classList.remove("carregando"); espera.replaceChildren(el("span", { className: "erro", textContent: "Não consegui falar com a GIDEON: " + e.message })); }
     enviar.disabled = false; lista.scrollTop = lista.scrollHeight;
   };
@@ -765,6 +766,23 @@ async function painelMissao(c) {
   c.replaceChildren(bloco("Objetivo", caixa, el("div", { className: "acoes" }, [planejar]),
     el("p", { className: "suave", textContent: "A equipe (diretor, pesquisador, analista, programador, testador e revisor) só começa depois que você aprovar o plano. O resultado chega no Telegram." })), area);
   caixa.focus({ preventScroll: true });
+}
+
+// "GIDEON, abre ..." — o endereço diz o que abrir (o link vem da ferramenta abrir_na_tela)
+function obedecer(p) {
+  if (!p || !chave) return;
+  if (p.alvo === "mapa") abrirMapa({ id: p.mapa || null, assunto: p.assunto || null });
+  else if (["comando", "gideon", "neural", "world", "missao"].includes(p.alvo)) abrir(p.alvo);
+}
+setTimeout(() => obedecer(pedidoAbrir), 400);
+addEventListener("hashchange", () => { const h = new URLSearchParams(location.hash.slice(1)); if (h.get("abrir")) obedecer({ alvo: h.get("abrir"), mapa: h.get("mapa"), assunto: h.get("assunto") }); });
+// a conversa (GIDEON Lab) pediu para abrir uma tela: se é aqui mesmo, abre sem recarregar; senão, vai para a página
+function seguirAbrir(url) {
+  try {
+    const u = new URL(url, location.href);
+    if (u.pathname.endsWith("/core.html")) { const h = new URLSearchParams(u.hash.slice(1)); setTimeout(() => obedecer({ alvo: h.get("abrir") || "comando", mapa: h.get("mapa"), assunto: h.get("assunto") }), 900); }
+    else setTimeout(() => { location.href = u.href; }, 1200);
+  } catch { /* endereço estranho: ignora */ }
 }
 
 // estado do sistema no topo (sem abrir painel)

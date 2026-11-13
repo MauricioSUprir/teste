@@ -195,6 +195,10 @@ export async function responderPrivado(chatId: number | string, pergunta: string
 }
 
 export async function executarPC(nome: string, a: Record<string, any>, canal: string): Promise<unknown> {
+  if (nome === "pc_abrir" && a.url) { // abrir uma tela da GIDEON no navegador do PC precisa do programa 2.4
+    const { data: disp } = await sb.from("gideon_dispositivos").select("info").eq("nome", "pc").maybeSingle();
+    if (disp && !versaoMinima(disp.info, 204)) return { erro: "Para eu abrir telas no navegador do PC, o dono precisa baixar o GIDEON PC 2.4 ou mais novo." };
+  }
   if (nome === "pc_ia_local") {
     const { data: disp } = await sb.from("gideon_dispositivos").select("info").eq("nome", "pc").maybeSingle();
     if (disp && !versaoMinima(disp.info, 203)) return { erro: "o programa do PC está desatualizado: o dono precisa baixar o GIDEON PC 2.3 ou mais novo para usar a IA local." };
