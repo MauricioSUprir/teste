@@ -1,0 +1,54 @@
+# 024 — GIDEON Core: núcleo 3D com painéis que funcionam (módulos 61 + 100, primeira parte)
+
+**Data:** 13/11/2026 · **Fase:** módulos novos 61–110 (`modulos-61-a-110.md`) · **Situação:** aceita, no ar
+
+## Decisão
+- **Página nova `home/core.html`**, no mesmo site do GIDEON Home (https://gideon-home.onrender.com/core.html), com a mesma chave de acesso (link /home do Telegram).
+- **Cena 3D** (three.js r186.1, só os pedaços usados, em `home/vendor/three-core.js`, sem depender de site de fora):
+  - **núcleo azul no centro**, com cristais e anéis girando;
+  - **GIDEON LAB, NEURAL LAB e WORLD LAB** em órbita, ligados ao núcleo por feixes de luz.
+- **Cada parte abre um painel que funciona de verdade.** Nada de número inventado:
+  - **Núcleo → Centro de comando (módulo 41).** Mostra só números reais:
+    - situação do sistema;
+    - modelos usados em 7 dias;
+    - agentes da equipe;
+    - automações do agendador e falhas em 24 h;
+    - projetos e GitHub;
+    - documentos na memória, por tipo;
+    - GIDEON PC (ligado ou não, versão);
+    - pedidos de hoje e nota dos testes;
+    - aprovações esperando e missões andando.
+
+    Atualiza a cada 30 s. O botão **[ INICIAR NOVA MISSÃO ]** chama a equipe de agentes: o diretor monta o plano, aparece **Aprovar** e **Cancelar**, e a equipe só começa depois do OK.
+  - **GIDEON Lab:** conversa com a GIDEON (a mesma do Nexus OS), nova missão e atalhos para a voz, o Nexus e a equipe.
+  - **Neural Lab:** modelos em uso, com barras; o roteador; busca na memória; nota dos testes.
+  - **World Lab:** projetos monitorados. As simulações aparecem como "em construção", sem fingir que existem.
+- **Controles:**
+  - **Mouse:** arrastar gira; a rodinha aproxima; clicar abre.
+  - **Toque:** arrastar e pinça.
+  - **Teclado:** 1 a 4 abrem os painéis, Esc fecha, setas giram, + e − aproximam.
+- **Telas:** com painel aberto, a cena vai para a parte livre da tela. No celular, a câmera se afasta para a órbita inteira caber e o painel sobe de baixo.
+- **Rota nova no Nexus: `comando`** (função `nexus`, agora publicada pelo Git como a `gideon`, decisão 021). Ela só lê o banco; não muda nada.
+- **Atalho "🌐 Core"** no topo do GIDEON Home.
+
+## O que ainda não tem (próximas partes do 61 e do 100)
+- **Gestos pela câmera** (MediaPipe): girar com a mão, pinça para aproximar, mão aberta para o menu. O documento manda começar por mouse e teclado; os gestos são a próxima parte.
+- **CPU, RAM e GPU do PC:** o painel já tem o lugar. Os números aparecem quando o GIDEON PC passar a mandar o uso, o que pede uma versão nova do programa.
+
+## Por quê
+- É o primeiro protótipo recomendado no documento oficial dos módulos 61–110: "núcleo 3D, painéis ligados a funções reais; começar por mouse e teclado".
+- Grátis: roda no navegador e reaproveita o Nexus e a função gideon. Não tem servidor novo.
+
+## Testes (13/11/2026)
+- **Navegador de testes** (Chromium, com respostas de exemplo no formato real), no computador (1366×800) e no celular (390×844):
+  - a cena abriu, e os quatro painéis abriram pelo teclado e pelos nomes na cena;
+  - nova missão: plano → aprovar → "a equipe começou";
+  - conversa: mandou e recebeu;
+  - busca na memória funcionou;
+  - nenhum erro no console e nenhuma rolagem para o lado.
+- **Rota `comando` de verdade** (função `nexus` v2, commit `205f136`): devolveu os números reais:
+  - 4 modelos, 10 de 10 automações e 259 documentos;
+  - 2 projetos + 4 no GitHub;
+  - PC desligado, versão 2.2;
+  - nota dos testes 9,7.
+- **Publicado:** https://gideon-home.onrender.com/core.html respondeu, com o pacote 3D e o botão no Home.

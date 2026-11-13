@@ -63,7 +63,7 @@ Legenda (o que a GIDEON já tem hoje): ✅ já existe · 🟡 existe em parte ·
 | # | Módulo | O que é | Hoje |
 |---|---|---|---|
 | 40 | Desktop OS | Arquivos, terminal, chat, agentes, automações, notificações | 🟡 Nexus OS no navegador |
-| 41 | Command Center | Painel: sistema, modelos, agentes, automações, projetos, documentos, CPU/RAM/GPU, botão "Iniciar nova missão" | 🟡 o Nexus tem janelas e aprovações; falta este painel com números reais |
+| 41 | Command Center | Painel: sistema, modelos, agentes, automações, projetos, documentos, CPU/RAM/GPU, botão "Iniciar nova missão" | 🟡 **feito no GIDEON Core (13/11, decisão 024):** painel com números reais e "Iniciar nova missão"; falta CPU/RAM/GPU do PC |
 | 42 | Plugin Universe | Loja particular de extensões | ⬜ |
 | 43 | Local Cloud | Servidor próprio em casa | ⬜ 💻 |
 | 44 | Device Network | PC, celular, tablet ligados: começa num, acompanha no outro | 🟡 PC, iPhone, Telegram, GIDEON Home e Nexus já conversam |

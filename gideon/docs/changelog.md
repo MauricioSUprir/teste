@@ -148,3 +148,13 @@
   - **No ar:** **v44 = commit `c50453f`** (antes: v43 = commit `e3e9700`). Conferido: Telegram ligado, lembretes respondem, o GIDEON Home abre a sessão de voz com o estilo novo no prompt.
 - **Timbre escolhido: `Despina`** (o dono deixou a escolha comigo): tom mais grave e estável e a mais rápida das 5 amostras. `gideon_config.voz_gideon = Despina`. A função temporária `gideon-vozes` foi desligada (responde 410). Detalhes na decisão 013.
 
+## 2026-11-13
+- **Voz:** timbre `Despina` + jeito de falar suave e frio (ver entradas de 12/11 e a decisão 013).
+- **Ideias do dono guardadas:** `docs/modulos-10-a-60.md` e `docs/modulos-61-a-110.md` (versão oficial; "Stark" trocado por GIDEON), com o que a GIDEON já tem de cada módulo.
+- **GIDEON Core (módulos 61 + 100, primeira parte, decisão 024):** https://gideon-home.onrender.com/core.html
+  - Núcleo 3D azul com GIDEON Lab, Neural Lab e World Lab em órbita. Cada parte abre um painel que funciona.
+  - **Centro de comando** com números reais e o botão "Iniciar nova missão" (plano da equipe com Aprovar/Cancelar).
+  - Também tem conversa com a GIDEON, modelos em uso, busca na memória e projetos.
+  - Função `nexus` v2 (rota `comando`), agora publicada pelo Git: **v2 = commit `205f136`** (antes: v1 com o arquivo inteiro). Atalho "🌐 Core" no GIDEON Home.
+  - Próximas partes: gestos pela câmera; CPU/RAM/GPU do PC (pede uma versão nova do GIDEON PC).
+

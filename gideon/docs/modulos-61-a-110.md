@@ -13,7 +13,7 @@ Legenda do "Hoje" (o que a GIDEON já tem): ✅ já existe · 🟡 existe em par
 
 **61. GIDEON Holographic Interface**
 Interface 3D controlada por gestos. Um núcleo digital flutua na tela: mexer a mão diante da câmera o faz girar; aproximar os dedos aumenta um objeto 3D; abrir a mão mostra um menu circular de módulos. Tecnologias: Three.js, MediaPipe, WebGL e rastreamento de mãos. A primeira versão é 3D na tela, não holograma físico.
-*Hoje:* 🟡 o GIDEON Home já tem um rosto animado que reage à voz; o 3D com gestos é novo (a câmera do próprio celular ou PC serve).
+*Hoje:* 🟡 **parte 1 feita (13/11, decisão 024):** núcleo 3D no GIDEON Core, controlado por mouse, toque e teclado. Falta: gestos pela câmera.
 
 **62. GIDEON Spatial Computing**
 Ambiente de trabalho espacial: código à esquerda, simulação à direita, agentes acima e a GIDEON no centro. Painéis 3D reorganizáveis por mouse, gestos ou realidade mista. Objetivo: trocar janelas soltas por uma sala de controle digital.
@@ -183,7 +183,7 @@ Laboratório de arquiteturas de vários agentes: organizações com 5 ou 20 espe
 
 **100. GIDEON Core**
 O laboratório central visual da GIDEON. Ao abrir, surge um núcleo 3D azul cercado por GIDEON LAB, NEURAL LAB e WORLD LAB. Ele liga o GIDEON Omega, o Nexus OS, os modelos, as simulações e os projetos reais. Não é só animação: cada painel abre uma ferramenta que funciona.
-*Hoje:* ⬜ (o Nexus OS e as ferramentas que já existem são a base)
+*Hoje:* 🟡 **parte 1 feita (13/11, decisão 024):** https://gideon-home.onrender.com/core.html. Núcleo 3D com GIDEON Lab, Neural Lab e World Lab; centro de comando com números reais; nova missão; conversa; memória. Falta: as ferramentas dos labs que ainda não existem (simulações, visualizador etc.).
 
 ## IX. Dez extras — o verdadeiro nível GIDEON
 
@@ -218,7 +218,7 @@ GIDEON OMEGA → GIDEON CORE → GIDEON LAB / NEURAL LAB / WORLD LAB → Nexus O
 3. Em cada etapa: validar permissões, segurança, desempenho e testes.
 
 ## Resumo
-- 🟡 existe em parte: 9 (61, 66, 71, 75, 88, 89, 91, 98, 99)
-- ⬜ novo: 41
+- 🟡 existe em parte: 10 (61, 66, 71, 75, 88, 89, 91, 98, 99, 100)
+- ⬜ novo: 40
 - 🔌 precisam de aparelho: 66 (tempo real), 67, 68, 76, 78, 79, 96, 107 · 💻 precisam do PC: 86 (versão completa), 87, 90
 - Cada módulo vira itens pequenos, como nas categorias 0 a 9, quando o dono mandar começar.
