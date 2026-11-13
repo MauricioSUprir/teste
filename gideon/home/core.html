@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GIDEON Core</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#02050a">
+<link rel="icon" href="icone.svg">
+<style>
+  /* GIDEON Core (módulos 61 + 100, decisão 024): núcleo 3D no centro; GIDEON LAB, NEURAL LAB e WORLD LAB em órbita.
+     Cada parte abre um painel que funciona de verdade (dados reais do Nexus e da função gideon). */
+  :root { --fundo:#02050a; --painel:rgba(6,14,24,.9); --borda:#1c3a52; --texto:#d8f3ff; --suave:#7f9bb3; --destaque:#8fd8ff; --link:#27c4ff;
+    --ok:#3ddc97; --aviso:#ffcf6e; --erro:#ff7b7b; --gideon:#27c4ff; --neural:#a48bff; --world:#3ddc97; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--fundo); color:var(--texto); overflow:hidden;
+    font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color:transparent; }
+  #cena { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; outline:none; }
+  #cena.arrastando { cursor:grabbing; }
+  a { color:var(--link); }
+  button { font:inherit; color:inherit; }
+
+  header { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+    padding:max(12px, env(safe-area-inset-top)) 16px 0; pointer-events:none; z-index:3; }
+  header h1 { margin:0; font-size:15px; letter-spacing:.32em; color:var(--destaque); font-weight:600; }
+  header .sub { color:var(--suave); font-size:11px; letter-spacing:.18em; text-transform:uppercase; }
+  #estadoSistema { pointer-events:auto; font-size:12px; letter-spacing:.08em; color:var(--suave); border:1px solid var(--borda); border-radius:999px;
+    padding:4px 10px; background:rgba(4,10,18,.6); white-space:nowrap; cursor:pointer; }
+  #estadoSistema .bola { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--suave); margin-right:6px; vertical-align:middle; }
+  #estadoSistema.ok .bola { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  #estadoSistema.atencao .bola { background:var(--aviso); box-shadow:0 0 8px var(--aviso); }
+
+  /* rótulos que acompanham as peças 3D */
+  .rotulo { position:fixed; left:0; top:0; z-index:2; transform:translate(-50%, 0); pointer-events:auto; cursor:pointer; white-space:nowrap;
+    background:rgba(4,10,18,.55); border:1px solid var(--borda); border-radius:999px; padding:3px 11px; font-size:11px; letter-spacing:.2em;
+    color:var(--texto); text-transform:uppercase; transition:opacity .25s, border-color .2s; }
+  .rotulo:hover, .rotulo:focus-visible { border-color:currentColor; outline:none; }
+  .rotulo small { display:block; font-size:9.5px; letter-spacing:.08em; text-transform:none; color:var(--suave); text-align:center; }
+  .rotulo[data-lab="gideon"] { color:var(--gideon); } .rotulo[data-lab="neural"] { color:var(--neural); } .rotulo[data-lab="world"] { color:var(--world); }
+  .rotulo[data-lab="comando"] { color:var(--destaque); letter-spacing:.26em; }
+
+  /* barra de baixo */
+  nav#doca { position:fixed; left:50%; bottom:max(14px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:3; display:flex; gap:6px;
+    padding:6px; border:1px solid var(--borda); border-radius:16px; background:rgba(4,10,18,.72); backdrop-filter:blur(8px); max-width:calc(100vw - 24px); overflow-x:auto; }
+  nav#doca button, nav#doca a { flex:0 0 auto; background:transparent; border:1px solid transparent; border-radius:11px; padding:6px 10px; cursor:pointer;
+    color:var(--texto); text-decoration:none; font-size:13px; white-space:nowrap; }
+  nav#doca button:hover, nav#doca a:hover, nav#doca button:focus-visible, nav#doca a:focus-visible { border-color:var(--borda); background:rgba(16,49,74,.5); outline:none; }
+  nav#doca .sep { width:1px; background:var(--borda); margin:4px 2px; flex:0 0 1px; }
+  nav#doca kbd { font:10px ui-monospace, monospace; color:var(--suave); margin-left:4px; }
+
+  /* painel */
+  #painel { position:fixed; top:0; right:0; bottom:0; width:min(440px, 100vw); z-index:4; background:var(--painel); border-left:1px solid var(--borda);
+    backdrop-filter:blur(10px); transform:translateX(105%); transition:transform .32s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; }
+  #painel.aberto { transform:none; }
+  #painel header { position:static; pointer-events:auto; padding:14px 16px 10px; border-bottom:1px solid var(--borda); align-items:center; }
+  #painel h2 { margin:0; font-size:14px; letter-spacing:.24em; text-transform:uppercase; }
+  #fechar { background:transparent; border:1px solid var(--borda); border-radius:10px; width:34px; height:34px; cursor:pointer; color:var(--texto); font-size:16px; }
+  #conteudo { padding:14px 16px 90px; overflow-y:auto; flex:1; }
+  .bloco { border:1px solid var(--borda); border-radius:14px; padding:12px 14px; margin:0 0 12px; background:rgba(8,18,30,.6); }
+  .bloco h3 { margin:0 0 8px; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--destaque); font-weight:600; }
+  .suave { color:var(--suave); font-size:13px; }
+  .linha { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid rgba(28,58,82,.5); }
+  .linha:first-of-type { border-top:0; }
+  .linha .v { font-variant-numeric:tabular-nums; color:var(--destaque); text-align:right; }
+  .cc-topo { text-align:center; font:600 13px/1.4 ui-monospace, Consolas, monospace; letter-spacing:.3em; color:var(--destaque); padding:4px 0 10px; }
+  .status { text-align:center; font:600 13px ui-monospace, Consolas, monospace; letter-spacing:.14em; padding:8px; border-radius:10px; margin-bottom:10px; }
+  .status.ok { color:var(--ok); background:rgba(61,220,151,.08); } .status.atencao { color:var(--aviso); background:rgba(255,207,110,.08); }
+  .barra { height:6px; border-radius:6px; background:#0e2133; overflow:hidden; margin-top:4px; }
+  .barra i { display:block; height:100%; background:linear-gradient(90deg, var(--link), var(--neural)); }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:#10314a; color:var(--texto); border:1px solid #1f4e70; border-radius:11px;
+    padding:9px 14px; cursor:pointer; text-decoration:none; font-size:14px; }
+  .btn:hover, .btn:focus-visible { background:#164466; outline:none; }
+  .btn.grande { width:100%; font:600 13px ui-monospace, Consolas, monospace; letter-spacing:.2em; padding:12px; margin-top:6px; }
+  .btn.ok { border-color:#2a7a58; background:#123d2d; } .btn.perigo { border-color:#7a3a3a; background:#3a1616; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+  .acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  textarea, input[type=text] { width:100%; background:#081422; color:var(--texto); border:1px solid var(--borda); border-radius:10px; padding:9px 11px; font:inherit; resize:vertical; }
+  textarea:focus, input:focus { outline:1px solid var(--link); }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font-size:12px; border:1px solid var(--borda); border-radius:999px; padding:2px 9px; color:var(--suave); }
+  .chip.parte { color:var(--aviso); border-color:#5a4a20; } .chip.pronto { color:var(--ok); border-color:#1f5a40; }
+  .conversa { max-height:42vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+  .msg { padding:8px 11px; border-radius:12px; max-width:92%; white-space:pre-wrap; word-wrap:break-word; font-size:14px; }
+  .msg.eu { align-self:flex-end; background:#10314a; } .msg.ela { align-self:flex-start; background:#0b1b2b; border:1px solid var(--borda); }
+  .msg.ela a { word-break:break-all; }
+  .erro { color:var(--erro); } .aviso { color:var(--aviso); }
+  .carregando::after { content:"…"; animation:pontos 1.2s steps(3) infinite; display:inline-block; width:1em; overflow:hidden; vertical-align:bottom; }
+  @keyframes pontos { from { width:0 } to { width:1em } }
+  ol.plano { padding-left:20px; margin:8px 0; } ol.plano li { margin:3px 0; }
+  .resultado { border-top:1px solid rgba(28,58,82,.5); padding:8px 0; font-size:14px; }
+  .resultado small { color:var(--suave); }
+
+  #aviso { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:5; max-width:min(420px, calc(100vw - 32px)); text-align:center;
+    background:var(--painel); border:1px solid var(--borda); border-radius:16px; padding:18px; }
+  #ajuda { position:fixed; left:16px; bottom:76px; z-index:2; font-size:11px; color:var(--suave); pointer-events:none; }
+
+  @media (max-width: 640px) {
+    #painel { top:auto; height:72vh; width:100vw; border-left:0; border-top:1px solid var(--borda); border-radius:18px 18px 0 0; transform:translateY(105%); }
+    #painel.aberto { transform:none; }
+    nav#doca kbd, #ajuda { display:none; }
+    header h1 { font-size:13px; letter-spacing:.24em; }
+    .rotulo { font-size:10px; letter-spacing:.14em; padding:2px 8px; } .rotulo small { display:none; }
+  }
+  @media (prefers-reduced-motion: reduce) { #painel { transition:none; } }
+</style>
+</head>
+<body>
+<canvas id="cena" tabindex="0" aria-label="Núcleo 3D da GIDEON. Arraste para girar, role para aproximar; use os botões de baixo ou as teclas 1 a 4."></canvas>
+
+<header>
+  <div><h1>GIDEON CORE</h1><div class="sub">Omega · Nexus · Labs</div></div>
+  <button id="estadoSistema" title="Abrir o centro de comando"><span class="bola"></span><span id="estadoTexto">conectando</span></button>
+</header>
+
+<div id="rotulos"></div>
+<div id="ajuda">arraste para girar · role para aproximar · 1–4 abre os painéis · Esc fecha</div>
+
+<nav id="doca" aria-label="Painéis do GIDEON Core">
+  <button data-abrir="comando">🎛️ Comando<kbd>1</kbd></button>
+  <button data-abrir="gideon">🧪 GIDEON Lab<kbd>2</kbd></button>
+  <button data-abrir="neural">🧠 Neural Lab<kbd>3</kbd></button>
+  <button data-abrir="world">🌎 World Lab<kbd>4</kbd></button>
+  <span class="sep"></span>
+  <a href="./" id="lnkVoz">🎙️ Voz</a>
+  <a href="nexus.html">🖥️ Nexus</a>
+  <a href="equipe.html">👥 Equipe</a>
+</nav>
+
+<aside id="painel" aria-hidden="true" aria-labelledby="tituloPainel">
+  <header><h2 id="tituloPainel">Painel</h2><button id="fechar" aria-label="Fechar painel">✕</button></header>
+  <div id="conteudo"></div>
+</aside>
+
+<div id="aviso" hidden></div>
+
+<script type="module">
+import * as THREE from "./vendor/three-core.js";
+
+// ---------- acesso (a mesma chave do GIDEON Home: link /home do Telegram, vale 30 dias) ----------
+const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/";
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, filhos = []) => { const e = Object.assign(document.createElement(tag), props); e.append(...filhos.filter((f) => f != null)); return e; };
+let chave = null;
+try {
+  const h = new URLSearchParams(location.hash.slice(1)).get("t");
+  if (h) { localStorage.setItem("gideon_home", h); history.replaceState(null, "", location.pathname); }
+  chave = localStorage.getItem("gideon_home");
+} catch { chave = new URLSearchParams(location.hash.slice(1)).get("t"); }
+
+async function api(funcao, rota, corpo) {
+  const r = await fetch(FUNC + funcao + "/" + rota, { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave || "" }, body: JSON.stringify(corpo ?? {}) });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { semAcesso(); throw new Error("acesso negado"); }
+  if (!r.ok) throw new Error(j.erro || ("erro " + r.status));
+  return j;
+}
+const nexus = (rota, corpo) => api("nexus", rota, corpo);
+const ferramenta = (nome, args) => api("gideon", "home-ferramenta", { nome, args }).then((j) => j.resultado ?? {});
+function semAcesso() {
+  const a = $("aviso"); a.hidden = false; a.replaceChildren(
+    el("p", { textContent: "🔒 Para abrir o GIDEON Core, mande /home no Telegram da GIDEON e abra o link pessoal uma vez neste aparelho." }),
+    el("p", { className: "suave", textContent: "Depois disso, este endereço abre direto." }));
+  $("estadoTexto").textContent = "sem acesso";
+}
+const num = (n) => Number(n ?? 0).toLocaleString("pt-BR");
+const hora = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+const tempoDesde = (s) => s == null ? "nunca" : s < 90 ? "agora" : s < 3600 ? `há ${Math.round(s / 60)} min` : s < 172800 ? `há ${Math.round(s / 3600)} h` : `há ${Math.round(s / 86400)} dias`;
+
+// ---------- cena 3D ----------
+const LABS = [
+  { id: "gideon", nome: "GIDEON LAB", sub: "conversa · missões · invenções", cor: 0x27c4ff, angulo: Math.PI / 2 },
+  { id: "neural", nome: "NEURAL LAB", sub: "modelos · memória · testes", cor: 0xa48bff, angulo: Math.PI / 2 + (2 * Math.PI) / 3 },
+  { id: "world", nome: "WORLD LAB", sub: "projetos · simulações", cor: 0x3ddc97, angulo: Math.PI / 2 + (4 * Math.PI) / 3 },
+];
+const lento = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const canvas = $("cena");
+let renderer = null;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" }); }
+catch (e) { console.error(e); }
+const cena = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
+const mundo = new THREE.Group(); cena.add(mundo);
+
+const brilho = (cor, forca = 1.4, fundo = 0.0) => new THREE.ShaderMaterial({ // brilho nas bordas (fresnel)
+  uniforms: { cor: { value: new THREE.Color(cor) }, forca: { value: forca }, fundo: { value: fundo }, t: { value: 0 } },
+  vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform vec3 cor; uniform float forca; uniform float fundo; uniform float t; varying vec3 vN; varying vec3 vV;
+    void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 2.2); float pulso = 0.85 + 0.15 * sin(t * 1.7); gl_FragColor = vec4(cor * (f * forca + fundo) * pulso, f * 0.9 + fundo); }`,
+  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const arestas = (geo, cor, opacidade) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: cor, transparent: true, opacity: opacidade, blending: THREE.AdditiveBlending, depthWrite: false }));
+
+// núcleo
+const nucleo = new THREE.Group(); mundo.add(nucleo);
+const casca = new THREE.Mesh(new THREE.SphereGeometry(1.15, 64, 48), brilho(0x2aa8ff, 1.6, 0.04)); nucleo.add(casca);
+const miolo = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 24), new THREE.MeshBasicMaterial({ color: 0x9fe4ff })); nucleo.add(miolo);
+const cristal = arestas(new THREE.IcosahedronGeometry(0.78, 1), 0x6fd3ff, 0.75); nucleo.add(cristal);
+const cristal2 = arestas(new THREE.IcosahedronGeometry(1.42, 0), 0x2a8fd8, 0.35); nucleo.add(cristal2);
+const aneis = [0, 1, 2].map((i) => {
+  const a = new THREE.Mesh(new THREE.TorusGeometry(1.85 + i * 0.22, 0.011, 8, 180), new THREE.MeshBasicMaterial({ color: 0x4cc2ff, transparent: true, opacity: 0.55 - i * 0.12, blending: THREE.AdditiveBlending, depthWrite: false }));
+  a.rotation.set(Math.PI / 2 + (i - 1) * 0.55, i * 0.7, 0); nucleo.add(a); return a;
+});
+
+// órbita dos labs
+const RAIO = 4.3;
+const orbita = new THREE.Mesh(new THREE.RingGeometry(RAIO - 0.006, RAIO + 0.006, 256), new THREE.MeshBasicMaterial({ color: 0x1f5f8a, transparent: true, opacity: 0.6, side: 2, depthWrite: false }));
+orbita.rotation.x = -Math.PI / 2; mundo.add(orbita);
+const carrossel = new THREE.Group(); mundo.add(carrossel);
+const alvos = []; // o que dá para clicar na cena
+const pecas = LABS.map((lab) => {
+  const g = new THREE.Group();
+  g.position.set(Math.cos(lab.angulo) * RAIO, 0, Math.sin(lab.angulo) * RAIO);
+  const esfera = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 24), brilho(lab.cor, 1.7, 0.05)); g.add(esfera);
+  const cr = arestas(new THREE.IcosahedronGeometry(0.28, 0), lab.cor, 0.9); g.add(cr);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.006, 6, 96), new THREE.MeshBasicMaterial({ color: lab.cor, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+  halo.rotation.x = Math.PI / 2.4; g.add(halo);
+  esfera.userData.abrir = lab.id; alvos.push(esfera);
+  carrossel.add(g);
+  // feixe do núcleo até o lab
+  const geo = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 0, 0, g.position.x, 0, g.position.z]), 3));
+  const feixe = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: lab.cor, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
+  carrossel.add(feixe);
+  return { lab, g, cr, halo, feixe };
+});
+casca.userData.abrir = "comando"; alvos.push(casca);
+
+// poeira de partículas
+const N = 1400, pos = new Float32Array(N * 3);
+for (let i = 0; i < N; i++) {
+  const r = 2.4 + Math.random() * 7, t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+  pos[i * 3] = r * Math.sin(p) * Math.cos(t); pos[i * 3 + 1] = r * Math.cos(p) * 0.55; pos[i * 3 + 2] = r * Math.sin(p) * Math.sin(t);
+}
+const poeira = new THREE.Points(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(pos, 3)),
+  new THREE.PointsMaterial({ color: 0x5fb8ff, size: 0.028, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
+mundo.add(poeira);
+
+// brilho (bloom) — mais leve no celular
+let composer = null;
+const fraco = matchMedia("(max-width: 640px)").matches || (navigator.hardwareConcurrency || 8) <= 4;
+if (renderer) {
+  renderer.setClearColor(0x02050a, 1);
+  try {
+    composer = new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(cena, camera));
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), fraco ? 0.8 : 1.1, 0.55, 0.12));
+    composer.addPass(new THREE.OutputPass());
+  } catch (e) { console.warn("sem bloom:", e); composer = null; }
+} else {
+  $("ajuda").textContent = "Este navegador não mostrou o 3D; os painéis de baixo funcionam normalmente.";
+}
+
+// ---------- câmera: arrastar, rolar, pinça, teclado ----------
+const vista = { yaw: 0.35, pitch: 0.32, dist: 10.5, alvoYaw: 0.35, alvoPitch: 0.32, alvoDist: 10.5, vel: 0, minDist: 6, maxDist: 18 };
+let arrasto = null, pinca = null, ultimoToque = 0;
+const ponteiros = new Map();
+canvas.addEventListener("pointerdown", (e) => {
+  canvas.setPointerCapture(e.pointerId); ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ponteiros.size === 1) arrasto = { x: e.clientX, y: e.clientY, inicio: performance.now(), moveu: 0 };
+  if (ponteiros.size === 2) { const [a, b] = [...ponteiros.values()]; pinca = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: vista.alvoDist }; arrasto = null; }
+  canvas.classList.add("arrastando"); ultimoToque = performance.now();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (!ponteiros.has(e.pointerId)) return;
+  ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinca && ponteiros.size === 2) {
+    const [a, b] = [...ponteiros.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+    vista.alvoDist = THREE.MathUtils.clamp(pinca.dist * (pinca.d / Math.max(d, 1)), vista.minDist, vista.maxDist); return;
+  }
+  if (!arrasto) return;
+  const dx = e.clientX - arrasto.x, dy = e.clientY - arrasto.y;
+  arrasto.moveu += Math.abs(dx) + Math.abs(dy); arrasto.x = e.clientX; arrasto.y = e.clientY;
+  vista.alvoYaw -= dx * 0.006; vista.vel = -dx * 0.006;
+  vista.alvoPitch = THREE.MathUtils.clamp(vista.alvoPitch + dy * 0.004, -0.15, 1.1);
+  ultimoToque = performance.now();
+});
+const soltar = (e) => {
+  ponteiros.delete(e.pointerId);
+  if (arrasto && arrasto.moveu < 6 && performance.now() - arrasto.inicio < 400) clicar(e.clientX, e.clientY);
+  if (ponteiros.size < 2) pinca = null;
+  if (!ponteiros.size) { arrasto = null; canvas.classList.remove("arrastando"); }
+};
+canvas.addEventListener("pointerup", soltar); canvas.addEventListener("pointercancel", soltar);
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); vista.alvoDist = THREE.MathUtils.clamp(vista.alvoDist * (1 + Math.sign(e.deltaY) * 0.08), vista.minDist, vista.maxDist); ultimoToque = performance.now(); }, { passive: false });
+const raio = new THREE.Raycaster(), ponto = new THREE.Vector2();
+function clicar(x, y) {
+  ponto.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
+  raio.setFromCamera(ponto, camera);
+  const achado = raio.intersectObjects(alvos, false)[0];
+  if (achado) abrir(achado.object.userData.abrir);
+}
+addEventListener("keydown", (e) => {
+  if (e.target.closest?.("input, textarea")) { if (e.key === "Escape") e.target.blur(); return; }
+  const mapa = { "1": "comando", "2": "gideon", "3": "neural", "4": "world" };
+  if (mapa[e.key]) { abrir(mapa[e.key]); e.preventDefault(); }
+  else if (e.key === "Escape") fechar();
+  else if (e.key === "ArrowLeft") vista.alvoYaw += 0.25;
+  else if (e.key === "ArrowRight") vista.alvoYaw -= 0.25;
+  else if (e.key === "ArrowUp") vista.alvoPitch = Math.min(1.1, vista.alvoPitch + 0.12);
+  else if (e.key === "ArrowDown") vista.alvoPitch = Math.max(-0.15, vista.alvoPitch - 0.12);
+  else if (e.key === "+" || e.key === "=") vista.alvoDist = Math.max(vista.minDist, vista.alvoDist - 0.8);
+  else if (e.key === "-") vista.alvoDist = Math.min(vista.maxDist, vista.alvoDist + 0.8);
+  else return;
+  ultimoToque = performance.now();
+});
+
+// ---------- rótulos HTML que seguem as peças ----------
+const rotulos = new Map();
+function criarRotulo(id, nome, sub) {
+  const b = el("button", { className: "rotulo", type: "button", title: "Abrir " + nome }, [nome, sub ? el("small", { textContent: sub }) : null]);
+  b.dataset.lab = id; b.addEventListener("click", () => abrir(id)); $("rotulos").append(b); rotulos.set(id, b); return b;
+}
+criarRotulo("comando", "COMANDO", "centro de comando");
+LABS.forEach((l) => criarRotulo(l.id, l.nome, l.sub));
+const tmp = new THREE.Vector3();
+function moverRotulos() {
+  const lista = [["comando", casca, -1.55], ...pecas.map((p) => [p.lab.id, p.g, -0.72])];
+  for (const [id, obj, desce] of lista) {
+    obj.getWorldPosition(tmp); tmp.y += desce; tmp.project(camera);
+    const r = rotulos.get(id), visivel = tmp.z < 1;
+    r.style.opacity = visivel ? "1" : "0"; r.style.pointerEvents = visivel ? "auto" : "none";
+    r.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * innerWidth}px, ${(-tmp.y * 0.5 + 0.5) * innerHeight}px) translate(-50%, 0)`;
+  }
+}
+
+// ---------- animação ----------
+function ajustar() {
+  const w = innerWidth, h = innerHeight, aspecto = w / h;
+  camera.aspect = aspecto; camera.fov = aspecto < 0.8 ? 72 : 50; camera.updateProjectionMatrix();
+  // distância para a órbita inteira (com os nomes) caber na largura da tela
+  const caber = (RAIO + 1.4) / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(aspecto, 1.6));
+  vista.minDist = Math.max(6, Math.min(caber * 0.62, 14)); vista.maxDist = Math.max(18, caber * 1.4);
+  if (!ajustar.feito) { vista.dist = vista.alvoDist = Math.max(10.5, caber * (aspecto < 0.8 ? 0.86 : 1)); ajustar.feito = true; }
+  vista.alvoDist = THREE.MathUtils.clamp(vista.alvoDist, vista.minDist, vista.maxDist);
+  if (!renderer) return;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, fraco ? 1.5 : 2)); renderer.setSize(w, h, false);
+  composer?.setSize(w, h);
+}
+addEventListener("resize", ajustar); ajustar();
+const desloc = { x: 0, y: 0 }; // com painel aberto, a cena vai para a parte da tela que continua livre
+let antes = performance.now(), foco = null;
+function quadro(agora) {
+  const dt = Math.min((agora - antes) / 1000, 0.05); antes = agora;
+  const ritmo = lento ? 0.25 : 1, t = agora / 1000;
+  const parado = performance.now() - ultimoToque > 2500 && !ponteiros.size;
+  if (foco === null && parado) vista.alvoYaw += dt * 0.06 * ritmo; // gira devagar sozinho
+  if (!ponteiros.size && Math.abs(vista.vel) > 0.0005) { vista.alvoYaw += vista.vel; vista.vel *= 0.92; }
+  vista.yaw += (vista.alvoYaw - vista.yaw) * Math.min(1, dt * 5);
+  vista.pitch += (vista.alvoPitch - vista.pitch) * Math.min(1, dt * 5);
+  vista.dist += (vista.alvoDist - vista.dist) * Math.min(1, dt * 4);
+  camera.position.set(Math.sin(vista.yaw) * Math.cos(vista.pitch) * vista.dist, Math.sin(vista.pitch) * vista.dist, Math.cos(vista.yaw) * Math.cos(vista.pitch) * vista.dist);
+  camera.lookAt(0, 0, 0);
+  const largo = innerWidth > 640, painelAberto = aberto !== null;
+  const ax = painelAberto && largo ? $("painel").offsetWidth / 2 : 0, ay = painelAberto && !largo ? innerHeight * 0.36 : 0;
+  desloc.x += (ax - desloc.x) * Math.min(1, dt * 6); desloc.y += (ay - desloc.y) * Math.min(1, dt * 6);
+  if (Math.abs(desloc.x) + Math.abs(desloc.y) < 0.5) camera.clearViewOffset();
+  else camera.setViewOffset(innerWidth, innerHeight, desloc.x, desloc.y, innerWidth, innerHeight);
+  cristal.rotation.y += dt * 0.35 * ritmo; cristal.rotation.x += dt * 0.12 * ritmo;
+  cristal2.rotation.y -= dt * 0.12 * ritmo; cristal2.rotation.z += dt * 0.05 * ritmo;
+  aneis.forEach((a, i) => { a.rotation.z += dt * (0.25 + i * 0.12) * (i % 2 ? -1 : 1) * ritmo; });
+  miolo.scale.setScalar(1 + Math.sin(t * 2.1) * 0.06);
+  poeira.rotation.y += dt * 0.012 * ritmo;
+  pecas.forEach((p, i) => { p.cr.rotation.y += dt * (0.6 + i * 0.1) * ritmo; p.halo.rotation.z += dt * 0.4 * ritmo; p.g.position.y = Math.sin(t * 0.9 + i * 2.1) * 0.12; });
+  [casca, ...pecas.map((p) => p.g.children[0])].forEach((m) => { m.material.uniforms.t.value = t; });
+  if (renderer) { composer ? composer.render() : renderer.render(cena, camera); }
+  moverRotulos();
+  requestAnimationFrame(quadro);
+}
+requestAnimationFrame(quadro);
+
+// gira a cena para deixar a peça escolhida de frente
+function focar(id) {
+  const lab = LABS.find((l) => l.id === id);
+  if (!lab) { foco = null; return; }
+  foco = id;
+  const yaw = Math.atan2(Math.cos(lab.angulo), Math.sin(lab.angulo)); // câmera do mesmo lado do lab
+  let d = yaw - vista.alvoYaw; d = Math.atan2(Math.sin(d), Math.cos(d)); vista.alvoYaw += d;
+  vista.alvoPitch = 0.5;
+}
+
+// ---------- painéis ----------
+const TITULOS = { comando: "🎛️ Centro de comando", gideon: "🧪 GIDEON Lab", neural: "🧠 Neural Lab", world: "🌎 World Lab", missao: "🚀 Nova missão" };
+let aberto = null, atualizar = null;
+function abrir(id) {
+  if (!chave) { semAcesso(); return; }
+  aberto = id; clearInterval(atualizar); atualizar = null;
+  $("tituloPainel").textContent = TITULOS[id] || id;
+  const p = $("painel"); p.classList.add("aberto"); p.setAttribute("aria-hidden", "false");
+  focar(id);
+  const c = $("conteudo"); c.replaceChildren(el("p", { className: "suave carregando", textContent: "Carregando" }));
+  const montar = { comando: painelComando, gideon: painelGideon, neural: painelNeural, world: painelWorld, missao: painelMissao }[id];
+  montar(c).catch((e) => { if (aberto === id) c.replaceChildren(el("p", { className: "erro", textContent: "Não consegui carregar: " + e.message })); });
+  $("fechar").focus({ preventScroll: true });
+}
+function fechar() {
+  aberto = null; foco = null; clearInterval(atualizar); atualizar = null;
+  const p = $("painel"); p.classList.remove("aberto"); p.setAttribute("aria-hidden", "true");
+  canvas.focus({ preventScroll: true });
+}
+$("fechar").addEventListener("click", fechar);
+$("estadoSistema").addEventListener("click", () => abrir("comando"));
+document.querySelectorAll("[data-abrir]").forEach((b) => b.addEventListener("click", () => abrir(b.dataset.abrir)));
+const bloco = (titulo, ...filhos) => el("section", { className: "bloco" }, [titulo ? el("h3", { textContent: titulo }) : null, ...filhos]);
+const linha = (nome, valor, extra) => el("div", { className: "linha" }, [el("span", {}, [nome, extra ? el("div", { className: "suave", textContent: extra }) : null]), el("span", { className: "v", textContent: valor })]);
+const chipsModulos = (lista) => el("div", { className: "chips" }, lista.map(([n, nome, est]) => el("span", { className: "chip" + (est === "parte" ? " parte" : est === "pronto" ? " pronto" : ""), title: est === "parte" ? "existe em parte" : est === "pronto" ? "pronto" : "ainda não feito", textContent: `${n} ${nome}` })));
+
+// dados compartilhados (centro de comando)
+let dados = null, agentes = null;
+async function carregarDados() {
+  const [d, eq] = await Promise.all([nexus("comando"), agentes ? Promise.resolve(null) : api("gideon", "home-equipe", {}).catch(() => null)]);
+  dados = d; if (eq?.agentes) agentes = eq.agentes;
+  mostrarEstado(); return d;
+}
+function mostrarEstado() {
+  const s = $("estadoSistema"), ok = dados?.sistema?.status === "operacional";
+  s.className = ok ? "ok" : "atencao";
+  $("estadoTexto").textContent = ok ? "sistema operacional" : "atenção";
+  s.title = ok ? "Tudo funcionando. Abrir o centro de comando." : (dados?.sistema?.motivo || "Abrir o centro de comando");
+}
+
+async function painelComando(c) {
+  const desenhar = () => {
+    const d = dados, nAg = agentes ? Object.keys(agentes).length + 2 : 6; // + diretor e revisor
+    const tipos = Object.entries(d.documentos.por_tipo).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${n} ${t}`).join(" · ");
+    const pc = d.pc.ligado ? `ligado · ${d.pc.computador ?? ""} · versão ${d.pc.versao ?? "?"}` : d.pc.versao ? `desligado (visto ${tempoDesde(d.pc.visto_ha_segundos)}) · versão ${d.pc.versao}` : "não instalado";
+    const uso = d.pc.uso;
+    c.replaceChildren(
+      bloco(null,
+        el("div", { className: "cc-topo", textContent: "GIDEON AI · COMMAND CENTER" }),
+        el("div", { className: "status " + (d.sistema.status === "operacional" ? "ok" : "atencao"), textContent: d.sistema.status === "operacional" ? "● SISTEMA OPERACIONAL" : "● ATENÇÃO · " + d.sistema.motivo }),
+        linha("🧠 Modelos ativos", num(d.modelos.length), d.modelos.map((m) => m.nome).join(", ") || "nenhum nos últimos 7 dias"),
+        linha("🤖 Agentes disponíveis", num(nAg), agentes ? ["Diretor", ...Object.values(agentes).map((a) => a.nome), "Revisor"].join(", ") : "equipe da GIDEON"),
+        linha("⚙️ Automações ativas", `${d.automacoes.ativas} de ${d.automacoes.total}`, d.automacoes.falhas_24h ? `${d.automacoes.falhas_24h} falha(s) em 24 h` : "nenhuma falha em 24 h"),
+        linha("💻 Projetos monitorados", num(d.projetos.nomes.length + d.projetos.github), `${d.projetos.nomes.join(", ") || "nenhum projeto"} + ${d.projetos.github} no GitHub`),
+        linha("📚 Documentos indexados", num(d.documentos.total), tipos),
+      ),
+      bloco("Computador",
+        linha("🖥️ GIDEON PC", d.pc.ligado ? "ligado" : "desligado", pc),
+        linha("CPU · RAM · GPU", uso ? `${uso.cpu ?? "—"}% · ${uso.ram_gb ?? "—"} GB · ${uso.gpu ?? "—"}%` : "—", uso ? null : "aparece quando o GIDEON PC mandar o uso (próxima versão do programa)"),
+      ),
+      bloco("Hoje",
+        linha("📨 Pedidos", num(d.hoje.pedidos), `${d.hoje.erros} erro(s) · ${d.hoje.cache} respondido(s) pelo cache`),
+        linha("🧪 Nota dos testes", d.testes ? `${String(d.testes.nota).replace(".", ",")}/10` : "—", d.testes ? `${d.testes.passou} de ${d.testes.total} na última bateria` : "ainda sem bateria"),
+        linha("✅ Aprovações esperando", num(d.aprovacoes_pendentes), d.aprovacoes_pendentes ? "aprove no Nexus ou no Telegram" : null),
+        linha("👥 Missões da equipe andando", num(d.equipe_ativas)),
+      ),
+      el("button", { className: "btn grande", textContent: "[ INICIAR NOVA MISSÃO ]", onclick: () => abrir("missao") }),
+      el("p", { className: "suave", textContent: `Números reais, atualizados a cada 30 s · ${hora(d.agora)}` }),
+    );
+  };
+  await carregarDados(); desenhar();
+  atualizar = setInterval(() => { if (aberto === "comando") carregarDados().then(desenhar).catch(() => {}); }, 30_000);
+}
+
+// conversa com a GIDEON (a mesma do Nexus OS)
+async function painelGideon(c) {
+  const lista = el("div", { className: "conversa" }); lista.setAttribute("aria-live", "polite");
+  const caixa = el("textarea", { rows: 2, placeholder: "Escreva para a GIDEON… (Enter envia)" });
+  const enviar = el("button", { className: "btn", textContent: "Enviar" });
+  const msg = (quem, texto) => { const m = el("div", { className: "msg " + quem }); m.append(...linkar(texto)); lista.append(m); lista.scrollTop = lista.scrollHeight; return m; };
+  const mandar = async () => {
+    const texto = caixa.value.trim(); if (!texto) return;
+    caixa.value = ""; msg("eu", texto); const espera = msg("ela", ""); espera.classList.add("carregando"); enviar.disabled = true;
+    try { const r = await nexus("conversa", { texto }); espera.classList.remove("carregando"); espera.replaceChildren(...linkar(r.resposta || "…")); }
+    catch (e) { espera.classList.remove("carregando"); espera.replaceChildren(el("span", { className: "erro", textContent: "Não consegui falar com a GIDEON: " + e.message })); }
+    enviar.disabled = false; lista.scrollTop = lista.scrollHeight;
+  };
+  enviar.addEventListener("click", mandar);
+  caixa.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); mandar(); } });
+  c.replaceChildren(
+    bloco("Conversar com a GIDEON", lista, caixa, el("div", { className: "acoes" }, [enviar])),
+    bloco("Ações",
+      el("div", { className: "acoes" }, [
+        el("button", { className: "btn", textContent: "🚀 Nova missão da equipe", onclick: () => abrir("missao") }),
+        el("a", { className: "btn", href: "./", textContent: "🎙️ Falar por voz" }),
+        el("a", { className: "btn", href: "nexus.html", textContent: "🖥️ Nexus OS" }),
+        el("a", { className: "btn", href: "equipe.html", textContent: "👥 Painel da equipe" }),
+      ])),
+    bloco("Módulos deste lab", chipsModulos([[61, "Interface 3D", "parte"], [100, "GIDEON Core", "parte"], [62, "Spatial Computing"], [63, "Reconstrutor 3D"], [64, "Invention Lab"], [65, "Bancada virtual"], [72, "Thought Map"]])),
+  );
+  try {
+    const h = await nexus("historico");
+    for (const m of (h.mensagens ?? []).slice(-12)) msg(m.papel === "user" ? "eu" : "ela", m.texto);
+    if (!h.mensagens?.length) lista.append(el("p", { className: "suave", textContent: "É a mesma conversa do Nexus OS. Diga oi." }));
+  } catch { /* sem histórico */ }
+  caixa.focus({ preventScroll: true });
+}
+function linkar(texto) { // texto com links clicáveis (só http/https), sem HTML
+  const partes = []; let ult = 0;
+  for (const m of String(texto).matchAll(/https?:\/\/[^\s)<>\]]+/g)) {
+    partes.push(document.createTextNode(texto.slice(ult, m.index)));
+    partes.push(el("a", { href: m[0], target: "_blank", rel: "noopener", textContent: m[0] }));
+    ult = m.index + m[0].length;
+  }
+  partes.push(document.createTextNode(String(texto).slice(ult)));
+  return partes;
+}
+
+async function painelNeural(c) {
+  if (!dados) await carregarDados();
+  const max = Math.max(1, ...dados.modelos.map((m) => m.usos_7d));
+  const busca = el("input", { type: "text", placeholder: "Procurar na memória (ex.: projeto Total Match)" });
+  const res = el("div");
+  const procurar = async () => {
+    const q = busca.value.trim(); if (!q) return;
+    res.replaceChildren(el("p", { className: "suave carregando", textContent: "Procurando" }));
+    try {
+      const r = await ferramenta("buscar_memoria", { pergunta: q });
+      const t = r.trechos ?? [];
+      res.replaceChildren(...(t.length ? t.map((x) => el("div", { className: "resultado" }, [
+        el("small", { textContent: `${x.tipo ?? ""}${x.projeto ? " · " + x.projeto : ""}${x.data ? " · " + String(x.data).slice(0, 10) : ""}` }),
+        el("div", { textContent: String(x.conteudo ?? "").slice(0, 400) }),
+        x.link ? el("a", { href: x.link, target: "_blank", rel: "noopener", textContent: "abrir" }) : null,
+      ])) : [el("p", { className: "suave", textContent: r.erro || "Nada parecido na memória." })]));
+    } catch (e) { res.replaceChildren(el("p", { className: "erro", textContent: e.message })); }
+  };
+  busca.addEventListener("keydown", (e) => { if (e.key === "Enter") procurar(); });
+  c.replaceChildren(
+    bloco("Modelos em uso (7 dias)", ...dados.modelos.map((m) => el("div", { className: "linha" }, [
+      el("span", { style: "flex:1" }, [m.nome, el("div", { className: "barra" }, [el("i", { style: `width:${Math.round((m.usos_7d / max) * 100)}%` })])]),
+      el("span", { className: "v", textContent: num(m.usos_7d) }),
+    ])), el("p", { className: "suave", textContent: "Roteador: pedido simples vai para o modelo rápido, difícil para o forte, e pergunta repetida sai do cache sem gastar IA." })),
+    bloco("Memória", linha("Documentos indexados", num(dados.documentos.total)), busca, el("div", { className: "acoes" }, [el("button", { className: "btn", textContent: "Procurar", onclick: procurar })]), res),
+    bloco("Qualidade", linha("Nota dos testes semanais", dados.testes ? `${String(dados.testes.nota).replace(".", ",")}/10` : "—", "a GIDEON se testa todo domingo e propõe melhorias")),
+    bloco("Módulos deste lab", chipsModulos([[71, "Cognitive Router", "parte"], [89, "Benchmark", "parte"], [88, "Dados sintéticos", "parte"], [75, "Knowledge Forge", "parte"], [86, "Neural Visualizer"], [87, "Model Surgeon"], [90, "Neural Compiler"]])),
+  );
+}
+
+async function painelWorld(c) {
+  if (!dados) await carregarDados();
+  c.replaceChildren(
+    bloco("Projetos monitorados",
+      ...dados.projetos.nomes.map((n) => linha("📁 " + n, "ativo")),
+      linha("🐙 Projetos no GitHub", num(dados.projetos.github), "a GIDEON lê o README e as mudanças todo dia"),
+      el("p", { className: "suave", textContent: "Pergunte na conversa: \"o que mudou no projeto X?\"" })),
+    bloco("Simulações",
+      el("p", { className: "suave", textContent: "Ainda em construção. O próximo da fila é o robô virtual (77)." }),
+      chipsModulos([[77, "Robô virtual"], [80, "Enxame de robôs"], [81, "Universe Engine"], [82, "Civilizações"], [83, "Economia"], [84, "Física"], [85, "Evolução"], [103, "Missões espaciais"], [105, "Energia"]])),
+  );
+}
+
+// nova missão: o diretor monta o plano; só começa depois do seu OK aqui
+async function painelMissao(c) {
+  const caixa = el("textarea", { rows: 4, placeholder: "O que a equipe deve fazer? Ex.: compare 3 notebooks até 4 mil reais para programar e me recomende um." });
+  const planejar = el("button", { className: "btn", textContent: "Montar o plano" });
+  const area = el("div");
+  planejar.addEventListener("click", async () => {
+    const objetivo = caixa.value.trim(); if (!objetivo) { caixa.focus(); return; }
+    planejar.disabled = true; area.replaceChildren(el("p", { className: "suave carregando", textContent: "O diretor está montando o plano (uns 20 s)" }));
+    try {
+      const r = await ferramenta("equipe_iniciar", { objetivo, confirmado: false });
+      if (r.erro || !r.missao_id) throw new Error(r.erro || "o diretor não devolveu um plano");
+      const p = r.resumo ?? {};
+      const aprovar = el("button", { className: "btn ok", textContent: "✅ Aprovar e começar" });
+      const cancelar = el("button", { className: "btn perigo", textContent: "Cancelar" });
+      area.replaceChildren(bloco(p.titulo || "Plano",
+        p.resumo ? el("p", { textContent: p.resumo }) : null,
+        el("ol", { className: "plano" }, (p.tarefas ?? []).map((t) => el("li", { textContent: `${t.agente}: ${t.titulo}` }))),
+        p.entregavel ? el("p", { className: "suave", textContent: "Você recebe: " + p.entregavel }) : null,
+        el("div", { className: "acoes" }, [aprovar, cancelar])));
+      aprovar.addEventListener("click", async () => {
+        aprovar.disabled = cancelar.disabled = true;
+        try {
+          const ok = await ferramenta("equipe_iniciar", { missao_id: r.missao_id, confirmado: true });
+          if (ok.erro) throw new Error(ok.erro);
+          area.replaceChildren(bloco("Missão começou", el("p", { textContent: ok.aviso || "A equipe começou. O andamento aparece no Telegram." }),
+            el("div", { className: "acoes" }, [el("a", { className: "btn", href: "equipe.html", textContent: "👥 Acompanhar no painel da equipe" })])));
+        } catch (e) { area.append(el("p", { className: "erro", textContent: "Não consegui começar: " + e.message })); aprovar.disabled = cancelar.disabled = false; }
+      });
+      cancelar.addEventListener("click", async () => {
+        aprovar.disabled = cancelar.disabled = true;
+        await ferramenta("equipe_cancelar", { missao_id: r.missao_id }).catch(() => {});
+        area.replaceChildren(el("p", { className: "suave", textContent: "Plano cancelado. Nada foi feito." }));
+      });
+    } catch (e) { area.replaceChildren(el("p", { className: "erro", textContent: "Não consegui montar o plano: " + e.message })); }
+    planejar.disabled = false;
+  });
+  c.replaceChildren(bloco("Objetivo", caixa, el("div", { className: "acoes" }, [planejar]),
+    el("p", { className: "suave", textContent: "A equipe (diretor, pesquisador, analista, programador, testador e revisor) só começa depois que você aprovar o plano. O resultado chega no Telegram." })), area);
+  caixa.focus({ preventScroll: true });
+}
+
+// estado do sistema no topo (sem abrir painel)
+if (chave) carregarDados().catch(() => { $("estadoTexto").textContent = "sem conexão"; });
+else semAcesso();
+setInterval(() => { if (chave && aberto !== "comando" && !document.hidden) carregarDados().catch(() => {}); }, 60_000);
+</script>
+</body>
+</html>
