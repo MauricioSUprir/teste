@@ -77,3 +77,19 @@
   - **Ações:** mão aberta abriu o menu; apontar para cima e fazer a pinça abriu o Comando; o punho fechou; pinça e mexer girou; pinça e aproximar deu zoom; a mão sumir escondeu o cursor.
   - **Falta** o teste com uma mão de verdade, que só o dono pode fazer, no PC ou no celular.
 
+## Entrar sem o Telegram: código de entrada (13/11/2026)
+- **Por quê:** o Telegram do dono ficou bloqueado e o link pessoal do /home só chega por lá.
+- **Como funciona:**
+  - o Claude gera um **código de 8 letras e números** e manda na conversa com o dono;
+  - o dono digita o código na tela do cadeado do GIDEON Core, e o aparelho recebe a mesma chave do /home, válida por 30 dias.
+- **Segurança:**
+  - o código vale **15 minutos** e **uma vez só**;
+  - no banco fica só o resumo criptográfico do código (hash sha256), nunca o código;
+  - depois de 8 tentativas erradas, os códigos que ainda valem param de valer;
+  - cada entrada fica no diário de ações (`gideon_acoes`) e gera um aviso no Telegram do dono.
+- **Onde está:**
+  - rota `nexus/entrar`, a única do Nexus que não pede a chave do Home (função `nexus` v3, commit `cb1fdb7`);
+  - tabela `gideon_codigos_entrada` (migração 018);
+  - campo na tela do cadeado do `core.html`.
+- **Teste:** código errado foi recusado (403); código certo, mesmo digitado em minúsculas, devolveu a chave. Depois o dono entrou no iPhone com um código de verdade.
+

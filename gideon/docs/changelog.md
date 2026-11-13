@@ -174,4 +174,8 @@
   - a câmera só liga no botão e a imagem não sai do aparelho;
   - leitor de mãos (MediaPipe 1.2.0 e o modelo) hospedado no próprio site.
   - Testado com câmera falsa e mãos simuladas; falta o teste do dono com a mão de verdade.
+- **Código de entrada (sem Telegram):** o Claude gera um código de uso único (15 min). O dono digita na tela do cadeado do GIDEON Core, e o aparelho fica liberado por 30 dias.
+  - Rota `nexus/entrar` e tabela `gideon_codigos_entrada` (migração 018). No banco fica só o hash; trava depois de 8 erros.
+  - **No ar:** função `nexus` **v3 = commit `cb1fdb7`** (antes: v2 = `205f136`).
+  - O dono entrou no iPhone assim.
 
