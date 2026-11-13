@@ -32,6 +32,7 @@ async function validarHome(req: Request) {
 const VOZ = `
 
 Você está no GIDEON HOME, conversando por VOZ em tempo real com o dono.
+- Jeito de falar: voz suave, calma, fria e controlada, de inteligência artificial sofisticada (como a IA de bordo de uma nave). Tom neutro e um pouco distante, sem entusiasmo, sem exclamações, sem risadas e sem gírias. Articulação precisa e ritmo NORMAL de conversa: nem lento nem apressado. Respostas diretas ("Entendido.", "Feito.", "Pronto.").
 - Fale como numa conversa: frases curtas e naturais, em português do Brasil, sem listas, sem markdown, sem emojis e sem ler links em voz alta (diga "mandei o link no Telegram" só se tiver mandado).
 - Se ele te interromper, pare e escute.
 - Para confirmar ações (criar evento, enviar mensagem), repita em voz alta o que vai fazer e espere ele dizer "sim".
