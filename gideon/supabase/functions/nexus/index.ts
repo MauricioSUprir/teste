@@ -8,6 +8,7 @@
 //   automacoes ← agendador (pg_cron), baterias de testes, melhorias e missões da equipe
 //   memoria    ← últimos itens que entraram na memória
 //   comando    ← números reais do centro de comando do GIDEON Core (modelos, automações, documentos, projetos, PC, hoje)
+//   mapas | mapa-criar | mapa-expandir | mapa-salvar | mapa-tarefa | mapa-apagar ← Thought Map do GIDEON Core (módulo 72, decisão 026)
 //   entrar     ← { codigo } SEM chave: troca um código de entrada de uso único (15 min) pela chave do Home (30 dias). Para quando o Telegram está fora.
 // Arquivos e terminal do PC, Drive, tarefas e busca na memória: o navegador chama direto a rota home-ferramenta da função gideon.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -54,6 +55,113 @@ async function avisarDono(texto: string) { // o que é decidido pelo Nexus tamb�
   if (!token || !data?.valor || !texto.trim()) return;
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: data.valor, text: texto.slice(0, 4000) }) }).then((r) => r.body?.cancel()).catch(() => {});
+}
+
+// ---------- Thought Map (módulo 72): o problema vira um mapa de partes, hipóteses, alternativas, riscos e dependências ----------
+type No = { id: string; pai: string | null; titulo: string; tipo: string; nota?: string; tarefa_id?: number | null };
+const TIPOS = ["raiz", "parte", "hipotese", "alternativa", "risco", "dependencia"];
+async function config(chaves: string[]) {
+  const { data } = await sb.from("gideon_config").select("chave, valor").in("chave", chaves);
+  return Object.fromEntries((data ?? []).map((r) => [r.chave, r.valor])) as Record<string, string>;
+}
+// IA do Google (a mesma chave da GIDEON); tenta o modelo forte e depois os mais leves; tudo fica no registro de execuções
+async function iaJSON(pedido: string, rotulo: string) {
+  const cfg = await config(["modelo_relatorio", "modelo_conversa", "modelo_reserva"]);
+  const modelos = [cfg.modelo_relatorio || "gemini-3.5-flash", cfg.modelo_conversa, cfg.modelo_reserva].filter((m, i, l) => m && l.indexOf(m) === i);
+  const inicio = Date.now(); let erro = "";
+  for (const modelo of modelos) {
+    const c = new AbortController(); const t = setTimeout(() => c.abort(), 45_000);
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, { method: "POST", signal: c.signal,
+        headers: { "Content-Type": "application/json", "x-goog-api-key": (Deno.env.get("GEMINI_API_KEY") ?? "").trim() },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: pedido }] }], generationConfig: { temperature: 0.4, responseMimeType: "application/json" } }) });
+      if (!r.ok) { erro = `${modelo} ${r.status}`; continue; }
+      const j = await r.json();
+      const texto = (j.candidates?.[0]?.content?.parts ?? []).map((x: { text?: string }) => x.text ?? "").join("");
+      const dados = JSON.parse(texto);
+      await sb.from("gideon_execucoes").insert({ canal: "home", pedido_resumo: rotulo.slice(0, 200), ferramenta: "mapa", modelo, tokens_entrada: j.usageMetadata?.promptTokenCount ?? 0,
+        tokens_saida: j.usageMetadata?.candidatesTokenCount ?? 0, custo_estimado: 0, tempo_ms: Date.now() - inicio, status: "sucesso", workflow: "supabase:nexus/mapa" });
+      return dados;
+    } catch (e) { erro = `${modelo}: ${String((e as Error).message ?? e).slice(0, 120)}`; }
+    finally { clearTimeout(t); }
+  }
+  await sb.from("gideon_execucoes").insert({ canal: "home", pedido_resumo: rotulo.slice(0, 200), ferramenta: "mapa", tempo_ms: Date.now() - inicio, status: "erro", erro_mensagem: erro, workflow: "supabase:nexus/mapa" });
+  throw new Error("a IA não respondeu agora (" + erro + "); tente de novo em um minuto");
+}
+const limpar = (t: unknown, n: number) => String(t ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const REGRAS_MAPA = `Tipos de nó: parte (um pedaço do problema), hipotese (algo a testar), alternativa (outro caminho possível), risco (o que pode dar errado), dependencia (o que precisa existir antes).
+Títulos curtos (até 6 palavras). Nota: 1 frase curta e prática (até 20 palavras). Português do Brasil. Não invente números, preços, nomes de produtos ou fatos específicos: é um mapa para pensar, não uma pesquisa.`;
+async function mapaCriar(objetivo: string) {
+  const obj = limpar(objetivo, 600);
+  if (obj.length < 3) throw new Error("escreva o problema ou objetivo");
+  const r = await iaJSON(`Você é a GIDEON. Monte um MAPA DE PENSAMENTO para o objetivo do dono: "${obj}".
+Divida em 4 a 7 ramos principais (tipo "parte") e, em cada ramo, 2 a 4 nós filhos com os tipos que fizerem sentido. No máximo 30 nós no total.
+${REGRAS_MAPA}
+Responda só JSON: {"titulo": "até 6 palavras", "ramos": [{"titulo": "...", "tipo": "parte", "nota": "...", "filhos": [{"titulo": "...", "tipo": "risco", "nota": "..."}]}]}`, `mapa: ${obj}`);
+  const titulo = limpar(r.titulo, 80) || obj.slice(0, 60);
+  const nos: No[] = [{ id: "1", pai: null, titulo, tipo: "raiz", nota: obj }];
+  (Array.isArray(r.ramos) ? r.ramos : []).slice(0, 8).forEach((ramo: Record<string, unknown>, i: number) => {
+    const id = `1.${i + 1}`;
+    nos.push({ id, pai: "1", titulo: limpar(ramo.titulo, 60) || `Parte ${i + 1}`, tipo: "parte", nota: limpar(ramo.nota, 200) });
+    (Array.isArray(ramo.filhos) ? ramo.filhos : []).slice(0, 5).forEach((f: Record<string, unknown>, k: number) => {
+      nos.push({ id: `${id}.${k + 1}`, pai: id, titulo: limpar(f.titulo, 60) || "…", tipo: TIPOS.includes(String(f.tipo)) && f.tipo !== "raiz" ? String(f.tipo) : "parte", nota: limpar(f.nota, 200) });
+    });
+  });
+  if (nos.length < 3) throw new Error("a IA não conseguiu dividir esse objetivo; tente com mais detalhes");
+  const { data, error } = await sb.from("gideon_mapas").insert({ titulo, objetivo: obj, nos }).select("*").single();
+  if (error) throw new Error("não consegui guardar o mapa: " + error.message);
+  return data;
+}
+async function mapaPegar(id: number) {
+  const { data } = await sb.from("gideon_mapas").select("*").eq("id", id).maybeSingle();
+  if (!data) throw new Error("mapa não encontrado");
+  return data as { id: number; titulo: string; objetivo: string; nos: No[] };
+}
+async function mapaExpandir(mapaId: number, noId: string) {
+  const m = await mapaPegar(mapaId);
+  const no = m.nos.find((n) => n.id === noId);
+  if (!no) throw new Error("nó não encontrado");
+  const caminho: No[] = []; for (let n: No | undefined = no; n; n = m.nos.find((x) => x.id === n!.pai)) caminho.unshift(n);
+  const irmaos = m.nos.filter((n) => n.pai === no.id).map((n) => n.titulo);
+  const r = await iaJSON(`Você é a GIDEON. Mapa de pensamento sobre: "${m.objetivo}".
+Caminho até o nó escolhido: ${caminho.map((n) => n.titulo).join(" → ")}.
+${irmaos.length ? `Ele já tem estes filhos (não repita): ${irmaos.join("; ")}.` : ""}
+Crie de 3 a 5 novos nós filhos para "${no.titulo}", que ajudem a resolver essa parte.
+${REGRAS_MAPA}
+Responda só JSON: {"nos": [{"titulo": "...", "tipo": "parte", "nota": "..."}]}`, `mapa #${mapaId}: expandir "${no.titulo}"`);
+  let k = m.nos.filter((n) => n.pai === no.id).length;
+  const usados = new Set(m.nos.map((n) => n.id));
+  const novos: No[] = [];
+  for (const f of (Array.isArray(r.nos) ? r.nos : []).slice(0, 6)) {
+    let id; do { id = `${no.id}.${++k}`; } while (usados.has(id));
+    usados.add(id);
+    novos.push({ id, pai: no.id, titulo: limpar(f.titulo, 60) || "…", tipo: TIPOS.includes(String(f.tipo)) && f.tipo !== "raiz" ? String(f.tipo) : "parte", nota: limpar(f.nota, 200) });
+  }
+  if (m.nos.length + novos.length > 120) throw new Error("o mapa já está grande demais (120 nós); crie um mapa novo para essa parte");
+  const { data } = await sb.from("gideon_mapas").update({ nos: [...m.nos, ...novos], atualizado_em: agora() }).eq("id", mapaId).select("*").single();
+  return data;
+}
+async function mapaSalvar(mapaId: number, nos: unknown, titulo?: string) {
+  if (!Array.isArray(nos) || !nos.length || nos.length > 120) throw new Error("mapa inválido");
+  const ids = new Set<string>();
+  const limpos: No[] = nos.map((n: Record<string, unknown>) => ({ id: limpar(n.id, 40), pai: n.pai == null ? null : limpar(n.pai, 40), titulo: limpar(n.titulo, 60) || "…",
+    tipo: TIPOS.includes(String(n.tipo)) ? String(n.tipo) : "parte", nota: limpar(n.nota, 200), tarefa_id: Number(n.tarefa_id) || null }));
+  for (const n of limpos) { if (!n.id || ids.has(n.id)) throw new Error("nós repetidos"); ids.add(n.id); }
+  if (limpos.filter((n) => n.pai === null).length !== 1 || limpos.some((n) => n.pai !== null && !ids.has(n.pai))) throw new Error("o mapa precisa de uma raiz e de pais que existam");
+  const extra = titulo ? { titulo: limpar(titulo, 80) } : {};
+  const { data } = await sb.from("gideon_mapas").update({ nos: limpos, atualizado_em: agora(), ...extra }).eq("id", mapaId).select("*").single();
+  return data;
+}
+async function mapaTarefa(mapaId: number, noId: string) {
+  const m = await mapaPegar(mapaId);
+  const no = m.nos.find((n) => n.id === noId);
+  if (!no) throw new Error("nó não encontrado");
+  if (no.tarefa_id) return { ja_existe: true, tarefa_id: no.tarefa_id, mapa: m };
+  const { data: t, error } = await sb.from("gideon_tarefas").insert({ titulo: no.titulo, descricao: `${no.nota ? no.nota + " " : ""}(do mapa "${m.titulo}")`.slice(0, 500), origem: "core" }).select("id").single();
+  if (error || !t) throw new Error("não consegui criar a tarefa: " + (error?.message ?? ""));
+  no.tarefa_id = t.id;
+  const { data } = await sb.from("gideon_mapas").update({ nos: m.nos, atualizado_em: agora() }).eq("id", mapaId).select("*").single();
+  return { tarefa_id: t.id, mapa: data };
 }
 
 // ---------- código de entrada: entrar sem o Telegram ----------
@@ -196,6 +304,13 @@ Deno.serve(async (req) => {
     if (rota === "painel") return json(await painel());
     if (rota === "automacoes") return json(await automacoes());
     if (rota === "comando") return json(await comando());
+    if (rota === "mapas") { const { data } = await sb.from("gideon_mapas").select("id, titulo, objetivo, atualizado_em").order("atualizado_em", { ascending: false }).limit(20); return json({ mapas: data ?? [] }); }
+    if (rota === "mapa") return json(await mapaPegar(Number(b.id)));
+    if (rota === "mapa-criar") return json(await mapaCriar(String(b.objetivo ?? "")));
+    if (rota === "mapa-expandir") return json(await mapaExpandir(Number(b.id), String(b.no ?? "")));
+    if (rota === "mapa-salvar") return json(await mapaSalvar(Number(b.id), b.nos, b.titulo ? String(b.titulo) : undefined));
+    if (rota === "mapa-tarefa") return json(await mapaTarefa(Number(b.id), String(b.no ?? "")));
+    if (rota === "mapa-apagar") { await sb.from("gideon_mapas").delete().eq("id", Number(b.id)); return json({ apagado: true }); }
     if (rota === "memoria") return json(await memoriaRecente());
     if (rota === "historico") {
       const { data } = await sb.from("gideon_mensagens").select("papel, texto, criado_em").eq("sessao", "nexus").order("criado_em", { ascending: false }).limit(40);
