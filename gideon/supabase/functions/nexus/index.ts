@@ -10,6 +10,7 @@
 //   comando    ← números reais do centro de comando do GIDEON Core (modelos, automações, documentos, projetos, PC, hoje)
 //   mapas | mapa-criar | mapa-expandir | mapa-salvar | mapa-tarefa | mapa-apagar ← Thought Map do GIDEON Core (módulo 72, decisão 026)
 //   entrar     ← { codigo } SEM chave: troca um código de entrada de uso único (15 min) pela chave do Home (30 dias). Para quando o Telegram está fora.
+//   codigo-novo ← um aparelho JÁ liberado gera um código de entrada (15 min, uso único) para liberar outro aparelho. Sem Telegram e sem o Claude.
 // Arquivos e terminal do PC, Drive, tarefas e busca na memória: o navegador chama direto a rota home-ferramenta da função gideon.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -187,6 +188,20 @@ async function entrar(codigo: string) {
   return { ok: true, chave };
 }
 
+// Aparelho já liberado gera um código para outro aparelho (botão "Liberar outro aparelho" do GIDEON Core).
+// 32 letras sem as confusas (0/O, 1/I): 8 letras = 2^40 combinações; e o código trava depois de 8 erros.
+const LETRAS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+async function codigoNovo() {
+  const { count } = await sb.from("gideon_codigos_entrada").select("id", { count: "exact", head: true }).gt("criado_em", new Date(Date.now() - 3600_000).toISOString());
+  if ((count ?? 0) >= 5) return { ok: false, erro: "já saíram 5 códigos na última hora; espere um pouco" };
+  const codigo = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => LETRAS[b % 32]).join(""); // 256 é múltiplo de 32: sem viés
+  const expira_em = new Date(Date.now() + 15 * 60_000).toISOString();
+  const { data, error } = await sb.from("gideon_codigos_entrada").insert({ hash: await sha256(codigo), expira_em }).select("id").single();
+  if (error || !data) throw new Error("não consegui criar o código: " + (error?.message ?? ""));
+  await sb.from("gideon_acoes").insert({ quem: "gideon/nexus", acao: "codigo_entrada_criado", alvo: String(data.id), detalhes: { validade_min: 15, por: "aparelho liberado" }, reversivel: true });
+  return { ok: true, codigo, expira_em }; // o código só volta para quem pediu; no banco fica só o hash
+}
+
 // ---------- central de notificações ----------
 async function painel() {
   const desde24h = new Date(Date.now() - 86400_000).toISOString();
@@ -299,8 +314,9 @@ Deno.serve(async (req) => {
       const r = await entrar(String(b.codigo ?? ""));
       return json(r, r.ok ? 200 : 403);
     }
-    if (!(await validar(req))) return json({ erro: "acesso negado: abra o link /home do Telegram uma vez neste navegador" }, 401);
+    if (!(await validar(req))) return json({ erro: "acesso negado: entre com um código de entrada (GIDEON Core) ou com o link /home do Telegram" }, 401);
     const b = await req.json().catch(() => ({}));
+    if (rota === "codigo-novo") { const r = await codigoNovo(); return json(r, r.ok ? 200 : 429); }
     if (rota === "painel") return json(await painel());
     if (rota === "automacoes") return json(await automacoes());
     if (rota === "comando") return json(await comando());

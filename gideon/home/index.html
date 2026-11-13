@@ -39,7 +39,7 @@
   .fala.dono::before { content:"Você: "; color:var(--suave); }
   .fala.gideon::before { content:"GIDEON: "; color:var(--ciano); font-weight:600; }
   #aviso { position:fixed; inset:0; display:none; place-items:center; background:rgba(4,6,12,.94); padding:24px; text-align:center; }
-  #aviso.on { display:grid; }
+  #aviso.on { display:grid; } #aviso a { color:#4fa3ff; word-break:break-all; }
   #aviso p { max-width:420px; line-height:1.5; }
   #aviso code { color:var(--ciano); }
   #diag { position:fixed; left:12px; bottom:8px; font: 11px/1.4 ui-monospace, monospace; color:#4d6a82; white-space:pre; pointer-events:none; }
@@ -96,7 +96,7 @@
 </main>
 <aside id="cartoes" aria-live="polite"></aside>
 <aside id="historico" aria-label="Histórico das conversas"><header><h1>HISTÓRICO</h1><button id="fecharHist" aria-label="Fechar">✕</button></header><div id="listaHist"></div></aside>
-<div id="aviso"><p>Para abrir o GIDEON Home, mande <code>/home</code> para o GIDEON no Telegram e toque no link que ele enviar.<br><br>O link é pessoal e vale 30 dias.</p></div>
+<div id="aviso"><p>Este aparelho ainda não está liberado.<br><br>Sem Telegram: abra <a href="core.html">https://gideon-home.onrender.com/core.html</a> e digite um código de entrada (gere num aparelho já liberado em Centro de comando → "Liberar outro aparelho"). Depois volte aqui.<br><br>Com Telegram: mande <code>/home</code> e toque no link.</p></div>
 <script>
 const FUNC = "https://ntgsrfqmlaocxjelvnef.supabase.co/functions/v1/gideon/";
 const $ = (id) => document.getElementById(id);
@@ -426,7 +426,7 @@ async function ligar() {
     };
     ws.onclose = (e) => { console.log("ws fechou", e.code, e.reason); diag.fechou = `${e.code} ${e.reason || ""}`.trim(); evento("conexão fechada " + diag.fechou); if (!diag.respostas) enviarDiag("conexão fechada sem resposta"); desligar(e.code !== 1000 && e.reason ? "Conexão encerrada: " + e.reason.slice(0, 120) : "Toque para conversar"); };
     ws.onerror = () => mudar("erro", "Falha na conexão com a voz");
-  } catch (e) { console.error("ligar:", e); diag.erro = `${e.name || ""}: ${e.message}`; evento("erro " + diag.erro); enviarDiag("erro ao ligar"); desligar(); mudar("erro", e.message === "acesso negado" ? "Link vencido — peça /home no Telegram" : e.name === "NotAllowedError" ? "O microfone foi bloqueado: clique no cadeado ao lado do endereço e permita o microfone" : e.name === "NotFoundError" ? "Nenhum microfone encontrado no computador" : e.name === "NotReadableError" ? "O microfone está sendo usado por outro programa (feche Teams, Discord, Zoom…)" : "Não consegui ligar: " + e.message); }
+  } catch (e) { console.error("ligar:", e); diag.erro = `${e.name || ""}: ${e.message}`; evento("erro " + diag.erro); enviarDiag("erro ao ligar"); desligar(); mudar("erro", e.message === "acesso negado" ? "Acesso vencido — entre de novo com um código pelo GIDEON Core" : e.name === "NotAllowedError" ? "O microfone foi bloqueado: clique no cadeado ao lado do endereço e permita o microfone" : e.name === "NotFoundError" ? "Nenhum microfone encontrado no computador" : e.name === "NotReadableError" ? "O microfone está sendo usado por outro programa (feche Teams, Discord, Zoom…)" : "Não consegui ligar: " + e.message); }
 }
 function desligar(dica) {
   sessaoAtual++;

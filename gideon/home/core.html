@@ -104,6 +104,10 @@
   .msg.ela { align-self:flex-start; background:rgba(10,12,30,.7); border:1px solid var(--g-borda); color:var(--g-texto); border-radius:14px 14px 14px 4px; }
   .msg.ela a { word-break:break-all; }
   .erro { color:var(--erro); } .aviso { color:var(--aviso); }
+  .liberar-saida { margin-top:10px; }
+  .codigo-entrada { font:700 30px var(--g-fonte-titulo); letter-spacing:.18em; color:var(--g-ciano); text-align:center; padding:12px 8px; margin-bottom:6px;
+    border:1px solid var(--g-borda-forte); border-radius:12px; background:rgba(47,198,255,.06); user-select:all; }
+  .codigo-entrada.vencido { opacity:.35; text-decoration:line-through; }
   .carregando::after { content:"…"; animation:pontos 1.2s steps(3) infinite; display:inline-block; width:1em; overflow:hidden; vertical-align:bottom; }
   @keyframes pontos { from { width:0 } to { width:1em } }
   ol.plano { padding-left:20px; margin:8px 0; } ol.plano li { margin:3px 0; }
@@ -202,8 +206,8 @@ function semAcesso() {
   botao.addEventListener("click", entrar);
   campo.addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
   a.replaceChildren(
-    el("p", { textContent: "🔒 Para abrir o GIDEON Core, mande /home no Telegram da GIDEON e abra o link pessoal uma vez neste aparelho." }),
-    el("p", { className: "suave", textContent: "Sem Telegram? Peça um código de entrada ao Claude e digite aqui (vale 15 minutos, uma vez só):" }),
+    el("p", { textContent: "🔒 Para liberar este aparelho, digite um código de entrada (vale 15 minutos, uma vez só)." }),
+    el("p", { className: "suave", textContent: "Pegue o código num aparelho já liberado: GIDEON Core → Centro de comando → \"Liberar outro aparelho\". Sem nenhum aparelho liberado, peça o código ao Claude. Com Telegram, o /home também serve." }),
     campo, botao, msg);
   $("estadoTexto").textContent = "sem acesso";
 }
@@ -642,11 +646,41 @@ async function painelComando(c) {
         linha("👥 Missões andando", num(d.equipe_ativas)),
       ),
       el("button", { className: "btn grande", textContent: "Iniciar nova missão", onclick: () => abrir("missao") }),
+      liberar,
       rodape(`números reais · atualizado às ${hora(d.agora)}`),
     ].filter(Boolean));
   };
+  const liberar = blocoLiberar(); // fica fora do desenhar(): a atualização de 30 s não apaga o código na tela
   await carregarDados(); desenhar();
   atualizar = setInterval(() => { if (aberto === "comando") carregarDados().then(desenhar).catch(() => {}); }, 30_000);
+}
+
+// Liberar outro aparelho sem Telegram: este aparelho (já liberado) gera um código de 15 min, uso único
+function blocoLiberar() {
+  const saida = el("div", { className: "liberar-saida" });
+  let relogio = null;
+  const botao = el("button", { className: "btn", textContent: "📲 Liberar outro aparelho" });
+  botao.onclick = async () => {
+    botao.disabled = true; clearInterval(relogio);
+    saida.replaceChildren(el("p", { className: "suave carregando", textContent: "Gerando código" }));
+    try {
+      const r = await nexus("codigo-novo");
+      if (!r.ok || !r.codigo) throw new Error(r.erro || "não veio o código");
+      const tempo = el("span", { className: "g-apoio" }), fim = new Date(r.expira_em).getTime();
+      const contar = () => { const s = Math.max(0, Math.round((fim - Date.now()) / 1000));
+        tempo.textContent = s ? `vale mais ${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} · uma vez só` : "venceu: gere outro";
+        if (!s) { clearInterval(relogio); codigo.classList.add("vencido"); } };
+      const codigo = el("div", { className: "codigo-entrada", textContent: r.codigo.replace(/(.{4})/, "$1 ") });
+      saida.replaceChildren(codigo, tempo,
+        el("p", { className: "suave", textContent: "No outro aparelho, abra https://gideon-home.onrender.com/core.html e digite este código. Não mande para ninguém." }));
+      contar(); relogio = setInterval(contar, 1000);
+    } catch (e) {
+      saida.replaceChildren(el("p", { className: "erro", textContent: /rota desconhecida/.test(e.message)
+        ? "Esta função ainda não foi publicada no servidor. O Claude publica quando o conector do Supabase voltar."
+        : "Não deu: " + e.message + "." }));
+    } finally { botao.disabled = false; }
+  };
+  return bloco("Acesso sem Telegram", el("p", { className: "suave", textContent: "Gera um código para entrar no GIDEON em outro aparelho (PC, outro celular)." }), botao, saida);
 }
 
 // conversa com a GIDEON (a mesma do Nexus OS)

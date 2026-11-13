@@ -93,3 +93,14 @@
   - campo na tela do cadeado do `core.html`.
 - **Teste:** código errado foi recusado (403); código certo, mesmo digitado em minúsculas, devolveu a chave. Depois o dono entrou no iPhone com um código de verdade.
 
+### Liberar outro aparelho sem Telegram e sem o Claude (13/11/2026)
+- **Por quê:** o dono pediu "libera o home sem telegram". Até aqui só o Claude gerava o código, e o Claude depende do conector do Supabase (que caiu).
+- **Como funciona:** num aparelho **já liberado**, GIDEON Core → Centro de comando → **"📲 Liberar outro aparelho"**. Aparece um código de 8 letras com contagem de 15 minutos. No aparelho novo, o dono digita o código no Core ou no Nexus.
+- **Segurança:** as mesmas regras do código acima (15 min, uso único, só o hash no banco, trava com 8 erros), mais:
+  - só quem já tem a chave do Home pede código (rota `nexus/codigo-novo`);
+  - no máximo 5 códigos por hora;
+  - 32 letras sem as confusas (sem 0/O e 1/I), sorteadas com `crypto.getRandomValues`;
+  - cada código criado fica no diário de ações (`codigo_entrada_criado`).
+- **Onde mais:** o Nexus agora aceita o código no mesmo campo do link; a voz (`index.html`) e a Equipe apontam para a entrada por código.
+- **Situação:** tela publicada no Render; a rota `codigo-novo` precisa da função `nexus` publicada (conector do Supabase fora). Enquanto isso, o botão avisa que falta publicar.
+

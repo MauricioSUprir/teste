@@ -180,9 +180,9 @@
 <div id="semChave" hidden>
   <div>
     <h2>GIDEON NEXUS</h2>
-    <p id="semChaveMsg">Para entrar, mande <b>/home</b> para a GIDEON no Telegram e abra o link neste navegador uma vez. Depois o Nexus abre direto.</p>
-    <p class="meta">Ou cole aqui o link que chegou no Telegram:</p>
-    <form id="formChave"><input id="campoChave" placeholder="https://gideon-home.onrender.com/#t=…" aria-label="Link do GIDEON Home"><button class="btn">Entrar</button></form>
+    <p id="semChaveMsg">Para entrar, digite um <b>código de entrada</b> (pegue num aparelho já liberado: GIDEON Core → Centro de comando → "Liberar outro aparelho"). Com Telegram, o link do <b>/home</b> também serve.</p>
+    <p class="meta">Código de entrada ou link do /home:</p>
+    <form id="formChave"><input id="campoChave" placeholder="código (ex.: ABCD 2345) ou link" aria-label="Código de entrada ou link do GIDEON Home" autocomplete="one-time-code" spellcheck="false"><button class="btn">Entrar</button></form>
   </div>
 </div>
 
@@ -214,18 +214,26 @@ function semAcesso(msg) {
   if (msg) $("#semChaveMsg").textContent = msg;
   $("#semChave").hidden = false;
 }
-$("#formChave").addEventListener("submit", (e) => {
+$("#formChave").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const k = pegarChave($("#campoChave").value);
-  if (!k) { $("#semChaveMsg").textContent = "Esse não parece o link do GIDEON Home. Mande /home no Telegram e copie o link inteiro."; return; }
-  guardar("gideon_home", k); chave = k; location.reload();
+  const texto = $("#campoChave").value, k = pegarChave(texto);
+  if (k) { guardar("gideon_home", k); chave = k; location.reload(); return; }
+  const codigo = texto.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (codigo.length < 6 || codigo.length > 12) { $("#semChaveMsg").textContent = "Isso não parece um código de entrada nem o link do /home."; return; }
+  $("#semChaveMsg").textContent = "Conferindo o código…";
+  try { // troca o código de uso único pela chave de 30 dias (a mesma do GIDEON Home)
+    const r = await fetch(NEXUS + "entrar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ codigo }) });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok || !j.chave) throw new Error(j.erro || "não deu certo");
+    guardar("gideon_home", j.chave); chave = j.chave; location.reload();
+  } catch (err) { $("#semChaveMsg").textContent = "Não entrou: " + err.message + "."; }
 });
 
 // ---------- falar com o servidor ----------
 async function pedir(url, corpo) {
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave }, body: JSON.stringify(corpo ?? {}) });
   const j = await r.json().catch(() => ({}));
-  if (r.status === 401) { semAcesso("Sua chave venceu ou é inválida. Mande /home para a GIDEON no Telegram e abra o link novo neste navegador."); throw new Error("acesso negado"); }
+  if (r.status === 401) { semAcesso("Sua chave venceu ou é inválida. Digite um código de entrada (de um aparelho já liberado) ou abra o link novo do /home."); throw new Error("acesso negado"); }
   if (!r.ok) throw new Error(j.erro || `o servidor respondeu ${r.status}`);
   return j;
 }

@@ -193,4 +193,4 @@
   - sinais correndo pelas conexões;
   - chance de cada classe na saída;
   - bloom.
-
+- **Liberar outro aparelho sem Telegram (pedido do dono):** botão "📲 Liberar outro aparelho" no Centro de comando do GIDEON Core. Um aparelho já liberado gera um código de 15 minutos, uso único, para outro aparelho; o Nexus também aceita o código. Rota `nexus/codigo-novo` (no máximo 5 por hora). Testado com Playwright (código na tela, contagem, entrada pelo Nexus, aviso de "falta publicar"). Falta publicar a função `nexus` quando o conector do Supabase voltar. Decisão 024.

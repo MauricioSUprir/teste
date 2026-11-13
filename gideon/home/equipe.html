@@ -62,7 +62,7 @@ try {
 async function api(rota, corpo) {
   const r = await fetch(FUNC + rota, { method: "POST", headers: { "Content-Type": "application/json", "x-gideon-home": chave || "" }, body: JSON.stringify(corpo ?? {}) });
   const j = await r.json().catch(() => ({}));
-  if (r.status === 401) throw new Error("Acesso negado: mande /home no Telegram e abra o link pessoal uma vez neste aparelho.");
+  if (r.status === 401) throw new Error("Acesso negado: entre com um código pelo GIDEON Core (https://gideon-home.onrender.com/core.html) ou pelo link do /home.");
   if (!r.ok) throw new Error(j.erro || ("erro " + r.status));
   return j;
 }
@@ -112,7 +112,7 @@ async function abrir(id) {
   carregar();
   $("detalhe").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-if (!chave || Number(chave.split(".")[0]) < Date.now()) $("lista").replaceChildren(el("div", { className: "vazio erro", textContent: "Para ver o painel, mande /home no Telegram e abra o link pessoal uma vez neste aparelho; depois volte aqui." }));
+if (!chave || Number(chave.split(".")[0]) < Date.now()) $("lista").replaceChildren(el("div", { className: "vazio erro", textContent: "Para ver o painel, entre com um código pelo GIDEON Core (https://gideon-home.onrender.com/core.html) ou pelo link do /home; depois volte aqui." }));
 else carregar();
 </script>
 </body>
