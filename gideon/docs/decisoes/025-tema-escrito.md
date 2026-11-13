@@ -26,3 +26,8 @@
   - a conversa;
   - a busca na memória.
 - Nenhum erro e nenhuma rolagem para o lado.
+
+## Atualização 1.1 (13/11/2026): sem roxo
+- O dono achou roxo demais. Agora o tema é **preto, azul elétrico e ciano**, como no segundo modelo. Verde e amarelo ficam só para mostrar situação (ok e atenção).
+- Mudou nos dois arquivos: `gideon-tema.json` (versão 1.1, com a regra "sem roxo nem violeta") e `gideon-tema.css`.
+

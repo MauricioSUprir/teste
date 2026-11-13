@@ -1,20 +1,20 @@
-/* GIDEON — tema da parte escrita (versão 1.0, 13/11/2026). Fonte da verdade: gideon-tema.json (mesma pasta).
+/* GIDEON — tema da parte escrita (versão 1.1, 13/11/2026: sem roxo, a pedido do dono). Fonte da verdade: gideon-tema.json (mesma pasta).
    Uso: <link rel="stylesheet" href="tema/gideon-tema.css"> e as classes g-*. Só estilo de texto, cartões, números e botões. */
 :root {
-  --g-fundo:#04050d; --g-fundo-2:#080b1f;
-  --g-azul:#3354ff; --g-violeta:#5b4bff; --g-acento:#8f96ff; --g-acento-claro:#c3c6ff; --g-ciano:#39c8ff;
-  --g-texto:#f3f4ff; --g-texto-2:#b9bde3; --g-texto-3:#7e84ad;
-  --g-cartao:rgba(18,21,46,.62); --g-cartao-topo:rgba(28,32,70,.55);
-  --g-borda:rgba(160,168,255,.16); --g-borda-forte:rgba(160,168,255,.32);
+  --g-fundo:#020409; --g-fundo-2:#050a16;
+  --g-azul:#1f5bff; --g-azul-2:#2b8cff; --g-acento:#4fa3ff; --g-acento-claro:#a9d4ff; --g-ciano:#2fc6ff;
+  --g-texto:#f2f7ff; --g-texto-2:#b4c6e0; --g-texto-3:#7489a8;
+  --g-cartao:rgba(10,16,34,.66); --g-cartao-topo:rgba(16,28,56,.55);
+  --g-borda:rgba(110,170,255,.16); --g-borda-forte:rgba(110,170,255,.32);
   --g-ok:#3ddc97; --g-aviso:#ffcf6e; --g-erro:#ff7b7b;
   --g-raio:16px; --g-raio-p:10px;
   --g-fonte-titulo:"Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --g-fonte:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --g-brilho-painel:radial-gradient(60% 45% at 90% 0%, rgba(91,75,255,.40), transparent 70%), radial-gradient(55% 40% at 0% 100%, rgba(51,84,255,.24), transparent 70%);
-  --g-botao:linear-gradient(135deg, var(--g-azul), var(--g-violeta));
-  --g-numero:linear-gradient(180deg, #ffffff 30%, var(--g-acento));
+  --g-brilho-painel:radial-gradient(60% 45% at 90% 0%, rgba(31,91,255,.36), transparent 70%), radial-gradient(50% 35% at 0% 100%, rgba(47,198,255,.13), transparent 70%);
+  --g-botao:linear-gradient(135deg, var(--g-azul), #2fa8ff);
+  --g-numero:linear-gradient(180deg, #ffffff 30%, #7cc0ff);
 }
-.g-barra { display:block; width:36px; height:6px; border-radius:3px; background:var(--g-acento); box-shadow:0 0 12px rgba(143,150,255,.55); }
+.g-barra { display:block; width:36px; height:6px; border-radius:3px; background:var(--g-acento); box-shadow:0 0 12px rgba(79,163,255,.55); }
 .g-titulo { margin:0; font:800 clamp(20px, 3.2vw, 28px)/1.05 var(--g-fonte-titulo); text-transform:uppercase; letter-spacing:.01em; color:var(--g-texto); }
 .g-titulo em { font-style:italic; color:var(--g-acento); }
 .g-rotulo { font:700 11px/1.3 var(--g-fonte-titulo); letter-spacing:.16em; text-transform:uppercase; color:var(--g-texto); }
@@ -27,7 +27,7 @@
 .g-etiqueta { display:inline-block; font:700 10.5px/1.4 var(--g-fonte-titulo); letter-spacing:.12em; text-transform:uppercase; padding:4px 9px; border-radius:6px;
   background:rgba(10,12,30,.7); border:1px solid var(--g-borda-forte); color:var(--g-texto); }
 .g-botao { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:12px; padding:11px 16px; cursor:pointer; text-decoration:none;
-  font:700 13px/1 var(--g-fonte-titulo); letter-spacing:.12em; text-transform:uppercase; color:#fff; background:var(--g-botao); box-shadow:0 8px 24px rgba(70,80,255,.35); }
+  font:700 13px/1 var(--g-fonte-titulo); letter-spacing:.12em; text-transform:uppercase; color:#fff; background:var(--g-botao); box-shadow:0 8px 24px rgba(31,91,255,.35); }
 .g-botao:hover, .g-botao:focus-visible { filter:brightness(1.12); outline:none; }
 .g-botao.secundario { background:rgba(20,24,52,.7); border:1px solid var(--g-borda-forte); box-shadow:none; letter-spacing:.06em; text-transform:none; font:600 14px/1 var(--g-fonte); }
 .g-botao[disabled] { opacity:.5; cursor:default; filter:none; }

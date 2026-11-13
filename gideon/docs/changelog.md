@@ -162,4 +162,10 @@
   - cartões de vidro com números grandes;
   - passos 01/02/03 na missão nova;
   - botão em degradê azul-violeta.
+- **GIDEON Core, 3D novo e sem roxo (pedido do dono):**
+  - o núcleo virou um reator de plasma azul com anéis em arcos;
+  - base holográfica (grade, onda de luz, feixe);
+  - os labs viraram cristais, com arcos de dados e pulsos;
+  - fundo preto profundo.
+  - Tema 1.1: azul elétrico e ciano, sem roxo (decisões 024 e 025).
 

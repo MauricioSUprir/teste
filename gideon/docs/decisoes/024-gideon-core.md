@@ -52,3 +52,12 @@
   - PC desligado, versão 2.2;
   - nota dos testes 9,7.
 - **Publicado:** https://gideon-home.onrender.com/core.html respondeu, com o pacote 3D e o botão no Home.
+
+## Atualização (13/11/2026): 3D melhor, a pedido do dono
+- **Núcleo:** virou um "reator". Por dentro, um plasma azul que se mexe (feito com ruído na placa de vídeo), dentro de uma casca de vidro com brilho na borda e uma rede geodésica fina. Em volta, anéis em arcos, como num painel de comando, e um anel de marcações.
+- **Base holográfica:** embaixo do núcleo, uma grade circular, um disco com uma onda de luz que se espalha e um feixe de luz subindo até o núcleo.
+- **Labs:** cristais (octaedros) dentro de bolhas de luz, com dois anéis. Do núcleo até cada lab sai um arco de dados com pulsos correndo.
+- **Cores:** só azul, ciano e verde-água; o Neural Lab deixou de ser roxo. O fundo ficou preto profundo, com névoa leve e escurecimento nas bordas, e tem tratamento de cor de cinema (ACES) com brilho mais contido.
+- **Detalhes:** ao abrir, o núcleo "acende" crescendo. O lab embaixo do mouse aumenta um pouco, e o lab escolhido fica de frente e maior.
+- **Testes:** navegador de testes no computador e no celular; os quatro painéis, a missão, a conversa e a memória funcionaram, sem erro.
+

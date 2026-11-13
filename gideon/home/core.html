@@ -14,12 +14,13 @@
   /* GIDEON Core (módulos 61 + 100, decisão 024): núcleo 3D no centro; GIDEON LAB, NEURAL LAB e WORLD LAB em órbita.
      Cada parte abre um painel que funciona de verdade (dados reais do Nexus e da função gideon). */
   :root { --fundo:var(--g-fundo); --painel:rgba(8,11,31,.92); --borda:var(--g-borda); --texto:var(--g-texto); --suave:var(--g-texto-3); --destaque:var(--g-acento-claro); --link:var(--g-acento);
-    --ok:var(--g-ok); --aviso:var(--g-aviso); --erro:var(--g-erro); --gideon:#27c4ff; --neural:#a48bff; --world:#3ddc97; }
+    --ok:var(--g-ok); --aviso:var(--g-aviso); --erro:var(--g-erro); --gideon:#2fc6ff; --neural:#5b9bff; --world:#2fe0b0; }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--fundo); color:var(--texto); overflow:hidden;
     font:15px/1.5 var(--g-fonte); -webkit-tap-highlight-color:transparent; }
   #cena { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; outline:none; }
   #cena.arrastando { cursor:grabbing; }
+  #vinheta { position:fixed; inset:0; z-index:1; pointer-events:none; background:radial-gradient(ellipse 75% 70% at 50% 48%, transparent 45%, rgba(0,0,0,.72) 100%); }
   a { color:var(--link); }
   button { font:inherit; color:inherit; }
 
@@ -80,8 +81,8 @@
   .linha { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid rgba(28,58,82,.5); }
   .linha:first-of-type { border-top:0; }
   .linha .v { font-variant-numeric:tabular-nums; color:var(--destaque); text-align:right; }
-  .barra { height:6px; border-radius:6px; background:rgba(143,150,255,.12); overflow:hidden; margin-top:6px; }
-  .barra i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, var(--g-ciano), var(--g-violeta)); }
+  .barra { height:6px; border-radius:6px; background:rgba(110,170,255,.12); overflow:hidden; margin-top:6px; }
+  .barra i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, var(--g-ciano), var(--g-azul)); }
   .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:rgba(20,24,52,.7); color:var(--texto); border:1px solid var(--g-borda-forte);
     border-radius:12px; padding:10px 14px; cursor:pointer; text-decoration:none; font:600 14px/1 var(--g-fonte); }
   .btn:hover, .btn:focus-visible { background:rgba(40,46,100,.75); outline:none; }
@@ -98,7 +99,7 @@
   .chip.parte { color:var(--aviso); border-color:rgba(255,207,110,.4); } .chip.pronto { color:var(--ok); border-color:rgba(61,220,151,.4); }
   .conversa { max-height:42vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
   .msg { padding:8px 11px; border-radius:12px; max-width:92%; white-space:pre-wrap; word-wrap:break-word; font-size:14px; }
-  .msg.eu { align-self:flex-end; background:linear-gradient(135deg, rgba(51,84,255,.55), rgba(91,75,255,.55)); color:#fff; border-radius:14px 14px 4px 14px; }
+  .msg.eu { align-self:flex-end; background:linear-gradient(135deg, rgba(31,91,255,.6), rgba(47,168,255,.5)); color:#fff; border-radius:14px 14px 4px 14px; }
   .msg.ela { align-self:flex-start; background:rgba(10,12,30,.7); border:1px solid var(--g-borda); color:var(--g-texto); border-radius:14px 14px 14px 4px; }
   .msg.ela a { word-break:break-all; }
   .erro { color:var(--erro); } .aviso { color:var(--aviso); }
@@ -131,6 +132,7 @@
   <button id="estadoSistema" title="Abrir o centro de comando"><span class="bola"></span><span id="estadoTexto">conectando</span></button>
 </header>
 
+<div id="vinheta" aria-hidden="true"></div>
 <div id="rotulos"></div>
 <div id="ajuda">arraste para girar · role para aproximar · 1–4 abre os painéis · Esc fecha</div>
 
@@ -185,11 +187,11 @@ const num = (n) => Number(n ?? 0).toLocaleString("pt-BR");
 const hora = (iso) => iso ? new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
 const tempoDesde = (s) => s == null ? "nunca" : s < 90 ? "agora" : s < 3600 ? `há ${Math.round(s / 60)} min` : s < 172800 ? `há ${Math.round(s / 3600)} h` : `há ${Math.round(s / 86400)} dias`;
 
-// ---------- cena 3D ----------
+// ---------- cena 3D: reator de energia no centro, base holográfica embaixo, labs em órbita (só azul e ciano) ----------
 const LABS = [
-  { id: "gideon", nome: "GIDEON LAB", sub: "conversa · missões · invenções", cor: 0x27c4ff, angulo: Math.PI / 2 },
-  { id: "neural", nome: "NEURAL LAB", sub: "modelos · memória · testes", cor: 0xa48bff, angulo: Math.PI / 2 + (2 * Math.PI) / 3 },
-  { id: "world", nome: "WORLD LAB", sub: "projetos · simulações", cor: 0x3ddc97, angulo: Math.PI / 2 + (4 * Math.PI) / 3 },
+  { id: "gideon", nome: "GIDEON LAB", sub: "conversa · missões · invenções", cor: 0x2fc6ff, angulo: Math.PI / 2 },
+  { id: "neural", nome: "NEURAL LAB", sub: "modelos · memória · testes", cor: 0x3d7bff, angulo: Math.PI / 2 + (2 * Math.PI) / 3 },
+  { id: "world", nome: "WORLD LAB", sub: "projetos · simulações", cor: 0x2fe0b0, angulo: Math.PI / 2 + (4 * Math.PI) / 3 },
 ];
 const lento = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const canvas = $("cena");
@@ -197,76 +199,166 @@ let renderer = null;
 try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" }); }
 catch (e) { console.error(e); }
 const cena = new THREE.Scene();
+cena.fog = new THREE.FogExp2(0x010309, 0.03);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 200);
 const mundo = new THREE.Group(); cena.add(mundo);
+let hover = null; // peça embaixo do mouse
 
+const aditivo = (extra = {}) => ({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, ...extra });
+const linhaMat = (cor, opacidade) => new THREE.LineBasicMaterial({ color: cor, ...aditivo({ opacity: opacidade }) });
+const arestas = (geo, cor, opacidade) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), linhaMat(cor, opacidade));
 const brilho = (cor, forca = 1.4, fundo = 0.0) => new THREE.ShaderMaterial({ // brilho nas bordas (fresnel)
   uniforms: { cor: { value: new THREE.Color(cor) }, forca: { value: forca }, fundo: { value: fundo }, t: { value: 0 } },
   vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
   fragmentShader: `uniform vec3 cor; uniform float forca; uniform float fundo; uniform float t; varying vec3 vN; varying vec3 vV;
-    void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 2.2); float pulso = 0.85 + 0.15 * sin(t * 1.7); gl_FragColor = vec4(cor * (f * forca + fundo) * pulso, f * 0.9 + fundo); }`,
-  transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    void main(){ float f = pow(1.0 - max(dot(vN, vV), 0.0), 2.4); float pulso = 0.88 + 0.12 * sin(t * 1.7); gl_FragColor = vec4(cor * (f * forca + fundo) * pulso, f * 0.85 + fundo); }`,
+  ...aditivo(),
 });
-const arestas = (geo, cor, opacidade) => new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: cor, transparent: true, opacity: opacidade, blending: THREE.AdditiveBlending, depthWrite: false }));
+const VERT_UV = `varying vec2 vU; void main(){ vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 
-// núcleo
+// núcleo: plasma azul em movimento (ruído) dentro de uma casca de vidro
+const plasma = new THREE.ShaderMaterial({
+  uniforms: { t: { value: 0 } },
+  vertexShader: `varying vec3 vP; varying vec3 vN; varying vec3 vV; void main(){ vP = position; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform float t; varying vec3 vP; varying vec3 vN; varying vec3 vV;
+    float h(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+    float n3(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y),
+                 mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z); }
+    float fbm(vec3 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * n3(p); p *= 2.03; a *= 0.5; } return s; }
+    void main(){
+      vec3 p = vP * 2.4; float n = fbm(p + vec3(0.0, t * 0.35, t * 0.2)); n = fbm(p + n * 1.7 + vec3(t * 0.12));
+      float f = pow(1.0 - max(dot(vN, vV), 0.0), 1.5);
+      vec3 c = mix(vec3(0.0, 0.01, 0.09), vec3(0.01, 0.18, 0.75), smoothstep(0.3, 0.6, n));
+      c = mix(c, vec3(0.25, 0.7, 1.0), smoothstep(0.62, 0.8, n));
+      c += vec3(0.02, 0.25, 0.9) * f * 0.7;
+      gl_FragColor = vec4(c, 1.0); }`,
+});
 const nucleo = new THREE.Group(); mundo.add(nucleo);
-const casca = new THREE.Mesh(new THREE.SphereGeometry(1.15, 64, 48), brilho(0x2aa8ff, 1.6, 0.04)); nucleo.add(casca);
-const miolo = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 24), new THREE.MeshBasicMaterial({ color: 0x9fe4ff })); nucleo.add(miolo);
-const cristal = arestas(new THREE.IcosahedronGeometry(0.78, 1), 0x6fd3ff, 0.75); nucleo.add(cristal);
-const cristal2 = arestas(new THREE.IcosahedronGeometry(1.42, 0), 0x2a8fd8, 0.35); nucleo.add(cristal2);
-const aneis = [0, 1, 2].map((i) => {
-  const a = new THREE.Mesh(new THREE.TorusGeometry(1.85 + i * 0.22, 0.011, 8, 180), new THREE.MeshBasicMaterial({ color: 0x4cc2ff, transparent: true, opacity: 0.55 - i * 0.12, blending: THREE.AdditiveBlending, depthWrite: false }));
-  a.rotation.set(Math.PI / 2 + (i - 1) * 0.55, i * 0.7, 0); nucleo.add(a); return a;
+const reator = new THREE.Mesh(new THREE.SphereGeometry(0.62, 64, 48), plasma); nucleo.add(reator);
+const casca = new THREE.Mesh(new THREE.SphereGeometry(1.05, 64, 48), brilho(0x1f6bff, 0.95, 0.0)); nucleo.add(casca);
+const geodesica = arestas(new THREE.IcosahedronGeometry(0.86, 2), 0x3d9bff, 0.14); nucleo.add(geodesica);
+// anéis em arcos, como num painel de comando
+const arcos = [];
+[[1.42, 0.012, [[0, 1.9], [2.3, 1.5], [4.2, 1.6]], 0.32, 0x59b8ff, 0], [1.68, 0.005, [[0, Math.PI * 2]], 0.5, 0x2a6dff, 0.55],
+ [1.94, 0.012, [[0.4, 0.9], [2.0, 0.5], [3.3, 1.1], [5.1, 0.7]], -0.2, 0x4fa8ff, -0.45]].forEach(([r, esp, pedacos, vel, cor, incl]) => {
+  const g = new THREE.Group(); g.rotation.x = Math.PI / 2 + incl; g.userData.vel = vel;
+  for (const [ini, arco] of pedacos) {
+    const m = new THREE.Mesh(new THREE.TorusGeometry(r, esp, 6, 160, arco), new THREE.MeshBasicMaterial({ color: cor, ...aditivo({ opacity: 0.85 }) }));
+    m.material.opacity = 0.6; m.rotation.z = ini; g.add(m);
+  }
+  nucleo.add(g); arcos.push(g);
 });
+const marcasPos = [];
+for (let i = 0; i < 120; i++) { const a = (i / 120) * Math.PI * 2, r = i % 10 === 0 ? 2.28 : 2.2; marcasPos.push(Math.cos(a) * r, 0, Math.sin(a) * r); }
+const marcas = new THREE.Points(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(marcasPos), 3)),
+  new THREE.PointsMaterial({ color: 0x6fc3ff, size: 0.035, ...aditivo({ opacity: 0.75 }) }));
+marcas.rotation.x = 0.16; nucleo.add(marcas);
 
-// órbita dos labs
+// base holográfica embaixo do núcleo
+const BASE_Y = -2.4;
+const base = new THREE.Group(); base.position.y = BASE_Y; mundo.add(base);
+const grade = new THREE.PolarGridHelper(5.4, 24, 9, 128, 0x1a4a9a, 0x0f2c66);
+grade.material.transparent = true; grade.material.opacity = 0.32; grade.material.depthWrite = false; base.add(grade);
+const discoMat = new THREE.ShaderMaterial({ uniforms: { t: { value: 0 } }, vertexShader: VERT_UV,
+  fragmentShader: `uniform float t; varying vec2 vU; void main(){ float d = distance(vU, vec2(0.5)) * 2.0;
+    float onda = smoothstep(0.04, 0.0, abs(d - fract(t * 0.22))) * (1.0 - d);
+    float a = smoothstep(1.0, 0.0, d) * 0.28 + onda * 0.45; gl_FragColor = vec4(vec3(0.08, 0.42, 1.0) * a, a); }`,
+  ...aditivo({ side: THREE.DoubleSide }) });
+const disco = new THREE.Mesh(new THREE.CircleGeometry(3.4, 96), discoMat); disco.rotation.x = -Math.PI / 2; disco.position.y = 0.01; base.add(disco);
+const feixeMat = new THREE.ShaderMaterial({ uniforms: { t: { value: 0 } }, vertexShader: VERT_UV,
+  fragmentShader: `uniform float t; varying vec2 vU; void main(){ float a = pow(1.0 - vU.y, 1.8) * 0.2 * (0.75 + 0.25 * sin(vU.y * 38.0 - t * 4.0));
+    gl_FragColor = vec4(vec3(0.1, 0.5, 1.0) * a, a); }`, ...aditivo({ side: THREE.DoubleSide }) });
+const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.7, -BASE_Y, 64, 1, true), feixeMat); cone.position.y = BASE_Y / 2; mundo.add(cone);
+
+// órbita tracejada e os três labs
 const RAIO = 4.3;
-const orbita = new THREE.Mesh(new THREE.RingGeometry(RAIO - 0.006, RAIO + 0.006, 256), new THREE.MeshBasicMaterial({ color: 0x1f5f8a, transparent: true, opacity: 0.6, side: 2, depthWrite: false }));
-orbita.rotation.x = -Math.PI / 2; mundo.add(orbita);
+const orbPos = [];
+for (let i = 0; i < 240; i++) {
+  if (i % 3 === 2) continue;
+  const a1 = (i / 240) * Math.PI * 2, a2 = ((i + 1) / 240) * Math.PI * 2;
+  orbPos.push(Math.cos(a1) * RAIO, 0, Math.sin(a1) * RAIO, Math.cos(a2) * RAIO, 0, Math.sin(a2) * RAIO);
+}
+const orbita = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(orbPos), 3)), linhaMat(0x2a6fd6, 0.4));
+mundo.add(orbita);
 const carrossel = new THREE.Group(); mundo.add(carrossel);
 const alvos = []; // o que dá para clicar na cena
-const pecas = LABS.map((lab) => {
+const pulsos = [];
+const pecas = LABS.map((lab, i) => {
   const g = new THREE.Group();
   g.position.set(Math.cos(lab.angulo) * RAIO, 0, Math.sin(lab.angulo) * RAIO);
-  const esfera = new THREE.Mesh(new THREE.SphereGeometry(0.42, 32, 24), brilho(lab.cor, 1.7, 0.05)); g.add(esfera);
-  const cr = arestas(new THREE.IcosahedronGeometry(0.28, 0), lab.cor, 0.9); g.add(cr);
-  const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.006, 6, 96), new THREE.MeshBasicMaterial({ color: lab.cor, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
-  halo.rotation.x = Math.PI / 2.4; g.add(halo);
+  const esfera = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 24), brilho(lab.cor, 1.15, 0.0)); g.add(esfera);
+  const cristal = new THREE.Mesh(new THREE.OctahedronGeometry(0.26, 0), new THREE.MeshBasicMaterial({ color: lab.cor, ...aditivo({ opacity: 0.32 }) })); g.add(cristal);
+  const cr = arestas(new THREE.OctahedronGeometry(0.265, 0), new THREE.Color(lab.cor).lerp(new THREE.Color(0xffffff), 0.45), 0.95); g.add(cr);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.008, 6, 96), new THREE.MeshBasicMaterial({ color: lab.cor, ...aditivo({ opacity: 0.6 }) }));
+  halo.rotation.x = Math.PI / 2; g.add(halo);
+  const halo2 = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.004, 6, 96, 4.2), new THREE.MeshBasicMaterial({ color: lab.cor, ...aditivo({ opacity: 0.4 }) }));
+  halo2.rotation.x = Math.PI / 2 + 0.3; g.add(halo2);
   esfera.userData.abrir = lab.id; alvos.push(esfera);
   carrossel.add(g);
-  // feixe do núcleo até o lab
-  const geo = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array([0, 0, 0, g.position.x, 0, g.position.z]), 3));
-  const feixe = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: lab.cor, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
-  carrossel.add(feixe);
-  return { lab, g, cr, halo, feixe };
+  // arco de dados do núcleo até o lab, com pulsos correndo
+  const fim = g.position.clone(), meio = fim.clone().multiplyScalar(0.5); meio.y = 1.3;
+  const curva = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0, 0), meio, fim);
+  carrossel.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curva.getPoints(64)), linhaMat(lab.cor, 0.26)));
+  const pts = new THREE.Points(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(new Float32Array(9), 3)),
+    new THREE.PointsMaterial({ color: lab.cor, size: 0.09, ...aditivo({ opacity: 1 }) }));
+  carrossel.add(pts); pulsos.push({ curva, pts, fase: i * 0.33 });
+  return { lab, g, cr, cristal, halo2, esfera };
 });
 casca.userData.abrir = "comando"; alvos.push(casca);
 
-// poeira de partículas
-const N = 1400, pos = new Float32Array(N * 3);
+// poeira de estrelas, achatada como uma galáxia
+const N = 900, pos = new Float32Array(N * 3);
 for (let i = 0; i < N; i++) {
-  const r = 2.4 + Math.random() * 7, t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
-  pos[i * 3] = r * Math.sin(p) * Math.cos(t); pos[i * 3 + 1] = r * Math.cos(p) * 0.55; pos[i * 3 + 2] = r * Math.sin(p) * Math.sin(t);
+  const r = 3 + Math.pow(Math.random(), 0.7) * 10, a = Math.random() * Math.PI * 2;
+  pos[i * 3] = Math.cos(a) * r; pos[i * 3 + 1] = (Math.random() - 0.5) * (1.2 + r * 0.35); pos[i * 3 + 2] = Math.sin(a) * r;
 }
 const poeira = new THREE.Points(new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(pos, 3)),
-  new THREE.PointsMaterial({ color: 0x5fb8ff, size: 0.028, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
+  new THREE.PointsMaterial({ color: 0x4f9dff, size: 0.024, ...aditivo({ opacity: 0.55 }) }));
 mundo.add(poeira);
 
-// brilho (bloom) — mais leve no celular
+// brilho (bloom) e cor de cinema; mais leve no celular
 let composer = null;
 const fraco = matchMedia("(max-width: 640px)").matches || (navigator.hardwareConcurrency || 8) <= 4;
 if (renderer) {
-  renderer.setClearColor(0x02050a, 1);
+  renderer.setClearColor(0x010309, 1);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
   try {
     composer = new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(cena, camera));
-    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), fraco ? 0.8 : 1.1, 0.55, 0.12));
+    composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), fraco ? 0.7 : 0.85, 0.45, 0.22));
     composer.addPass(new THREE.OutputPass());
   } catch (e) { console.warn("sem bloom:", e); composer = null; }
 } else {
   $("ajuda").textContent = "Este navegador não mostrou o 3D; os painéis de baixo funcionam normalmente.";
 }
+const inicioCena = performance.now();
+function animarCena(dt, t, ritmo) {
+  plasma.uniforms.t.value = t; discoMat.uniforms.t.value = t; feixeMat.uniforms.t.value = t; casca.material.uniforms.t.value = t;
+  reator.rotation.y += dt * 0.2 * ritmo;
+  geodesica.rotation.y -= dt * 0.08 * ritmo; geodesica.rotation.x += dt * 0.03 * ritmo;
+  arcos.forEach((g) => { g.rotation.z += dt * g.userData.vel * ritmo; });
+  marcas.rotation.y += dt * 0.05 * ritmo;
+  grade.rotation.y += dt * 0.02 * ritmo;
+  poeira.rotation.y += dt * 0.01 * ritmo;
+  const entrada = Math.min(1, (performance.now() - inicioCena) / 1400), suave = 1 - Math.pow(1 - entrada, 3); // o núcleo "acende" ao abrir
+  const alvoNucleo = suave * (hover === "comando" ? 1.06 : 1);
+  nucleo.scale.setScalar(nucleo.scale.x + (alvoNucleo - nucleo.scale.x) * Math.min(1, dt * 6));
+  pecas.forEach((p, i) => {
+    p.cr.rotation.y += dt * (0.7 + i * 0.1) * ritmo; p.cristal.rotation.y = p.cr.rotation.y;
+    p.halo2.rotation.z += dt * 0.5 * ritmo;
+    p.g.position.y = Math.sin(t * 0.9 + i * 2.1) * 0.12;
+    p.esfera.material.uniforms.t.value = t;
+    const alvo = suave * (hover === p.lab.id || foco === p.lab.id ? 1.18 : 1);
+    p.g.scale.setScalar(p.g.scale.x + (alvo - p.g.scale.x) * Math.min(1, dt * 8));
+  });
+  for (const pu of pulsos) {
+    const a = pu.pts.geometry.attributes.position;
+    for (let k = 0; k < 3; k++) { const v = pu.curva.getPoint((t * 0.32 * ritmo + pu.fase + k / 3) % 1); a.setXYZ(k, v.x, v.y, v.z); }
+    a.needsUpdate = true;
+  }
+}
+nucleo.scale.setScalar(0.001); pecas.forEach((p) => p.g.scale.setScalar(0.001));
 
 // ---------- câmera: arrastar, rolar, pinça, teclado ----------
 const vista = { yaw: 0.35, pitch: 0.32, dist: 10.5, alvoYaw: 0.35, alvoPitch: 0.32, alvoDist: 10.5, vel: 0, minDist: 6, maxDist: 18 };
@@ -301,6 +393,14 @@ const soltar = (e) => {
 canvas.addEventListener("pointerup", soltar); canvas.addEventListener("pointercancel", soltar);
 canvas.addEventListener("wheel", (e) => { e.preventDefault(); vista.alvoDist = THREE.MathUtils.clamp(vista.alvoDist * (1 + Math.sign(e.deltaY) * 0.08), vista.minDist, vista.maxDist); ultimoToque = performance.now(); }, { passive: false });
 const raio = new THREE.Raycaster(), ponto = new THREE.Vector2();
+canvas.addEventListener("pointermove", (e) => {
+  if (ponteiros.size || e.pointerType === "touch") return;
+  ponto.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  raio.setFromCamera(ponto, camera);
+  hover = raio.intersectObjects(alvos, false)[0]?.object.userData.abrir ?? null;
+  canvas.style.cursor = hover ? "pointer" : "";
+});
+canvas.addEventListener("pointerleave", () => { hover = null; });
 function clicar(x, y) {
   ponto.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponto, camera);
@@ -332,7 +432,7 @@ criarRotulo("comando", "COMANDO", "centro de comando");
 LABS.forEach((l) => criarRotulo(l.id, l.nome, l.sub));
 const tmp = new THREE.Vector3();
 function moverRotulos() {
-  const lista = [["comando", casca, -1.55], ...pecas.map((p) => [p.lab.id, p.g, -0.72])];
+  const lista = [["comando", casca, -1.5], ...pecas.map((p) => [p.lab.id, p.g, -0.85])];
   for (const [id, obj, desce] of lista) {
     obj.getWorldPosition(tmp); tmp.y += desce; tmp.project(camera);
     const r = rotulos.get(id), visivel = tmp.z < 1;
@@ -373,13 +473,7 @@ function quadro(agora) {
   desloc.x += (ax - desloc.x) * Math.min(1, dt * 6); desloc.y += (ay - desloc.y) * Math.min(1, dt * 6);
   if (Math.abs(desloc.x) + Math.abs(desloc.y) < 0.5) camera.clearViewOffset();
   else camera.setViewOffset(innerWidth, innerHeight, desloc.x, desloc.y, innerWidth, innerHeight);
-  cristal.rotation.y += dt * 0.35 * ritmo; cristal.rotation.x += dt * 0.12 * ritmo;
-  cristal2.rotation.y -= dt * 0.12 * ritmo; cristal2.rotation.z += dt * 0.05 * ritmo;
-  aneis.forEach((a, i) => { a.rotation.z += dt * (0.25 + i * 0.12) * (i % 2 ? -1 : 1) * ritmo; });
-  miolo.scale.setScalar(1 + Math.sin(t * 2.1) * 0.06);
-  poeira.rotation.y += dt * 0.012 * ritmo;
-  pecas.forEach((p, i) => { p.cr.rotation.y += dt * (0.6 + i * 0.1) * ritmo; p.halo.rotation.z += dt * 0.4 * ritmo; p.g.position.y = Math.sin(t * 0.9 + i * 2.1) * 0.12; });
-  [casca, ...pecas.map((p) => p.g.children[0])].forEach((m) => { m.material.uniforms.t.value = t; });
+  animarCena(dt, t, ritmo);
   if (renderer) { composer ? composer.render() : renderer.render(cena, camera); }
   moverRotulos();
   requestAnimationFrame(quadro);
