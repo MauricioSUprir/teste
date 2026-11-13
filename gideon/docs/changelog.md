@@ -187,4 +187,10 @@
   - **Endereços:** `core.html#abrir=comando|gideon|neural|world|missao|mapa|visualizer` (com `mapa=ID` ou `assunto=...`).
   - **Situação:** commit `8d18219` na função de teste `gideon-teste` v6. Falta conferir os 4 testes e publicar na produção; o conector do Supabase caiu na reinicialização da sessão.
 - **Neural Visualizer (módulo 86, parte 1, decisão 027):** uma rede neural de verdade aprendendo ao vivo no aparelho, com neurônios, pesos, fronteira de decisão e curva do erro, no Neural Lab (tecla 6). Testado: espiral de 70% para 98%, círculo 100%.
+- **Neural Visualizer com 3D novo (pedido do dono):**
+  - camadas em placas holográficas;
+  - neurônios com miolo que acende e bolha de vidro;
+  - sinais correndo pelas conexões;
+  - chance de cada classe na saída;
+  - bloom.
 

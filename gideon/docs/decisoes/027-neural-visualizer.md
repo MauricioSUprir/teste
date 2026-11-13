@@ -30,3 +30,12 @@
   - **círculo:** chegou a 100%;
   - trocar os dados, tocar num ponto e fechar com Esc funcionaram;
   - nenhum erro e nenhuma rolagem para o lado.
+
+## Atualização (13/11/2026): 3D melhor, a pedido do dono
+- **Camadas:** viraram **placas holográficas**, com borda acesa e linhas de varredura.
+- **Neurônios:** um **miolo que acende** com a ativação, dentro de uma bolha de vidro com brilho na borda e um anel girando. Azul é ativação positiva, laranja é negativa, e o branco aparece quando é forte.
+- **Sinais correndo** pelas conexões, da entrada para a saída. O tamanho de cada sinal é o quanto aquela conexão pesa para o ponto escolhido (|peso × ativação|).
+- **Saída:** mostra a chance de cada classe (ex.: "laranja 99%", "azul 1%").
+- **Visual:** brilho de cinema (bloom e cor ACES), névoa e poeira ao fundo. Arrastar gira para os lados e para cima e para baixo.
+- **Testes:** os mesmos de antes, sem erro; a espiral chegou a 100% e o círculo, de 97% a 100%.
+
