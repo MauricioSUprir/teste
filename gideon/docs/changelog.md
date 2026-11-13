@@ -146,4 +146,5 @@
 - **Voz da GIDEON mais suave e fria (pedido do dono, 12/11):** o GIDEON Home ganhou no prompt de voz o "jeito de falar": suave, calma, fria e controlada, tom neutro, sem entusiasmo e em ritmo normal (não lento). O timbre continua `Kore` até o dono escolher entre 5 amostras (Kore, Despina, Achernar, Erinome, Vindemiatrix); a troca é só mudar `gideon_config.voz_gideon`, sem publicar.
   - **Amostras:** geradas por uma função temporária `gideon-vozes` (só gera áudio de uma frase fixa, protegida por uma chave descartável). Ela é desligada depois da escolha. O limite grátis de voz do Google acabou depois de 9 amostras no dia.
   - **No ar:** **v44 = commit `c50453f`** (antes: v43 = commit `e3e9700`). Conferido: Telegram ligado, lembretes respondem, o GIDEON Home abre a sessão de voz com o estilo novo no prompt.
+- **Timbre escolhido: `Despina`** (o dono deixou a escolha comigo): tom mais grave e estável e a mais rápida das 5 amostras. `gideon_config.voz_gideon = Despina`. A função temporária `gideon-vozes` foi desligada (responde 410). Detalhes na decisão 013.
 
