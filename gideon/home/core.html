@@ -7,14 +7,17 @@
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#02050a">
 <link rel="icon" href="icone.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:ital,wght@0,600;0,700;0,800;1,700;1,800&display=swap">
+<link rel="stylesheet" href="tema/gideon-tema.css">
 <style>
   /* GIDEON Core (módulos 61 + 100, decisão 024): núcleo 3D no centro; GIDEON LAB, NEURAL LAB e WORLD LAB em órbita.
      Cada parte abre um painel que funciona de verdade (dados reais do Nexus e da função gideon). */
-  :root { --fundo:#02050a; --painel:rgba(6,14,24,.9); --borda:#1c3a52; --texto:#d8f3ff; --suave:#7f9bb3; --destaque:#8fd8ff; --link:#27c4ff;
-    --ok:#3ddc97; --aviso:#ffcf6e; --erro:#ff7b7b; --gideon:#27c4ff; --neural:#a48bff; --world:#3ddc97; }
+  :root { --fundo:var(--g-fundo); --painel:rgba(8,11,31,.92); --borda:var(--g-borda); --texto:var(--g-texto); --suave:var(--g-texto-3); --destaque:var(--g-acento-claro); --link:var(--g-acento);
+    --ok:var(--g-ok); --aviso:var(--g-aviso); --erro:var(--g-erro); --gideon:#27c4ff; --neural:#a48bff; --world:#3ddc97; }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--fundo); color:var(--texto); overflow:hidden;
-    font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color:transparent; }
+    font:15px/1.5 var(--g-fonte); -webkit-tap-highlight-color:transparent; }
   #cena { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; outline:none; }
   #cena.arrastando { cursor:grabbing; }
   a { color:var(--link); }
@@ -22,8 +25,9 @@
 
   header { position:fixed; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
     padding:max(12px, env(safe-area-inset-top)) 16px 0; pointer-events:none; z-index:3; }
-  header h1 { margin:0; font-size:15px; letter-spacing:.32em; color:var(--destaque); font-weight:600; }
-  header .sub { color:var(--suave); font-size:11px; letter-spacing:.18em; text-transform:uppercase; }
+  header h1 { margin:6px 0 0; font:800 16px/1.1 var(--g-fonte-titulo); letter-spacing:.22em; color:var(--g-texto); }
+  header h1 em { font-style:italic; color:var(--g-acento); }
+  header .sub { color:var(--suave); font:600 10.5px var(--g-fonte-titulo); letter-spacing:.2em; text-transform:uppercase; margin-top:3px; }
   #estadoSistema { pointer-events:auto; font-size:12px; letter-spacing:.08em; color:var(--suave); border:1px solid var(--borda); border-radius:999px;
     padding:4px 10px; background:rgba(4,10,18,.6); white-space:nowrap; cursor:pointer; }
   #estadoSistema .bola { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--suave); margin-right:6px; vertical-align:middle; }
@@ -31,7 +35,7 @@
   #estadoSistema.atencao .bola { background:var(--aviso); box-shadow:0 0 8px var(--aviso); }
 
   /* rótulos que acompanham as peças 3D */
-  .rotulo { position:fixed; left:0; top:0; z-index:2; transform:translate(-50%, 0); pointer-events:auto; cursor:pointer; white-space:nowrap;
+  .rotulo { position:fixed; left:0; top:0; z-index:2; transform:translate(-50%, 0); pointer-events:auto; cursor:pointer; white-space:nowrap; font-family:var(--g-fonte-titulo); font-weight:700;
     background:rgba(4,10,18,.55); border:1px solid var(--borda); border-radius:999px; padding:3px 11px; font-size:11px; letter-spacing:.2em;
     color:var(--texto); text-transform:uppercase; transition:opacity .25s, border-color .2s; }
   .rotulo:hover, .rotulo:focus-visible { border-color:currentColor; outline:none; }
@@ -49,51 +53,66 @@
   nav#doca kbd { font:10px ui-monospace, monospace; color:var(--suave); margin-left:4px; }
 
   /* painel */
-  #painel { position:fixed; top:0; right:0; bottom:0; width:min(440px, 100vw); z-index:4; background:var(--painel); border-left:1px solid var(--borda);
+  #painel { position:fixed; top:0; right:0; bottom:0; width:min(460px, 100vw); z-index:4; background:var(--g-brilho-painel), var(--painel); border-left:1px solid var(--borda);
     backdrop-filter:blur(10px); transform:translateX(105%); transition:transform .32s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; }
   #painel.aberto { transform:none; }
-  #painel header { position:static; pointer-events:auto; padding:14px 16px 10px; border-bottom:1px solid var(--borda); align-items:center; }
-  #painel h2 { margin:0; font-size:14px; letter-spacing:.24em; text-transform:uppercase; }
-  #fechar { background:transparent; border:1px solid var(--borda); border-radius:10px; width:34px; height:34px; cursor:pointer; color:var(--texto); font-size:16px; }
-  #conteudo { padding:14px 16px 90px; overflow-y:auto; flex:1; }
-  .bloco { border:1px solid var(--borda); border-radius:14px; padding:12px 14px; margin:0 0 12px; background:rgba(8,18,30,.6); }
-  .bloco h3 { margin:0 0 8px; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--destaque); font-weight:600; }
+  #painel header { position:static; pointer-events:auto; padding:18px 18px 12px; align-items:flex-end; }
+  #painel h2 { margin:10px 0 0; }
+  #fechar { background:rgba(10,12,30,.8); border:1px solid var(--g-borda-forte); border-radius:50%; width:36px; height:36px; cursor:pointer; color:var(--texto); font-size:15px; flex:0 0 36px; }
+  #conteudo { padding:6px 18px 90px; overflow-y:auto; flex:1; }
+  .bloco { padding:14px 16px; margin:0 0 14px; background:linear-gradient(180deg, var(--g-cartao-topo), var(--g-cartao)); border:1px solid var(--g-borda); border-radius:var(--g-raio);
+    box-shadow:0 10px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05); }
+  .bloco h3 { margin:0 0 10px; font:700 11px/1.3 var(--g-fonte-titulo); letter-spacing:.16em; text-transform:uppercase; color:var(--g-texto); }
+  .suave, .bloco p { color:var(--g-texto-2); }
+  /* cartões de número grande (centro de comando) */
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 14px; }
+  .stat { padding:14px 14px 12px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .stat .g-rotulo { font-size:10px; color:var(--g-texto-2); }
+  .stat .g-numero { font-size:clamp(28px, 5vw, 38px); }
+  .stat .g-apoio { overflow-wrap:anywhere; }
+  .stat.largo { grid-column:1 / -1; }
+  .heroi { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 14px; flex-wrap:wrap; }
+  .passos { display:grid; gap:10px; margin:10px 0; }
+  .passo { display:flex; gap:12px; align-items:center; padding:12px 14px; }
+  .passo .g-passo { font-size:28px; flex:0 0 auto; }
+  .passo .ag { font:700 10.5px var(--g-fonte-titulo); letter-spacing:.14em; text-transform:uppercase; color:var(--g-acento); }
   .suave { color:var(--suave); font-size:13px; }
   .linha { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid rgba(28,58,82,.5); }
   .linha:first-of-type { border-top:0; }
   .linha .v { font-variant-numeric:tabular-nums; color:var(--destaque); text-align:right; }
-  .cc-topo { text-align:center; font:600 13px/1.4 ui-monospace, Consolas, monospace; letter-spacing:.3em; color:var(--destaque); padding:4px 0 10px; }
-  .status { text-align:center; font:600 13px ui-monospace, Consolas, monospace; letter-spacing:.14em; padding:8px; border-radius:10px; margin-bottom:10px; }
-  .status.ok { color:var(--ok); background:rgba(61,220,151,.08); } .status.atencao { color:var(--aviso); background:rgba(255,207,110,.08); }
-  .barra { height:6px; border-radius:6px; background:#0e2133; overflow:hidden; margin-top:4px; }
-  .barra i { display:block; height:100%; background:linear-gradient(90deg, var(--link), var(--neural)); }
-  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:#10314a; color:var(--texto); border:1px solid #1f4e70; border-radius:11px;
-    padding:9px 14px; cursor:pointer; text-decoration:none; font-size:14px; }
-  .btn:hover, .btn:focus-visible { background:#164466; outline:none; }
-  .btn.grande { width:100%; font:600 13px ui-monospace, Consolas, monospace; letter-spacing:.2em; padding:12px; margin-top:6px; }
-  .btn.ok { border-color:#2a7a58; background:#123d2d; } .btn.perigo { border-color:#7a3a3a; background:#3a1616; }
-  .btn[disabled] { opacity:.5; cursor:default; }
+  .barra { height:6px; border-radius:6px; background:rgba(143,150,255,.12); overflow:hidden; margin-top:6px; }
+  .barra i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, var(--g-ciano), var(--g-violeta)); }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:rgba(20,24,52,.7); color:var(--texto); border:1px solid var(--g-borda-forte);
+    border-radius:12px; padding:10px 14px; cursor:pointer; text-decoration:none; font:600 14px/1 var(--g-fonte); }
+  .btn:hover, .btn:focus-visible { background:rgba(40,46,100,.75); outline:none; }
+  .btn.grande, .btn.ok { width:100%; background:var(--g-botao); border:0; color:#fff; font:700 13px/1 var(--g-fonte-titulo); letter-spacing:.14em; text-transform:uppercase;
+    padding:14px; box-shadow:0 8px 24px rgba(70,80,255,.35); }
+  .btn.grande:hover, .btn.ok:hover { filter:brightness(1.12); }
+  .btn.ok { width:auto; flex:1; } .btn.perigo { border-color:rgba(255,123,123,.4); background:rgba(70,20,30,.6); }
+  .btn[disabled] { opacity:.5; cursor:default; filter:none; }
   .acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-  textarea, input[type=text] { width:100%; background:#081422; color:var(--texto); border:1px solid var(--borda); border-radius:10px; padding:9px 11px; font:inherit; resize:vertical; }
+  textarea, input[type=text] { width:100%; background:rgba(6,8,22,.8); color:var(--texto); border:1px solid var(--borda); border-radius:10px; padding:9px 11px; font:inherit; resize:vertical; }
   textarea:focus, input:focus { outline:1px solid var(--link); }
   .chips { display:flex; flex-wrap:wrap; gap:6px; }
-  .chip { font-size:12px; border:1px solid var(--borda); border-radius:999px; padding:2px 9px; color:var(--suave); }
-  .chip.parte { color:var(--aviso); border-color:#5a4a20; } .chip.pronto { color:var(--ok); border-color:#1f5a40; }
+  .chip { font:700 10px/1.4 var(--g-fonte-titulo); letter-spacing:.1em; text-transform:uppercase; padding:4px 9px; border-radius:6px; background:rgba(10,12,30,.7); border:1px solid var(--g-borda-forte); color:var(--g-texto-2); }
+  .chip.parte { color:var(--aviso); border-color:rgba(255,207,110,.4); } .chip.pronto { color:var(--ok); border-color:rgba(61,220,151,.4); }
   .conversa { max-height:42vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
   .msg { padding:8px 11px; border-radius:12px; max-width:92%; white-space:pre-wrap; word-wrap:break-word; font-size:14px; }
-  .msg.eu { align-self:flex-end; background:#10314a; } .msg.ela { align-self:flex-start; background:#0b1b2b; border:1px solid var(--borda); }
+  .msg.eu { align-self:flex-end; background:linear-gradient(135deg, rgba(51,84,255,.55), rgba(91,75,255,.55)); color:#fff; border-radius:14px 14px 4px 14px; }
+  .msg.ela { align-self:flex-start; background:rgba(10,12,30,.7); border:1px solid var(--g-borda); color:var(--g-texto); border-radius:14px 14px 14px 4px; }
   .msg.ela a { word-break:break-all; }
   .erro { color:var(--erro); } .aviso { color:var(--aviso); }
   .carregando::after { content:"…"; animation:pontos 1.2s steps(3) infinite; display:inline-block; width:1em; overflow:hidden; vertical-align:bottom; }
   @keyframes pontos { from { width:0 } to { width:1em } }
   ol.plano { padding-left:20px; margin:8px 0; } ol.plano li { margin:3px 0; }
   .resultado { border-top:1px solid rgba(28,58,82,.5); padding:8px 0; font-size:14px; }
-  .resultado small { color:var(--suave); }
+  .resultado small { color:var(--suave); font:700 10px var(--g-fonte-titulo); letter-spacing:.1em; text-transform:uppercase; }
 
   #aviso { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:5; max-width:min(420px, calc(100vw - 32px)); text-align:center;
     background:var(--painel); border:1px solid var(--borda); border-radius:16px; padding:18px; }
   #ajuda { position:fixed; left:16px; bottom:76px; z-index:2; font-size:11px; color:var(--suave); pointer-events:none; }
 
+  @media (max-width: 380px) { .stats { grid-template-columns:1fr; } }
   @media (max-width: 640px) {
     #painel { top:auto; height:72vh; width:100vw; border-left:0; border-top:1px solid var(--borda); border-radius:18px 18px 0 0; transform:translateY(105%); }
     #painel.aberto { transform:none; }
@@ -108,7 +127,7 @@
 <canvas id="cena" tabindex="0" aria-label="Núcleo 3D da GIDEON. Arraste para girar, role para aproximar; use os botões de baixo ou as teclas 1 a 4."></canvas>
 
 <header>
-  <div><h1>GIDEON CORE</h1><div class="sub">Omega · Nexus · Labs</div></div>
+  <div><span class="g-barra"></span><h1>GIDEON <em>CORE</em></h1><div class="sub">Omega · Nexus · Labs</div></div>
   <button id="estadoSistema" title="Abrir o centro de comando"><span class="bola"></span><span id="estadoTexto">conectando</span></button>
 </header>
 
@@ -127,7 +146,7 @@
 </nav>
 
 <aside id="painel" aria-hidden="true" aria-labelledby="tituloPainel">
-  <header><h2 id="tituloPainel">Painel</h2><button id="fechar" aria-label="Fechar painel">✕</button></header>
+  <header><div><span class="g-barra"></span><h2 id="tituloPainel" class="g-titulo">Painel</h2></div><button id="fechar" aria-label="Fechar painel">✕</button></header>
   <div id="conteudo"></div>
 </aside>
 
@@ -378,17 +397,20 @@ function focar(id) {
 }
 
 // ---------- painéis ----------
-const TITULOS = { comando: "🎛️ Centro de comando", gideon: "🧪 GIDEON Lab", neural: "🧠 Neural Lab", world: "🌎 World Lab", missao: "🚀 Nova missão" };
+const TITULOS = { comando: ["Centro de ", "comando"], gideon: ["GIDEON ", "Lab"], neural: ["Neural ", "Lab"], world: ["World ", "Lab"], missao: ["Nova ", "missão"] }; // [texto, palavra em itálico]
 let aberto = null, atualizar = null;
 function abrir(id) {
   if (!chave) { semAcesso(); return; }
   aberto = id; clearInterval(atualizar); atualizar = null;
-  $("tituloPainel").textContent = TITULOS[id] || id;
+  const [txt, destaque] = TITULOS[id] || [id, ""];
+  $("tituloPainel").replaceChildren(txt, el("em", { textContent: destaque }));
   const p = $("painel"); p.classList.add("aberto"); p.setAttribute("aria-hidden", "false");
   focar(id);
   const c = $("conteudo"); c.replaceChildren(el("p", { className: "suave carregando", textContent: "Carregando" }));
   const montar = { comando: painelComando, gideon: painelGideon, neural: painelNeural, world: painelWorld, missao: painelMissao }[id];
-  montar(c).catch((e) => { if (aberto === id) c.replaceChildren(el("p", { className: "erro", textContent: "Não consegui carregar: " + e.message })); });
+  const notas = { gideon: "conversa e missões", neural: "modelos, memória e testes", world: "projetos e simulações", missao: "a equipe só começa com o seu OK" };
+  montar(c).then(() => { if (aberto === id && notas[id]) c.append(rodape(notas[id])); })
+    .catch((e) => { if (aberto === id) c.replaceChildren(el("p", { className: "erro", textContent: "Não consegui carregar: " + e.message })); });
   $("fechar").focus({ preventScroll: true });
 }
 function fechar() {
@@ -399,6 +421,7 @@ function fechar() {
 $("fechar").addEventListener("click", fechar);
 $("estadoSistema").addEventListener("click", () => abrir("comando"));
 document.querySelectorAll("[data-abrir]").forEach((b) => b.addEventListener("click", () => abrir(b.dataset.abrir)));
+const rodape = (texto) => el("p", { className: "g-rodape", textContent: `GIDEON · Core · ${texto}` });
 const bloco = (titulo, ...filhos) => el("section", { className: "bloco" }, [titulo ? el("h3", { textContent: titulo }) : null, ...filhos]);
 const linha = (nome, valor, extra) => el("div", { className: "linha" }, [el("span", {}, [nome, extra ? el("div", { className: "suave", textContent: extra }) : null]), el("span", { className: "v", textContent: valor })]);
 const chipsModulos = (lista) => el("div", { className: "chips" }, lista.map(([n, nome, est]) => el("span", { className: "chip" + (est === "parte" ? " parte" : est === "pronto" ? " pronto" : ""), title: est === "parte" ? "existe em parte" : est === "pronto" ? "pronto" : "ainda não feito", textContent: `${n} ${nome}` })));
@@ -418,34 +441,35 @@ function mostrarEstado() {
 }
 
 async function painelComando(c) {
+  const cartaoNum = (rotulo, numero, apoio, largo) => el("div", { className: "g-cartao stat" + (largo ? " largo" : "") }, [
+    el("span", { className: "g-rotulo", textContent: rotulo }), el("span", { className: "g-numero", textContent: numero }), apoio ? el("span", { className: "g-apoio", textContent: apoio }) : null]);
   const desenhar = () => {
     const d = dados, nAg = agentes ? Object.keys(agentes).length + 2 : 6; // + diretor e revisor
     const tipos = Object.entries(d.documentos.por_tipo).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${n} ${t}`).join(" · ");
-    const pc = d.pc.ligado ? `ligado · ${d.pc.computador ?? ""} · versão ${d.pc.versao ?? "?"}` : d.pc.versao ? `desligado (visto ${tempoDesde(d.pc.visto_ha_segundos)}) · versão ${d.pc.versao}` : "não instalado";
-    const uso = d.pc.uso;
-    c.replaceChildren(
-      bloco(null,
-        el("div", { className: "cc-topo", textContent: "GIDEON AI · COMMAND CENTER" }),
-        el("div", { className: "status " + (d.sistema.status === "operacional" ? "ok" : "atencao"), textContent: d.sistema.status === "operacional" ? "● SISTEMA OPERACIONAL" : "● ATENÇÃO · " + d.sistema.motivo }),
-        linha("🧠 Modelos ativos", num(d.modelos.length), d.modelos.map((m) => m.nome).join(", ") || "nenhum nos últimos 7 dias"),
-        linha("🤖 Agentes disponíveis", num(nAg), agentes ? ["Diretor", ...Object.values(agentes).map((a) => a.nome), "Revisor"].join(", ") : "equipe da GIDEON"),
-        linha("⚙️ Automações ativas", `${d.automacoes.ativas} de ${d.automacoes.total}`, d.automacoes.falhas_24h ? `${d.automacoes.falhas_24h} falha(s) em 24 h` : "nenhuma falha em 24 h"),
-        linha("💻 Projetos monitorados", num(d.projetos.nomes.length + d.projetos.github), `${d.projetos.nomes.join(", ") || "nenhum projeto"} + ${d.projetos.github} no GitHub`),
-        linha("📚 Documentos indexados", num(d.documentos.total), tipos),
-      ),
+    const ok = d.sistema.status === "operacional", uso = d.pc.uso;
+    const pc = d.pc.ligado ? `${d.pc.computador ?? "PC"} · versão ${d.pc.versao ?? "?"}` : d.pc.versao ? `visto ${tempoDesde(d.pc.visto_ha_segundos)} · versão ${d.pc.versao}` : "não instalado";
+    c.replaceChildren(...[
+      el("div", { className: "heroi" }, [el("span", { className: "g-rotulo", textContent: "GIDEON AI · Command Center" }),
+        el("span", { className: "g-status " + (ok ? "ok" : "atencao"), textContent: ok ? "Sistema operacional" : "Atenção", title: d.sistema.motivo || "" })]),
+      ok ? null : el("p", { className: "aviso", textContent: d.sistema.motivo }),
+      el("div", { className: "stats" }, [
+        cartaoNum("🧠 Modelos ativos", num(d.modelos.length), d.modelos.map((m) => m.nome).join(", ") || "nenhum em 7 dias"),
+        cartaoNum("🤖 Agentes", num(nAg), agentes ? ["Diretor", ...Object.values(agentes).map((a) => a.nome), "Revisor"].join(", ") : "equipe da GIDEON"),
+        cartaoNum("⚙️ Automações", `${d.automacoes.ativas}/${d.automacoes.total}`, d.automacoes.falhas_24h ? `${d.automacoes.falhas_24h} falha(s) em 24 h` : "nenhuma falha em 24 h"),
+        cartaoNum("💻 Projetos", num(d.projetos.nomes.length + d.projetos.github), `${d.projetos.nomes.join(", ") || "nenhum"} + ${d.projetos.github} no GitHub`),
+        cartaoNum("📚 Documentos indexados", num(d.documentos.total), tipos, true),
+        cartaoNum("📨 Pedidos hoje", num(d.hoje.pedidos), `${d.hoje.erros} erro(s) · ${d.hoje.cache} pelo cache`),
+        cartaoNum("🧪 Nota dos testes", d.testes ? String(d.testes.nota).replace(".", ",") : "—", d.testes ? `${d.testes.passou} de ${d.testes.total} na última bateria` : "ainda sem bateria"),
+      ]),
       bloco("Computador",
         linha("🖥️ GIDEON PC", d.pc.ligado ? "ligado" : "desligado", pc),
         linha("CPU · RAM · GPU", uso ? `${uso.cpu ?? "—"}% · ${uso.ram_gb ?? "—"} GB · ${uso.gpu ?? "—"}%` : "—", uso ? null : "aparece quando o GIDEON PC mandar o uso (próxima versão do programa)"),
-      ),
-      bloco("Hoje",
-        linha("📨 Pedidos", num(d.hoje.pedidos), `${d.hoje.erros} erro(s) · ${d.hoje.cache} respondido(s) pelo cache`),
-        linha("🧪 Nota dos testes", d.testes ? `${String(d.testes.nota).replace(".", ",")}/10` : "—", d.testes ? `${d.testes.passou} de ${d.testes.total} na última bateria` : "ainda sem bateria"),
         linha("✅ Aprovações esperando", num(d.aprovacoes_pendentes), d.aprovacoes_pendentes ? "aprove no Nexus ou no Telegram" : null),
-        linha("👥 Missões da equipe andando", num(d.equipe_ativas)),
+        linha("👥 Missões andando", num(d.equipe_ativas)),
       ),
-      el("button", { className: "btn grande", textContent: "[ INICIAR NOVA MISSÃO ]", onclick: () => abrir("missao") }),
-      el("p", { className: "suave", textContent: `Números reais, atualizados a cada 30 s · ${hora(d.agora)}` }),
-    );
+      el("button", { className: "btn grande", textContent: "Iniciar nova missão", onclick: () => abrir("missao") }),
+      rodape(`números reais · atualizado às ${hora(d.agora)}`),
+    ].filter(Boolean));
   };
   await carregarDados(); desenhar();
   atualizar = setInterval(() => { if (aberto === "comando") carregarDados().then(desenhar).catch(() => {}); }, 30_000);
@@ -554,7 +578,9 @@ async function painelMissao(c) {
       const cancelar = el("button", { className: "btn perigo", textContent: "Cancelar" });
       area.replaceChildren(bloco(p.titulo || "Plano",
         p.resumo ? el("p", { textContent: p.resumo }) : null,
-        el("ol", { className: "plano" }, (p.tarefas ?? []).map((t) => el("li", { textContent: `${t.agente}: ${t.titulo}` }))),
+        el("div", { className: "passos" }, (p.tarefas ?? []).map((t, i) => el("div", { className: "g-cartao passo" }, [
+          el("span", { className: "g-passo", textContent: String(i + 1).padStart(2, "0") }),
+          el("div", {}, [el("div", { className: "ag", textContent: t.agente }), el("div", { textContent: t.titulo })])]))),
         p.entregavel ? el("p", { className: "suave", textContent: "Você recebe: " + p.entregavel }) : null,
         el("div", { className: "acoes" }, [aprovar, cancelar])));
       aprovar.addEventListener("click", async () => {

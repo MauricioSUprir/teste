@@ -1,0 +1,39 @@
+/* GIDEON — tema da parte escrita (versão 1.0, 13/11/2026). Fonte da verdade: gideon-tema.json (mesma pasta).
+   Uso: <link rel="stylesheet" href="tema/gideon-tema.css"> e as classes g-*. Só estilo de texto, cartões, números e botões. */
+:root {
+  --g-fundo:#04050d; --g-fundo-2:#080b1f;
+  --g-azul:#3354ff; --g-violeta:#5b4bff; --g-acento:#8f96ff; --g-acento-claro:#c3c6ff; --g-ciano:#39c8ff;
+  --g-texto:#f3f4ff; --g-texto-2:#b9bde3; --g-texto-3:#7e84ad;
+  --g-cartao:rgba(18,21,46,.62); --g-cartao-topo:rgba(28,32,70,.55);
+  --g-borda:rgba(160,168,255,.16); --g-borda-forte:rgba(160,168,255,.32);
+  --g-ok:#3ddc97; --g-aviso:#ffcf6e; --g-erro:#ff7b7b;
+  --g-raio:16px; --g-raio-p:10px;
+  --g-fonte-titulo:"Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --g-fonte:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --g-brilho-painel:radial-gradient(60% 45% at 90% 0%, rgba(91,75,255,.40), transparent 70%), radial-gradient(55% 40% at 0% 100%, rgba(51,84,255,.24), transparent 70%);
+  --g-botao:linear-gradient(135deg, var(--g-azul), var(--g-violeta));
+  --g-numero:linear-gradient(180deg, #ffffff 30%, var(--g-acento));
+}
+.g-barra { display:block; width:36px; height:6px; border-radius:3px; background:var(--g-acento); box-shadow:0 0 12px rgba(143,150,255,.55); }
+.g-titulo { margin:0; font:800 clamp(20px, 3.2vw, 28px)/1.05 var(--g-fonte-titulo); text-transform:uppercase; letter-spacing:.01em; color:var(--g-texto); }
+.g-titulo em { font-style:italic; color:var(--g-acento); }
+.g-rotulo { font:700 11px/1.3 var(--g-fonte-titulo); letter-spacing:.16em; text-transform:uppercase; color:var(--g-texto); }
+.g-corpo { font:400 14px/1.55 var(--g-fonte); color:var(--g-texto-2); }
+.g-apoio { font:400 12.5px/1.45 var(--g-fonte); color:var(--g-texto-3); }
+.g-cartao { background:linear-gradient(180deg, var(--g-cartao-topo), var(--g-cartao)); border:1px solid var(--g-borda); border-radius:var(--g-raio);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }
+.g-numero { font:800 clamp(30px, 6vw, 44px)/1 var(--g-fonte-titulo); letter-spacing:-.015em; background:var(--g-numero); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.g-passo { font:800 34px/1 var(--g-fonte-titulo); color:transparent; -webkit-text-stroke:1.4px var(--g-acento); letter-spacing:-.02em; }
+.g-etiqueta { display:inline-block; font:700 10.5px/1.4 var(--g-fonte-titulo); letter-spacing:.12em; text-transform:uppercase; padding:4px 9px; border-radius:6px;
+  background:rgba(10,12,30,.7); border:1px solid var(--g-borda-forte); color:var(--g-texto); }
+.g-botao { display:inline-flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:12px; padding:11px 16px; cursor:pointer; text-decoration:none;
+  font:700 13px/1 var(--g-fonte-titulo); letter-spacing:.12em; text-transform:uppercase; color:#fff; background:var(--g-botao); box-shadow:0 8px 24px rgba(70,80,255,.35); }
+.g-botao:hover, .g-botao:focus-visible { filter:brightness(1.12); outline:none; }
+.g-botao.secundario { background:rgba(20,24,52,.7); border:1px solid var(--g-borda-forte); box-shadow:none; letter-spacing:.06em; text-transform:none; font:600 14px/1 var(--g-fonte); }
+.g-botao[disabled] { opacity:.5; cursor:default; filter:none; }
+.g-seta { width:34px; height:34px; border-radius:50%; display:inline-grid; place-items:center; background:rgba(10,12,30,.8); border:1px solid var(--g-borda-forte); color:var(--g-texto); }
+.g-status { display:inline-flex; align-items:center; gap:8px; padding:5px 12px; border-radius:999px; font:700 11px/1 var(--g-fonte-titulo); letter-spacing:.14em; text-transform:uppercase;
+  background:rgba(10,12,30,.6); border:1px solid var(--g-borda-forte); color:var(--g-texto); }
+.g-status::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--g-texto-3); }
+.g-status.ok::before { background:var(--g-ok); box-shadow:0 0 10px var(--g-ok); } .g-status.atencao::before { background:var(--g-aviso); box-shadow:0 0 10px var(--g-aviso); }
+.g-rodape { font:500 11px/1.4 var(--g-fonte); color:var(--g-texto-3); }

@@ -1,0 +1,67 @@
+{
+  "nome": "GIDEON — tema da parte escrita",
+  "versao": "1.0",
+  "data": "2026-11-13",
+  "inspiracao": [
+    "Modelo 1 (dono): fundo azul-marinho quase preto com manchas de luz azul e violeta; títulos em MAIÚSCULAS, grossos, com uma palavra em itálico lilás; barrinha lilás em cima de cada título; cartões de vidro escuro com borda fina; números grandes ($1.5T, +125%, 98%); etiquetas pequenas em maiúsculas.",
+    "Modelo 2 (dono): fundo preto com brilho azul elétrico; cartões escuros arredondados com degradê; números enormes e finos (01, 02, 03, 50%); gráficos de área com degradê azul; botões redondos com seta; texto de apoio pequeno e cinza."
+  ],
+  "uso": "Só a parte escrita (títulos, textos, cartões, números, botões, etiquetas). Imagens e objetos 3D dos modelos não são copiados.",
+  "cores": {
+    "fundo": "#04050d",
+    "fundo_2": "#080b1f",
+    "azul": "#3354ff",
+    "violeta": "#5b4bff",
+    "acento": "#8f96ff",
+    "acento_claro": "#c3c6ff",
+    "ciano": "#39c8ff",
+    "texto": "#f3f4ff",
+    "texto_2": "#b9bde3",
+    "texto_3": "#7e84ad",
+    "cartao": "rgba(18, 21, 46, 0.62)",
+    "cartao_topo": "rgba(28, 32, 70, 0.55)",
+    "borda": "rgba(160, 168, 255, 0.16)",
+    "borda_forte": "rgba(160, 168, 255, 0.32)",
+    "ok": "#3ddc97",
+    "aviso": "#ffcf6e",
+    "erro": "#ff7b7b"
+  },
+  "brilhos": {
+    "painel": "radial-gradient(60% 45% at 90% 0%, rgba(91,75,255,.40), transparent 70%), radial-gradient(55% 40% at 0% 100%, rgba(51,84,255,.24), transparent 70%)",
+    "botao_principal": "linear-gradient(135deg, #3354ff, #5b4bff)",
+    "numero": "linear-gradient(180deg, #ffffff 30%, #8f96ff)",
+    "barra_grafico": "linear-gradient(90deg, #39c8ff, #5b4bff)"
+  },
+  "tipografia": {
+    "fontes": {
+      "titulo": "Montserrat (Google Fonts) → system-ui",
+      "corpo": "Inter (Google Fonts) → system-ui"
+    },
+    "titulo": { "fonte": "titulo", "peso": 800, "caixa": "MAIÚSCULAS", "tamanho": "clamp(20px, 3.2vw, 28px)", "altura_linha": 1.05, "espacamento": "0.01em", "cor": "texto" },
+    "titulo_destaque": { "estilo": "itálico", "cor": "acento", "regra": "uma palavra por título, a mais importante (ex.: CENTRO DE *COMANDO*)" },
+    "rotulo": { "fonte": "titulo", "peso": 700, "caixa": "MAIÚSCULAS", "tamanho": "11px", "espacamento": "0.16em", "cor": "texto" },
+    "corpo": { "fonte": "corpo", "peso": 400, "tamanho": "14px", "altura_linha": 1.55, "cor": "texto_2" },
+    "apoio": { "fonte": "corpo", "peso": 400, "tamanho": "12.5px", "cor": "texto_3" },
+    "numero_grande": { "fonte": "titulo", "peso": 800, "tamanho": "clamp(30px, 6vw, 44px)", "altura_linha": 1, "cor": "degradê numero" },
+    "numero_passo": { "fonte": "titulo", "peso": 800, "tamanho": "34px", "estilo": "só o contorno, cor acento (01, 02, 03)" },
+    "rodape": { "fonte": "corpo", "peso": 500, "tamanho": "11px", "cor": "texto_3" }
+  },
+  "elementos": {
+    "barra_acento": { "largura": "36px", "altura": "6px", "raio": "3px", "cor": "acento", "onde": "em cima de cada título de painel" },
+    "cartao": { "fundo": "degradê cartao_topo → cartao", "borda": "1px borda", "raio": "16px", "desfoque": "14px", "sombra": "0 10px 30px rgba(0,0,0,.35)" },
+    "cartao_numero": { "conteudo": "rótulo pequeno em cima, número grande, texto de apoio embaixo", "grade": "2 colunas (1 no celular estreito)" },
+    "etiqueta": { "fonte": "rotulo", "tamanho": "10.5px", "raio": "6px", "fundo": "rgba(10,12,30,.7)", "borda": "1px borda_forte" },
+    "botao_principal": { "fundo": "brilhos.botao_principal", "texto": "MAIÚSCULAS, fonte titulo 700, 13px, espaçamento .12em", "raio": "12px", "sombra": "0 8px 24px rgba(70,80,255,.35)" },
+    "botao_secundario": { "fundo": "rgba(20,24,52,.7)", "borda": "1px borda_forte", "raio": "12px" },
+    "botao_seta": { "forma": "círculo 34px", "fundo": "rgba(10,12,30,.8)", "borda": "1px borda_forte", "icone": "›" },
+    "status": { "forma": "pílula", "ok": "bolinha verde com brilho", "atencao": "bolinha amarela" },
+    "rodape": { "texto": "GIDEON · <área> · <data ou hora>", "posicao": "fim do painel" }
+  },
+  "regras": [
+    "Fundo sempre escuro; o brilho azul/violeta fica nos cantos, nunca atrás do texto principal.",
+    "Um título por painel, com a barrinha lilás em cima e uma palavra em itálico.",
+    "Números importantes viram cartões com número grande (nada de número inventado: só dados reais).",
+    "Texto de apoio curto, em cinza-lilás; etiquetas em maiúsculas pequenas.",
+    "No celular: uma coluna quando a tela for estreita; nada de rolagem para o lado."
+  ]
+}

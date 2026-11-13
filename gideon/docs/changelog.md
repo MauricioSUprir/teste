@@ -157,4 +157,9 @@
   - Também tem conversa com a GIDEON, modelos em uso, busca na memória e projetos.
   - Função `nexus` v2 (rota `comando`), agora publicada pelo Git: **v2 = commit `205f136`** (antes: v1 com o arquivo inteiro). Atalho "🌐 Core" no GIDEON Home.
   - Próximas partes: gestos pela câmera; CPU/RAM/GPU do PC (pede uma versão nova do GIDEON PC).
+- **Tema da parte escrita (decisão 025):** os dois modelos do dono viraram `home/tema/gideon-tema.json` + `home/tema/gideon-tema.css`. Aplicado no GIDEON Core:
+  - título em maiúsculas com palavra em itálico lilás e barrinha em cima;
+  - cartões de vidro com números grandes;
+  - passos 01/02/03 na missão nova;
+  - botão em degradê azul-violeta.
 
