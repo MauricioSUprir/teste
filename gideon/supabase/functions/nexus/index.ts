@@ -7,6 +7,7 @@
 //   aprovar    ← { id, aprovar } aprova ou nega um pedido da fila; quem executa é a função gideon; o dono recebe um aviso no Telegram
 //   automacoes ← agendador (pg_cron), baterias de testes, melhorias e missões da equipe
 //   memoria    ← últimos itens que entraram na memória
+//   comando    ← números reais do centro de comando do GIDEON Core (modelos, automações, documentos, projetos, PC, hoje)
 // Arquivos e terminal do PC, Drive, tarefas e busca na memória: o navegador chama direto a rota home-ferramenta da função gideon.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -96,6 +97,54 @@ async function automacoes() {
     equipe: (missoes.data ?? []).map((m) => ({ id: m.id, titulo: m.titulo, status: m.status, criado_em: m.criado_em, concluido_em: m.concluido_em, nota: m.revisao?.nota ?? null })) };
 }
 
+// ---------- centro de comando (GIDEON Core, módulos 41 e 100): números reais do sistema ----------
+async function comando() {
+  const semana = new Date(Date.now() - 7 * 86400_000).toISOString(), hora = new Date(Date.now() - 3600_000).toISOString();
+  const hoje = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  hoje.setHours(0, 0, 0, 0);
+  const inicioHoje = new Date(hoje.getTime() + 3 * 3600_000).toISOString(); // meia-noite de Brasília em UTC
+  const [mods, cron, mem, projs, github, pc, errosHora, execHoje, testes, missoes, aps] = await Promise.all([
+    sb.from("gideon_execucoes").select("modelo").gt("data_hora", semana).neq("canal", "teste").not("modelo", "is", null).limit(10000),
+    sb.rpc("gideon_nexus_automacoes"),
+    sb.from("gideon_memoria").select("tipo, parte:metadados->>parte").limit(20000),
+    sb.from("gideon_projetos").select("nome").eq("ativo", true).order("nome"),
+    sb.from("gideon_memoria").select("link").eq("origem", "github").limit(500),
+    sb.from("gideon_dispositivos").select("visto_em, info").eq("nome", "pc").maybeSingle(),
+    sb.from("gideon_execucoes").select("id", { count: "exact", head: true }).eq("status", "erro").neq("canal", "teste").gt("data_hora", hora),
+    sb.from("gideon_execucoes").select("status, ferramenta, tokens_entrada, tokens_saida").neq("canal", "teste").gt("data_hora", inicioHoje).limit(5000),
+    sb.from("gideon_testes_rodadas").select("nota, passou, total, concluido_em").eq("motivo", "semanal").eq("status", "pronta").order("id", { ascending: false }).limit(1),
+    sb.from("gideon_equipe_missoes").select("id").neq("canal", "sistema").in("status", ["aguardando_ok", "executando", "revisando"]),
+    sb.from("gideon_aprovacoes").select("id, expira_em").eq("status", "pendente"),
+  ]);
+  const usos = new Map<string, number>();
+  for (const { modelo } of mods.data ?? []) if (modelo && modelo !== "cache") usos.set(modelo, (usos.get(modelo) ?? 0) + 1);
+  const tarefas = (cron.data ?? []) as { nome: string; ativo: boolean; falhas_24h: number }[];
+  const porTipo: Record<string, number> = {};
+  let documentos = 0;
+  for (const m of mem.data ?? []) if (!m.parte || m.parte === "1") { documentos++; porTipo[m.tipo] = (porTipo[m.tipo] ?? 0) + 1; }
+  const repos = new Set((github.data ?? []).map((g) => String(g.link ?? "").split("/").slice(0, 5).join("/")).filter(Boolean));
+  const info = (pc.data?.info ?? {}) as Record<string, unknown>;
+  const visto = pc.data?.visto_em ? Math.round((Date.now() - new Date(pc.data.visto_em).getTime()) / 1000) : null;
+  const ex = execHoje.data ?? [];
+  const falhasCron = tarefas.reduce((s, t) => s + Number(t.falhas_24h || 0), 0);
+  const nErros = errosHora.count ?? 0;
+  const motivo = nErros >= 3 ? `${nErros} erros na última hora` : falhasCron ? `${falhasCron} falha(s) no agendador em 24 h` : "";
+  return {
+    agora: agora(),
+    sistema: { status: motivo ? "atencao" : "operacional", motivo },
+    modelos: [...usos].sort((a, b) => b[1] - a[1]).map(([nome, n]) => ({ nome, usos_7d: n })),
+    automacoes: { ativas: tarefas.filter((t) => t.ativo).length, total: tarefas.length, falhas_24h: falhasCron },
+    documentos: { total: documentos, por_tipo: porTipo },
+    projetos: { nomes: (projs.data ?? []).map((p) => p.nome), github: repos.size },
+    pc: { ligado: visto !== null && visto <= 75, visto_ha_segundos: visto, versao: info.versao ?? null, computador: info.computador ?? null, uso: info.uso ?? null },
+    hoje: { pedidos: ex.length, erros: ex.filter((e) => e.status === "erro").length, cache: ex.filter((e) => e.ferramenta === "cache").length,
+      tokens: ex.reduce((s, e) => s + Number(e.tokens_entrada || 0) + Number(e.tokens_saida || 0), 0) },
+    testes: testes.data?.[0] ?? null,
+    equipe_ativas: missoes.data?.length ?? 0,
+    aprovacoes_pendentes: (aps.data ?? []).filter((a) => !a.expira_em || new Date(a.expira_em) > new Date()).length,
+  };
+}
+
 async function memoriaRecente() {
   const { data } = await sb.from("gideon_memoria").select("id, conteudo, resumo, tipo, origem, projeto, link, data_ref, criado_em, metadados").order("id", { ascending: false }).limit(80);
   const vistos = new Set<string>(), itens = [];
@@ -117,6 +166,7 @@ Deno.serve(async (req) => {
     const b = await req.json().catch(() => ({}));
     if (rota === "painel") return json(await painel());
     if (rota === "automacoes") return json(await automacoes());
+    if (rota === "comando") return json(await comando());
     if (rota === "memoria") return json(await memoriaRecente());
     if (rota === "historico") {
       const { data } = await sb.from("gideon_mensagens").select("papel, texto, criado_em").eq("sessao", "nexus").order("criado_em", { ascending: false }).limit(40);
