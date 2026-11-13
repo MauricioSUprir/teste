@@ -123,7 +123,7 @@ Evolução artificial: organismos digitais com características e comportamentos
 
 **86. GIDEON Neural Visualizer**
 Janela para dentro das redes neurais: camadas, conexões, tensores, ativações, atenção entre tokens e fluxo de dados, sem fingir que a imagem explica perfeitamente cada decisão.
-*Hoje:* ⬜ 💻 (dá para começar com um modelo pequeno no navegador)
+*Hoje:* 🟡 **parte 1 feita (13/11, decisão 027):** rede neural de verdade aprendendo ao vivo no aparelho (neurônios, pesos, fronteira de decisão, erro), no Neural Lab. Falta: ver modelos de verdade por dentro (precisa do PC ou de um modelo baixado).
 
 **87. GIDEON Model Surgeon**
 Modifica modelos locais compatíveis: quantização, compressão e ajustes, comparando cada versão com a original em qualidade, velocidade, memória e estabilidade.

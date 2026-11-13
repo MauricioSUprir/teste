@@ -182,4 +182,9 @@
   - Em cada item dá para expandir com IA, virar tarefa de verdade, renomear ou apagar.
   - Os mapas ficam guardados (`gideon_mapas`, migração 019).
   - **No ar:** função `nexus` **v4 = commit `3eb0714`** (antes: v3 = `cb1fdb7`).
+- **GIDEON abre as telas onde o dono estiver (pedido do dono):** ferramenta `abrir_na_tela`.
+  - **Onde abre:** no iPhone (pelo atalho), no GIDEON Home (voz), no Nexus e no Core (a tela muda sozinha), no Telegram (botão 🌐 Abrir, com a chave só no botão) e no PC (navegador; GIDEON PC 2.4).
+  - **Endereços:** `core.html#abrir=comando|gideon|neural|world|missao|mapa|visualizer` (com `mapa=ID` ou `assunto=...`).
+  - **Situação:** commit `8d18219` na função de teste `gideon-teste` v6. Falta conferir os 4 testes e publicar na produção; o conector do Supabase caiu na reinicialização da sessão.
+- **Neural Visualizer (módulo 86, parte 1, decisão 027):** uma rede neural de verdade aprendendo ao vivo no aparelho, com neurônios, pesos, fronteira de decisão e curva do erro, no Neural Lab (tecla 6). Testado: espiral de 70% para 98%, círculo 100%.
 

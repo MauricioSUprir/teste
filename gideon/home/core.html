@@ -135,7 +135,7 @@
 
 <div id="vinheta" aria-hidden="true"></div>
 <div id="rotulos"></div>
-<div id="ajuda">arraste para girar · role para aproximar · 1–4 painéis · 5 mapa · G gestos · Esc fecha</div>
+<div id="ajuda">arraste para girar · role para aproximar · 1–4 painéis · 5 mapa · 6 rede neural · G gestos · Esc fecha</div>
 
 <nav id="doca" aria-label="Painéis do GIDEON Core">
   <button data-abrir="comando">🎛️ Comando<kbd>1</kbd></button>
@@ -465,6 +465,14 @@ async function abrirMapa(opcoes = {}) {
   catch (e) { console.warn("mapa:", e); }
 }
 $("btnMapa").addEventListener("click", abrirMapa);
+// Neural Visualizer (módulo 86): core-neural.js, uma rede neural de verdade aprendendo no aparelho
+let neuralMod = null;
+async function abrirNeural() {
+  if (!chave) { semAcesso(); return; }
+  fechar();
+  try { neuralMod ??= await import("./core-neural.js"); neuralMod.abrirNeural({ pausar: (p) => { cenaPausada = p; } }); }
+  catch (e) { console.warn("neural:", e); }
+}
 function clicar(x, y) {
   ponto.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponto, camera);
@@ -478,6 +486,7 @@ addEventListener("keydown", (e) => {
   else if (e.key === "Escape") fechar();
   else if (e.key === "g" || e.key === "G") alternarGestos();
   else if (e.key === "5") abrirMapa();
+  else if (e.key === "6") abrirNeural();
   else if (e.key === "ArrowLeft") vista.alvoYaw += 0.25;
   else if (e.key === "ArrowRight") vista.alvoYaw -= 0.25;
   else if (e.key === "ArrowUp") vista.alvoPitch = Math.min(1.1, vista.alvoPitch + 0.12);
@@ -521,6 +530,7 @@ function ajustar() {
   composer?.setSize(w, h);
 }
 addEventListener("resize", ajustar); ajustar();
+let cenaPausada = false; // o Neural Visualizer pausa o núcleo para não pesar
 const desloc = { x: 0, y: 0 }; // com painel aberto, a cena vai para a parte da tela que continua livre
 let antes = performance.now(), foco = null;
 function quadro(agora) {
@@ -540,7 +550,7 @@ function quadro(agora) {
   if (Math.abs(desloc.x) + Math.abs(desloc.y) < 0.5) camera.clearViewOffset();
   else camera.setViewOffset(innerWidth, innerHeight, desloc.x, desloc.y, innerWidth, innerHeight);
   animarCena(dt, t, ritmo);
-  if (renderer) { composer ? composer.render() : renderer.render(cena, camera); }
+  if (renderer && !cenaPausada) { composer ? composer.render() : renderer.render(cena, camera); }
   moverRotulos();
   requestAnimationFrame(quadro);
 }
@@ -562,6 +572,7 @@ let aberto = null, atualizar = null;
 function abrir(id) {
   if (!chave) { semAcesso(); return; }
   if (mapaMod?.mapaAberto()) mapaMod.fecharMapa();
+  if (neuralMod?.neuralAberto()) neuralMod.fecharNeural();
   aberto = id; clearInterval(atualizar); atualizar = null;
   const [txt, destaque] = TITULOS[id] || [id, ""];
   $("tituloPainel").replaceChildren(txt, el("em", { textContent: destaque }));
@@ -576,6 +587,7 @@ function abrir(id) {
 }
 function fechar() {
   if (mapaMod?.mapaAberto()) { mapaMod.fecharMapa(); return; } // Esc e punho fecham primeiro o mapa
+  if (neuralMod?.neuralAberto()) { neuralMod.fecharNeural(); return; }
   aberto = null; foco = null; clearInterval(atualizar); atualizar = null;
   const p = $("painel"); p.classList.remove("aberto"); p.setAttribute("aria-hidden", "true");
   canvas.focus({ preventScroll: true });
@@ -706,9 +718,11 @@ async function painelNeural(c) {
       el("span", { style: "flex:1" }, [m.nome, el("div", { className: "barra" }, [el("i", { style: `width:${Math.round((m.usos_7d / max) * 100)}%` })])]),
       el("span", { className: "v", textContent: num(m.usos_7d) }),
     ])), el("p", { className: "suave", textContent: "Roteador: pedido simples vai para o modelo rápido, difícil para o forte, e pergunta repetida sai do cache sem gastar IA." })),
+    bloco("Por dentro de uma IA", el("p", { className: "suave", textContent: "Veja uma rede neural de verdade aprendendo agora, no seu aparelho: neurônios acendendo, pesos mudando e a fronteira de decisão se formando." }),
+      el("div", { className: "acoes" }, [el("button", { className: "btn grande", textContent: "Abrir o Neural Visualizer", onclick: () => abrirNeural() })])),
     bloco("Memória", linha("Documentos indexados", num(dados.documentos.total)), busca, el("div", { className: "acoes" }, [el("button", { className: "btn", textContent: "Procurar", onclick: procurar })]), res),
     bloco("Qualidade", linha("Nota dos testes semanais", dados.testes ? `${String(dados.testes.nota).replace(".", ",")}/10` : "—", "a GIDEON se testa todo domingo e propõe melhorias")),
-    bloco("Módulos deste lab", chipsModulos([[71, "Cognitive Router", "parte"], [89, "Benchmark", "parte"], [88, "Dados sintéticos", "parte"], [75, "Knowledge Forge", "parte"], [86, "Neural Visualizer"], [87, "Model Surgeon"], [90, "Neural Compiler"]])),
+    bloco("Módulos deste lab", chipsModulos([[71, "Cognitive Router", "parte"], [89, "Benchmark", "parte"], [88, "Dados sintéticos", "parte"], [75, "Knowledge Forge", "parte"], [86, "Neural Visualizer", "parte"], [87, "Model Surgeon"], [90, "Neural Compiler"]])),
   );
 }
 
@@ -772,6 +786,7 @@ async function painelMissao(c) {
 function obedecer(p) {
   if (!p || !chave) return;
   if (p.alvo === "mapa") abrirMapa({ id: p.mapa || null, assunto: p.assunto || null });
+  else if (p.alvo === "visualizer") abrirNeural();
   else if (["comando", "gideon", "neural", "world", "missao"].includes(p.alvo)) abrir(p.alvo);
 }
 setTimeout(() => obedecer(pedidoAbrir), 400);

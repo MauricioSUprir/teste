@@ -220,8 +220,8 @@ export const FERRAMENTAS = [
       limite: { type: "integer", description: "Até 40; padrão 20" } } } },
   { name: "enviar_telegram", description: "Manda uma mensagem por escrito no Telegram do dono (só para ele). Use quando ele pedir 'me manda isso no Telegram', 'manda o link no meu Telegram', de qualquer canal. No próprio Telegram, use só para mandar algo separado (ex.: reenviar um texto antigo).", parameters: { type: "object", properties: {
       texto: { type: "string", description: "O texto exato da mensagem, com os links" } }, required: ["texto"] } },
-  { name: "abrir_na_tela", description: "ABRE para o dono uma tela da GIDEON onde ele estiver falando com você (iPhone, GIDEON Home, Nexus, Core) ou no PC: o GIDEON Core (núcleo 3D), o centro de comando, os labs, o Thought Map (um mapa guardado ou um mapa novo sobre um assunto), a nova missão da equipe, o Nexus OS, o painel da equipe ou a tela de voz. Use quando ele disser 'abre o Core', 'abre o centro de comando', 'abre o mapa de X', 'faz um mapa sobre X', 'me mostra o Nexus'. No Telegram vai um botão Abrir.", parameters: { type: "object", properties: {
-      destino: { type: "string", enum: ["core", "comando", "gideon_lab", "neural_lab", "world_lab", "mapa", "missao", "nexus", "equipe", "voz"] },
+  { name: "abrir_na_tela", description: "ABRE para o dono uma tela da GIDEON onde ele estiver falando com você (iPhone, GIDEON Home, Nexus, Core) ou no PC: o GIDEON Core (núcleo 3D), o centro de comando, os labs, o Thought Map (um mapa guardado ou um mapa novo sobre um assunto), o Neural Visualizer (ver uma rede neural aprendendo), a nova missão da equipe, o Nexus OS, o painel da equipe ou a tela de voz. Use quando ele disser 'abre o Core', 'abre o centro de comando', 'abre o mapa de X', 'faz um mapa sobre X', 'me mostra o Nexus'. No Telegram vai um botão Abrir.", parameters: { type: "object", properties: {
+      destino: { type: "string", enum: ["core", "comando", "gideon_lab", "neural_lab", "world_lab", "mapa", "missao", "neural_visualizer", "nexus", "equipe", "voz"] },
       mapa: { type: "string", description: "Só com destino mapa: nome (ou parte do nome) de um mapa guardado para abrir" },
       assunto: { type: "string", description: "Só com destino mapa: assunto para montar um mapa NOVO" },
       no_pc: { type: "boolean", description: "true só quando ele pedir para abrir no computador" } }, required: ["destino"] } },
@@ -331,7 +331,7 @@ export async function executar(nome: string, a: Args, canal: string): Promise<un
       const destino = String(a.destino ?? "core");
       const PAGINAS: Record<string, [string, string]> = { nexus: ["nexus.html", "o Nexus OS"], equipe: ["equipe.html", "o painel da equipe"], voz: ["", "o GIDEON Home (voz)"] };
       const ALVOS: Record<string, [string, string]> = { core: ["", "o GIDEON Core"], comando: ["comando", "o centro de comando"], gideon_lab: ["gideon", "o GIDEON Lab"],
-        neural_lab: ["neural", "o Neural Lab"], world_lab: ["world", "o World Lab"], mapa: ["mapa", "o Thought Map"], missao: ["missao", "a nova missão da equipe"] };
+        neural_lab: ["neural", "o Neural Lab"], world_lab: ["world", "o World Lab"], mapa: ["mapa", "o Thought Map"], missao: ["missao", "a nova missão da equipe"], neural_visualizer: ["visualizer", "o Neural Visualizer (a rede neural aprendendo ao vivo)"] };
       let caminho = "", nome = "";
       if (PAGINAS[destino]) [caminho, nome] = PAGINAS[destino];
       else if (ALVOS[destino]) {
