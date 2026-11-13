@@ -18,3 +18,8 @@ A cabeça (`../rosto-cabeca.js`) vem do modelo base do [MakeHuman](http://www.ma
 npx esbuild entrada-core.js --bundle --format=esm --minify --legal-comments=eof --outfile=three-core.js
 ```
 
+
+- `mediapipe/`: leitor de mãos do GIDEON Core (gestos, `../core-gestos.js`), hospedado aqui para não depender de site de fora.
+  - `vision_bundle.mjs` e `wasm/vision_wasm_internal.*`: pacote `@mediapipe/tasks-vision@1.2.0` (licença Apache 2.0, Google). Veio de `npm pack @mediapipe/tasks-vision@1.2.0`. Só a versão SIMD do wasm; navegadores muito antigos ficam sem gestos.
+  - `hand_landmarker.task`: modelo de mãos do MediaPipe (float16, versão 1, Apache 2.0). Veio de https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+  - Tudo roda no navegador: a imagem da câmera não sai do aparelho.

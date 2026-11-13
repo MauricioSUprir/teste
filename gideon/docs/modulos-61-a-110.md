@@ -13,7 +13,7 @@ Legenda do "Hoje" (o que a GIDEON já tem): ✅ já existe · 🟡 existe em par
 
 **61. GIDEON Holographic Interface**
 Interface 3D controlada por gestos. Um núcleo digital flutua na tela: mexer a mão diante da câmera o faz girar; aproximar os dedos aumenta um objeto 3D; abrir a mão mostra um menu circular de módulos. Tecnologias: Three.js, MediaPipe, WebGL e rastreamento de mãos. A primeira versão é 3D na tela, não holograma físico.
-*Hoje:* 🟡 **parte 1 feita (13/11, decisão 024):** núcleo 3D no GIDEON Core, controlado por mouse, toque e teclado. Falta: gestos pela câmera.
+*Hoje:* 🟡 **partes 1 e 2 feitas (13/11, decisão 024):** núcleo 3D no GIDEON Core, controlado por mouse, toque, teclado **e gestos pela câmera** (apontar, pinça, girar, zoom, menu circular, punho). Falta: o teste do dono com a mão de verdade.
 
 **62. GIDEON Spatial Computing**
 Ambiente de trabalho espacial: código à esquerda, simulação à direita, agentes acima e a GIDEON no centro. Painéis 3D reorganizáveis por mouse, gestos ou realidade mista. Objetivo: trocar janelas soltas por uma sala de controle digital.

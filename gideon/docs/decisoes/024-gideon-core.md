@@ -61,3 +61,19 @@
 - **Detalhes:** ao abrir, o núcleo "acende" crescendo. O lab embaixo do mouse aumenta um pouco, e o lab escolhido fica de frente e maior.
 - **Testes:** navegador de testes no computador e no celular; os quatro painéis, a missão, a conversa e a memória funcionaram, sem erro.
 
+## Parte 2 (13/11/2026): gestos pela câmera (módulo 61)
+- **Liga e desliga** no botão **✋ Gestos** da barra de baixo (ou a tecla G). A câmera só liga nessa hora. A imagem é lida no próprio aparelho, pelo MediaPipe no navegador; **nada da câmera vai para servidor nenhum**. Aparece uma janelinha com a câmera e os pontos da mão, e a lista dos gestos.
+- **Gestos:**
+  - ☝️ **Apontar o indicador:** cursor de luz na tela.
+  - 🤏 **Pinça rápida** (polegar no indicador): clica no que está embaixo do cursor (lab, núcleo, nome, botão do painel ou link).
+  - 🤏 **Segurar a pinça e mexer:** gira o núcleo. Aproximar a mão da câmera com a pinça aproxima a vista; afastar, afasta.
+  - 🖐️ **Mão aberta parada (0,6 s):** menu circular com Comando, os três labs, Voz, Nexus e Equipe. Aponte e faça a pinça para escolher.
+  - ✊ **Punho:** fecha o menu ou o painel aberto.
+- **Código:** `home/core-gestos.js`, carregado só quando os gestos são ligados.
+- **Arquivos hospedados no próprio site** (`home/vendor/mediapipe/`, uns 23 MB): MediaPipe tasks-vision 1.2.0 e o modelo de mãos, os dois com licença Apache 2.0. O jsdelivr nem foi preciso.
+- **Testes:**
+  - **Câmera falsa do navegador de testes:** o leitor de mãos carregou em 9 s e ficou esperando a mão, sem erro.
+  - **Mãos simuladas** (pontos da mão montados à mão): cada forma foi reconhecida (aberta, punho, apontar, pinça).
+  - **Ações:** mão aberta abriu o menu; apontar para cima e fazer a pinça abriu o Comando; o punho fechou; pinça e mexer girou; pinça e aproximar deu zoom; a mão sumir escondeu o cursor.
+  - **Falta** o teste com uma mão de verdade, que só o dono pode fazer, no PC ou no celular.
+

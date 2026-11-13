@@ -50,6 +50,7 @@
   nav#doca button, nav#doca a { flex:0 0 auto; background:transparent; border:1px solid transparent; border-radius:11px; padding:6px 10px; cursor:pointer;
     color:var(--texto); text-decoration:none; font-size:13px; white-space:nowrap; }
   nav#doca button:hover, nav#doca a:hover, nav#doca button:focus-visible, nav#doca a:focus-visible { border-color:var(--borda); background:rgba(16,49,74,.5); outline:none; }
+  nav#doca button.ligado { border-color:var(--g-acento); background:rgba(31,91,255,.25); }
   nav#doca .sep { width:1px; background:var(--borda); margin:4px 2px; flex:0 0 1px; }
   nav#doca kbd { font:10px ui-monospace, monospace; color:var(--suave); margin-left:4px; }
 
@@ -141,6 +142,7 @@
   <button data-abrir="gideon">🧪 GIDEON Lab<kbd>2</kbd></button>
   <button data-abrir="neural">🧠 Neural Lab<kbd>3</kbd></button>
   <button data-abrir="world">🌎 World Lab<kbd>4</kbd></button>
+  <button id="btnGestos" aria-pressed="false" title="Controlar com a mão pela câmera (a imagem não sai do aparelho)">✋ Gestos<kbd>G</kbd></button>
   <span class="sep"></span>
   <a href="./" id="lnkVoz">🎙️ Voz</a>
   <a href="nexus.html">🖥️ Nexus</a>
@@ -401,6 +403,37 @@ canvas.addEventListener("pointermove", (e) => {
   canvas.style.cursor = hover ? "pointer" : "";
 });
 canvas.addEventListener("pointerleave", () => { hover = null; });
+// ---------- gestos pela câmera (core-gestos.js, carregado só quando o dono liga) ----------
+const controle = {
+  girar(dx, dy) { vista.alvoYaw -= dx; vista.alvoPitch = THREE.MathUtils.clamp(vista.alvoPitch + dy, -0.15, 1.1); ultimoToque = performance.now(); },
+  distancia: () => vista.alvoDist,
+  definirDistancia(d) { vista.alvoDist = THREE.MathUtils.clamp(d, vista.minDist, vista.maxDist); ultimoToque = performance.now(); },
+  apontar(c) {
+    if (!c) { hover = null; return; }
+    ponto.set((c.x / innerWidth) * 2 - 1, -(c.y / innerHeight) * 2 + 1); raio.setFromCamera(ponto, camera);
+    hover = raio.intersectObjects(alvos, false)[0]?.object.userData.abrir ?? null;
+  },
+  clicar(x, y) { // o que estiver embaixo do cursor: peça da cena, nome, botão, link ou campo
+    const alvo = document.elementFromPoint(x, y);
+    if (!alvo || alvo === canvas) { clicar(x, y); return; }
+    const b = alvo.closest("button, a, input, textarea, summary");
+    if (b) b.matches("input, textarea") ? b.focus() : b.click();
+  },
+  abrir: (id) => abrir(id), fechar: () => fechar(),
+};
+window.__gideonCore = { controle, vista, estado: () => ({ aberto, hover }) }; // para os testes
+let gestos = null;
+async function alternarGestos() {
+  const b = $("btnGestos");
+  const marcar = (on) => { b.setAttribute("aria-pressed", String(on)); b.classList.toggle("ligado", on); $("ajuda").hidden = on; };
+  try {
+    gestos ??= await import("./core-gestos.js");
+    if (gestos.ligado()) { gestos.desligar(); marcar(false); return; }
+    marcar(true);
+    await gestos.ligar(controle);
+  } catch (e) { console.warn("gestos:", e); marcar(false); }
+}
+$("btnGestos").addEventListener("click", alternarGestos);
 function clicar(x, y) {
   ponto.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponto, camera);
@@ -412,6 +445,7 @@ addEventListener("keydown", (e) => {
   const mapa = { "1": "comando", "2": "gideon", "3": "neural", "4": "world" };
   if (mapa[e.key]) { abrir(mapa[e.key]); e.preventDefault(); }
   else if (e.key === "Escape") fechar();
+  else if (e.key === "g" || e.key === "G") alternarGestos();
   else if (e.key === "ArrowLeft") vista.alvoYaw += 0.25;
   else if (e.key === "ArrowRight") vista.alvoYaw -= 0.25;
   else if (e.key === "ArrowUp") vista.alvoPitch = Math.min(1.1, vista.alvoPitch + 0.12);

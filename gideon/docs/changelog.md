@@ -168,4 +168,10 @@
   - os labs viraram cristais, com arcos de dados e pulsos;
   - fundo preto profundo.
   - Tema 1.1: azul elétrico e ciano, sem roxo (decisões 024 e 025).
+- **GIDEON Core, gestos pela câmera (módulo 61, parte 2):**
+  - botão "✋ Gestos";
+  - apontar = cursor; pinça = clicar; pinça e mexer = girar e zoom; mão aberta = menu circular; punho = fechar;
+  - a câmera só liga no botão e a imagem não sai do aparelho;
+  - leitor de mãos (MediaPipe 1.2.0 e o modelo) hospedado no próprio site.
+  - Testado com câmera falsa e mãos simuladas; falta o teste do dono com a mão de verdade.
 
