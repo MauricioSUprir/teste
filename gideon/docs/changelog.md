@@ -143,4 +143,7 @@
   - **Relatório de domingo:** linha nova "Respondidos pelo cache (sem gastar IA)".
   - **No ar:** **v43 = commit `e3e9700`** (antes: v42 = commit `9ee6f93`). Testado na `gideon-teste` e conferido em produção: Telegram ligado, lembretes respondem, pergunta repetida veio do cache em 0,55 s.
 - **Self-Improving, 2ª bateria conferida (rodada 3, 12/11 às 7h):** nota 9,7 (29 de 30; antes 9,3). A falha (teste 14) era engano do juiz, já corrigido; passou na rodada 6. A regra testada ficou sem ganho (quebrou 2 testes na confirmação) e não foi proposta. Relatório de domingo conferido sem enviar. Detalhes na decisão 018, seção Testes.
+- **Voz da GIDEON mais suave e fria (pedido do dono, 12/11):** o GIDEON Home ganhou no prompt de voz o "jeito de falar": suave, calma, fria e controlada, tom neutro, sem entusiasmo e em ritmo normal (não lento). O timbre continua `Kore` até o dono escolher entre 5 amostras (Kore, Despina, Achernar, Erinome, Vindemiatrix); a troca é só mudar `gideon_config.voz_gideon`, sem publicar.
+  - **Amostras:** geradas por uma função temporária `gideon-vozes` (só gera áudio de uma frase fixa, protegida por uma chave descartável). Ela é desligada depois da escolha. O limite grátis de voz do Google acabou depois de 9 amostras no dia.
+  - **No ar:** **v44 = commit `c50453f`** (antes: v43 = commit `e3e9700`). Conferido: Telegram ligado, lembretes respondem, o GIDEON Home abre a sessão de voz com o estilo novo no prompt.
 
