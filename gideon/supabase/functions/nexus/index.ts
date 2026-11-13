@@ -8,6 +8,7 @@
 //   automacoes ← agendador (pg_cron), baterias de testes, melhorias e missões da equipe
 //   memoria    ← últimos itens que entraram na memória
 //   comando    ← números reais do centro de comando do GIDEON Core (modelos, automações, documentos, projetos, PC, hoje)
+//   entrar     ← { codigo } SEM chave: troca um código de entrada de uso único (15 min) pela chave do Home (30 dias). Para quando o Telegram está fora.
 // Arquivos e terminal do PC, Drive, tarefas e busca na memória: o navegador chama direto a rota home-ferramenta da função gideon.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -53,6 +54,29 @@ async function avisarDono(texto: string) { // o que é decidido pelo Nexus tamb�
   if (!token || !data?.valor || !texto.trim()) return;
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: data.valor, text: texto.slice(0, 4000) }) }).then((r) => r.body?.cancel()).catch(() => {});
+}
+
+// ---------- código de entrada: entrar sem o Telegram ----------
+async function sha256(txt: string) {
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
+  return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function entrar(codigo: string) {
+  const limpo = codigo.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (limpo.length < 6 || limpo.length > 12) return { ok: false, erro: "código inválido" };
+  const { data } = await sb.from("gideon_codigos_entrada").update({ usado_em: agora() })
+    .eq("hash", await sha256(limpo)).is("usado_em", null).gt("expira_em", agora()).lt("tentativas", 8).select("id"); // só um uso
+  if (!data?.length) {
+    // errou: conta a tentativa em todos os códigos que ainda valem (8 erros e eles param de valer)
+    const { data: ativos } = await sb.from("gideon_codigos_entrada").select("id, tentativas").is("usado_em", null).gt("expira_em", agora());
+    for (const a of ativos ?? []) await sb.from("gideon_codigos_entrada").update({ tentativas: a.tentativas + 1 }).eq("id", a.id);
+    return { ok: false, erro: "código errado, usado ou vencido" };
+  }
+  const exp = String(Date.now() + 30 * 86400_000);
+  const chave = `${exp}.${(await hmac(await segredo(), "home:" + exp)).slice(0, 40)}`; // a mesma conta da chave do /home (home.ts)
+  await sb.from("gideon_acoes").insert({ quem: "gideon/nexus", acao: "entrada_por_codigo", alvo: String(data[0].id), detalhes: { validade_dias: 30 }, reversivel: false });
+  await avisarDono("🔑 Alguém entrou no GIDEON Home/Core com um código de entrada (vale 30 dias neste aparelho). Se não foi você, avise o Claude.");
+  return { ok: true, chave };
 }
 
 // ---------- central de notificações ----------
@@ -162,6 +186,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   const rota = new URL(req.url).pathname.split("/").filter(Boolean).pop();
   try {
+    if (rota === "entrar") { // única rota sem chave
+      const b = await req.json().catch(() => ({}));
+      const r = await entrar(String(b.codigo ?? ""));
+      return json(r, r.ok ? 200 : 403);
+    }
     if (!(await validar(req))) return json({ erro: "acesso negado: abra o link /home do Telegram uma vez neste navegador" }, 401);
     const b = await req.json().catch(() => ({}));
     if (rota === "painel") return json(await painel());

@@ -180,9 +180,29 @@ async function api(funcao, rota, corpo) {
 const nexus = (rota, corpo) => api("nexus", rota, corpo);
 const ferramenta = (nome, args) => api("gideon", "home-ferramenta", { nome, args }).then((j) => j.resultado ?? {});
 function semAcesso() {
-  const a = $("aviso"); a.hidden = false; a.replaceChildren(
+  const a = $("aviso"); if (!a.hidden) return; a.hidden = false;
+  const campo = el("input", { type: "text", placeholder: "código de entrada", autocomplete: "one-time-code", autocapitalize: "characters", spellcheck: false, maxLength: 14 });
+  campo.style.cssText = "text-align:center; letter-spacing:.2em; font:700 18px var(--g-fonte-titulo); text-transform:uppercase; margin-top:6px";
+  const botao = el("button", { className: "btn grande", textContent: "Entrar" });
+  const msg = el("p", { className: "suave" });
+  const entrar = async () => {
+    const codigo = campo.value.trim(); if (!codigo) { campo.focus(); return; }
+    botao.disabled = true; msg.className = "suave carregando"; msg.textContent = "Conferindo";
+    try {
+      const r = await fetch(FUNC + "nexus/entrar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ codigo }) });
+      const j = await r.json().catch(() => ({}));
+      if (!j.ok || !j.chave) throw new Error(j.erro || "não deu certo");
+      try { localStorage.setItem("gideon_home", j.chave); } catch { /* sem armazenamento */ }
+      msg.className = "suave"; msg.textContent = "Liberado neste aparelho por 30 dias. Abrindo…";
+      setTimeout(() => location.reload(), 600);
+    } catch (e) { msg.className = "erro"; msg.textContent = "Não entrou: " + e.message + "."; botao.disabled = false; }
+  };
+  botao.addEventListener("click", entrar);
+  campo.addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+  a.replaceChildren(
     el("p", { textContent: "🔒 Para abrir o GIDEON Core, mande /home no Telegram da GIDEON e abra o link pessoal uma vez neste aparelho." }),
-    el("p", { className: "suave", textContent: "Depois disso, este endereço abre direto." }));
+    el("p", { className: "suave", textContent: "Sem Telegram? Peça um código de entrada ao Claude e digite aqui (vale 15 minutos, uma vez só):" }),
+    campo, botao, msg);
   $("estadoTexto").textContent = "sem acesso";
 }
 const num = (n) => Number(n ?? 0).toLocaleString("pt-BR");
