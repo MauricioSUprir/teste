@@ -178,4 +178,8 @@
   - Rota `nexus/entrar` e tabela `gideon_codigos_entrada` (migração 018). No banco fica só o hash; trava depois de 8 erros.
   - **No ar:** função `nexus` **v3 = commit `cb1fdb7`** (antes: v2 = `205f136`).
   - O dono entrou no iPhone assim.
+- **Thought Map (módulo 72, decisão 026):** botão "🧭 Mapa" no GIDEON Core. A IA transforma um problema num mapa com partes, hipóteses, alternativas, riscos e dependências.
+  - Em cada item dá para expandir com IA, virar tarefa de verdade, renomear ou apagar.
+  - Os mapas ficam guardados (`gideon_mapas`, migração 019).
+  - **No ar:** função `nexus` **v4 = commit `3eb0714`** (antes: v3 = `cb1fdb7`).
 

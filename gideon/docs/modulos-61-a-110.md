@@ -61,7 +61,7 @@ Roteador de modelos e ferramentas: pergunta simples vai para o modelo rápido; m
 
 **72. GIDEON Thought Map**
 Mapa visual interativo para resolver problemas: "criar um computador com IA" se divide em hardware, software, interface, modelos, memória, voz, visão e protótipo. Cada nó pode ser aberto, editado, comparado e virar tarefa de verdade.
-*Hoje:* ⬜
+*Hoje:* ✅ **feito (13/11, decisão 026):** botão 🧭 Mapa no GIDEON Core; a IA monta, expande; itens viram tarefas de verdade; mapas guardados.
 
 **73. GIDEON Counterfactual Engine**
 Simulador de decisões alternativas: "e se eu tivesse usado outra linguagem nesse projeto?" compara custo, tempo, manutenção, desempenho e riscos, mostrando as premissas para não vender hipótese como certeza.

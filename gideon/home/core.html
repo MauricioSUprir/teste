@@ -135,13 +135,14 @@
 
 <div id="vinheta" aria-hidden="true"></div>
 <div id="rotulos"></div>
-<div id="ajuda">arraste para girar · role para aproximar · 1–4 abre os painéis · Esc fecha</div>
+<div id="ajuda">arraste para girar · role para aproximar · 1–4 painéis · 5 mapa · G gestos · Esc fecha</div>
 
 <nav id="doca" aria-label="Painéis do GIDEON Core">
   <button data-abrir="comando">🎛️ Comando<kbd>1</kbd></button>
   <button data-abrir="gideon">🧪 GIDEON Lab<kbd>2</kbd></button>
   <button data-abrir="neural">🧠 Neural Lab<kbd>3</kbd></button>
   <button data-abrir="world">🌎 World Lab<kbd>4</kbd></button>
+  <button id="btnMapa" title="Thought Map: o problema vira um mapa de partes, riscos e alternativas">🧭 Mapa<kbd>5</kbd></button>
   <button id="btnGestos" aria-pressed="false" title="Controlar com a mão pela câmera (a imagem não sai do aparelho)">✋ Gestos<kbd>G</kbd></button>
   <span class="sep"></span>
   <a href="./" id="lnkVoz">🎙️ Voz</a>
@@ -454,6 +455,15 @@ async function alternarGestos() {
   } catch (e) { console.warn("gestos:", e); marcar(false); }
 }
 $("btnGestos").addEventListener("click", alternarGestos);
+// Thought Map (módulo 72): core-mapa.js, carregado na primeira vez que abre
+let mapaMod = null;
+async function abrirMapa() {
+  if (!chave) { semAcesso(); return; }
+  fechar();
+  try { mapaMod ??= await import("./core-mapa.js"); mapaMod.abrirMapa({ nexus }); }
+  catch (e) { console.warn("mapa:", e); }
+}
+$("btnMapa").addEventListener("click", abrirMapa);
 function clicar(x, y) {
   ponto.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
   raio.setFromCamera(ponto, camera);
@@ -466,6 +476,7 @@ addEventListener("keydown", (e) => {
   if (mapa[e.key]) { abrir(mapa[e.key]); e.preventDefault(); }
   else if (e.key === "Escape") fechar();
   else if (e.key === "g" || e.key === "G") alternarGestos();
+  else if (e.key === "5") abrirMapa();
   else if (e.key === "ArrowLeft") vista.alvoYaw += 0.25;
   else if (e.key === "ArrowRight") vista.alvoYaw -= 0.25;
   else if (e.key === "ArrowUp") vista.alvoPitch = Math.min(1.1, vista.alvoPitch + 0.12);
@@ -549,6 +560,7 @@ const TITULOS = { comando: ["Centro de ", "comando"], gideon: ["GIDEON ", "Lab"]
 let aberto = null, atualizar = null;
 function abrir(id) {
   if (!chave) { semAcesso(); return; }
+  if (mapaMod?.mapaAberto()) mapaMod.fecharMapa();
   aberto = id; clearInterval(atualizar); atualizar = null;
   const [txt, destaque] = TITULOS[id] || [id, ""];
   $("tituloPainel").replaceChildren(txt, el("em", { textContent: destaque }));
@@ -562,6 +574,7 @@ function abrir(id) {
   $("fechar").focus({ preventScroll: true });
 }
 function fechar() {
+  if (mapaMod?.mapaAberto()) { mapaMod.fecharMapa(); return; } // Esc e punho fecham primeiro o mapa
   aberto = null; foco = null; clearInterval(atualizar); atualizar = null;
   const p = $("painel"); p.classList.remove("aberto"); p.setAttribute("aria-hidden", "true");
   canvas.focus({ preventScroll: true });
@@ -642,12 +655,13 @@ async function painelGideon(c) {
     bloco("Conversar com a GIDEON", lista, caixa, el("div", { className: "acoes" }, [enviar])),
     bloco("Ações",
       el("div", { className: "acoes" }, [
+        el("button", { className: "btn", textContent: "🧭 Thought Map", onclick: () => abrirMapa() }),
         el("button", { className: "btn", textContent: "🚀 Nova missão da equipe", onclick: () => abrir("missao") }),
         el("a", { className: "btn", href: "./", textContent: "🎙️ Falar por voz" }),
         el("a", { className: "btn", href: "nexus.html", textContent: "🖥️ Nexus OS" }),
         el("a", { className: "btn", href: "equipe.html", textContent: "👥 Painel da equipe" }),
       ])),
-    bloco("Módulos deste lab", chipsModulos([[61, "Interface 3D", "parte"], [100, "GIDEON Core", "parte"], [62, "Spatial Computing"], [63, "Reconstrutor 3D"], [64, "Invention Lab"], [65, "Bancada virtual"], [72, "Thought Map"]])),
+    bloco("Módulos deste lab", chipsModulos([[61, "Interface 3D", "parte"], [100, "GIDEON Core", "parte"], [62, "Spatial Computing"], [63, "Reconstrutor 3D"], [64, "Invention Lab"], [65, "Bancada virtual"], [72, "Thought Map", "pronto"]])),
   );
   try {
     const h = await nexus("historico");
